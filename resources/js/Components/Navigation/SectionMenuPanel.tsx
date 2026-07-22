@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/react';
 import { ArrowUpRight } from 'lucide-react';
 import {
   isDomainActive,
+  isDomainVisible,
   isLeafVisible,
   type NavDomain,
   type NavigationAccess,
@@ -17,9 +18,16 @@ interface SectionMenuPanelProps {
 }
 
 export function SectionMenuPanel({ section, access, url, onNavigate }: SectionMenuPanelProps) {
+  // Callers normally provide a section already filtered by visibleSections(),
+  // but keep this projection defensive so a feature-gated domain can never be
+  // reached via keyboard navigation when this panel is used on its own.
+  const domains = useMemo(
+    () => section.domains.filter((domain) => isDomainVisible(domain, access)),
+    [access, section.domains],
+  );
   const initialDomain = useMemo(
-    () => section.domains.find((domain) => isDomainActive(domain, url)) ?? section.domains[0],
-    [section.domains, url],
+    () => domains.find((domain) => isDomainActive(domain, url)) ?? domains[0],
+    [domains, url],
   );
   const [selectedKey, setSelectedKey] = useState(initialDomain?.key);
   const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
@@ -28,32 +36,32 @@ export function SectionMenuPanel({ section, access, url, onNavigate }: SectionMe
     setSelectedKey(initialDomain?.key);
   }, [initialDomain?.key]);
 
-  const selected = section.domains.find((domain) => domain.key === selectedKey) ?? initialDomain;
+  const selected = domains.find((domain) => domain.key === selectedKey) ?? initialDomain;
   if (!selected) return null;
 
   const selectDomain = (index: number) => {
-    const domain = section.domains[index];
+    const domain = domains[index];
     if (!domain) return;
     setSelectedKey(domain.key);
     tabsRef.current[index]?.focus();
   };
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const currentIndex = section.domains.findIndex((domain) => domain.key === selected.key);
+    const currentIndex = domains.findIndex((domain) => domain.key === selected.key);
     if (currentIndex < 0) return;
 
     if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
       event.preventDefault();
-      selectDomain((currentIndex + 1) % section.domains.length);
+      selectDomain((currentIndex + 1) % domains.length);
     } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
       event.preventDefault();
-      selectDomain((currentIndex - 1 + section.domains.length) % section.domains.length);
+      selectDomain((currentIndex - 1 + domains.length) % domains.length);
     } else if (event.key === 'Home') {
       event.preventDefault();
       selectDomain(0);
     } else if (event.key === 'End') {
       event.preventDefault();
-      selectDomain(section.domains.length - 1);
+      selectDomain(domains.length - 1);
     }
   };
 
@@ -77,7 +85,7 @@ export function SectionMenuPanel({ section, access, url, onNavigate }: SectionMe
         onKeyDown={handleTabKeyDown}
         className="w-52 flex-shrink-0 border-r border-healthcare-border bg-healthcare-background/60 p-2 dark:border-healthcare-border-dark dark:bg-healthcare-background-dark/60"
       >
-        {section.domains.map((domain, index) => {
+        {domains.map((domain, index) => {
           const Icon = domain.icon;
           const selectedDomain = domain.key === selected.key;
           return (

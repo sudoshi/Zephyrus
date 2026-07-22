@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\Patient\AuthController;
+use App\Http\Controllers\Api\Patient\EducationClarificationController;
 use App\Http\Controllers\Api\Patient\EncounterController;
 use App\Http\Controllers\Api\Patient\EncounterProjectionController;
-use App\Http\Controllers\Api\Patient\EducationClarificationController;
 use App\Http\Controllers\Api\Patient\MeController;
 use App\Http\Controllers\Api\Patient\MessagingController;
 use App\Http\Controllers\Api\Patient\NotificationDeviceController;

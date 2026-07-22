@@ -53,6 +53,8 @@ describe('SectionMenuPanel', () => {
       />,
     );
 
+    expect(screen.queryByRole('tab', { name: 'Care Pathways' })).not.toBeInTheDocument();
+
     fireEvent.keyDown(screen.getByRole('tablist', { name: 'Workspaces navigation' }), {
       key: 'ArrowRight',
     });
