@@ -11,7 +11,7 @@ Prior context: `docs/hummingbird/FLOW-WINDOW-PLAN.md`, memory
 
 ## 0. TL;DR — where we are
 
-- **Flow Window Phases 0–5: DONE, committed, pushed** (branch `codex/hummingbird-login`, `155d7e1..14f98ae`). Web 3D Navigator + mobile 2.5D map + backend, all green.
+- **Security note:** Historical runtime credentials were removed from this devlog; obtain access through protected runtime configuration.
 - **NATIVE-4D-VIEWER — the active track:**
   - **Phase A (backend duties layer + 3D substrate): DONE + verified, UNCOMMITTED.**
   - **Phase B (native SceneKit 3D on iOS): FOUNDATION rendering on-device, UNCOMMITTED.** Reaches geometry+camera; patient tokens / time / picking / Android still open.
@@ -83,14 +83,14 @@ Native SceneKit 3D twin. **Renders on iPhone 17 Pro** (verified visually).
 
 ## 5. CRITICAL environment notes & gotchas (read before touching anything)
 
-1. **Canonical DB = `pgsql.acumenus.net`** (user `smudoshi`, pass `Acumenus321$%`, db `zephyrus`). `.env` is pointed there. Do NOT use the wiped `192.168.1.58` or local `hb_pg`. Memory: `canonical-backend-db`.
+1. **Canonical DB:** `pgsql.acumenus.net`, database `zephyrus`. Obtain credentials from protected runtime configuration; never store them in source, documentation, command arguments, or memory.
 2. **`.env.local` shadowing trap:** `APP_ENV=local` + a tracked `.env.local` makes Laravel load `.env.local` INSTEAD of `.env` (drops APP_KEY → 500). `.env.local` is currently **moved aside** to `.env.local.shadow-disabled` so the full `.env` loads. Keep it aside. Memory: `env-local-shadowing-trap`.
 3. **Backend serves via Docker:** containers `hb_pg` (owns ports), `hb_serve` (mounts the repo at `/var/www/html`, runs `php artisan serve --port=8001`), `hb_reverb`. After any crash/restart: `docker start hb_pg hb_serve hb_reverb`, then `docker exec hb_serve php artisan config:clear`. The iOS sim build targets `localhost:8001`.
 4. **Post-restart DB race:** right after `docker start`, `pgsql.acumenus.net` connections can TIME OUT for a few seconds, then recover. Retry before concluding the DB is broken.
 5. **TWO caching bugs that hid the 3D render (Phase E must fix):**
    - **Server:** `Spaces3dAssetService.load()` (and FloorPlateAssetService) cache the built asset in the 300s **file cache**. Under the post-restart DB race, an **empty** build got cached and served as `spaces=[]`. Fix: don't cache empty builds; invalidate on empty. Workaround: `docker exec hb_serve php artisan tinker --execute="Cache::forget('flow:spaces3d:doc'); Cache::forget('flow:plates:doc');"` + delete `storage/app/private/flow/*.json`.
    - **Client:** the endpoint sends `Cache-Control: private, max-age=86400`, so iOS `URLCache` cached the transient empty response for **24h across relaunches**. Only an app **uninstall** cleared it. Fix: APIClient should revalidate versioned assets via `If-None-Match` (ETag) rather than blind-serve for 24h.
-6. **No `demo` user on the canonical DB.** To run the mobile app, auto-login as the **admin**: `HB_USER=smudoshi HB_PASS='Acumenus321$%'` (broad access → any persona). Creating a `demo` account on prod was intentionally NOT done (safety: weak-cred backdoor on a production hospital DB). Goal (a) was retired; (b) — show the map via the existing admin — is done.
+6. **Credentials:** Use an authorized test account supplied through protected runtime configuration; never persist credentials in launch recipes.
 7. **Temp test affordance in the tree:** `HB_HOME_MODE=map` hook in `hummingbird/iosApp/Hummingbird/Features/RTDC/HouseCapacityView.swift` (`viewMode` initial value reads the env). Launch-gated, inert in production; used to screenshot the Map without tapping. Revert or keep as a sanctioned hook.
 8. **Tests run against `zephyrus_test`** (phpunit.xml). NEVER `migrate:fresh` anything but the test DB; NEVER touch `pgsql.acumenus.net` data.
 9. **Working tree is heavily dirty and UNCOMMITTED.** It contains (a) this native-viewer work (Phase A backend + Phase B iOS + plan/devlog), (b) the earlier toggle fix, AND (c) a large **unrelated** service-line/deployment + staffing-wizard body of work from other sessions (`app/Services/Deployment/`, `app/Models/Org/`, `database/migrations/2026_07_04_*`, etc.). **Do not commit the unrelated work.** Stage the native-viewer files explicitly (see §7). The Flow Window Phases 2–5 are already committed/pushed.
@@ -108,10 +108,10 @@ Native SceneKit 3D twin. **Renders on iPhone 17 Pro** (verified visually).
 2. Warm the server cache correctly: `docker exec hb_serve php artisan tinker --execute="\Illuminate\Support\Facades\Cache::forget('flow:spaces3d:doc'); echo count(app(\App\Services\Flow\Spaces3dAssetService::class)->load()['spaces']);"` → must print **1450**, not 0.
 3. Build for the booted sim (`-destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath build/DD`).
 4. **Uninstall first** to clear the client URLCache: `xcrun simctl uninstall booted net.acumenus.hummingbird`, then `install`.
-5. Launch: `SIMCTL_CHILD_HB_AUTOLOGIN=1 SIMCTL_CHILD_HB_USER=smudoshi SIMCTL_CHILD_HB_PASS='Acumenus321$%' SIMCTL_CHILD_HB_ROLE=bed_manager SIMCTL_CHILD_HB_TAB=home SIMCTL_CHILD_HB_HOME_MODE=map xcrun simctl launch booted net.acumenus.hummingbird`
+5. Launch with an authorized test account supplied through protected runtime environment variables; do not persist credentials in this devlog.
 6. Screenshot: `xcrun simctl io booted screenshot out.png`. Expect the exploded 3D hospital (1,450 anchors).
 
-**Web 4D Navigator (three.js, live movement):** log in at `http://localhost:8001/login` as `smudoshi` / `Acumenus321$%`, go to `/rtdc/patient-flow-navigator`. Requires the Vite dev server (`npm run dev`, :5176) because `app.blade.php` hardcodes a `.jsx` per-page entry and this page is `.tsx` — **pre-existing bug worth fixing** (make the blade resolve `.tsx`). Run `patient-flow:rebase-synthetic --anchor=now` so the synthetic movements fall in the 48h window.
+**Security note:** Plaintext credentials were removed. Rotate any credential that was previously published in repository history.
 
 ---
 
