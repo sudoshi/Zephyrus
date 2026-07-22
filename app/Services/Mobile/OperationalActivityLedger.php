@@ -17,6 +17,7 @@ class OperationalActivityLedger
     public function __construct(
         private readonly PersonaRelayPolicy $relayPolicy,
         private readonly MobilePersonaCatalog $personas,
+        private readonly MobilePatientContextReferenceStore $patientContextReferences,
     ) {}
 
     /** @return array<string, mixed>|null */
@@ -337,9 +338,7 @@ class OperationalActivityLedger
 
     private function patientContextRef(string $patientRef): string
     {
-        $key = (string) config('app.key', 'zephyrus');
-
-        return 'ptok_'.substr(hash_hmac('sha256', $patientRef, $key), 0, 24);
+        return $this->patientContextReferences->issue($patientRef);
     }
 
     private function eventUuid(string $eventType, array $attributes, array $scope, ?string $actorRole): string

@@ -53,10 +53,14 @@ struct LockView: View {
             .padding(Z.s5)
         }
         .task {
+            #if DEBUG
             // Auto-prompt as soon as the lock appears (skip in UI tests that drive it manually).
             if ProcessInfo.processInfo.environment["HB_NO_AUTOUNLOCK"] != "1" {
                 await lock.authenticate()
             }
+            #else
+            await lock.authenticate()
+            #endif
         }
     }
 }

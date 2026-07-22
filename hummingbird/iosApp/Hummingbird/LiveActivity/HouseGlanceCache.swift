@@ -53,8 +53,8 @@ enum HouseGlanceCache {
     }
 }
 
-/// Last-known For You queue shape (counts only — the widget never shows item content,
-/// so nothing PHI-adjacent leaves the app).
+/// Last-known operational For You queue shape. Restricted patient-communication
+/// items are excluded even from these counts before this snapshot is created.
 struct ForYouGlanceSnapshot: Codable {
     var pending: Int
     var critical: Int

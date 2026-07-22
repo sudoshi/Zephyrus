@@ -21,6 +21,17 @@ return [
         'change_ttl_minutes' => (int) env('HUMMINGBIRD_CHANGE_TTL_MINUTES', 15),
     ],
 
+    // Opaque A2P handles resolve through the indexed, expiring operational
+    // context store. Production must provide an independent key so rotating
+    // APP_KEY does not silently become the patient-reference policy.
+    'patient_context' => [
+        'signing_key' => env(
+            'HUMMINGBIRD_PATIENT_CONTEXT_KEY',
+            env('APP_ENV', 'production') === 'production' ? null : env('APP_KEY'),
+        ),
+        'ttl_minutes' => max(1, min(1440, (int) env('HUMMINGBIRD_PATIENT_CONTEXT_TTL_MINUTES', 15))),
+    ],
+
     // APNs (Apple Push Notification service), token-based (.p8) auth. When key_id + team_id +
     // bundle_id and a key are present the container binds the real ApnsPushNotifier; otherwise it
     // falls back to the log-only stub. The .p8 may be inline (APNS_PRIVATE_KEY = PEM contents) or

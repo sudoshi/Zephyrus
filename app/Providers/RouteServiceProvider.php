@@ -73,6 +73,33 @@ class RouteServiceProvider extends ServiceProvider
             ?: $request->user()?->getAuthIdentifier()
             ?: $request->ip())));
 
+        RateLimiter::for('patient-enrollment', fn (Request $request) => Limit::perMinute(
+            (int) config('ingress.rate_limits.patient_enrollment_per_minute', 5),
+        )->by('patient-enrollment:'.$request->ip()));
+
+        RateLimiter::for('patient-credential-exchange', function (Request $request) {
+            $principal = Str::lower(trim((string) $request->input('email')));
+            $principalRef = $principal === ''
+                ? 'missing'
+                : app(\App\Services\Patient\PatientHmac::class)->digest('rate-limit-email', $principal);
+
+            return Limit::perMinute(
+                (int) config('ingress.rate_limits.patient_credential_exchange_per_minute', 5),
+            )->by('patient-credential:'.$request->ip().':'.$principalRef);
+        });
+
+        RateLimiter::for('patient-authenticated', fn (Request $request) => Limit::perMinute(
+            (int) config('ingress.rate_limits.patient_auth_per_minute', 30),
+        )->by('patient-auth:'.($this->tokenKey($request)
+            ?: $request->user()?->getAuthIdentifier()
+            ?: $request->ip())));
+
+        RateLimiter::for('patient-api', fn (Request $request) => Limit::perMinute(
+            (int) config('ingress.rate_limits.patient_api_per_minute', 90),
+        )->by('patient-api:'.($this->tokenKey($request)
+            ?: $request->user()?->getAuthIdentifier()
+            ?: $request->ip())));
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')
@@ -82,6 +109,11 @@ class RouteServiceProvider extends ServiceProvider
                 ->prefix('api/care-pathways/v1')
                 ->name('care-pathways.')
                 ->group(base_path('routes/care-pathways.php'));
+
+            Route::middleware('api')
+                ->prefix('api/patient/v1')
+                ->name('patient.')
+                ->group(base_path('routes/patient.php'));
 
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));

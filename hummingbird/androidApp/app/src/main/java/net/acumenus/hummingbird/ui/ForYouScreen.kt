@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -37,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,12 +47,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import net.acumenus.hummingbird.data.AuthViewModel
 import net.acumenus.hummingbird.data.CensusUnit
 import net.acumenus.hummingbird.data.ForYouItem
 import net.acumenus.hummingbird.data.ForYouViewModel
 import net.acumenus.hummingbird.data.MobileRole
 import net.acumenus.hummingbird.data.MobileRoleCatalog
+import net.acumenus.hummingbird.data.PatientCommunicationForYou
 import net.acumenus.hummingbird.data.QueueFilter
 import net.acumenus.hummingbird.ui.components.HbRefreshable
 import net.acumenus.hummingbird.ui.components.RetryableMessage
@@ -66,22 +72,48 @@ fun ForYouScreen(
     auth: AuthViewModel,
     selectedRole: MobileRole = MobileRoleCatalog.default,
     selectedUnitName: String? = null,
+    canViewPatientCommunications: Boolean = false,
     forceError: Boolean = false,
     onOpenProfile: () -> Unit = {},
     onOpenDrill: ((String) -> Unit)? = null,
+    onOpenPatientCommunication: ((String) -> Unit)? = null,
     onOpenPatient: ((String) -> Unit)? = null,
     onOpenUnit: ((CensusUnit, String?) -> Unit)? = null,
 ) {
     val vm: ForYouViewModel = viewModel()
+    val lifecycleOwner = LocalLifecycleOwner.current
     val bearer = auth.accessToken ?: ""
-    val visibleItems = vm.filteredItems(selectedRole, selectedUnitName)
+    val visibleItems = vm.filteredItems(
+        selectedRole,
+        selectedUnitName,
+        canViewPatientCommunications,
+    )
 
-    LaunchedEffect(bearer, selectedRole.id, selectedUnitName, forceError) {
+    LaunchedEffect(canViewPatientCommunications) {
+        vm.updatePatientCommunicationAccess(canViewPatientCommunications)
+    }
+    LaunchedEffect(
+        bearer,
+        selectedRole.id,
+        selectedUnitName,
+        canViewPatientCommunications,
+        forceError,
+    ) {
         if (!forceError) {
             while (true) {
-                vm.load(bearer, selectedRole)
+                vm.load(bearer, selectedRole, canViewPatientCommunications)
                 kotlinx.coroutines.delay(15000)
             }
+        }
+    }
+    DisposableEffect(lifecycleOwner, vm) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) vm.clearNoCacheState()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            vm.clearNoCacheState()
         }
     }
     LaunchedEffect(vm.needsReauth) { if (vm.needsReauth) auth.logout() }
@@ -106,7 +138,9 @@ fun ForYouScreen(
     ) { inner ->
         HbRefreshable(
             refreshing = vm.loading,
-            onRefresh = { vm.load(bearer, selectedRole) },
+            onRefresh = {
+                vm.load(bearer, selectedRole, canViewPatientCommunications)
+            },
             modifier = Modifier.padding(inner),
         ) {
         LazyColumn(
@@ -145,7 +179,9 @@ fun ForYouScreen(
                         message = vm.error ?: "Can't reach the server. Check your connection and try again.",
                         tone = CapacityStatus.WARNING,
                         retryLabel = "Try again",
-                        onRetry = { vm.load(bearer, selectedRole) },
+                        onRetry = {
+                            vm.load(bearer, selectedRole, canViewPatientCommunications)
+                        },
                     )
                 }
             } else if (visibleItems.isEmpty() && !vm.loading) {
@@ -168,7 +204,9 @@ fun ForYouScreen(
                         unit = vm.unitFor(item),
                         webLink = vm.webLink,
                         busy = item.id in vm.workingItemIds,
+                        canViewPatientCommunications = canViewPatientCommunications,
                         onOpenDrill = onOpenDrill,
+                        onOpenPatientCommunication = onOpenPatientCommunication,
                         onOpenPatient = onOpenPatient,
                         onOpenUnit = onOpenUnit,
                         actions = actionsFor(item, vm, bearer, selectedRole),
@@ -195,11 +233,22 @@ private fun ForYouRow(
     unit: CensusUnit?,
     webLink: String?,
     busy: Boolean,
+    canViewPatientCommunications: Boolean,
     onOpenDrill: ((String) -> Unit)?,
+    onOpenPatientCommunication: ((String) -> Unit)?,
     onOpenPatient: ((String) -> Unit)?,
     onOpenUnit: ((CensusUnit, String?) -> Unit)?,
     actions: List<ForYouAction>,
 ) {
+    if (PatientCommunicationForYou.isType(item.type)) {
+        AuthorizedPatientCommunicationAttentionRow(
+            item = item,
+            canViewPatientCommunications = canViewPatientCommunications,
+            onOpen = onOpenPatientCommunication,
+        )
+        return
+    }
+
     val status = item.capacity
     val canDrill = supportsDrill(item.id) && onOpenDrill != null
     val canOpenUnit = unit != null && onOpenUnit != null
@@ -254,6 +303,74 @@ private fun ForYouRow(
     }
 }
 
+@Composable
+internal fun AuthorizedPatientCommunicationAttentionRow(
+    item: ForYouItem,
+    canViewPatientCommunications: Boolean,
+    onOpen: ((String) -> Unit)?,
+) {
+    if (canViewPatientCommunications) {
+        PatientCommunicationAttentionRow(item = item, onOpen = onOpen)
+    }
+}
+
+/** A deliberately PHI-free attention row; thread content is fetched only after validated routing. */
+@Composable
+internal fun PatientCommunicationAttentionRow(
+    item: ForYouItem,
+    onOpen: ((String) -> Unit)?,
+) {
+    val status = item.capacity
+    val workItemUuid = PatientCommunicationForYou.workItemUuid(item)
+    val canOpen = workItemUuid != null && onOpen != null
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .panel()
+            .then(
+                if (canOpen) {
+                    Modifier.clickable { workItemUuid?.let { onOpen?.invoke(it) } }
+                } else {
+                    Modifier
+                },
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.width(4.dp).fillMaxHeight().background(status.color))
+        Icon(
+            Icons.Filled.Forum,
+            contentDescription = null,
+            tint = status.color,
+            modifier = Modifier.padding(start = 12.dp).size(22.dp),
+        )
+        Column(Modifier.weight(1f).padding(12.dp)) {
+            Text(
+                PatientCommunicationForYou.TITLE,
+                color = Z.ink,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(PatientCommunicationForYou.SUBTITLE, color = Z.inkMuted, fontSize = 13.sp)
+            Text(
+                PatientCommunicationForYou.urgencyLabel(item.tier),
+                color = status.color,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            relTime(item.at)?.let { Text(it, color = Z.inkMuted, fontSize = 11.sp) }
+        }
+        if (canOpen) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Open patient message",
+                tint = Z.inkMuted,
+                modifier = Modifier.padding(end = 8.dp),
+            )
+        }
+    }
+}
+
 private fun iconFor(type: String): ImageVector = when (type) {
     "bed_request" -> Icons.Filled.Hotel
     "barrier" -> Icons.Filled.Block
@@ -266,6 +383,7 @@ private fun iconFor(type: String): ImageVector = when (type) {
 private data class ForYouAction(val label: String, val tone: CapacityStatus = CapacityStatus.INFO, val onClick: () -> Unit)
 
 private fun actionsFor(item: ForYouItem, vm: ForYouViewModel, bearer: String, role: MobileRole): List<ForYouAction> = when {
+    PatientCommunicationForYou.isType(item.type) -> emptyList()
     item.id.startsWith("barrier-") -> listOf(ForYouAction("Resolve") { vm.resolveBarrier(bearer, item, role) })
     item.id.startsWith("transport-") -> listOf(ForYouAction("Claim") { vm.claimTransport(bearer, item, role) })
     item.id.startsWith("evs-") -> listOf(ForYouAction("Claim") { vm.claimEvsTurn(bearer, item, role) })

@@ -1,0 +1,1329 @@
+version: 1
+as_of: "2026-07-20"
+sources:
+  navigation: resources/js/config/navigationConfig.ts
+  web_routes: routes/web.php
+  api_routes: routes/api.php
+  staff_contract: docs/hummingbird/api-contract/hummingbird-bff.v1.yaml
+  patient_contract: docs/hummingbird/api-contract/hummingbird-patient.v1.yaml
+  role_catalog: docs/hummingbird/role-catalog.v1.json
+architecture_decisions:
+  native_contracts: docs/hummingbird/ADR-2026-07-19-generated-native-contracts.md
+  patient_boundary: docs/hummingbird/ADR-2026-07-19-patient-product-boundary.md
+  patient_projection: docs/hummingbird/ADR-2026-07-19-patient-projection-source-of-truth.md
+  patient_fhir_boundary: docs/hummingbird/ADR-2026-07-19-patient-fhir-boundary.md
+notes:
+  - A target disposition is the approved implementation direction, not a claim of completion.
+  - Empty native route lists are allowed for planned work; a NATIVE capability may never name only one native platform.
+  - Patient API operations are owned independently from staff mobile and authentication operations.
+  - authorization_capabilities maps exact app/Authorization/Capability enum cases to gated operations; effective responsibility-pool membership remains independently required.
+  - Product and engineering owners are accountable groups until the governance review assigns named individuals.
+
+role_sets:
+  all_staff:
+    - charge_nurse
+    - bedside_nurse
+    - bed_manager
+    - house_supervisor
+    - hospitalist
+    - intensivist
+    - evs
+    - transport
+    - or_nurse
+    - capacity_lead
+    - periop_manager
+    - staffing_coordinator
+    - pi_lead
+    - executive
+  capacity_operations:
+    [charge_nurse, bed_manager, house_supervisor, capacity_lead]
+  inpatient_care_team: [charge_nurse, bedside_nurse, hospitalist, intensivist]
+  patient_communication_responders:
+    - super_admin
+    - admin
+    - superuser
+    - ops_leader
+    - house_supervisor
+    - charge_nurse
+    - bedside_nurse
+    - hospitalist
+    - intensivist
+    - case_manager
+    - discharge_coordinator
+  executive_operations: [house_supervisor, capacity_lead, executive]
+  perioperative_operations: [or_nurse, periop_manager]
+  improvement_operations: [pi_lead]
+  staffing_operations: [staffing_coordinator]
+  transport_operations: [transport]
+  evs_operations: [evs]
+  web_authorized: [web_capability_gated]
+
+capabilities:
+  - id: cockpit.overview
+    domain: cockpit
+    title: Enterprise cockpit overview
+    implementation_status: partial
+    target_disposition: GLANCE
+    phase: staff_p1
+    owners:
+      { product: Command Center Product, engineering: Hummingbird Platform }
+    user_roles: ["@executive_operations"]
+    verification_evidence: [tests/Feature/MobileBffTest.php]
+    web_routes: [/dashboard]
+    staff_bff_operations: []
+    ios_routes:
+      [
+        hummingbird/iosApp/Hummingbird/Features/Executive/ExecutiveHomeView.swift,
+      ]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/executive/ExecutiveScreens.kt,
+      ]
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: phi_minimized
+
+  - id: cockpit.live_signals
+    domain: cockpit
+    title: Live signals and alert acknowledgement
+    implementation_status: partial
+    target_disposition: NOTIFY
+    phase: staff_p1
+    owners:
+      { product: Command Center Product, engineering: Hummingbird Platform }
+    user_roles: ["@all_staff"]
+    verification_evidence:
+      [
+        tests/Feature/MobileBffTest.php,
+        tests/Feature/Mobile/MobileBackendSafetyTest.php,
+      ]
+    web_routes: [/analytics/live]
+    staff_bff_operations:
+      [
+        GET /api/mobile/v1/activity,
+        "POST /api/mobile/v1/activity/{eventUuid}/ack",
+      ]
+    ios_routes:
+      [hummingbird/iosApp/Hummingbird/Features/Altitude/ActivityFeedView.swift]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/altitude/AltitudeScreens.kt,
+      ]
+    notification_events: [operational.activity.created]
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: phi_minimized
+
+  - id: cockpit.executive_brief
+    domain: cockpit
+    title: Executive brief
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p1
+    owners:
+      {
+        product: Executive Operations Product,
+        engineering: Hummingbird Platform,
+      }
+    user_roles: ["@executive_operations"]
+    verification_evidence: [tests/Feature/MobileBffTest.php]
+    web_routes: [/ops/executive-brief]
+    staff_bff_operations: [GET /api/mobile/v1/command/house]
+    ios_routes:
+      [
+        hummingbird/iosApp/Hummingbird/Features/Executive/ExecutiveHomeView.swift,
+      ]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/executive/ExecutiveScreens.kt,
+      ]
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: internal
+
+  - id: cockpit.agent_inbox
+    domain: cockpit
+    title: Agent inbox and governed operational approvals
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p1
+    owners:
+      {
+        product: Operations Intelligence Product,
+        engineering: Hummingbird Platform,
+      }
+    user_roles: ["@capacity_operations"]
+    verification_evidence:
+      [
+        tests/Feature/MobileBffTest.php,
+        tests/Feature/Mobile/MobileBackendSafetyTest.php,
+      ]
+    web_routes: [/ops/agent-inbox]
+    staff_bff_operations:
+      [
+        GET /api/mobile/v1/ops/inbox,
+        "POST /api/mobile/v1/ops/approvals/{uuid}/decision",
+      ]
+    ios_routes:
+      [
+        hummingbird/iosApp/Hummingbird/Features/Capacity/CapacityDemandView.swift,
+      ]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/capacity/CapacityDemandScreens.kt,
+      ]
+    notification_events: [ops.approval.requested]
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: rtdc.bed_flow
+    domain: rtdc
+    title: Census, bed tracking, placement, and barriers
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p1
+    owners: { product: RTDC Product, engineering: Hummingbird Platform }
+    user_roles: ["@capacity_operations", "@inpatient_care_team"]
+    verification_evidence:
+      [
+        tests/Feature/MobileBffTest.php,
+        tests/Feature/Mobile/MobileBackendSafetyTest.php,
+      ]
+    web_routes: [/rtdc/bed-tracking, /rtdc/bed-placement]
+    staff_bff_operations:
+      - GET /api/mobile/v1/rtdc/census
+      - GET /api/mobile/v1/rtdc/house
+      - GET /api/mobile/v1/rtdc/bed-requests
+      - "GET /api/mobile/v1/rtdc/bed-requests/{id}/recommendations"
+      - "POST /api/mobile/v1/rtdc/bed-requests/{id}/decision"
+      - "POST /api/mobile/v1/rtdc/barriers/{id}/resolve"
+    ios_routes:
+      - hummingbird/iosApp/Hummingbird/Features/RTDC/HouseCapacityView.swift
+      - hummingbird/iosApp/Hummingbird/Features/RTDC/PlacementDetailView.swift
+    android_routes:
+      - hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/capacity/HouseCapacityScreens.kt
+      - hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/capacity/CapacityDemandScreens.kt
+    notification_events:
+      [bed.request.created, bed.placement.decision, discharge.barrier.changed]
+    offline_class: READ_CACHE_AND_OUTBOX
+    data_classification: phi_minimized
+
+  - id: rtdc.patient_flow
+    domain: rtdc
+    title: Patient Flow 4D and 48-hour Flow Window
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p1
+    owners: { product: Patient Flow Product, engineering: Hummingbird Platform }
+    user_roles: ["@all_staff"]
+    verification_evidence: [tests/Feature/Mobile/FlowWindowTest.php]
+    web_routes: [/rtdc/patient-flow-navigator]
+    staff_bff_operations:
+      - GET /api/mobile/v1/flow/floors
+      - GET /api/mobile/v1/flow/spaces3d
+      - GET /api/mobile/v1/flow/demo-scenarios
+      - GET /api/mobile/v1/flow/occupancy/history
+      - GET /api/mobile/v1/flow/window
+    ios_routes: [hummingbird/iosApp/Hummingbird/Features/Flow/FlowMapView.swift]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/flow/FlowMapScreen.kt,
+      ]
+    notification_events: [patient.flow.state_changed]
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: phi_minimized
+
+  - id: rtdc.virtual_rounds
+    domain: rtdc
+    title: Virtual rounds
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p2
+    owners:
+      { product: Virtual Rounds Product, engineering: Hummingbird Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence:
+      [tests/Feature/Rounds/PatientRoundQuestionPromotionTest.php]
+    web_routes: [/rtdc/virtual-rounds]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: phi
+
+  - id: rtdc.ancillary_services
+    domain: rtdc
+    title: Ancillary service readiness and exceptions
+    implementation_status: planned
+    target_disposition: NATIVE
+    phase: staff_p2
+    owners:
+      {
+        product: Ancillary Operations Product,
+        engineering: Hummingbird Platform,
+      }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/rtdc/ancillary-services]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: phi_minimized
+
+  - id: rtdc.huddles
+    domain: rtdc
+    title: Global, unit, and service huddles
+    implementation_status: planned
+    target_disposition: NATIVE
+    phase: staff_p2
+    owners: { product: RTDC Product, engineering: Hummingbird Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/rtdc/global-huddle, /rtdc/unit-huddle, /rtdc/service-huddle]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: READ_CACHE_AND_OUTBOX
+    data_classification: phi_minimized
+
+  - id: rtdc.predictions
+    domain: rtdc
+    title: Demand, resources, discharge, and risk predictions
+    implementation_status: planned
+    target_disposition: GLANCE
+    phase: staff_p2
+    owners: { product: RTDC Product, engineering: Hummingbird Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes:
+      - /rtdc/predictions/demand
+      - /rtdc/predictions/resources
+      - /rtdc/predictions/discharge
+      - /rtdc/predictions/risk
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: phi_minimized
+
+  - id: rtdc.analytics
+    domain: rtdc
+    title: RTDC retrospective analytics
+    implementation_status: planned
+    target_disposition: DEEPLINK
+    phase: staff_p3
+    owners: { product: RTDC Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes:
+      - /rtdc/analytics/utilization
+      - /rtdc/analytics/performance
+      - /rtdc/analytics/resources
+      - /rtdc/analytics/trends
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: ed.operations
+    domain: emergency
+    title: ED triage, treatment, and resource operations
+    implementation_status: planned
+    target_disposition: DEEPLINK
+    phase: staff_p3
+    owners: { product: Emergency Department Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes:
+      [
+        /ed/operations/triage,
+        /ed/operations/treatment,
+        /ed/operations/resources,
+      ]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: phi
+
+  - id: ed.patient_flow
+    domain: emergency
+    title: ED patient flow lens
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p2
+    owners:
+      {
+        product: Emergency Department Product,
+        engineering: Hummingbird Platform,
+      }
+    user_roles: ["@capacity_operations", "@inpatient_care_team"]
+    verification_evidence: [tests/Feature/Mobile/FlowWindowTest.php]
+    web_routes: [/ed/analytics/flow]
+    staff_bff_operations: []
+    ios_routes: [hummingbird/iosApp/Hummingbird/Features/Flow/FlowMapView.swift]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/flow/FlowMapScreen.kt,
+      ]
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: phi_minimized
+
+  - id: ed.predictions
+    domain: emergency
+    title: ED arrival, acuity, and resource forecasts
+    implementation_status: planned
+    target_disposition: GLANCE
+    phase: staff_p3
+    owners:
+      {
+        product: Emergency Department Product,
+        engineering: Hummingbird Platform,
+      }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes:
+      [
+        /ed/predictions/arrival,
+        /ed/predictions/acuity,
+        /ed/predictions/resources,
+      ]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: phi_minimized
+
+  - id: ed.analytics
+    domain: emergency
+    title: ED wait and resource analytics
+    implementation_status: planned
+    target_disposition: DEEPLINK
+    phase: staff_p3
+    owners: { product: Emergency Department Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/ed/analytics/wait-time, /ed/analytics/resources]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: perioperative.operations
+    domain: perioperative
+    title: OR room, block, and case operations
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p2
+    owners:
+      { product: Perioperative Product, engineering: Hummingbird Platform }
+    user_roles: ["@perioperative_operations"]
+    verification_evidence: [tests/Feature/MobileBffTest.php]
+    web_routes:
+      [/operations/room-status, /operations/block-schedule, /operations/cases]
+    staff_bff_operations: [GET /api/mobile/v1/or/board]
+    ios_routes: [hummingbird/iosApp/Hummingbird/Features/OR/ORBoardView.swift]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/or/ORScreens.kt,
+      ]
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: phi_minimized
+
+  - id: perioperative.predictions
+    domain: perioperative
+    title: OR utilization, demand, and resource planning
+    implementation_status: planned
+    target_disposition: GLANCE
+    phase: staff_p3
+    owners:
+      { product: Perioperative Product, engineering: Hummingbird Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes:
+      [/predictions/forecast, /predictions/demand, /predictions/resources]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: internal
+
+  - id: perioperative.analytics
+    domain: perioperative
+    title: Perioperative performance analytics
+    implementation_status: planned
+    target_disposition: DEEPLINK
+    phase: staff_p3
+    owners: { product: Perioperative Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes:
+      - /analytics/block-utilization
+      - /analytics/or-utilization
+      - /analytics/primetime-utilization
+      - /analytics/room-running
+      - /analytics/turnover-times
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: radiology.operations
+    domain: radiology
+    title: Imaging flow, worklist, modality, and reads
+    implementation_status: planned
+    target_disposition: GLANCE
+    phase: staff_p2
+    owners:
+      {
+        product: Radiology Operations Product,
+        engineering: Hummingbird Platform,
+      }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes:
+      [
+        /radiology,
+        /radiology/worklist,
+        /radiology/modality,
+        /radiology/reads,
+        /analytics/radiology-tat,
+        /analytics/ir-utilization,
+      ]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: phi_minimized
+
+  - id: laboratory.operations
+    domain: laboratory
+    title: Laboratory flow, specimens, pending decisions, blood bank, and pathology
+    implementation_status: planned
+    target_disposition: GLANCE
+    phase: staff_p2
+    owners:
+      {
+        product: Laboratory Operations Product,
+        engineering: Hummingbird Platform,
+      }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes:
+      [
+        /lab,
+        /lab/specimens,
+        /lab/pending-decisions,
+        /lab/blood-bank,
+        /lab/anatomic-path,
+        /analytics/lab-tat,
+      ]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: phi_minimized
+
+  - id: pharmacy.operations
+    domain: pharmacy
+    title: Medication flow, discharge readiness, IV room, and delivery
+    implementation_status: planned
+    target_disposition: GLANCE
+    phase: staff_p2
+    owners:
+      {
+        product: Pharmacy Operations Product,
+        engineering: Hummingbird Platform,
+      }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes:
+      [
+        /pharmacy,
+        /pharmacy/discharge-meds,
+        /pharmacy/iv-room,
+        /pharmacy/dispense,
+        /analytics/pharmacy-tat,
+      ]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: phi_minimized
+
+  - id: pharmacy.controlled_substances
+    domain: pharmacy
+    title: Controlled-substance operations
+    implementation_status: not_applicable
+    target_disposition: DESKTOP_ONLY
+    phase: governance_p0
+    owners: { product: Pharmacy Operations Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/pharmacy/controlled]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: phi
+
+  - id: transport.operations
+    domain: transport
+    title: Transport requests, dispatch, transfer, discharge, EMS, and care transitions
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p1
+    owners:
+      {
+        product: Transport Operations Product,
+        engineering: Hummingbird Platform,
+      }
+    user_roles: ["@transport_operations"]
+    verification_evidence:
+      [
+        tests/Feature/MobileBffTest.php,
+        tests/Feature/Mobile/MobileBackendSafetyTest.php,
+      ]
+    web_routes:
+      - /transport/requests
+      - /transport/dispatch
+      - /transport/inpatient
+      - /transport/transfers
+      - /transport/discharge
+      - /transport/ems
+      - /transport/care-transitions
+    staff_bff_operations:
+      - GET /api/mobile/v1/transport/queue
+      - "POST /api/mobile/v1/transport/requests/{id}/status"
+      - "POST /api/mobile/v1/transport/requests/{id}/handoff"
+    ios_routes:
+      [
+        hummingbird/iosApp/Hummingbird/Features/Transport/TransportJobsView.swift,
+      ]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/transport/TransportScreens.kt,
+      ]
+    notification_events: [transport.request.changed]
+    offline_class: READ_CACHE_AND_OUTBOX
+    data_classification: phi_minimized
+
+  - id: transport.resources
+    domain: transport
+    title: Transport resource management
+    implementation_status: planned
+    target_disposition: GLANCE
+    phase: staff_p2
+    owners:
+      {
+        product: Transport Operations Product,
+        engineering: Hummingbird Platform,
+      }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/transport/resources]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: internal
+
+  - id: transport.analytics
+    domain: transport
+    title: Transport analytics
+    implementation_status: planned
+    target_disposition: DEEPLINK
+    phase: staff_p3
+    owners: { product: Transport Operations Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/transport/analytics]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: staffing.operations
+    domain: staffing
+    title: Staffing overview and fulfillment
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p1
+    owners:
+      {
+        product: Staffing Operations Product,
+        engineering: Hummingbird Platform,
+      }
+    user_roles: ["@staffing_operations"]
+    verification_evidence:
+      [
+        tests/Feature/MobileBffTest.php,
+        tests/Feature/Mobile/MobileBackendSafetyTest.php,
+      ]
+    web_routes: [/staffing]
+    staff_bff_operations:
+      - GET /api/mobile/v1/staffing/overview
+      - "GET /api/mobile/v1/staffing/requests/{id}/candidates"
+      - "POST /api/mobile/v1/staffing/requests/{id}/fill"
+    ios_routes:
+      [hummingbird/iosApp/Hummingbird/Features/Staffing/StaffingView.swift]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/staffing/StaffingScreens.kt,
+      ]
+    notification_events: [staffing.request.changed]
+    offline_class: READ_CACHE_AND_OUTBOX
+    data_classification: internal
+
+  - id: staffing.administration
+    domain: staffing
+    title: Staffing source alignment and administration
+    implementation_status: not_applicable
+    target_disposition: DESKTOP_ONLY
+    phase: governance_p0
+    owners: { product: Staffing Operations Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/staffing/administration]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: analytics.intelligence_hub
+    domain: analytics
+    title: Operations intelligence hub
+    implementation_status: planned
+    target_disposition: GLANCE
+    phase: staff_p2
+    owners:
+      {
+        product: Operations Intelligence Product,
+        engineering: Hummingbird Platform,
+      }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/analytics]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: internal
+
+  - id: analytics.data_quality
+    domain: analytics
+    title: Data-quality exceptions
+    implementation_status: planned
+    target_disposition: NOTIFY
+    phase: staff_p2
+    owners:
+      { product: Data Governance Product, engineering: Hummingbird Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/analytics/data-quality]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: analytics.retrospective
+    domain: analytics
+    title: Retrospective review
+    implementation_status: not_applicable
+    target_disposition: DEEPLINK
+    phase: staff_p3
+    owners:
+      { product: Operations Intelligence Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/analytics/retrospective]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: analytics.process_intelligence
+    domain: analytics
+    title: Process intelligence
+    implementation_status: not_applicable
+    target_disposition: DEEPLINK
+    phase: staff_p3
+    owners: { product: Process Intelligence Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/analytics/process-intelligence]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: analytics.arena
+    domain: analytics
+    title: Patient-Flow Arena and conformance analysis
+    implementation_status: not_applicable
+    target_disposition: DESKTOP_ONLY
+    phase: governance_p0
+    owners:
+      { product: Process Intelligence Product, engineering: Arena Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/analytics/arena]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: analytics.opportunities
+    domain: analytics
+    title: Opportunity portfolio
+    implementation_status: partial
+    target_disposition: GLANCE
+    phase: staff_p2
+    owners: { product: Improvement Product, engineering: Hummingbird Platform }
+    user_roles: ["@improvement_operations"]
+    verification_evidence: [tests/Feature/MobileBffTest.php]
+    web_routes: [/analytics/opportunities]
+    staff_bff_operations: [GET /api/mobile/v1/improvement/opportunities]
+    ios_routes:
+      [
+        hummingbird/iosApp/Hummingbird/Features/Improvement/ImprovementView.swift,
+      ]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/improvement/ImprovementScreens.kt,
+      ]
+    notification_events: []
+    offline_class: ENCRYPTED_READ_CACHE
+    data_classification: internal
+
+  - id: analytics.predictive_workbench
+    domain: analytics
+    title: Predictive planning and scenario workbench
+    implementation_status: not_applicable
+    target_disposition: DESKTOP_ONLY
+    phase: governance_p0
+    owners:
+      { product: Operations Intelligence Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/analytics/predictive, /analytics/workbench]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: improvement.diagnose
+    domain: improvement
+    title: Bottleneck, process, and root-cause analysis
+    implementation_status: not_applicable
+    target_disposition: DEEPLINK
+    phase: staff_p3
+    owners: { product: Improvement Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes:
+      [/improvement/bottlenecks, /improvement/process, /improvement/root-cause]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: improvement.cycles
+    domain: improvement
+    title: Active improvement and PDSA cycles
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p2
+    owners: { product: Improvement Product, engineering: Hummingbird Platform }
+    user_roles: ["@improvement_operations"]
+    verification_evidence: [tests/Feature/MobileBffTest.php]
+    web_routes: [/improvement/active, /improvement/pdsa, /improvement/library]
+    staff_bff_operations: [GET /api/mobile/v1/improvement/pdsa]
+    ios_routes:
+      [
+        hummingbird/iosApp/Hummingbird/Features/Improvement/ImprovementView.swift,
+      ]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/improvement/ImprovementScreens.kt,
+      ]
+    notification_events: []
+    offline_class: READ_CACHE_AND_OUTBOX
+    data_classification: internal
+
+  - id: home_hospital.operations
+    domain: home_hospital
+    title: Home Hospital command, census, referrals, transitions, and logistics
+    implementation_status: planned
+    target_disposition: NATIVE
+    phase: staff_p3
+    owners:
+      { product: Home Hospital Product, engineering: Hummingbird Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes:
+      [
+        /home/command,
+        /home/census,
+        /home/referrals,
+        /home/transitions,
+        /home/logistics,
+      ]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: READ_CACHE_AND_OUTBOX
+    data_classification: phi
+
+  - id: administration.access
+    domain: administration
+    title: Users, access reviews, roles, and identity providers
+    implementation_status: not_applicable
+    target_disposition: DESKTOP_ONLY
+    phase: governance_p0
+    owners: { product: Administration Product, engineering: Identity Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes:
+      [
+        /admin,
+        /admin/user-audit,
+        /admin/access-reviews,
+        /admin/roles-capabilities,
+        /admin/auth-providers,
+        /users,
+      ]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: administration.system_health
+    domain: administration
+    title: System health
+    implementation_status: planned
+    target_disposition: NOTIFY
+    phase: staff_p3
+    owners:
+      { product: Administration Product, engineering: Platform Operations }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/admin/system-health]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: administration.cockpit_thresholds
+    domain: administration
+    title: Cockpit threshold administration
+    implementation_status: not_applicable
+    target_disposition: DESKTOP_ONLY
+    phase: governance_p0
+    owners: { product: Command Center Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/admin/cockpit/thresholds]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: administration.enterprise_setup
+    domain: administration
+    title: Enterprise and deployment setup
+    implementation_status: not_applicable
+    target_disposition: DESKTOP_ONLY
+    phase: governance_p0
+    owners: { product: Deployment Product, engineering: Platform Operations }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/admin/enterprise-setup]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: integrations.control_plane
+    domain: integrations
+    title: Integration control plane
+    implementation_status: not_applicable
+    target_disposition: DESKTOP_ONLY
+    phase: governance_p0
+    owners: { product: Integration Product, engineering: Integration Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence: []
+    web_routes: [/integrations]
+    staff_bff_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: mobile.auth_session
+    domain: mobile_foundation
+    title: Staff authentication and session lifecycle
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p1
+    owners: { product: Hummingbird Product, engineering: Hummingbird Platform }
+    user_roles: ["@all_staff"]
+    verification_evidence: [tests/Feature/Mobile/MobileAuthTest.php]
+    web_routes: []
+    staff_bff_operations:
+      - POST /api/auth/token
+      - POST /api/auth/token/refresh
+      - POST /api/auth/token/revoke
+      - POST /api/auth/change-password
+    ios_routes: [hummingbird/iosApp/Hummingbird/Features/Auth/LoginView.swift]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/LoginScreen.kt,
+      ]
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: phi_minimized
+
+  - id: mobile.profile_devices_realtime
+    domain: mobile_foundation
+    title: Staff profile, device registration, and realtime configuration
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p1
+    owners: { product: Hummingbird Product, engineering: Hummingbird Platform }
+    user_roles: ["@all_staff"]
+    verification_evidence: [tests/Feature/MobileBffTest.php]
+    web_routes: []
+    staff_bff_operations:
+      - GET /api/mobile/v1/me
+      - PUT /api/mobile/v1/me/preferences
+      - POST /api/mobile/v1/devices
+      - "DELETE /api/mobile/v1/devices/{device}"
+      - GET /api/mobile/v1/realtime/config
+    ios_routes:
+      [hummingbird/iosApp/Hummingbird/Features/Profile/ProfileView.swift]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/MainScreen.kt,
+      ]
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: phi_minimized
+
+  - id: mobile.altitude
+    domain: mobile_foundation
+    title: Role-aware Altitude and staff patient operational context
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p1
+    owners: { product: Hummingbird Product, engineering: Hummingbird Platform }
+    user_roles: ["@all_staff"]
+    verification_evidence:
+      [
+        tests/Feature/Mobile/MobileAltitudeContractTest.php,
+        tests/Feature/Mobile/MobileBackendSafetyTest.php,
+      ]
+    web_routes: []
+    staff_bff_operations:
+      - GET /api/mobile/v1/altitude/home
+      - "GET /api/mobile/v1/altitude/workspace/{domain}"
+      - "GET /api/mobile/v1/drills/{itemUuid}"
+      - "GET /api/mobile/v1/patients/{contextRef}/operational-context"
+    ios_routes:
+      [
+        hummingbird/iosApp/Hummingbird/Features/Altitude/PatientOperationalContextView.swift,
+      ]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/altitude/AltitudeScreens.kt,
+      ]
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: phi_minimized
+
+  - id: mobile.for_you
+    domain: mobile_foundation
+    title: Universal role-aware For You queue
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p1
+    owners: { product: Hummingbird Product, engineering: Hummingbird Platform }
+    user_roles: ["@all_staff"]
+    verification_evidence:
+      - tests/Feature/Mobile/ForYouTest.php
+      - hummingbird/iosApp/HummingbirdTests/ForYouPatientCommunicationsTests.swift
+      - hummingbird/iosApp/HummingbirdUITests/ForYouPatientCommunicationsUITests.swift
+      - hummingbird/androidApp/app/src/test/java/net/acumenus/hummingbird/data/ForYouPatientCommunicationTest.kt
+      - hummingbird/androidApp/app/src/androidTest/java/net/acumenus/hummingbird/ui/ForYouPatientCommunicationUiTest.kt
+    web_routes: []
+    staff_bff_operations: [GET /api/mobile/v1/for-you]
+    ios_routes:
+      - hummingbird/iosApp/Hummingbird/Features/ForYou/ForYouView.swift
+      - hummingbird/iosApp/Hummingbird/Features/ForYou/PatientCommunicationForYouRow.swift
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/ForYouScreen.kt,
+      ]
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: phi_minimized
+
+  - id: mobile.evs
+    domain: environmental_services
+    title: EVS bed-turn queue and lifecycle
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p1
+    owners:
+      { product: EVS Operations Product, engineering: Hummingbird Platform }
+    user_roles: ["@evs_operations"]
+    verification_evidence:
+      [
+        tests/Feature/MobileBffTest.php,
+        tests/Feature/Mobile/MobileBackendSafetyTest.php,
+      ]
+    web_routes: []
+    staff_bff_operations:
+      [
+        GET /api/mobile/v1/evs/queue,
+        "POST /api/mobile/v1/evs/requests/{id}/status",
+      ]
+    ios_routes: [hummingbird/iosApp/Hummingbird/Features/EVS/BedTurnsView.swift]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/evs/EvsScreens.kt,
+      ]
+    notification_events: [evs.request.changed]
+    offline_class: READ_CACHE_AND_OUTBOX
+    data_classification: phi_minimized
+
+  - id: mobile.eddy
+    domain: eddy
+    title: Staff Eddy context, chat, conversations, and approvals
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: staff_p1
+    owners: { product: Eddy Product, engineering: Hummingbird Platform }
+    user_roles: ["@all_staff"]
+    verification_evidence: [tests/Feature/Mobile/Eddy/EddyMobileBffTest.php]
+    web_routes: []
+    staff_bff_operations:
+      - POST /api/mobile/v1/eddy/chat
+      - POST /api/mobile/v1/eddy/chat/stream
+      - GET /api/mobile/v1/eddy/conversations
+      - "GET /api/mobile/v1/eddy/conversations/{uuid}"
+      - GET /api/mobile/v1/eddy/approvals
+      - "GET /api/mobile/v1/eddy/approvals/{uuid}"
+      - "POST /api/mobile/v1/eddy/approvals/{uuid}/decision"
+      - "GET /api/mobile/v1/eddy/context/{scopeRef}"
+    ios_routes:
+      [
+        hummingbird/iosApp/Hummingbird/Features/Altitude/AltitudeComponents.swift,
+      ]
+    android_routes:
+      [
+        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/altitude/AltitudeScreens.kt,
+      ]
+    notification_events: [eddy.approval.requested]
+    offline_class: NO_CACHE
+    data_classification: phi_minimized
+
+  - id: care_pathways.synthetic_journey_demo
+    domain: care_pathways
+    title: Synthetic care-pathway journey demo
+    implementation_status: partial
+    target_disposition: DESKTOP_ONLY
+    phase: care_pathways_p0
+    owners:
+      { product: Care Pathways Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    verification_evidence:
+      - tests/Unit/CarePathways/CarePathwayDemoScenarioServiceTest.php
+      - tests/js/config/navigationConfig.test.ts
+    web_routes: [/care-pathways/demo]
+    staff_bff_operations: []
+    patient_api_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
+  - id: patient_communications.staff_response
+    domain: patient_experience
+    title: Accountable staff inbox and response lifecycle for inpatient communications
+    implementation_status: partial
+    target_disposition: NATIVE
+    phase: patient_p3
+    owners:
+      { product: Patient Experience Product, engineering: Hummingbird Platform }
+    user_roles: ["@patient_communication_responders"]
+    authorization_capabilities:
+      ViewPatientCommunications:
+        - GET /api/mobile/v1/patient-communications/inbox
+        - "GET /api/mobile/v1/patient-communications/threads/{workItemUuid}"
+      RespondPatientCommunications:
+        - "GET /api/mobile/v1/patient-communications/threads/{workItemUuid}/route-candidates"
+        - "POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/claim"
+        - "POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/reply"
+        - "POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/close"
+        - "POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/release"
+        - "POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/reassign"
+        - "POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/reroute"
+    verification_evidence:
+      - tests/Feature/Patient/PatientStaffMessageHandoffConsumerTest.php
+      - tests/Feature/Patient/StaffPatientCommunicationApiTest.php
+      - tests/Feature/Patient/StaffPatientCommunicationWebTest.php
+      - tests/Feature/Mobile/ForYouTest.php
+      - scripts/verify-hummingbird-staff-contract.php
+      - tests/js/pages/PatientCommunications.test.tsx
+      - tests/js/pages/PatientCommunicationMutationSafety.test.ts
+      - hummingbird/iosApp/HummingbirdTests/PatientCommunicationsTests.swift
+      - hummingbird/iosApp/HummingbirdUITests/PatientCommunicationsUITests.swift
+      - hummingbird/androidApp/app/src/test/java/net/acumenus/hummingbird/data/PatientCommunicationsContractTest.kt
+      - hummingbird/androidApp/app/src/test/java/net/acumenus/hummingbird/data/ForYouPatientCommunicationTest.kt
+      - hummingbird/androidApp/app/src/androidTest/java/net/acumenus/hummingbird/ui/communications/PatientCommunicationsUiTest.kt
+      - hummingbird/androidApp/app/src/androidTest/java/net/acumenus/hummingbird/ui/ForYouPatientCommunicationUiTest.kt
+    web_routes: [/patient-communications]
+    staff_bff_operations:
+      - GET /api/mobile/v1/patient-communications/inbox
+      - "GET /api/mobile/v1/patient-communications/threads/{workItemUuid}"
+      - "GET /api/mobile/v1/patient-communications/threads/{workItemUuid}/route-candidates"
+      - "POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/claim"
+      - "POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/reply"
+      - "POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/close"
+      - "POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/release"
+      - "POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/reassign"
+      - "POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/reroute"
+    ios_routes:
+      - hummingbird/iosApp/Hummingbird/Features/PatientCommunications/PatientCommunicationsView.swift
+      - hummingbird/iosApp/Hummingbird/Features/PatientCommunications/PatientCommunicationDetailView.swift
+    android_routes:
+      - hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/communications/PatientCommunicationsScreens.kt
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: phi
+
+  - id: patient.experience
+    domain: patient_experience
+    title: Separate inpatient-facing Hummingbird product
+    implementation_status: partial
+    target_disposition: PATIENT
+    phase: patient_p3
+    owners:
+      {
+        product: Patient Experience Product,
+        engineering: Patient Experience Platform,
+      }
+    user_roles: [patient_principal, authorized_representative]
+    verification_evidence:
+      - tests/Feature/Patient/PatientApiBoundaryTest.php
+      - tests/Feature/Patient/PatientAuthLifecycleTest.php
+      - tests/Feature/Patient/PatientIdentityFoundationTest.php
+      - tests/Feature/Patient/PatientProjectionApiTest.php
+      - tests/Feature/Patient/PatientProjectionKernelTest.php
+      - tests/Feature/Patient/PatientProjectionOutboxTest.php
+      - tests/Feature/Patient/PatientPathwayInstanceHistoryTest.php
+      - tests/Feature/Patient/PatientSessionManagementTest.php
+      - tests/Feature/Patient/PatientMessagingApiTest.php
+      - tests/Feature/Patient/PatientEducationClarificationApiTest.php
+      - tests/Feature/Patient/PatientCarePreferenceApiTest.php
+      - tests/Feature/Patient/PatientAuthoredGoalApiTest.php
+      - hummingbird/iosPatientApp/HummingbirdPatientTests/PatientAPIBoundaryTests.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientTests/PatientAPIClientTests.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientTests/PatientAPIModelTests.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientTests/PatientAppViewModelTests.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientSessionManagementUITests.swift
+      - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/data/PatientEndpointBoundaryTest.kt
+      - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/data/PatientSessionCoordinatorTest.kt
+      - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/data/PatientSessionManagementDecoderTest.kt
+      - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/PatientAppViewModelTest.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientSessionManagementInstrumentedTest.kt
+    web_routes: []
+    staff_bff_operations: []
+    patient_api_operations:
+      - POST /api/patient/v1/auth/enroll/challenge/verify
+      - POST /api/patient/v1/auth/token
+      - POST /api/patient/v1/auth/token/refresh
+      - POST /api/patient/v1/auth/token/revoke
+      - GET /api/patient/v1/me
+      - PUT /api/patient/v1/me/preferences
+      - "PUT /api/patient/v1/me/notification-devices/{deviceUuid}"
+      - "DELETE /api/patient/v1/me/notification-devices/{deviceUuid}"
+      - GET /api/patient/v1/me/sessions
+      - "DELETE /api/patient/v1/me/sessions/{sessionUuid}"
+      - GET /api/patient/v1/encounters
+      - "GET /api/patient/v1/encounters/{encounterUuid}/today"
+      - "GET /api/patient/v1/encounters/{encounterUuid}/pathway"
+      - "GET /api/patient/v1/encounters/{encounterUuid}/pathway/events"
+      - "GET /api/patient/v1/encounters/{encounterUuid}/discharge-readiness"
+      - "GET /api/patient/v1/encounters/{encounterUuid}/rounds/summary"
+      - "GET /api/patient/v1/encounters/{encounterUuid}/care-team"
+      - "GET /api/patient/v1/encounters/{encounterUuid}/message-topics"
+      - "GET /api/patient/v1/encounters/{encounterUuid}/threads"
+      - "POST /api/patient/v1/encounters/{encounterUuid}/threads"
+      - "POST /api/patient/v1/encounters/{encounterUuid}/education/{educationItemUuid}/clarifications"
+      - "GET /api/patient/v1/threads/{threadUuid}"
+      - "POST /api/patient/v1/threads/{threadUuid}/messages"
+      - "POST /api/patient/v1/threads/{threadUuid}/messages/{messageUuid}/amend"
+      - "POST /api/patient/v1/threads/{threadUuid}/close"
+    ios_routes:
+      - hummingbird/iosPatientApp/HummingbirdPatient/App/PatientRootView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/Today/PatientTodayView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/Path/PatientPathView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/CareTeam/PatientCareTeamView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/Account/PatientSessionManagementView.swift
+    android_routes:
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientApp.kt
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientExperienceScreen.kt
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientSessionManagementScreen.kt
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: phi

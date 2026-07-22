@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Api\Mobile;
 
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\ProtectPatientCommunicationResponse;
+use App\Models\User;
 use App\Services\Mobile\MobileForYouService;
+use App\Services\Patient\Messaging\StaffPatientCommunicationFailure;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * GET /api/mobile/v1/for-you
@@ -21,10 +25,36 @@ class ForYouController extends Controller
 
     public function __construct(private readonly MobileForYouService $forYou) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $sorted = $this->forYou->items();
+        $user = $request->user();
+        if (! $user instanceof User) {
+            throw StaffPatientCommunicationFailure::notFound();
+        }
 
-        return $this->envelope($sorted, meta: ['count' => $sorted->count()], links: ['web' => url('/rtdc/bed-tracking')]);
+        try {
+            $sorted = $this->forYou->itemsForUser($user);
+            $response = $this->envelope($sorted, meta: [
+                'count' => $sorted->count(),
+                'classification' => 'phi_minimized_restricted',
+                'offline_cache_allowed' => false,
+            ], links: ['web' => url('/rtdc/bed-tracking')]);
+        } catch (StaffPatientCommunicationFailure $failure) {
+            $response = response()->json([
+                'error' => [
+                    'code' => $failure->errorCode,
+                    'message' => $failure->getMessage(),
+                ],
+                'meta' => [
+                    'as_of' => now()->toISOString(),
+                    'classification' => 'phi_minimized_restricted',
+                    'offline_cache_allowed' => false,
+                ],
+            ], $failure->httpStatus);
+        }
+
+        ProtectPatientCommunicationResponse::protect($response);
+
+        return $response;
     }
 }

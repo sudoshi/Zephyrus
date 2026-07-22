@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, Datepicker } from 'flowbite-react';
 import { CalendarIcon } from 'lucide-react';
-import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { useAnalytics } from '@/Contexts/AnalyticsContext';
 
 export default function AnalyticsFilters({ 
   locationOptions, 

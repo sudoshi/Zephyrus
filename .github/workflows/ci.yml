@@ -72,7 +72,7 @@ jobs:
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: "8.4"
           extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip
           coverage: none
 
@@ -85,6 +85,18 @@ jobs:
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Verify Hummingbird capability and staff/patient contracts
+        run: |
+          php scripts/verify-hummingbird-capability-ledger.php
+          php scripts/generate-hummingbird-capability-report.php --check
+          php scripts/verify-hummingbird-staff-contract.php
+          php scripts/verify-hummingbird-patient-disclosure-matrix.php
+          php scripts/verify-hummingbird-patient-accessibility-matrix.php
+          php scripts/verify-hummingbird-patient-contract.php
+          php scripts/verify-hummingbird-contract-baseline.php
+          php scripts/generate-hummingbird-route-inventory.php --check
+          bash scripts/check-no-tracking-technologies.sh
 
       - name: Verify immutable release snapshots
         run: bash tests/Deployment/immutable-release-snapshot.sh
@@ -181,7 +193,7 @@ jobs:
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: "8.4"
           extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip
           coverage: none
 
@@ -279,7 +291,7 @@ jobs:
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: "8.4"
           coverage: none
 
       - name: Setup Node 22
@@ -290,7 +302,7 @@ jobs:
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
           cache: pip
 
       - name: Install pinned security tools
@@ -326,7 +338,7 @@ jobs:
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
           cache: pip
           cache-dependency-path: arena/requirements.txt
 
@@ -398,7 +410,7 @@ jobs:
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: "8.4"
           extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip
           coverage: none
 
@@ -482,7 +494,7 @@ jobs:
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: "8.4"
           extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip
           coverage: none
 
@@ -512,3 +524,201 @@ jobs:
           path: artifacts/release-evidence/dast
           if-no-files-found: error
           retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # Hummingbird patient apps — independent product boundaries and native tests
+  # ---------------------------------------------------------------------------
+  hummingbird-patient-android:
+    name: Hummingbird patient (Android)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: hummingbird/androidPatientApp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: "12266719"
+          packages: >-
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          validate-wrappers: true
+
+      - name: Verify patient source and Gradle product boundaries
+        run: |
+          bash ../../scripts/ci/verify-hummingbird-patient-boundary.sh source app/src
+          ./gradlew --no-daemon --stacktrace verifyPatientProductBoundary
+
+      - name: Run Debug and Release unit tests
+        run: ./gradlew --no-daemon --stacktrace testDebugUnitTest testReleaseUnitTest
+
+      - name: Run Debug and Release lint
+        run: ./gradlew --no-daemon --stacktrace lintDebug lintRelease
+
+      - name: Assemble Debug and Release apps
+        run: ./gradlew --no-daemon --stacktrace assembleDebug assembleRelease
+
+      - name: Verify patient Release APK boundary
+        run: |
+          mapfile -t release_apks < <(find app/build/outputs/apk/release -maxdepth 1 -type f -name "*.apk" -print | sort)
+          [[ "${#release_apks[@]}" -eq 1 ]] || {
+            echo "Expected exactly one patient Release APK; found ${#release_apks[@]}" >&2
+            exit 1
+          }
+          bash ../../scripts/ci/verify-hummingbird-patient-boundary.sh artifact "${release_apks[0]}"
+
+      - name: Run Debug instrumented tests on Android 35
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          working-directory: hummingbird/androidPatientApp
+          script: ./gradlew --no-daemon --stacktrace connectedDebugAndroidTest
+
+      - name: Upload Android patient verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hummingbird-patient-android-verification
+          path: |
+            hummingbird/androidPatientApp/app/build/reports
+            hummingbird/androidPatientApp/app/build/test-results
+            hummingbird/androidPatientApp/app/build/outputs/androidTest-results
+            hummingbird/androidPatientApp/app/build/outputs/apk/debug/app-debug.apk
+            hummingbird/androidPatientApp/app/build/outputs/apk/release/*.apk
+          if-no-files-found: warn
+          retention-days: 14
+
+  hummingbird-patient-ios:
+    name: Hummingbird patient (iOS)
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      IOS_PATIENT_ROOT: hummingbird/iosPatientApp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned XcodeGen
+        env:
+          XCODEGEN_VERSION: 2.46.0
+          XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
+        run: |
+          curl --fail --show-error --silent --location \
+            --output "$RUNNER_TEMP/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+          echo "${XCODEGEN_SHA256}  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/xcodegen/bin/xcodegen" --version
+
+      - name: Verify generated Xcode project and patient source boundary
+        run: |
+          bash scripts/ci/verify-hummingbird-patient-xcode-project.sh "$IOS_PATIENT_ROOT"
+          bash scripts/ci/verify-hummingbird-patient-boundary.sh source "$IOS_PATIENT_ROOT"
+          xcodebuild -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" -list
+
+      - name: Build Debug for iPhone Simulator
+        run: |
+          xcodebuild \
+            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
+            -scheme HummingbirdPatient \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-debug" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Build Release for iPhone Simulator
+        run: |
+          xcodebuild \
+            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
+            -scheme HummingbirdPatient \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-release" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Verify patient Release app boundary
+        run: |
+          release_app="$RUNNER_TEMP/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/HummingbirdPatient.app"
+          bash scripts/ci/verify-hummingbird-patient-boundary.sh artifact "$release_app"
+
+      - name: Select and boot an available iPhone Simulator
+        id: simulator
+        run: |
+          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
+          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
+          xcrun simctl bootstatus "$simulator_udid" -b
+
+      - name: Run XCTest unit suite
+        run: |
+          xcodebuild \
+            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
+            -scheme HummingbirdPatient \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
+            -resultBundlePath "$RUNNER_TEMP/HummingbirdPatientUnitTests.xcresult" \
+            -only-testing:HummingbirdPatientTests \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test
+
+      - name: Run XCUITest reference journeys
+        run: |
+          xcodebuild \
+            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
+            -scheme HummingbirdPatient \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
+            -resultBundlePath "$RUNNER_TEMP/HummingbirdPatientUITests.xcresult" \
+            -only-testing:HummingbirdPatientUITests \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test
+
+      - name: Shut down test simulator
+        if: always() && steps.simulator.outputs.udid != ''
+        run: xcrun simctl shutdown "${{ steps.simulator.outputs.udid }}" 2>/dev/null || true
+
+      - name: Upload iOS patient verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hummingbird-patient-ios-verification
+          path: |
+            ${{ runner.temp }}/HummingbirdPatientUnitTests.xcresult
+            ${{ runner.temp }}/HummingbirdPatientUITests.xcresult
+            ${{ runner.temp }}/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/HummingbirdPatient.app
+          if-no-files-found: warn
+          retention-days: 14

@@ -8,6 +8,7 @@ use App\Services\Audit\UserAuditRecorder;
 use App\Services\Auth\AccountSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -229,15 +230,20 @@ class AuthController extends Controller
             ]);
         }
 
-        $user->update([
-            'password' => Hash::make($request->new_password),
-            'must_change_password' => false,
-        ]);
+        // The credential mutation, global session revocation, and replacement token
+        // issuance are one atomic unit. A revocation or token-store failure must not
+        // leave the password changed while the client receives an error.
+        $pair = DB::transaction(function () use ($request, $user): array {
+            $user->update([
+                'password' => Hash::make($request->new_password),
+                'must_change_password' => false,
+            ]);
 
-        // Revoke every pre-change web/mobile credential, then issue one new pair.
-        $this->sessions->revoke($user, $request, 'password_changed');
+            // Revoke every pre-change web/mobile credential, then issue one new pair.
+            $this->sessions->revoke($user, $request, 'password_changed');
 
-        $pair = $this->issueTokenPair($user);
+            return $this->issueTokenPair($user);
+        });
         $this->auditAuth($request, 'mobile.auth.password_change', 'success', $user, [
             'auth_method' => 'mobile_token',
             'http_status' => 200,

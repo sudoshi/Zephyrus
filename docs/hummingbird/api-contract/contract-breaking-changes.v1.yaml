@@ -1,0 +1,13 @@
+# Breaking-change records for removed or renamed Hummingbird contract operations.
+#
+# An operation may only leave contract-operations.lock (be removed or renamed)
+# with a record here. scripts/verify-hummingbird-contract-baseline.php enforces this.
+#
+# Each record:
+#   - operation:   the baselined "METHOD full-path [operationId]" line removed/renamed
+#     changed_on:  YYYY-MM-DD
+#     kind:        removed | renamed
+#     replaced_by: the new "METHOD full-path" line, or null if removed outright
+#     reason:      why, and the client-migration note
+version: 1
+changes: []

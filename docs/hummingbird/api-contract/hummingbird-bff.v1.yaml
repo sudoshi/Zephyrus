@@ -23,6 +23,7 @@ tags:
   - { name: for-you }
   - { name: rtdc }
   - { name: patients }
+  - { name: patient-communications }
   - { name: activity }
   - { name: ops }
   - { name: or }
@@ -340,6 +341,322 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+  /patient-communications/inbox:
+    get:
+      tags: [patient-communications]
+      summary: List open patient-message work items for the staff member's active responsibility-pool memberships.
+      description: >
+        Returns at most 200 open work items ordered by escalation state and response target.
+        The response contains restricted patient-communication context and must not be cached
+        offline. Capability alone is insufficient: the caller must also have an effective
+        membership in the work item's active responsibility pool.
+      x-authorization-capability:
+        enum_case: ViewPatientCommunications
+        gate: viewPatientCommunications
+      x-data-classification: phi
+      x-offline-class: NO_CACHE
+      x-idempotency: NOT_APPLICABLE
+      responses:
+        "200":
+          description: Eligible open work items.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientCommunicationInboxEnvelope"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+  /patient-communications/threads/{workItemUuid}:
+    get:
+      tags: [patient-communications]
+      summary: Read one authorized patient-message work item and its bounded message history.
+      description: >
+        Returns the newest 250 canonical encrypted-ledger messages in chronological display
+        order after server-side decryption. A generic not-found response hides absent resources,
+        missing pool membership, and unauthorized work items.
+      x-authorization-capability:
+        enum_case: ViewPatientCommunications
+        gate: viewPatientCommunications
+      x-data-classification: phi
+      x-offline-class: NO_CACHE
+      x-idempotency: NOT_APPLICABLE
+      parameters:
+        - $ref: "#/components/parameters/PatientCommunicationWorkItemUuid"
+      responses:
+        "200":
+          description: Authorized work item and message history.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientCommunicationThreadEnvelope"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+  /patient-communications/threads/{workItemUuid}/route-candidates:
+    get:
+      tags: [patient-communications]
+      summary: List the currently authorized release, reassign, and reroute choices for one work item.
+      description: >
+        Returns only bounded server-resolved targets using opaque membership and pool UUIDs.
+        Candidate resolution is content-free and rechecks the caller's response capability,
+        effective source-pool membership, source-pool integrity, approved routing policy and topic,
+        governed encounter scope, active target membership, and target responder capability. The
+        client must use the returned versions and one returned target UUID; it must never guess or
+        synthesize a routing target.
+      x-authorization-capability:
+        enum_case: RespondPatientCommunications
+        gate: respondPatientCommunications
+      x-data-classification: phi
+      x-offline-class: NO_CACHE
+      x-idempotency: NOT_APPLICABLE
+      parameters:
+        - $ref: "#/components/parameters/PatientCommunicationWorkItemUuid"
+      responses:
+        "200":
+          description: Current content-free routing actions, reasons, and eligible target candidates.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientCommunicationRouteCandidatesEnvelope"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+  /patient-communications/threads/{workItemUuid}/claim:
+    post:
+      tags: [patient-communications]
+      summary: Atomically claim an unassigned patient-message work item.
+      description: >
+        Requires an effective pool membership with claim permission. Both projection versions
+        are required for optimistic concurrency. Reusing the same UUID idempotency key with the
+        same payload returns the original logical result; binding it to another operation or
+        payload returns a conflict. Clients must re-fetch after conflicts and must not queue this
+        PHI-bearing command for offline delivery.
+      x-authorization-capability:
+        enum_case: RespondPatientCommunications
+        gate: respondPatientCommunications
+      x-data-classification: phi
+      x-offline-class: NO_CACHE
+      x-idempotency: REQUIRED_UUID_HEADER
+      parameters:
+        - $ref: "#/components/parameters/PatientCommunicationWorkItemUuid"
+        - $ref: "#/components/parameters/PatientCommunicationIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimPatientCommunication"
+      responses:
+        "200":
+          description: Work item claimed or an exact replay returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientCommunicationMutationEnvelope"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+  /patient-communications/threads/{workItemUuid}/reply:
+    post:
+      tags: [patient-communications]
+      summary: Append a patient-visible care-team reply to a claimed work item.
+      description: >
+        Requires an effective pool membership with reply permission and assignment to the caller.
+        The message is stored only in the canonical patient message ledger using the dedicated
+        messaging cipher. Both the command UUID and client message UUID are replay-bound; clients
+        must not automatically resend after a conflict or queue a draft for offline delivery.
+      x-authorization-capability:
+        enum_case: RespondPatientCommunications
+        gate: respondPatientCommunications
+      x-data-classification: phi
+      x-offline-class: NO_CACHE
+      x-idempotency: REQUIRED_UUID_HEADER_AND_CLIENT_MESSAGE_UUID
+      parameters:
+        - $ref: "#/components/parameters/PatientCommunicationWorkItemUuid"
+        - $ref: "#/components/parameters/PatientCommunicationIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplyPatientCommunication"
+      responses:
+        "200":
+          description: Patient-visible reply appended or an exact replay returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientCommunicationMutationEnvelope"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+  /patient-communications/threads/{workItemUuid}/close:
+    post:
+      tags: [patient-communications]
+      summary: Close an assigned work item after a patient-visible care-team response.
+      description: >
+        Requires an effective pool membership with close permission, assignment to the caller,
+        current work-item and thread versions, and at least one patient-visible staff response.
+        The internal staff reason is retained in the staff ledger while the patient thread exposes
+        the safe question_answered reason. This command is never eligible for offline queuing.
+      x-authorization-capability:
+        enum_case: RespondPatientCommunications
+        gate: respondPatientCommunications
+      x-data-classification: phi
+      x-offline-class: NO_CACHE
+      x-idempotency: REQUIRED_UUID_HEADER
+      parameters:
+        - $ref: "#/components/parameters/PatientCommunicationWorkItemUuid"
+        - $ref: "#/components/parameters/PatientCommunicationIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClosePatientCommunication"
+      responses:
+        "200":
+          description: Work item closed or an exact replay returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientCommunicationMutationEnvelope"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+  /patient-communications/threads/{workItemUuid}/release:
+    post:
+      tags: [patient-communications]
+      summary: Release an assigned communication back to its current accountable pool.
+      description: >
+        Limited to the current assignee or a currently effective supervisor in the source pool.
+        The operation preserves the pool, clears the staff assignment, advances both optimistic
+        versions, and commits immutable staff-action, patient-routing, patient-receipt, and user-
+        audit facts without message content. The canonical UUID idempotency key is exact-replay
+        bound to the actor, operation, work item, versions, and governed reason.
+      x-authorization-capability:
+        enum_case: RespondPatientCommunications
+        gate: respondPatientCommunications
+      x-data-classification: phi
+      x-offline-class: NO_CACHE
+      x-idempotency: REQUIRED_UUID_HEADER
+      parameters:
+        - $ref: "#/components/parameters/PatientCommunicationWorkItemUuid"
+        - $ref: "#/components/parameters/PatientCommunicationIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReleasePatientCommunication"
+      responses:
+        "200":
+          description: Work item released to its pool or an exact replay returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientCommunicationMutationEnvelope"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+  /patient-communications/threads/{workItemUuid}/reassign:
+    post:
+      tags: [patient-communications]
+      summary: Reassign an assigned communication to an eligible member of the same pool.
+      description: >
+        Limited to a currently effective source-pool supervisor. The target membership UUID must
+        come from the current route-candidates response and is revalidated under lock for active
+        membership, reply eligibility, active staff status, and response capability. No user or
+        internal membership database identifier is accepted.
+      x-authorization-capability:
+        enum_case: RespondPatientCommunications
+        gate: respondPatientCommunications
+      x-data-classification: phi
+      x-offline-class: NO_CACHE
+      x-idempotency: REQUIRED_UUID_HEADER
+      parameters:
+        - $ref: "#/components/parameters/PatientCommunicationWorkItemUuid"
+        - $ref: "#/components/parameters/PatientCommunicationIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReassignPatientCommunication"
+      responses:
+        "200":
+          description: Work item assigned to the eligible target membership or an exact replay returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientCommunicationMutationEnvelope"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+  /patient-communications/threads/{workItemUuid}/reroute:
+    post:
+      tags: [patient-communications]
+      summary: Reroute an open communication to another approved accountable pool.
+      description: >
+        Requires can_reroute on the caller's effective source-pool membership. The target pool UUID
+        must come from route candidates and is revalidated under lock for active status, the same
+        approved routing policy and topic, a matching policy-owned pool digest, governed encounter
+        unit/facility/enterprise scope, and an eligible responder. An exact lost-response retry is
+        reauthorized against the event's still-effective source-pool membership and can_reroute
+        authority rather than target-pool membership. Every authorized exact replay returns only
+        the immutable original event receipt with null work_item and message fields. It never reads
+        or exposes the current destination projection, refreshes a patient-context handle, or uses
+        later pool, version, assignee, message, policy, or thread state as a replay oracle.
+      x-web-equivalent:
+        path: /patient-communications/threads/{workItemUuid}/reroute
+        success_schema: PatientCommunicationWebRerouteMutationEnvelope
+      x-authorization-capability:
+        enum_case: RespondPatientCommunications
+        gate: respondPatientCommunications
+      x-data-classification: phi
+      x-offline-class: NO_CACHE
+      x-idempotency: REQUIRED_UUID_HEADER
+      parameters:
+        - $ref: "#/components/parameters/PatientCommunicationWorkItemUuid"
+        - $ref: "#/components/parameters/PatientCommunicationIdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReroutePatientCommunication"
+      responses:
+        "200":
+          description: Work item rerouted to the governed target pool or an exact replay returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientCommunicationRerouteMutationEnvelope"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidBody" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
   /activity:
     get:
       tags: [activity]
@@ -397,6 +714,16 @@ paths:
     get:
       tags: [for-you]
       summary: The unified, ranked, cross-domain action queue for this worker.
+      description: >
+        Returns the worker's ranked operational queue. When governed patient communications
+        are enabled, the response may add at most 50 content-free attention items authorized
+        by both ViewPatientCommunications and current active responsibility-pool membership.
+        Patient-communication items never include a message body, patient/context reference,
+        encounter or grant identifier, digest, or database free text. This aggregate is never
+        eligible for offline caching.
+      x-data-classification: phi_minimized
+      x-offline-class: NO_CACHE
+      x-idempotency: NOT_APPLICABLE
       parameters:
         - {
             name: persona,
@@ -422,6 +749,7 @@ paths:
           }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
 
   /flow/floors:
     get:
@@ -1264,6 +1592,28 @@ components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: Sanctum-PAT }
 
+  parameters:
+    PatientCommunicationWorkItemUuid:
+      name: workItemUuid
+      in: path
+      required: true
+      description: Opaque UUID of the staff work projection, never a patient identifier.
+      schema: { type: string, format: uuid }
+    PatientCommunicationIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: >
+        Client-generated canonical lowercase UUID bound to the authenticated staff actor,
+        operation, work item, and validated payload. Reuse only for an exact retry of the
+        same command.
+      schema:
+        {
+          type: string,
+          format: uuid,
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        }
+
   responses:
     Unauthorized:
       {
@@ -1299,6 +1649,15 @@ components:
     InvalidBody:
       {
         description: Request body failed validation.,
+        content:
+          {
+            application/json:
+              { schema: { $ref: "#/components/schemas/Error" } },
+          },
+      }
+    ServiceUnavailable:
+      {
+        description: The governed patient-communications workflow is disabled or temporarily unavailable.,
         content:
           {
             application/json:
@@ -1351,6 +1710,522 @@ components:
         meta: { $ref: "#/components/schemas/Meta" }
         links: { $ref: "#/components/schemas/Links" }
       required: [data, meta, links]
+    PatientCommunicationRestrictedMeta:
+      allOf:
+        - $ref: "#/components/schemas/Meta"
+        - type: object
+          properties:
+            classification:
+              type: string
+              const: patient_communication_restricted
+            offline_writes_allowed:
+              type: boolean
+              const: false
+          required: [classification, offline_writes_allowed]
+    PatientCommunicationTopic:
+      type: object
+      additionalProperties: false
+      properties:
+        code: { type: string, pattern: "^[a-z][a-z0-9_]{1,78}[a-z0-9]$" }
+        label: { type: string, minLength: 1, maxLength: 120 }
+      required: [code, label]
+    PatientCommunicationUnit:
+      type: object
+      additionalProperties: false
+      properties:
+        id: { type: integer, minimum: 1 }
+        label: { type: string, minLength: 1 }
+      required: [id, label]
+    PatientCommunicationPool:
+      type: object
+      additionalProperties: false
+      properties:
+        pool_uuid: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 120 }
+      required: [pool_uuid, label]
+    PatientCommunicationRoutingActions:
+      type: object
+      additionalProperties: false
+      properties:
+        can_release: { type: boolean }
+        can_reassign: { type: boolean }
+        can_reroute: { type: boolean }
+      required: [can_release, can_reassign, can_reroute]
+    PatientCommunicationReleaseReasonOption:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          {
+            type: string,
+            enum:
+              [
+                return_to_team,
+                shift_handoff,
+                responder_unavailable,
+                incorrect_assignment,
+              ],
+          }
+        label: { type: string, minLength: 1, maxLength: 120 }
+      required: [code, label]
+    PatientCommunicationReassignReasonOption:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          {
+            type: string,
+            enum:
+              [
+                supervisor_assignment,
+                shift_handoff,
+                coverage_change,
+                workload_balance,
+              ],
+          }
+        label: { type: string, minLength: 1, maxLength: 120 }
+      required: [code, label]
+    PatientCommunicationRerouteReasonOption:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          {
+            type: string,
+            enum: [wrong_team, unit_transfer, service_change, specialty_needed],
+          }
+        label: { type: string, minLength: 1, maxLength: 120 }
+      required: [code, label]
+    PatientCommunicationRoutingReasonOptions:
+      type: object
+      additionalProperties: false
+      properties:
+        release:
+          type: array
+          minItems: 1
+          maxItems: 12
+          items:
+            { $ref: "#/components/schemas/PatientCommunicationReleaseReasonOption" }
+        reassign:
+          type: array
+          minItems: 1
+          maxItems: 12
+          items:
+            { $ref: "#/components/schemas/PatientCommunicationReassignReasonOption" }
+        reroute:
+          type: array
+          minItems: 1
+          maxItems: 12
+          items:
+            { $ref: "#/components/schemas/PatientCommunicationRerouteReasonOption" }
+      required: [release, reassign, reroute]
+    PatientCommunicationReassignCandidate:
+      type: object
+      additionalProperties: false
+      properties:
+        membership_uuid: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 120 }
+        membership_role:
+          { type: string, enum: [responder, triage, supervisor] }
+      required: [membership_uuid, label, membership_role]
+    PatientCommunicationRerouteCandidate:
+      type: object
+      additionalProperties: false
+      properties:
+        pool_uuid: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 120 }
+        scope_type: { type: string, enum: [unit, facility, enterprise] }
+        unit:
+          oneOf:
+            - $ref: "#/components/schemas/PatientCommunicationUnit"
+            - { type: "null" }
+      required: [pool_uuid, label, scope_type, unit]
+    PatientCommunicationRouteCandidatesData:
+      type: object
+      additionalProperties: false
+      properties:
+        work_item_uuid: { type: string, format: uuid }
+        work_item_version: { type: integer, minimum: 1 }
+        thread_version: { type: integer, minimum: 1 }
+        actions:
+          { $ref: "#/components/schemas/PatientCommunicationRoutingActions" }
+        reason_options:
+          {
+            $ref: "#/components/schemas/PatientCommunicationRoutingReasonOptions",
+          }
+        reassign_candidates:
+          type: array
+          maxItems: 50
+          items:
+            { $ref: "#/components/schemas/PatientCommunicationReassignCandidate" }
+        reroute_candidates:
+          type: array
+          maxItems: 50
+          items:
+            { $ref: "#/components/schemas/PatientCommunicationRerouteCandidate" }
+      required:
+        [
+          work_item_uuid,
+          work_item_version,
+          thread_version,
+          actions,
+          reason_options,
+          reassign_candidates,
+          reroute_candidates,
+        ]
+    PatientCommunicationMessage:
+      type: object
+      additionalProperties: false
+      properties:
+        message_uuid: { type: string, format: uuid }
+        sender_display_role:
+          {
+            type: string,
+            enum:
+              [
+                Patient,
+                Representative,
+                Care team,
+                Care team — internal,
+                System,
+              ],
+          }
+        visibility: { type: string, enum: [patient_visible, staff_internal] }
+        message_kind:
+          {
+            type: string,
+            enum: [message, correction, retraction, system_status],
+          }
+        body:
+          oneOf:
+            - { type: string, minLength: 1, maxLength: 4000 }
+            - { type: "null" }
+        delivery_state:
+          {
+            type: string,
+            enum:
+              [
+                sent,
+                accepted,
+                routed,
+                assigned,
+                acknowledged,
+                delivered,
+                responded,
+                closed,
+              ],
+          }
+        sent_at:
+          oneOf:
+            - { type: string, format: date-time }
+            - { type: "null" }
+      required:
+        [
+          message_uuid,
+          sender_display_role,
+          visibility,
+          message_kind,
+          body,
+          delivery_state,
+          sent_at,
+        ]
+    PatientCommunicationWorkItem:
+      type: object
+      additionalProperties: false
+      properties:
+        work_item_uuid: { type: string, format: uuid }
+        thread_uuid: { type: string, format: uuid }
+        patient_context_ref:
+          oneOf: [{ type: string, minLength: 1 }, { type: "null" }]
+        topic: { $ref: "#/components/schemas/PatientCommunicationTopic" }
+        unit:
+          oneOf:
+            - $ref: "#/components/schemas/PatientCommunicationUnit"
+            - { type: "null" }
+        pool: { $ref: "#/components/schemas/PatientCommunicationPool" }
+        status: { type: string, enum: [open, closed] }
+        ownership_state:
+          {
+            type: string,
+            enum:
+              [
+                pool_owned,
+                assigned,
+                acknowledged,
+                responded,
+                rerouted,
+                escalated,
+                closed,
+              ],
+          }
+        assigned_to_me: { type: boolean }
+        work_item_version: { type: integer, minimum: 1 }
+        thread_version: { type: integer, minimum: 1 }
+        last_message_at: { type: string, format: date-time }
+        due_at: { type: string, format: date-time }
+        escalate_at: { type: string, format: date-time }
+        is_response_due: { type: boolean }
+        is_escalation_due: { type: boolean }
+        closed_at:
+          oneOf:
+            - { type: string, format: date-time }
+            - { type: "null" }
+        messages:
+          type: array
+          maxItems: 250
+          items: { $ref: "#/components/schemas/PatientCommunicationMessage" }
+        has_earlier_messages: { type: boolean }
+      required:
+        [
+          work_item_uuid,
+          thread_uuid,
+          patient_context_ref,
+          topic,
+          unit,
+          pool,
+          status,
+          ownership_state,
+          assigned_to_me,
+          work_item_version,
+          thread_version,
+          last_message_at,
+          due_at,
+          escalate_at,
+          is_response_due,
+          is_escalation_due,
+          closed_at,
+        ]
+    PatientCommunicationThreadDetail:
+      allOf:
+        - $ref: "#/components/schemas/PatientCommunicationWorkItem"
+        - type: object
+          required: [messages, has_earlier_messages]
+    PatientCommunicationInboxData:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items: { $ref: "#/components/schemas/PatientCommunicationWorkItem" }
+        count: { type: integer, minimum: 0, maximum: 200 }
+      required: [items, count]
+    PatientCommunicationMutationData:
+      type: object
+      additionalProperties: false
+      properties:
+        work_item: { $ref: "#/components/schemas/PatientCommunicationWorkItem" }
+        message:
+          oneOf:
+            - $ref: "#/components/schemas/PatientCommunicationMessage"
+            - { type: "null" }
+        event_uuid:
+          oneOf:
+            - { type: string, format: uuid }
+            - { type: "null" }
+        replayed: { type: boolean }
+      required: [work_item, message, event_uuid, replayed]
+    PatientCommunicationRerouteCommittedData:
+      type: object
+      additionalProperties: false
+      description: The current projection returned only by the first committed reroute request.
+      properties:
+        work_item: { $ref: "#/components/schemas/PatientCommunicationWorkItem" }
+        message: { type: "null" }
+        event_uuid: { type: string, format: uuid }
+        replayed: { type: boolean, const: false }
+      required: [work_item, message, event_uuid, replayed]
+    PatientCommunicationRerouteReplayReceipt:
+      type: object
+      additionalProperties: false
+      description: >
+        Content-minimized immutable acknowledgement for an exact committed reroute replay. Null
+        projection fields are intentional: clients must purge stale detail after the reroute and
+        perform a separately authorized fresh GET if they need current state instead of treating a
+        retry as a state query.
+      properties:
+        work_item: { type: "null" }
+        message: { type: "null" }
+        event_uuid: { type: string, format: uuid }
+        replayed: { type: boolean, const: true }
+      required: [work_item, message, event_uuid, replayed]
+    PatientCommunicationRerouteMutationData:
+      oneOf:
+        - $ref: "#/components/schemas/PatientCommunicationRerouteCommittedData"
+        - $ref: "#/components/schemas/PatientCommunicationRerouteReplayReceipt"
+    PatientCommunicationWebRestrictedMeta:
+      type: object
+      additionalProperties: false
+      properties:
+        as_of: { type: string, format: date-time }
+        classification:
+          { type: string, const: patient_communication_restricted }
+        offline_writes_allowed: { type: boolean, const: false }
+      required: [as_of, classification, offline_writes_allowed]
+    PatientCommunicationInboxEnvelope:
+      type: object
+      additionalProperties: false
+      properties:
+        data: { $ref: "#/components/schemas/PatientCommunicationInboxData" }
+        meta:
+          { $ref: "#/components/schemas/PatientCommunicationRestrictedMeta" }
+        links: { $ref: "#/components/schemas/Links" }
+      required: [data, meta, links]
+    PatientCommunicationThreadEnvelope:
+      type: object
+      additionalProperties: false
+      properties:
+        data: { $ref: "#/components/schemas/PatientCommunicationThreadDetail" }
+        meta:
+          { $ref: "#/components/schemas/PatientCommunicationRestrictedMeta" }
+        links: { $ref: "#/components/schemas/Links" }
+      required: [data, meta, links]
+    PatientCommunicationRouteCandidatesEnvelope:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          {
+            $ref: "#/components/schemas/PatientCommunicationRouteCandidatesData",
+          }
+        meta:
+          { $ref: "#/components/schemas/PatientCommunicationRestrictedMeta" }
+        links: { $ref: "#/components/schemas/Links" }
+      required: [data, meta, links]
+    PatientCommunicationMutationEnvelope:
+      type: object
+      additionalProperties: false
+      properties:
+        data: { $ref: "#/components/schemas/PatientCommunicationMutationData" }
+        meta:
+          { $ref: "#/components/schemas/PatientCommunicationRestrictedMeta" }
+        links: { $ref: "#/components/schemas/Links" }
+      required: [data, meta, links]
+    PatientCommunicationRerouteMutationEnvelope:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          { $ref: "#/components/schemas/PatientCommunicationRerouteMutationData" }
+        meta:
+          { $ref: "#/components/schemas/PatientCommunicationRestrictedMeta" }
+        links: { $ref: "#/components/schemas/Links" }
+      required: [data, meta, links]
+    PatientCommunicationWebRerouteMutationEnvelope:
+      type: object
+      additionalProperties: false
+      description: >
+        Authenticated Zephyrus web counterpart. It uses the same fresh-or-minimal-replay data union
+        as mobile but omits the mobile-only links object.
+      properties:
+        data:
+          { $ref: "#/components/schemas/PatientCommunicationRerouteMutationData" }
+        meta:
+          { $ref: "#/components/schemas/PatientCommunicationWebRestrictedMeta" }
+      required: [data, meta]
+    ClaimPatientCommunication:
+      type: object
+      additionalProperties: false
+      properties:
+        work_item_version: { type: integer, minimum: 1 }
+        thread_version: { type: integer, minimum: 1 }
+      required: [work_item_version, thread_version]
+    ReplyPatientCommunication:
+      type: object
+      additionalProperties: false
+      properties:
+        work_item_version: { type: integer, minimum: 1 }
+        thread_version: { type: integer, minimum: 1 }
+        message: { type: string, minLength: 1, maxLength: 4000 }
+        client_message_uuid: { type: string, format: uuid }
+      required:
+        [work_item_version, thread_version, message, client_message_uuid]
+    ClosePatientCommunication:
+      type: object
+      additionalProperties: false
+      properties:
+        work_item_version: { type: integer, minimum: 1 }
+        thread_version: { type: integer, minimum: 1 }
+        reason_code:
+          {
+            type: string,
+            enum:
+              [
+                question_answered,
+                duplicate,
+                transferred,
+                patient_requested,
+                other,
+              ],
+          }
+      required: [work_item_version, thread_version, reason_code]
+    ReleasePatientCommunication:
+      type: object
+      additionalProperties: false
+      properties:
+        work_item_version: { type: integer, minimum: 1 }
+        thread_version: { type: integer, minimum: 1 }
+        reason_code:
+          {
+            type: string,
+            enum:
+              [
+                return_to_team,
+                shift_handoff,
+                responder_unavailable,
+                incorrect_assignment,
+              ],
+          }
+      required: [work_item_version, thread_version, reason_code]
+    ReassignPatientCommunication:
+      type: object
+      additionalProperties: false
+      properties:
+        work_item_version: { type: integer, minimum: 1 }
+        thread_version: { type: integer, minimum: 1 }
+        target_membership_uuid:
+          {
+            type: string,
+            format: uuid,
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          }
+        reason_code:
+          {
+            type: string,
+            enum:
+              [
+                supervisor_assignment,
+                shift_handoff,
+                coverage_change,
+                workload_balance,
+              ],
+          }
+      required:
+        [
+          work_item_version,
+          thread_version,
+          target_membership_uuid,
+          reason_code,
+        ]
+    ReroutePatientCommunication:
+      type: object
+      additionalProperties: false
+      properties:
+        work_item_version: { type: integer, minimum: 1 }
+        thread_version: { type: integer, minimum: 1 }
+        target_pool_uuid:
+          {
+            type: string,
+            format: uuid,
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          }
+        reason_code:
+          {
+            type: string,
+            enum: [wrong_team, unit_transfer, service_change, specialty_needed],
+          }
+      required:
+        [work_item_version, thread_version, target_pool_uuid, reason_code]
     Error:
       type: object
       properties:
@@ -1481,19 +2356,57 @@ components:
           properties:
             data:
               type: object
+              additionalProperties: false
               properties:
-                id: { type: string }
+                id: { type: integer, minimum: 1 }
                 name: { type: string }
+                username: { type: string }
+                email:
+                  oneOf: [{ type: string, format: email }, { type: "null" }]
                 roles: { type: array, items: { type: string } }
                 is_admin: { type: boolean }
-                workflow_preference: { $ref: "#/components/schemas/Workflow" }
+                can:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    view_patient_communications: { type: boolean }
+                    respond_patient_communications: { type: boolean }
+                  required:
+                    [
+                      view_patient_communications,
+                      respond_patient_communications,
+                    ]
+                workflow_preference:
+                  oneOf:
+                    - { $ref: "#/components/schemas/Workflow" }
+                    - { type: "null" }
                 must_change_password: { type: boolean }
                 units:
-                  {
-                    type: array,
-                    items: { type: string },
-                    description: Units this user is associated with (from user_unit).,
-                  }
+                  type: array
+                  description: Units this user is associated with (from user_unit).
+                  items:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      unit_id: { type: integer, minimum: 1 }
+                      name: { type: string }
+                      role:
+                        oneOf: [{ type: string }, { type: "null" }]
+                      is_primary: { type: boolean }
+                    required: [unit_id, name, role, is_primary]
+              required:
+                [
+                  id,
+                  name,
+                  username,
+                  email,
+                  roles,
+                  is_admin,
+                  can,
+                  workflow_preference,
+                  must_change_password,
+                  units,
+                ]
     Preferences:
       type: object
       properties:
@@ -1566,13 +2479,23 @@ components:
         id: { type: string }
         type:
           type: string
-          description: Server item class, for example bed_request, barrier, capacity, transport, or evs.
+          description: Server item class, for example bed_request, barrier, capacity, transport, evs, or patient_communication.
         altitude: { type: string, enum: [A2] }
         domain:
           {
             type: string,
             enum:
-              [rtdc, ops, or, transport, evs, staffing, improvement, command],
+              [
+                rtdc,
+                ops,
+                or,
+                transport,
+                evs,
+                staffing,
+                improvement,
+                command,
+                communications,
+              ],
           }
         tier:
           {
@@ -1632,12 +2555,25 @@ components:
         - { $ref: "#/components/schemas/Envelope" }
         - type: object
           properties:
+            meta: { $ref: "#/components/schemas/ForYouRestrictedMeta" }
             data:
               {
                 type: array,
                 items: { $ref: "#/components/schemas/ForYouItem" },
               }
             next_cursor: { type: string }
+    ForYouRestrictedMeta:
+      allOf:
+        - $ref: "#/components/schemas/Meta"
+        - type: object
+          properties:
+            classification:
+              type: string
+              const: phi_minimized_restricted
+            offline_cache_allowed:
+              type: boolean
+              const: false
+          required: [classification, offline_cache_allowed]
 
     MobileAltitudeEnvelope:
       allOf:

@@ -1,0 +1,243 @@
+version: 1
+as_of: 2026-07-22
+governance_status: draft_requires_multidisciplinary_approval
+release_status: not_pilot_ready
+
+baseline:
+  wcag_version: "2.2"
+  conformance_target: AA
+  ios_guidance: Apple Human Interface Guidelines accessibility guidance
+  android_guidance: Android accessibility guidance
+  safety_boundary: >-
+    Automated evidence proves only the named engineering control or test. It
+    does not certify usability, clinical safety, language quality, contrast,
+    screen-reader order, or assistive-technology compatibility for a patient
+    population. Those require the named human validation before any pilot.
+
+owners:
+  product: Patient Experience Product
+  engineering: Hummingbird Patient Platform
+  required_approvers:
+    - Clinical Safety
+    - Nursing
+    - Patient and Family Advisory Council
+    - Accessibility and Language Access
+    - Privacy
+    - Security
+
+criteria:
+  - id: patient_accessibility.text_scaling
+    risk: high
+    applies_to: [ios, android]
+    standards: [wcag_1_4_4, wcag_1_4_10, ios_dynamic_type, android_font_scaling]
+    product_obligation: >-
+      A saved reading preference may increase text size but must never shrink a
+      stronger system text-size choice; primary content and critical actions
+      remain available at the largest supported size.
+    automation_status: automated_evidence_exists
+    automated_evidence:
+      - hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientPresentationPreferences.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientTests/PatientPresentationPreferencesTests.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientSessionManagementUITests.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientPresentationAccessibility.kt
+      - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/ui/PatientPresentationAccessibilityTest.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientSessionManagementInstrumentedTest.kt
+    human_validation_required:
+      - Verify every primary journey at iOS Accessibility XXXL and Android 200 percent font scale with a patient advisor.
+      - Verify no clipped labels, hidden destructive actions, inaccessible confirmation, or horizontal-only recovery path.
+    release_boundary: Accessibility and Language Access must approve the recorded device, OS, font-scale, and journey evidence.
+
+  - id: patient_accessibility.decorative_scenery
+    risk: medium
+    applies_to: [ios, android]
+    standards: [wcag_1_1_1, wcag_1_4_3, wcag_1_4_11]
+    product_obligation: >-
+      The Hummingbird imagery is calming and decorative only. It contributes no
+      clinical meaning, is hidden from assistive technology, and yields to
+      readable care content as text size or contrast needs increase.
+    automation_status: automated_evidence_exists
+    automated_evidence:
+      - hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientPhotoBackground.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientReferenceJourneyUITests.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientScenicBackground.kt
+      - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/ui/PatientVisualAssetPolicyTest.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientSessionManagementInstrumentedTest.kt
+    human_validation_required:
+      - Inspect each image moment with large text, dark mode, light mode, increased contrast, and reduced transparency.
+      - Confirm no image is announced by VoiceOver or TalkBack and no care meaning depends on it.
+    release_boundary: Design, Accessibility and Language Access, and patient advisors must approve rendered device captures; image provenance remains separately governed.
+
+  - id: patient_accessibility.high_contrast_and_status_redundancy
+    risk: high
+    applies_to: [ios, android]
+    standards: [wcag_1_4_3, wcag_1_4_11, wcag_1_4_1]
+    product_obligation: >-
+      High contrast removes decorative imagery, preserves a strong surface
+      treatment, and every state must remain understandable in words rather
+      than color, motion, or icon alone.
+    automation_status: automated_evidence_exists
+    automated_evidence:
+      - hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientComponents.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientPhotoBackground.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientSessionManagementUITests.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/HummingbirdPatientTheme.kt
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientScenicBackground.kt
+      - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/ui/PatientVisualAssetPolicyTest.kt
+    human_validation_required:
+      - Measure foreground, focus, icon, control-boundary, and status contrast in both themes and high-contrast mode.
+      - Verify a participant can distinguish planned, current, delayed, completed, unavailable, and error states without color perception.
+    release_boundary: A qualified accessibility review must attach contrast results and state-redundancy findings for both platforms.
+
+  - id: patient_accessibility.reduced_motion
+    risk: medium
+    applies_to: [ios, android]
+    standards: [wcag_2_3_3, ios_reduce_motion, android_motion_sensitivity]
+    product_obligation: >-
+      Optional scenery and transition effects may not be needed to understand
+      care. The app honors its saved reduced-motion preference and the iOS
+      system reduced-motion setting where available.
+    automation_status: automated_evidence_exists
+    automated_evidence:
+      - hummingbird/iosPatientApp/HummingbirdPatient/App/HummingbirdPatientApp.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientPhotoBackground.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientPresentationAccessibility.kt
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientPreferencesScreen.kt
+    human_validation_required:
+      - Validate saved and operating-system motion settings on supported iOS and Android releases, including launch, loading, navigation, and error recovery.
+      - Confirm reduced motion does not suppress a state, warning, confirmation, or required action.
+    release_boundary: Mobile accessibility review must document platform setting behavior; Android system-level motion handling remains a required review item.
+
+  - id: patient_accessibility.urgent_help_and_nonurgent_messaging
+    risk: critical
+    applies_to: [ios, android]
+    standards: [wcag_3_3_2, patient_communication_safety]
+    product_obligation: >-
+      Urgent-help instructions remain visible and understandable before
+      composition and in pending conversations. Messaging is plainly described
+      as non-urgent and not a live chat, without promising a response time or
+      continuous individual availability.
+    automation_status: automated_evidence_exists
+    automated_evidence:
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/Messages/PatientMessagesView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/CareTeam/PatientCareTeamView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientReferenceJourneyUITests.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientMessagingPanel.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientPrimaryJourneyInstrumentedTest.kt
+    human_validation_required:
+      - Test urgent guidance comprehension with patients and family advisors, including low literacy, high anxiety, and limited-English-proficiency scenarios.
+      - Verify bedside call-button wording and local emergency policy with each pilot facility before enabling messaging.
+    release_boundary: Clinical Safety, Nursing, and local emergency-policy owners must approve the exact urgent-help copy and workflow.
+
+  - id: patient_accessibility.loading_empty_and_error_recovery
+    risk: high
+    applies_to: [ios, android]
+    standards: [wcag_3_3_1, wcag_3_3_3, wcag_4_1_3]
+    product_obligation: >-
+      Loading, unavailable, empty, and recoverable-error states state what is
+      happening, avoid false certainty about care, preserve a recovery action
+      where appropriate, and do not expose internal technical details.
+    automation_status: automated_evidence_exists
+    automated_evidence:
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/Authentication/PatientWelcomeView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientReferenceJourneyUITests.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientAuthenticationScreen.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientPrimaryJourneyInstrumentedTest.kt
+    human_validation_required:
+      - Validate announcements, reading order, retry language, and safe alternative instructions with VoiceOver and TalkBack.
+      - Validate source-outage and stale-data language with clinical safety and patient advisors.
+    release_boundary: Accessibility and Clinical Safety must approve state wording and assistive-technology behavior.
+
+  - id: patient_accessibility.privacy_cover
+    risk: high
+    applies_to: [ios, android]
+    standards: [patient_privacy, native_app_switcher_privacy]
+    product_obligation: >-
+      Care information is obscured when the app is inactive; the cover itself
+      is calm, communicates that the information is hidden, and exposes no
+      patient-specific detail.
+    automation_status: automated_evidence_exists
+    automated_evidence:
+      - hummingbird/iosPatientApp/HummingbirdPatient/Privacy/PatientPrivacyCoverView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientReferenceJourneyUITests.swift
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientPrimaryJourneyInstrumentedTest.kt
+    human_validation_required:
+      - Verify app-switcher, lock, split-screen, accessibility-overlay, and interrupted-login behavior on each supported device family.
+    release_boundary: Privacy and mobile-security review must approve the device-state evidence before a pilot.
+
+  - id: patient_accessibility.screen_reader_semantics_and_focus
+    risk: critical
+    applies_to: [ios, android]
+    standards: [wcag_1_3_1, wcag_2_4_3, wcag_2_4_6, wcag_4_1_2]
+    product_obligation: >-
+      Screen-reader users can navigate primary care, pathway, team, messaging,
+      preferences, and session-management journeys in a logical order with
+      descriptive controls, headings, grouped context, and restrained status
+      announcements.
+    automation_status: manual_validation_required
+    automated_evidence: []
+    human_validation_required:
+      - Run VoiceOver rotor and swipe navigation across every primary journey, modal, alert, confirmation, and error state.
+      - Run TalkBack linear navigation and action menus across the same journeys, including a message correction and current-device sign-out.
+      - Record focus order, accessible names, trait/role, hint, duplicate-announcement, and live-region findings with reproducible device and OS details.
+    release_boundary: A qualified accessibility evaluator and patient advisor must close all critical and high findings before pilot enrollment.
+
+  - id: patient_accessibility.target_size_and_precision_independence
+    risk: high
+    applies_to: [ios, android]
+    standards: [wcag_2_5_8, wcag_2_5_1]
+    product_obligation: >-
+      Essential actions, including urgent guidance, navigation, message
+      actions, confirmation, and session revocation, remain operable without
+      a precision gesture and meet the product target-size policy.
+    automation_status: manual_validation_required
+    automated_evidence: []
+    human_validation_required:
+      - Measure target size and spacing on compact and large devices at default and maximum text settings.
+      - Test with one-handed use, switch control or external keyboard where available, and tremor or low-dexterity participants.
+    release_boundary: Accessibility and patient-experience review must approve target-size findings and remediation.
+
+  - id: patient_accessibility.cognitive_readability_and_error_prevention
+    risk: high
+    applies_to: [ios, android]
+    standards: [wcag_3_3_2, wcag_3_3_4, health_literacy]
+    product_obligation: >-
+      Care wording, uncertainty, correction notices, choices, destructive
+      actions, and messaging limits are clear, contextual, and do not imply a
+      clinical commitment, consent, comprehension, or care-plan change.
+    automation_status: manual_validation_required
+    automated_evidence: []
+    human_validation_required:
+      - Conduct plain-language and comprehension testing with patient and family advisors across literacy, cognitive-load, and anxiety scenarios.
+      - Review confirmation and irreversible-action wording with clinical safety, nursing, and health-literacy specialists.
+    release_boundary: Patient Experience, Clinical Safety, and Health Literacy must approve the content review record.
+
+  - id: patient_accessibility.audio_video_education_alternatives
+    risk: high
+    applies_to: [ios, android]
+    standards: [wcag_1_2_1, wcag_1_2_2, wcag_1_2_3, wcag_1_2_5]
+    product_obligation: >-
+      Any future education audio or video includes reviewed captions,
+      transcripts, audio description where needed, language/version metadata,
+      and an accessible non-media alternative before release.
+    automation_status: not_started
+    automated_evidence: []
+    human_validation_required:
+      - Define and validate the accessible-media release workflow before any audio or video education is introduced.
+    release_boundary: No audio or video education may be released until the governed accessible-media workflow and evidence exist.
+
+  - id: patient_accessibility.language_access_and_interpreter
+    risk: critical
+    applies_to: [ios, android]
+    standards: [language_access, meaningful_access]
+    product_obligation: >-
+      Critical care and discharge content is professionally translated,
+      clinically reviewed, versioned, falls back safely, and provides an
+      approved interpreter connection without treating machine translation as
+      the only path.
+    automation_status: not_started
+    automated_evidence: []
+    human_validation_required:
+      - Select pilot languages with interpreter services and patient advisors.
+      - Define translation ownership, translator qualification, clinical review, version pinning, fallback, and interpreter-routing evidence.
+      - Validate each supported language with native speakers before pilot use.
+    release_boundary: No non-English or interpreter claim may be enabled until Language Access, Clinical Safety, and local operations approve the evidence.

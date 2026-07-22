@@ -1,24 +1,28 @@
-import { z } from 'zod';
+import { z } from "zod";
 import {
-  boardPatientSchema,
-  boardSchema,
-  detailContributionSchema,
-  participantSchema,
-  patientDetailSchema,
-  patientStatusSchema,
-  priorityReasonSchema,
-  requirementsSchema,
-  runStatusSchema,
-  runSummarySchema,
-  scopeSchema,
-  sectionSchema,
-  templateSchema,
-  templatesResponseSchema,
-} from './schemas';
+    boardPatientSchema,
+    boardSchema,
+    detailContributionSchema,
+    participantSchema,
+    patientDetailSchema,
+    patientQuestionCandidateSchema,
+    patientStatusSchema,
+    priorityReasonSchema,
+    requirementsSchema,
+    runStatusSchema,
+    runSummarySchema,
+    scopeSchema,
+    sectionSchema,
+    templateSchema,
+    templatesResponseSchema,
+} from "./schemas";
 
 export type RoundsBoard = z.infer<typeof boardSchema>;
 export type BoardPatient = z.infer<typeof boardPatientSchema>;
 export type PatientDetail = z.infer<typeof patientDetailSchema>;
+export type PatientQuestionCandidate = z.infer<
+    typeof patientQuestionCandidateSchema
+>;
 export type DetailContribution = z.infer<typeof detailContributionSchema>;
 export type RunSummary = z.infer<typeof runSummarySchema>;
 export type RunStatus = z.infer<typeof runStatusSchema>;

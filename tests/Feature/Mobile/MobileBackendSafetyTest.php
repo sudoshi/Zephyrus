@@ -4,6 +4,7 @@ namespace Tests\Feature\Mobile;
 
 use App\Models\Barrier;
 use App\Models\BedRequest;
+use App\Models\Encounter;
 use App\Models\Evs\EvsRequest;
 use App\Models\Ops\Approval;
 use App\Models\Ops\OperationalAction;
@@ -13,10 +14,13 @@ use App\Models\Org\StaffAssignment;
 use App\Models\Org\StaffMember;
 use App\Models\Staffing\StaffingRequest;
 use App\Models\Transport\TransportRequest;
+use App\Models\Unit;
 use App\Models\User;
+use App\Services\Mobile\MobilePatientContextReferenceStore;
 use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Mobile\OperationalActivityLedger;
 use App\Services\Staffing\StaffingShiftWindowService;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -633,7 +637,14 @@ class MobileBackendSafetyTest extends TestCase
         $this->actingAsPersonaMobile(['mobile:read'], 'bed_manager');
 
         $this->getJson('/api/mobile/v1/patients/SECRET-MRN-POLICY/operational-context?persona=bed_manager')
+            ->assertNotFound();
+
+        $this->assertNull(app(MobilePatientContextService::class)->resolvePatientRef('SECRET-MRN-POLICY'));
+        $this->assertFalse(app(MobilePatientContextService::class)->hasPatientContext('SECRET-MRN-POLICY'));
+
+        $rawEddyResponse = $this->getJson('/api/mobile/v1/eddy/context/SECRET-MRN-POLICY?persona=bed_manager')
             ->assertForbidden();
+        $this->assertStringNotContainsString('SECRET-MRN-POLICY', $rawEddyResponse->getContent());
 
         $this->getJson("/api/mobile/v1/patients/{$patientContextRef}/operational-context?persona=bed_manager")
             ->assertOk()
@@ -643,6 +654,210 @@ class MobileBackendSafetyTest extends TestCase
 
         $this->getJson("/api/mobile/v1/patients/{$patientContextRef}/operational-context?persona=transport")
             ->assertForbidden();
+    }
+
+    public function test_patient_context_handles_use_indexed_expiring_revocable_mappings(): void
+    {
+        $patientRef = 'SECRET-MRN-INDEXED-CONTEXT';
+        BedRequest::create([
+            'patient_ref' => $patientRef,
+            'source' => 'ed',
+            'service' => 'Medicine',
+            'acuity_tier' => 2,
+            'status' => 'pending',
+        ]);
+
+        $references = app(MobilePatientContextReferenceStore::class);
+        $contextRef = $references->issue($patientRef);
+
+        $this->assertSame($patientRef, $references->resolve($contextRef));
+        $this->assertDatabaseHas('ops.patient_operational_context_cache', [
+            'patient_context_ref' => $contextRef,
+            'patient_ref' => $patientRef,
+        ]);
+
+        $this->assertTrue($references->revoke($contextRef));
+        $this->assertNull($references->resolve($contextRef));
+
+        $this->assertSame($contextRef, $references->issue($patientRef));
+        $this->assertSame($patientRef, $references->resolve($contextRef));
+    }
+
+    public function test_patient_context_reference_honors_configured_ttl_and_expiry(): void
+    {
+        config(['hummingbird.patient_context.ttl_minutes' => 15]);
+        $references = app(MobilePatientContextReferenceStore::class);
+        $patientRef = 'SECRET-MRN-TTL-EXPIRY';
+        BedRequest::create([
+            'patient_ref' => $patientRef,
+            'source' => 'ed',
+            'service' => 'Medicine',
+            'acuity_tier' => 2,
+            'status' => 'pending',
+        ]);
+
+        $contextRef = $references->issue($patientRef);
+        $this->assertSame($patientRef, $references->resolve($contextRef));
+
+        // issue() stamps the configured TTL window (default 15m, clamped 1..1440)
+        // on the mapping row.
+        $expiresAt = DB::table('ops.patient_operational_context_cache')
+            ->where('patient_context_ref', $contextRef)
+            ->value('expires_at');
+        $this->assertNotNull($expiresAt);
+        $this->assertEqualsWithDelta(
+            now()->addMinutes(15)->getTimestamp(),
+            CarbonImmutable::parse($expiresAt)->getTimestamp(),
+            60,
+        );
+
+        // Once the window elapses the handle no longer resolves, so a stale
+        // handle cannot re-open the patient context even though the row is kept.
+        DB::table('ops.patient_operational_context_cache')
+            ->where('patient_context_ref', $contextRef)
+            ->update(['expires_at' => now()->subSecond()]);
+        $this->assertNull($references->resolve($contextRef));
+
+        // Reissuing refreshes the same deterministic handle back to a live window.
+        $reissued = $references->issue($patientRef);
+        $this->assertSame($contextRef, $reissued);
+        $this->assertSame($patientRef, $references->resolve($reissued));
+    }
+
+    public function test_active_inpatient_encounter_grants_only_assigned_unit_personas_patient_context(): void
+    {
+        $assignedUnit = Unit::create([
+            'name' => 'Reference Inpatient Unit',
+            'abbreviation' => 'RIU',
+            'type' => 'med_surg',
+            'staffed_bed_count' => 8,
+            'ratio_floor' => 4,
+            'is_deleted' => false,
+        ]);
+        $otherUnit = Unit::create([
+            'name' => 'Unrelated Inpatient Unit',
+            'abbreviation' => 'UIU',
+            'type' => 'med_surg',
+            'staffed_bed_count' => 8,
+            'ratio_floor' => 4,
+            'is_deleted' => false,
+        ]);
+        $encounter = Encounter::create([
+            'patient_ref' => 'demo-hummingbird-inpatient-a2p',
+            'unit_id' => $assignedUnit->unit_id,
+            'admitted_at' => now()->subDay(),
+            'expected_discharge_date' => now()->addDays(2)->toDateString(),
+            'acuity_tier' => 2,
+            'status' => 'active',
+            'is_deleted' => false,
+        ]);
+        $contextRef = app(MobilePatientContextService::class)->contextRefFor($encounter->patient_ref);
+
+        foreach (['charge_nurse', 'bedside_nurse', 'hospitalist', 'intensivist'] as $role) {
+            $assigned = $this->actingAsPersonaMobile(['mobile:read'], $role);
+            $assigned->units()->attach($assignedUnit->unit_id, ['role' => $role, 'is_primary' => true]);
+
+            $this->getJson("/api/mobile/v1/patients/{$contextRef}/operational-context?persona={$role}")
+                ->assertOk()
+                ->assertJsonPath('data.patient.patient_context_ref', $contextRef)
+                ->assertJsonPath('data.header.current_location', 'Reference Inpatient Unit');
+
+            $unassigned = $this->actingAsPersonaMobile(['mobile:read'], $role);
+            $unassigned->units()->attach($otherUnit->unit_id, ['role' => $role, 'is_primary' => true]);
+
+            $this->getJson("/api/mobile/v1/patients/{$contextRef}/operational-context?persona={$role}")
+                ->assertForbidden();
+        }
+
+        $assigned = $this->actingAsPersonaMobile(['mobile:read'], 'charge_nurse');
+        $assigned->units()->attach($assignedUnit->unit_id, ['role' => 'charge_nurse', 'is_primary' => true]);
+
+        $this->getJson('/api/mobile/v1/patients/demo-hummingbird-inpatient-a2p/operational-context?persona=charge_nurse')
+            ->assertNotFound();
+
+        $encounter->update(['status' => 'discharged', 'discharged_at' => now()]);
+        $this->getJson("/api/mobile/v1/patients/{$contextRef}/operational-context?persona=charge_nurse")
+            ->assertForbidden();
+
+        $encounter->update(['status' => 'active', 'discharged_at' => null, 'is_deleted' => true]);
+        $this->getJson("/api/mobile/v1/patients/{$contextRef}/operational-context?persona=charge_nurse")
+            ->assertForbidden();
+    }
+
+    public function test_task_scoped_personas_reach_patient_context_only_while_their_task_is_active(): void
+    {
+        $service = app(MobilePatientContextService::class);
+
+        // Transport is a task-scoped persona: it may see a patient's operational
+        // context only while it owns an active transport task for that patient.
+        $transportRef = 'SECRET-MRN-TRANSPORT-OWNERSHIP';
+        $transport = $this->transportRequest(['status' => 'requested', 'patient_ref' => $transportRef]);
+        $transportContext = $service->contextRefFor($transportRef);
+
+        $this->actingAsPersonaMobile(['mobile:read'], 'transport');
+        $this->getJson("/api/mobile/v1/patients/{$transportContext}/operational-context?persona=transport")
+            ->assertOk()
+            ->assertJsonPath('data.patient.patient_context_ref', $transportContext);
+
+        // Once the task is completed the ownership expires: the same persona,
+        // same context handle, is now denied.
+        $transport->update(['status' => 'completed']);
+        $this->actingAsPersonaMobile(['mobile:read'], 'transport');
+        $this->getJson("/api/mobile/v1/patients/{$transportContext}/operational-context?persona=transport")
+            ->assertForbidden();
+
+        // A transport persona with no task for an otherwise-known patient is denied.
+        $unrelatedRef = 'SECRET-MRN-TRANSPORT-UNRELATED';
+        BedRequest::create([
+            'patient_ref' => $unrelatedRef,
+            'source' => 'ed',
+            'service' => 'Medicine',
+            'acuity_tier' => 2,
+            'status' => 'pending',
+        ]);
+        $unrelatedContext = $service->contextRefFor($unrelatedRef);
+        $this->actingAsPersonaMobile(['mobile:read'], 'transport');
+        $this->getJson("/api/mobile/v1/patients/{$unrelatedContext}/operational-context?persona=transport")
+            ->assertForbidden();
+
+        // EVS ownership is gated symmetrically: active grants, cancelled revokes.
+        $evsRef = 'SECRET-MRN-EVS-OWNERSHIP';
+        $evs = $this->evsRequest(['status' => 'requested', 'patient_ref' => $evsRef]);
+        $evsContext = $service->contextRefFor($evsRef);
+
+        $this->actingAsPersonaMobile(['mobile:read'], 'evs');
+        $this->getJson("/api/mobile/v1/patients/{$evsContext}/operational-context?persona=evs")
+            ->assertOk()
+            ->assertJsonPath('data.patient.patient_context_ref', $evsContext);
+
+        $evs->update(['status' => 'canceled']);
+        $this->actingAsPersonaMobile(['mobile:read'], 'evs');
+        $this->getJson("/api/mobile/v1/patients/{$evsContext}/operational-context?persona=evs")
+            ->assertForbidden();
+    }
+
+    public function test_patient_context_denies_roles_without_an_operational_grant(): void
+    {
+        $service = app(MobilePatientContextService::class);
+        $patientRef = 'SECRET-MRN-UNAUTHORIZED-ROLE';
+        BedRequest::create([
+            'patient_ref' => $patientRef,
+            'source' => 'ed',
+            'service' => 'Medicine',
+            'acuity_tier' => 2,
+            'status' => 'pending',
+        ]);
+        $contextRef = $service->contextRefFor($patientRef);
+
+        // Roles that hold neither broad access, an active task, nor a shared unit
+        // are denied the patient context. Because the role is re-evaluated on every
+        // request, a user whose role changes into one of these loses access on the
+        // next call rather than retaining a stale grant.
+        foreach (['or_nurse', 'pi_lead', 'staffing_coordinator', 'periop_manager'] as $role) {
+            $this->actingAsPersonaMobile(['mobile:read'], $role);
+            $this->getJson("/api/mobile/v1/patients/{$contextRef}/operational-context?persona={$role}")
+                ->assertForbidden();
+        }
     }
 
     public function test_new_mobile_bff_endpoints_return_uniform_envelopes(): void

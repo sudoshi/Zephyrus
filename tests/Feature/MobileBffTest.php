@@ -4,16 +4,26 @@ namespace Tests\Feature;
 
 use App\Models\BedRequest;
 use App\Models\Eddy\EddyConversation;
+use App\Models\Encounter;
 use App\Models\Evs\EvsRequest;
 use App\Models\Ops\Approval;
 use App\Models\Ops\OperationalAction;
 use App\Models\Ops\Recommendation;
+use App\Models\Patient\PatientEncounterAccessGrant;
+use App\Models\Patient\PatientMessageThread;
+use App\Models\Patient\PatientNotificationOutbox;
+use App\Models\Patient\PatientPrincipal;
+use App\Models\PatientCommunication\PoolMembership;
+use App\Models\PatientCommunication\ResponsibilityPool;
+use App\Models\PatientCommunication\ThreadWorkItem;
 use App\Models\PdsaCycle;
 use App\Models\Staffing\StaffingRequest;
 use App\Models\Transport\TransportRequest;
+use App\Models\Unit;
 use App\Models\User;
 use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Mobile\OperationalActivityLedger;
+use App\Services\Patient\PatientHmac;
 use Database\Seeders\RtdcSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -81,11 +91,38 @@ class MobileBffTest extends TestCase
         $this->postJson('/api/mobile/v1/rtdc/barriers/1/resolve')->assertForbidden();
     }
 
+    public function test_me_exposes_effective_roles_and_server_derived_patient_communication_capabilities(): void
+    {
+        $eligible = User::factory()->create([
+            'role' => 'charge_nurse',
+            'is_active' => true,
+        ]);
+        Sanctum::actingAs($eligible, ['mobile:read', 'mobile:act']);
+
+        $this->getJson('/api/mobile/v1/me')
+            ->assertOk()
+            ->assertJsonPath('data.roles', ['charge_nurse'])
+            ->assertJsonPath('data.can.view_patient_communications', true)
+            ->assertJsonPath('data.can.respond_patient_communications', true);
+
+        $ineligible = User::factory()->create([
+            'role' => 'transport',
+            'is_active' => true,
+        ]);
+        Sanctum::actingAs($ineligible, ['mobile:read', 'mobile:act']);
+
+        $this->getJson('/api/mobile/v1/me')
+            ->assertOk()
+            ->assertJsonPath('data.roles', ['transport'])
+            ->assertJsonPath('data.can.view_patient_communications', false)
+            ->assertJsonPath('data.can.respond_patient_communications', false);
+    }
+
     public function test_read_endpoints_return_the_uniform_envelope(): void
     {
         $user = $this->user();
         $this->seed(RtdcSeeder::class); // units + beds spine, so census/house/command have context
-        Sanctum::actingAs($user, ['mobile:read']);
+        Sanctum::actingAs($user, ['mobile:read', 'mobile:act']);
 
         $endpoints = $this->documentedReadEnvelopeEndpoints($user);
         ksort($endpoints);
@@ -335,6 +372,7 @@ class MobileBffTest extends TestCase
             'headcount_needed' => 1,
             'is_deleted' => false,
         ]);
+        $patientCommunicationWorkItem = $this->patientCommunicationWorkItem($user);
 
         return [
             '/activity' => '/api/mobile/v1/activity?persona=bed_manager',
@@ -359,6 +397,9 @@ class MobileBffTest extends TestCase
             '/me' => '/api/mobile/v1/me',
             '/ops/inbox' => '/api/mobile/v1/ops/inbox',
             '/or/board' => '/api/mobile/v1/or/board',
+            '/patient-communications/inbox' => '/api/mobile/v1/patient-communications/inbox',
+            '/patient-communications/threads/{workItemUuid}' => "/api/mobile/v1/patient-communications/threads/{$patientCommunicationWorkItem->work_item_uuid}",
+            '/patient-communications/threads/{workItemUuid}/route-candidates' => "/api/mobile/v1/patient-communications/threads/{$patientCommunicationWorkItem->work_item_uuid}/route-candidates",
             '/patients/{contextRef}/operational-context' => "/api/mobile/v1/patients/{$patientContextRef}/operational-context?persona=bed_manager",
             '/realtime/config' => '/api/mobile/v1/realtime/config',
             '/rtdc/bed-requests' => '/api/mobile/v1/rtdc/bed-requests',
@@ -507,10 +548,153 @@ class MobileBffTest extends TestCase
         return strtr($path, [
             '{domain}' => 'rtdc',
             '{itemUuid}' => 'bedreq-1',
-            '{contextRef}' => 'ptok_missing',
+            '{workItemUuid}' => '00000000-0000-0000-0000-000000000000',
+            // Route-model authorization is tested after the exact opaque
+            // patient-context grammar accepts the request. A malformed handle
+            // correctly 404s before Sanctum and would not exercise this test's
+            // authentication gate.
+            '{contextRef}' => 'ptok_000000000000000000000000',
             '{scopeRef}' => 'house',
             '{uuid}' => '00000000-0000-0000-0000-000000000000',
             '{id}' => '1',
+        ]);
+    }
+
+    private function patientCommunicationWorkItem(User $user): ThreadWorkItem
+    {
+        $unit = Unit::query()->where('is_deleted', false)->firstOrFail();
+        $policyVersion = 'mobile-bff-test-v1';
+        $poolKey = 'mobile-bff-pool';
+        $poolDigest = $this->app->make(PatientHmac::class)->digest(
+            'messaging-pool-ref',
+            $policyVersion.'|'.$poolKey,
+        );
+        config([
+            'hummingbird-patient.enabled' => true,
+            'hummingbird-patient.features.messaging' => true,
+            'hummingbird-patient.messaging' => [
+                'governance_status' => 'approved',
+                'policy_version' => $policyVersion,
+                'urgent_guidance_version' => 'mobile-bff-guidance-v1',
+                'urgent_guidance_text' => 'For immediate help, use the approved bedside or emergency route.',
+                'default_response_window' => 'The care team usually responds within one hour.',
+                'topics' => [
+                    'care_question' => [
+                        'label' => 'Question for my care team',
+                        'description' => 'Ask a non-urgent question about current hospital care.',
+                        'responsibility_pool_key' => $poolKey,
+                    ],
+                ],
+            ],
+            'hummingbird-patient.staff_messaging' => [
+                'enabled' => true,
+                'governance_status' => 'approved',
+                'consumer_key' => 'patient-message-staff-inbox-v1',
+                'pilot_unit_ids' => [$unit->getKey()],
+                'heartbeat_ttl_seconds' => 120,
+                'batch_size' => 100,
+            ],
+        ]);
+
+        $encounter = Encounter::query()->create([
+            'patient_ref' => 'mobile-bff-patient-'.Str::lower(Str::random(12)),
+            'unit_id' => $unit->getKey(),
+            'admitted_at' => now()->subDay(),
+            'acuity_tier' => 2,
+            'status' => 'active',
+            'is_deleted' => false,
+        ]);
+
+        $principal = PatientPrincipal::query()->create([
+            'principal_uuid' => (string) Str::uuid7(),
+            'principal_type' => 'patient',
+            'display_name' => 'Mobile BFF Patient',
+            'status' => 'active',
+            'is_active' => true,
+        ]);
+        $grant = PatientEncounterAccessGrant::query()->create([
+            'grant_uuid' => (string) Str::uuid7(),
+            'principal_id' => $principal->getKey(),
+            'encounter_uuid' => (string) Str::uuid7(),
+            'source_encounter_id' => $encounter->getKey(),
+            'source_encounter_ref_digest' => hash('sha256', (string) Str::uuid7()),
+            'source_system_key' => 'mobile-bff-test',
+            'relationship' => 'self',
+            'scopes' => ['messaging:read', 'messaging:write'],
+            'purpose_of_use' => 'treatment',
+            'status' => 'active',
+            'valid_from' => now()->subMinute(),
+            'grant_reason' => 'Mobile BFF envelope fixture.',
+        ]);
+        $thread = PatientMessageThread::query()->create([
+            'thread_uuid' => (string) Str::uuid7(),
+            'access_grant_id' => $grant->getKey(),
+            'opened_by_principal_id' => $principal->getKey(),
+            'topic_code' => 'care_question',
+            'topic_label' => 'Question for my care team',
+            'topic_description' => 'A non-urgent question about current hospital care.',
+            'status' => 'open',
+            'ownership_state' => 'assigned',
+            'routing_policy_version' => $policyVersion,
+            'expected_response_window' => 'The care team usually responds within one hour.',
+            'urgent_guidance_version' => 'mobile-bff-guidance-v1',
+            'responsibility_pool_ref_digest' => $poolDigest,
+            'creation_idempotency_key_digest' => hash('sha256', 'mobile-bff-create'),
+            'creation_request_payload_digest' => hash('sha256', 'mobile-bff-payload'),
+            'version' => 2,
+            'last_message_at' => now(),
+        ]);
+        $outbox = PatientNotificationOutbox::query()->create([
+            'outbox_uuid' => (string) Str::uuid7(),
+            'principal_id' => $principal->getKey(),
+            'access_grant_id' => $grant->getKey(),
+            'aggregate_type' => 'patient_message_thread',
+            'aggregate_uuid' => $thread->thread_uuid,
+            'event_type' => 'patient.messaging.thread_created',
+            'destination' => 'staff_inbox',
+            'routing_metadata' => ['schema_version' => 1, 'content_included' => false],
+            'idempotency_key_digest' => hash('sha256', 'mobile-bff-outbox'),
+            'available_at' => now(),
+            'occurred_at' => now(),
+        ]);
+        $pool = ResponsibilityPool::query()->create([
+            'pool_uuid' => (string) Str::uuid7(),
+            'pool_key_digest' => $poolDigest,
+            'topic_code' => 'care_question',
+            'display_name' => 'Mobile BFF Care Team',
+            'routing_policy_version' => $policyVersion,
+            'scope_type' => 'enterprise',
+            'status' => 'active',
+            'response_target_minutes' => 30,
+            'escalation_target_minutes' => 60,
+        ]);
+        PoolMembership::query()->create([
+            'membership_uuid' => (string) Str::uuid7(),
+            'responsibility_pool_id' => $pool->getKey(),
+            'staff_user_id' => $user->getKey(),
+            'membership_role' => 'supervisor',
+            'availability_state' => 'active',
+            'can_claim' => true,
+            'can_reply' => true,
+            'can_reroute' => true,
+            'can_close' => true,
+            'effective_from' => now()->subMinute(),
+        ]);
+
+        return ThreadWorkItem::query()->create([
+            'work_item_uuid' => (string) Str::uuid7(),
+            'message_thread_id' => $thread->getKey(),
+            'access_grant_id' => $grant->getKey(),
+            'responsibility_pool_id' => $pool->getKey(),
+            'status' => 'open',
+            'ownership_state' => 'pool_owned',
+            'source_thread_version' => 2,
+            'row_version' => 1,
+            'last_outbox_id' => $outbox->getKey(),
+            'first_routed_at' => now(),
+            'due_at' => now()->addMinutes(30),
+            'escalate_at' => now()->addMinutes(60),
+            'last_message_at' => now(),
         ]);
     }
 

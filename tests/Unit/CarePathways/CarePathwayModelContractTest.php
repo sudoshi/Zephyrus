@@ -13,6 +13,7 @@ use App\Models\CarePathways\PathwayEvent;
 use App\Models\CarePathways\PathwayReview;
 use App\Models\CarePathways\PathwaySection;
 use App\Models\CarePathways\PathwaySource;
+use App\Models\CarePathways\PathwayStageDefinition;
 use App\Models\CarePathways\PathwayVersion;
 use App\Models\CarePathways\SectionSource;
 use App\Models\CarePathways\ServiceLineMapping;
@@ -43,6 +44,7 @@ class CarePathwayModelContractTest extends TestCase
     {
         return [
             'milestone definition' => [MilestoneDefinition::class, 'care_pathways.milestone_definitions', 'milestone_definition_id'],
+            'stage definition' => [PathwayStageDefinition::class, 'care_pathways.stage_definitions', 'stage_definition_id'],
             'activity definition' => [ActivityDefinition::class, 'care_pathways.activity_definitions', 'activity_definition_id'],
             'goal definition' => [GoalDefinition::class, 'care_pathways.goal_definitions', 'goal_definition_id'],
             'education definition' => [EducationDefinition::class, 'care_pathways.education_definitions', 'education_definition_id'],
@@ -60,6 +62,7 @@ class CarePathwayModelContractTest extends TestCase
     public function test_canonical_relationships_use_the_expected_foreign_keys(): void
     {
         $this->assertSame('pathway_version_id', (new PathwayVersion)->milestones()->getForeignKeyName());
+        $this->assertSame('pathway_version_id', (new PathwayVersion)->stages()->getForeignKeyName());
         $this->assertSame('pathway_version_id', (new PathwayVersion)->activities()->getForeignKeyName());
         $this->assertSame('pathway_version_id', (new PathwayVersion)->goals()->getForeignKeyName());
         $this->assertSame('pathway_version_id', (new PathwayVersion)->education()->getForeignKeyName());

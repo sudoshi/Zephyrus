@@ -40,6 +40,15 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Hummingbird Patient is an independent identity realm. Patient API
+        // bearer tokens are authenticated by Sanctum and then fail closed
+        // through the patient.realm middleware, which requires this provider's
+        // model rather than the staff User model.
+        'patient' => [
+            'driver' => 'session',
+            'provider' => 'patient_principals',
+        ],
     ],
 
     /*
@@ -63,6 +72,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
+        ],
+
+        'patient_principals' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Patient\PatientPrincipal::class,
         ],
 
         // 'users' => [

@@ -1,0 +1,436 @@
+version: 1
+as_of: 2026-07-19
+governance_status: draft_requires_multidisciplinary_approval
+owners:
+  product: Patient Experience Product
+  engineering: Hummingbird Patient Platform
+  required_approvers:
+    - Clinical Safety
+    - Nursing
+    - Medical Staff
+    - Privacy
+    - Security
+    - Legal
+    - Health Information Management
+    - Patient and Family Advisory Council
+    - Accessibility and Language Access
+
+policy_defaults:
+  external_identifier: uuid_only
+  deny_behavior: generic_not_found
+  provenance_required: true
+  source_freshness_required: true
+  policy_version_required: true
+  release_failure_behavior: fail_closed
+  offline_default: no_cache
+  notification_default: generic_awareness_only
+
+global_prohibitions:
+  - other_patient_data
+  - medical_record_number
+  - internal_database_identifier
+  - staff_internal_note
+  - staff_disagreement_or_private_comment
+  - bed_management_priority_or_queue_rank
+  - worker_location_or_private_schedule
+  - raw_operational_risk_or_priority_score
+  - unreleased_result_or_document
+  - inferred_diagnosis_prognosis_or_causality
+  - unsupported_exact_time_estimate
+  - personal_staff_contact_information
+  - message_routing_or_safety_review_metadata
+  - advertising_or_cross_context_tracking_identifier
+
+relationship_classes:
+  self: Authenticated patient principal with an active encounter access grant.
+  patient_designated_representative: Representative with an active, encounter-scoped delegation and matching data/action scope.
+  legal_representative: Legally verified representative with an active, encounter-scoped authority record and matching scope.
+
+disclosures:
+  - id: encounter.location
+    display_label: Where I am
+    patient_explanation: Your current hospital, care area, and room when the hospital has approved them for display.
+    source_systems: [Zephyrus Encounter Spine, Enterprise ADT]
+    source_identifiers: [encounter_uuid, facility_code, unit_code, room_code]
+    release_rule: active_grant_and_location_display_policy
+    sensitivity: restricted_phi
+    permitted_relationships: [self]
+    freshness_expectation: 5_minutes
+    uncertainty_behavior: Show “Location is being updated” when transfer state is unresolved or older than the freshness threshold.
+    correction_retraction: Replace on newer governed ADT projection; retract immediately on identity ambiguity, grant revocation, or policy withdrawal.
+    translation_owner: Patient Experience Content Governance
+    offline_policy: encrypted_current_encounter_cache_until_grant_or_session_expiry
+    notification_policy: no_location_in_lock_screen_notification
+    allowed_fields:
+      [facility_display_name, unit_display_name, room_display_name, observed_at]
+    prohibited_fields:
+      [
+        bed_management_priority_or_queue_rank,
+        isolation_detail_without_approved_policy,
+        other_patient_data,
+      ]
+    approval_status: pending
+
+  - id: pathway.care_stage
+    display_label: My current care stage
+    patient_explanation: A plain-language description of the current step in your hospital care pathway and what usually happens next.
+    source_systems: [Patient Experience Projection, Governed Pathway Definition]
+    source_identifiers:
+      [encounter_uuid, pathway_instance_uuid, pathway_definition_version]
+    release_rule: released_pathway_stage_for_active_grant
+    sensitivity: restricted_phi
+    permitted_relationships: [self]
+    freshness_expectation: 15_minutes
+    uncertainty_behavior: Use “planned,” a range, and an explicit timing-may-change statement whenever the next step is not confirmed.
+    correction_retraction: Append correction or retraction event; never reinterpret historical stages after a definition-version change. Historical instances and their status observations remain pinned to the prior definition version.
+    translation_owner: Clinical Content and Language Access
+    offline_policy: encrypted_read_cache_with_visible_observed_at
+    notification_policy: generic_pathway_update_without_stage_detail
+    allowed_fields:
+      [
+        stage_code,
+        approved_stage_label,
+        approved_explanation,
+        observed_at,
+        source_freshness,
+      ]
+    prohibited_fields:
+      [
+        inferred_diagnosis_prognosis_or_causality,
+        raw_operational_risk_or_priority_score,
+        unsupported_exact_time_estimate,
+      ]
+    approval_status: pending
+
+  - id: care_team.members
+    display_label: My care team
+    patient_explanation: The people and services currently responsible for your care and the safe way to contact the team.
+    source_systems:
+      [Patient Experience Care Team Projection, Staff Assignment Sources]
+    source_identifiers:
+      [
+        encounter_uuid,
+        care_team_projection_uuid,
+        responsibility_assignment_uuid,
+      ]
+    release_rule: current_approved_member_and_active_grant
+    sensitivity: restricted_phi
+    permitted_relationships: [self]
+    freshness_expectation: 15_minutes
+    uncertainty_behavior: Describe responsibility by role or service when a named individual is not confirmed; never imply continuous availability.
+    correction_retraction: End-date superseded assignments and remove retracted members immediately from new responses and cached views.
+    translation_owner: Patient Experience Content Governance
+    offline_policy: encrypted_read_cache_with_visible_observed_at
+    notification_policy: no_member_name_or_schedule_in_lock_screen_notification
+    allowed_fields:
+      [
+        display_name,
+        approved_role_label,
+        approved_service_label,
+        responsibility_summary,
+        safe_contact_route,
+        observed_at,
+      ]
+    prohibited_fields:
+      [
+        personal_staff_contact_information,
+        worker_location_or_private_schedule,
+        staff_disagreement_or_private_comment,
+        credential_detail_not_approved_for_display,
+      ]
+    approval_status: pending
+
+  - id: goals.today
+    display_label: Today’s goals
+    patient_explanation: Care-team goals released for you, plus personal goals or preferences you have chosen to share. Your personal goal or preference does not change your clinical care plan on its own.
+    source_systems:
+      [
+        Patient Experience Goal Projection,
+        Patient Authored Goal Ledger,
+        Patient Care Preference Ledger,
+        Governed Care Plan Source,
+      ]
+    source_identifiers:
+      [encounter_uuid, goal_uuid, source_message_uuid, source_resource_version]
+    release_rule: released_care_team_goal_or_patient_authored_message_association_with_active_grant
+    sensitivity: restricted_phi
+    permitted_relationships: [self]
+    freshness_expectation: 15_minutes
+    uncertainty_behavior: Separate proposed, planned, in-progress, and completed states; explain when confirmation is pending.
+    correction_retraction: Preserve authorship and history; append correction/retraction rather than silently overwriting meaning.
+    translation_owner: Clinical Content and Language Access
+    offline_policy: encrypted_read_cache_with_visible_observed_at
+    notification_policy: generic_goal_update_without_clinical_text
+    allowed_fields:
+      [
+        goal_uuid,
+        author_type,
+        approved_label,
+        approved_explanation,
+        status_code,
+        target_range,
+        observed_at,
+      ]
+    prohibited_fields:
+      [
+        staff_internal_note,
+        inferred_diagnosis_prognosis_or_causality,
+        unreleased_care_plan_content,
+        clinical_goal_or_care_plan_mutation_inferred_from_patient_message,
+      ]
+    approval_status: pending
+
+  - id: rounds.patient_participation
+    display_label: Rounds
+    patient_explanation: When your team expects to round, questions you submitted, and summaries the team approved for you.
+    source_systems:
+      [Patient Experience Rounds Projection, Governed Virtual Rounds]
+    source_identifiers:
+      [
+        encounter_uuid,
+        rounds_session_uuid,
+        patient_question_uuid,
+        released_summary_uuid,
+      ]
+    release_rule: patient_authored_or_explicitly_released_rounds_content
+    sensitivity: restricted_phi
+    permitted_relationships: [self]
+    freshness_expectation: 15_minutes
+    uncertainty_behavior: Show a time window and “timing may change”; never promise an exact arrival time unless the source marks it confirmed.
+    correction_retraction: Append question and summary corrections; retract staff-withdrawn content immediately while preserving audit evidence.
+    translation_owner: Clinical Content and Language Access
+    offline_policy: encrypted_read_cache_without_composition_outbox_during_read_only_pilot
+    notification_policy: generic_rounds_update_without_question_or_summary_text
+    allowed_fields:
+      [
+        rounds_window,
+        timing_confidence,
+        patient_question_text,
+        question_status,
+        released_summary_text,
+        observed_at,
+      ]
+    prohibited_fields:
+      [
+        staff_internal_note,
+        staff_disagreement_or_private_comment,
+        bed_management_priority_or_queue_rank,
+        other_patient_data,
+      ]
+    approval_status: pending
+
+  - id: care_event.tests_procedures
+    display_label: Tests and procedures
+    patient_explanation: Approved preparation steps and progress updates for tests or procedures in your current care pathway.
+    source_systems:
+      [
+        Patient Experience Care Event Projection,
+        Governed Ancillary and Perioperative Sources,
+      ]
+    source_identifiers:
+      [encounter_uuid, care_event_uuid, source_resource_version]
+    release_rule: approved_operational_milestone_for_active_grant
+    sensitivity: restricted_phi
+    permitted_relationships: [self]
+    freshness_expectation: 10_minutes
+    uncertainty_behavior: Use ranges and “timing may change”; distinguish requested, planned, confirmed, in-progress, completed, delayed, and canceled.
+    correction_retraction: Supersede with newer source version; retract when canceled, entered in error, or release policy changes.
+    translation_owner: Clinical Content and Language Access
+    offline_policy: encrypted_read_cache_with_visible_observed_at
+    notification_policy: generic_schedule_or_preparation_update_without_clinical_detail
+    allowed_fields:
+      [
+        approved_event_label,
+        approved_preparation_text,
+        status_code,
+        planned_time_range,
+        timing_confidence,
+        observed_at,
+      ]
+    prohibited_fields:
+      [
+        unreleased_result_or_document,
+        unsupported_exact_time_estimate,
+        raw_operational_risk_or_priority_score,
+        inferred_diagnosis_prognosis_or_causality,
+      ]
+    approval_status: pending
+
+  - id: medications.current
+    display_label: Medications
+    patient_explanation: Medication information released from the hospital’s approved medication and reconciliation source.
+    source_systems:
+      [Governed Medication Administration and Reconciliation Source]
+    source_identifiers:
+      [encounter_uuid, medication_projection_uuid, source_resource_version]
+    release_rule: medication_release_policy_and_active_grant
+    sensitivity: highly_restricted_phi
+    permitted_relationships: [self]
+    freshness_expectation: 5_minutes
+    uncertainty_behavior: Clearly distinguish ordered, scheduled, given, held, stopped, and reconciliation-pending states; never infer why a medicine was ordered.
+    correction_retraction: Apply source correction or entered-in-error event immediately; preserve patient-visible correction notice when meaning changed.
+    translation_owner: Pharmacy and Clinical Content Governance
+    offline_policy: no_cache_until_medication_safety_review_approves
+    notification_policy: no_medication_name_dose_or_schedule_in_lock_screen_notification
+    allowed_fields:
+      [
+        approved_medication_name,
+        approved_purpose_when_explicitly_released,
+        status_code,
+        approved_schedule_text,
+        observed_at,
+      ]
+    prohibited_fields:
+      [
+        unverified_inferred_indication,
+        internal_pharmacy_queue,
+        medication_administration_comment,
+        unreleased_result_or_document,
+      ]
+    approval_status: pending
+
+  - id: transport.patient_state
+    display_label: Getting to my next care area
+    patient_explanation: Patient-relevant progress for transport to an approved next step in your care.
+    source_systems:
+      [Patient Experience Transport Projection, Zephyrus Transport]
+    source_identifiers:
+      [encounter_uuid, transport_projection_uuid, source_event_version]
+    release_rule: approved_patient_transport_state_for_active_grant
+    sensitivity: restricted_phi
+    permitted_relationships: [self]
+    freshness_expectation: 5_minutes
+    uncertainty_behavior: Show requested, planned, on-the-way, arrived, delayed, canceled, or complete without an unsupported precise ETA.
+    correction_retraction: Supersede by ordered event sequence; reconcile late or out-of-order events before disclosure.
+    translation_owner: Patient Experience Content Governance
+    offline_policy: encrypted_read_cache_with_visible_observed_at
+    notification_policy: generic_transport_update_without_destination_or_worker_detail
+    allowed_fields:
+      [
+        approved_state_code,
+        approved_state_label,
+        approved_destination_label,
+        timing_range,
+        observed_at,
+      ]
+    prohibited_fields:
+      [
+        worker_location_or_private_schedule,
+        internal_dispatch_rank,
+        other_patient_data,
+        unsupported_exact_time_estimate,
+      ]
+    approval_status: pending
+
+  - id: discharge.readiness
+    display_label: Preparing to leave the hospital
+    patient_explanation: Approved discharge goals, readiness topics, remaining steps, and estimated timing with uncertainty.
+    source_systems:
+      [
+        Patient Experience Discharge Projection,
+        Governed Discharge Planning Sources,
+      ]
+    source_identifiers:
+      [encounter_uuid, discharge_projection_uuid, source_resource_version]
+    release_rule: released_discharge_content_for_active_grant
+    sensitivity: restricted_phi
+    permitted_relationships: [self]
+    freshness_expectation: 15_minutes
+    uncertainty_behavior: Show an estimated date or range as an estimate and explain that clinical and practical needs can change it.
+    correction_retraction: Append changed-estimate and corrected-content events; link final clinical documents to their designated source.
+    translation_owner: Discharge Content and Language Access
+    offline_policy: encrypted_read_cache_with_visible_observed_at
+    notification_policy: generic_discharge_plan_update_without_clinical_detail
+    allowed_fields:
+      [
+        estimated_discharge_range,
+        estimate_confidence,
+        approved_readiness_topics,
+        approved_remaining_steps,
+        approved_contact_route,
+        observed_at,
+      ]
+    prohibited_fields:
+      [
+        raw_barrier_code,
+        blame_oriented_owner_label,
+        unreleased_document,
+        unsupported_exact_time_estimate,
+      ]
+    approval_status: pending
+
+  - id: messaging.patient_thread
+    display_label: Messages
+    patient_explanation: Messages you or an approved representative exchanged with the responsibility pool for this hospital stay.
+    source_systems: [Patient Experience Messaging]
+    source_identifiers:
+      [encounter_uuid, thread_uuid, message_uuid, routing_policy_version]
+    release_rule: patient_visible_message_and_active_participation_scope
+    sensitivity: highly_restricted_phi
+    permitted_relationships: [self]
+    freshness_expectation: realtime_with_60_second_reconciliation
+    uncertainty_behavior: Show actual delivery, ownership, response-window, escalation, and closure state; never imply that a named person is continuously watching.
+    correction_retraction: Messages are append-only; corrections and retractions are explicit events with visible status when applicable.
+    translation_owner: Patient Communications Governance
+    offline_policy: encrypted_read_cache; no_send_outbox_until_messaging_safety_gate
+    notification_policy: generic_new_message_without_sender_or_message_text
+    allowed_fields:
+      [
+        thread_uuid,
+        approved_topic_label,
+        patient_visible_message_text,
+        sender_display_role,
+        delivery_state,
+        ownership_state,
+        expected_response_window,
+        observed_at,
+      ]
+    prohibited_fields:
+      [
+        staff_internal_note,
+        message_routing_or_safety_review_metadata,
+        personal_staff_contact_information,
+        other_patient_data,
+      ]
+    approval_status: pending
+
+  - id: assistant.patient_explanation
+    display_label: Help understanding this
+    patient_explanation: A future explanation tool limited to information already released to you for this hospital stay.
+    source_systems:
+      [Patient Experience Released Projection, Approved Patient Education]
+    source_identifiers:
+      [
+        encounter_uuid,
+        released_content_uuid,
+        source_resource_version,
+        policy_version,
+      ]
+    release_rule: disabled_until_separate_patient_assistant_safety_case
+    sensitivity: highly_restricted_phi
+    permitted_relationships: [self]
+    freshness_expectation: request_time_policy_and_source_check
+    uncertainty_behavior: Cite the source and freshness, state uncertainty, and route unresolved or potentially urgent concerns to an approved human workflow.
+    correction_retraction: Invalidate generated explanation when any cited source is corrected, retracted, stale, or no longer released.
+    translation_owner: Patient AI Safety and Clinical Content Governance
+    offline_policy: no_cache
+    notification_policy: never_notify_with_generated_content
+    allowed_fields:
+      [
+        released_source_citation,
+        approved_plain_language_explanation,
+        source_freshness,
+        uncertainty_statement,
+        safe_contact_route,
+      ]
+    prohibited_fields:
+      [
+        diagnosis_or_prognosis,
+        triage,
+        medication_change,
+        clinical_order,
+        autonomous_action,
+        hidden_staff_content,
+        cross_patient_content,
+      ]
+    approval_status: prohibited_pending_separate_safety_case

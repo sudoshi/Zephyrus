@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\Rounds;
 
 use App\Http\Requests\Rounds\CreateQuestionRequest;
+use App\Http\Requests\Rounds\PromotePatientRoundQuestionRequest;
 use App\Models\Rounds\RoundEvent;
 use App\Models\Rounds\RoundQuestion;
+use App\Services\Rounds\PatientRoundQuestionPromotionService;
 use App\Services\Rounds\RoundAuthorizationService;
 use App\Services\Rounds\RoundProjectionService;
 use Illuminate\Http\JsonResponse;
@@ -16,8 +18,45 @@ class RoundQuestionController extends RoundsController
     public function __construct(
         RoundProjectionService $projection,
         private readonly RoundAuthorizationService $authorization,
+        private readonly PatientRoundQuestionPromotionService $patientQuestionPromotions,
     ) {
         parent::__construct($projection);
+    }
+
+    public function promotePatientQuestion(
+        PromotePatientRoundQuestionRequest $request,
+        string $roundPatientUuid,
+        string $threadUuid,
+    ): JsonResponse {
+        $patient = $this->resolvePatient($roundPatientUuid);
+
+        return $this->guard(function () use ($request, $patient, $threadUuid): JsonResponse {
+            $result = $this->patientQuestionPromotions->promote(
+                $request,
+                $request->user(),
+                $patient,
+                $threadUuid,
+                $request->validated(),
+            );
+
+            return response()->json(
+                $this->projection->patientDetail($patient->refresh(), $request->user()),
+                $result['replayed'] ? 200 : 201,
+            );
+        }, $patient->run, $request);
+    }
+
+    public function availablePatientQuestions(
+        \Illuminate\Http\Request $request,
+        string $roundPatientUuid,
+    ): JsonResponse {
+        $patient = $this->resolvePatient($roundPatientUuid);
+
+        return $this->guard(function () use ($request, $patient): JsonResponse {
+            return response()->json($this->projection->envelope($patient->run, $request->user(), [
+                'patient_questions' => $this->patientQuestionPromotions->available($request->user(), $patient),
+            ]));
+        }, $patient->run, $request);
     }
 
     public function store(CreateQuestionRequest $request, string $roundPatientUuid): JsonResponse
@@ -63,6 +102,13 @@ class RoundQuestionController extends RoundsController
             RoundEvent::record(
                 'question', $question->question_id, $question->question_uuid, 1,
                 $request->user()->id, 'question.'.$status, [],
+            );
+
+            $this->patientQuestionPromotions->recordResolutionOutcome(
+                $request,
+                $request->user(),
+                $question,
+                $status,
             );
         });
 

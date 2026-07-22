@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.HummingbirdPatient.Base" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">#F7FAFC</item>
+        <item name="android:navigationBarColor">#F7FAFC</item>
+        <item name="android:statusBarColor">#F7FAFC</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+    <style name="Theme.HummingbirdPatient" parent="Theme.HummingbirdPatient.Base" />
+</resources>

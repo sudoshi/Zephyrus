@@ -38,4 +38,48 @@ class PersonaRelayPolicyTest extends TestCase
             'Every not-emitted-yet event note must correspond to a standardized event type.',
         );
     }
+
+    public function test_activity_taxonomy_partitions_standard_events_without_implying_completeness(): void
+    {
+        $policy = new PersonaRelayPolicy;
+        $taxonomy = $policy->activityTaxonomy();
+
+        // Emitted and pending partition the full taxonomy: no overlap, no omission.
+        $this->assertSame(
+            [],
+            array_values(array_intersect($taxonomy['emitted'], $taxonomy['pending'])),
+            'An event type cannot be both emitted and on the backlog.',
+        );
+        $this->assertEqualsCanonicalizing(
+            PersonaRelayPolicy::STANDARD_EVENT_TYPES,
+            array_merge($taxonomy['emitted'], $taxonomy['pending']),
+            'Emitted and pending event types must together cover the whole taxonomy.',
+        );
+
+        // Completeness must never be implied: the backlog is non-empty today and
+        // every pending entry carries a tracked reason.
+        $this->assertNotEmpty($taxonomy['emitted']);
+        $this->assertNotEmpty($taxonomy['pending']);
+        $this->assertSame($taxonomy['pending'], $policy->pendingEventTypes());
+        foreach ($policy->pendingBacklog() as $eventType => $reason) {
+            $this->assertContains($eventType, $taxonomy['pending']);
+            $this->assertNotEmpty(
+                trim((string) $reason),
+                "{$eventType} backlog entry must explain why it is not emitted yet.",
+            );
+        }
+
+        // Every event type claimed as emitted has a real relay path.
+        foreach ($taxonomy['emitted'] as $eventType) {
+            $this->assertFalse(
+                $policy->isDocumentedAsNotEmittedYet($eventType),
+                "{$eventType} is claimed as emitted but is on the not-emitted backlog.",
+            );
+            $this->assertTrue(
+                $policy->isRecognizedEventType($eventType),
+                "{$eventType} is claimed as emitted but has no relay mapping.",
+            );
+            $this->assertNotEmpty($policy->forEvent($eventType)['affected_roles']);
+        }
+    }
 }

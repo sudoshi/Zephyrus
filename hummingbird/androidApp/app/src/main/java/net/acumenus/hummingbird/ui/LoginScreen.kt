@@ -64,8 +64,10 @@ import net.acumenus.hummingbird.ui.theme.Z
  */
 @Composable
 fun LoginScreen(auth: AuthViewModel) {
-    var username by remember { mutableStateOf("demo") }
-    var password by remember { mutableStateOf("Password123!") }
+    // Release and debug both start blank. Emulator automation uses the debug-only
+    // launch-hook source set and must provide its own credentials explicitly.
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var slide by remember { mutableIntStateOf(0) }
 
     val slides = remember {

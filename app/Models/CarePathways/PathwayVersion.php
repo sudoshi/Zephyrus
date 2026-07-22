@@ -56,6 +56,11 @@ class PathwayVersion extends Model
         return $this->hasMany(MilestoneDefinition::class, 'pathway_version_id');
     }
 
+    public function stages(): HasMany
+    {
+        return $this->hasMany(PathwayStageDefinition::class, 'pathway_version_id');
+    }
+
     public function activities(): HasMany
     {
         return $this->hasMany(ActivityDefinition::class, 'pathway_version_id');

@@ -16,11 +16,13 @@ final class EvsTurnsViewModel: ObservableObject {
     init(api: APIClient) { self.api = api }
 
     func load(bearer: String) async {
+        #if DEBUG
         if ProcessInfo.processInfo.environment["HB_FORCE_ERROR"] == "1" {
             errorMessage = "Can't reach the server. Check your connection and try again."
             stale = true
             return
         }
+        #endif
         isLoading = true
         defer { isLoading = false }
         do {

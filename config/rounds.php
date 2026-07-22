@@ -21,6 +21,12 @@ return [
     'writeback_enabled' => filter_var(env('VIRTUAL_ROUNDS_WRITEBACK_ENABLED', false), FILTER_VALIDATE_BOOL),
     'eddy_enabled' => filter_var(env('VIRTUAL_ROUNDS_EDDY_ENABLED', false), FILTER_VALIDATE_BOOL),
     'external_notifications_enabled' => filter_var(env('VIRTUAL_ROUNDS_EXTERNAL_NOTIFICATIONS_ENABLED', false), FILTER_VALIDATE_BOOL),
+    // Separate from the patient composition flag. When false, no staff user
+    // can promote a patient-authored message into the staff rounds workflow.
+    'patient_question_bridge_enabled' => filter_var(
+        env('VIRTUAL_ROUNDS_PATIENT_QUESTION_BRIDGE_ENABLED', false),
+        FILTER_VALIDATE_BOOL,
+    ),
 
     /*
     |--------------------------------------------------------------------------

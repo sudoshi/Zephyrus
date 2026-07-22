@@ -3,8 +3,10 @@ import SwiftUI
 struct LoginView: View {
     @EnvironmentObject var auth: AuthStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var username = "demo"
-    @State private var password = "Password123!"
+    // Never ship usable credentials in the sign-in form. Debug automation supplies
+    // credentials explicitly through the DEBUG-only launch hooks in RootView.
+    @State private var username = ""
+    @State private var password = ""
     @State private var slideIndex = 0
     @FocusState private var focused: Field?
 

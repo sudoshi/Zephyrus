@@ -76,7 +76,14 @@ class ApiAuthorizationTest extends TestCase
 
     public function test_every_api_route_except_the_reviewed_public_allowlist_requires_authentication(): void
     {
-        $publicAllowlist = ['api/health', 'api/auth/token'];
+        $publicAllowlist = [
+            'api/health',
+            'api/auth/token',
+            // Reviewed public credential-entry routes. Both remain behind the
+            // independent patient product/feature gates and named throttles.
+            'api/patient/v1/auth/enroll/challenge/verify',
+            'api/patient/v1/auth/token',
+        ];
 
         $unprotected = collect(Route::getRoutes()->getRoutes())
             ->filter(fn (IlluminateRoute $route): bool => str_starts_with($route->uri(), 'api/'))

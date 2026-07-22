@@ -37,6 +37,8 @@ export interface PageProps {
       operate_integrations?: boolean;
       approve_integration_changes?: boolean;
       manage_data_stewardship?: boolean;
+      view_patient_communications?: boolean;
+      respond_patient_communications?: boolean;
     };
   };
   eddy?: {
@@ -48,6 +50,8 @@ export interface PageProps {
   features?: {
     care_pathways_demo?: boolean;
     virtual_rounds?: boolean;
+    home_hospital?: boolean;
+    patient_communications?: boolean;
   };
   flash?: {
     message?: string;

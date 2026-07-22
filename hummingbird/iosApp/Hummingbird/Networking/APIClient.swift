@@ -35,8 +35,30 @@ enum AppConfig {
 /// `data` module will replace later — keep the surface small and DTO-driven.
 struct APIClient {
     let baseURL: URL
+    let session: URLSession
 
-    init(baseURL: URL) { self.baseURL = baseURL }
+    init(baseURL: URL, session: URLSession = .shared) {
+        self.baseURL = baseURL
+        self.session = session
+    }
+
+    /// Restricted and NO_CACHE mobile surfaces use a cookie-free,
+    /// credential-storage-free ephemeral session with no URL cache. Callers also
+    /// set explicit no-store request headers on each classified endpoint below.
+    static func noCache(baseURL: URL) -> APIClient {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        configuration.urlCredentialStorage = nil
+
+        return APIClient(baseURL: baseURL, session: URLSession(configuration: configuration))
+    }
+
+    static func patientCommunications(baseURL: URL) -> APIClient {
+        noCache(baseURL: baseURL)
+    }
 
     private static let decoder: JSONDecoder = {
         let d = JSONDecoder()
@@ -73,7 +95,229 @@ struct APIClient {
     }
 
     func forYou(bearer: String) async throws -> [ForYouItem] {
-        try await getEnvelope(path: "/api/mobile/v1/for-you", bearer: bearer, as: [ForYouItem].self).data
+        try await getEnvelope(
+            path: "/api/mobile/v1/for-you",
+            bearer: bearer,
+            as: [ForYouItem].self,
+            noStore: true
+        ).data
+    }
+
+    // MARK: Accountable patient communications
+
+    func patientCommunicationsInbox(bearer: String) async throws -> PatientCommunicationInboxData {
+        try await getEnvelope(
+            path: "/api/mobile/v1/patient-communications/inbox",
+            bearer: bearer,
+            as: PatientCommunicationInboxData.self,
+            noStore: true
+        ).data
+    }
+
+    func patientCommunicationThread(workItemUUID: String, bearer: String) async throws -> PatientCommunicationWorkItem {
+        let encodedUUID = Self.pathComponent(workItemUUID)
+        return try await getEnvelope(
+            path: "/api/mobile/v1/patient-communications/threads/\(encodedUUID)",
+            bearer: bearer,
+            as: PatientCommunicationWorkItem.self,
+            noStore: true
+        ).data
+    }
+
+    func claimPatientCommunication(
+        workItemUUID: String,
+        workItemVersion: Int,
+        threadVersion: Int,
+        idempotencyKey: UUID,
+        bearer: String
+    ) async throws -> PatientCommunicationMutationData {
+        let encodedUUID = Self.pathComponent(workItemUUID)
+        let data = try await send(
+            path: "/api/mobile/v1/patient-communications/threads/\(encodedUUID)/claim",
+            method: "POST",
+            body: [
+                "work_item_version": workItemVersion,
+                "thread_version": threadVersion,
+            ],
+            bearer: bearer,
+            explicitIdempotencyKey: idempotencyKey,
+            noStore: true
+        )
+        return try Self.decoder.decode(Envelope<PatientCommunicationMutationData>.self, from: data).data
+    }
+
+    func replyToPatientCommunication(
+        workItemUUID: String,
+        workItemVersion: Int,
+        threadVersion: Int,
+        message: String,
+        clientMessageUUID: UUID,
+        idempotencyKey: UUID,
+        bearer: String
+    ) async throws -> PatientCommunicationMutationData {
+        let encodedUUID = Self.pathComponent(workItemUUID)
+        let data = try await send(
+            path: "/api/mobile/v1/patient-communications/threads/\(encodedUUID)/reply",
+            method: "POST",
+            body: [
+                "work_item_version": workItemVersion,
+                "thread_version": threadVersion,
+                "message": message,
+                "client_message_uuid": clientMessageUUID.uuidString.lowercased(),
+            ],
+            bearer: bearer,
+            explicitIdempotencyKey: idempotencyKey,
+            noStore: true
+        )
+        return try Self.decoder.decode(Envelope<PatientCommunicationMutationData>.self, from: data).data
+    }
+
+    func closePatientCommunication(
+        workItemUUID: String,
+        workItemVersion: Int,
+        threadVersion: Int,
+        reasonCode: PatientCommunicationCloseReason,
+        idempotencyKey: UUID,
+        bearer: String
+    ) async throws -> PatientCommunicationMutationData {
+        let encodedUUID = Self.pathComponent(workItemUUID)
+        let data = try await send(
+            path: "/api/mobile/v1/patient-communications/threads/\(encodedUUID)/close",
+            method: "POST",
+            body: [
+                "work_item_version": workItemVersion,
+                "thread_version": threadVersion,
+                "reason_code": reasonCode.rawValue,
+            ],
+            bearer: bearer,
+            explicitIdempotencyKey: idempotencyKey,
+            noStore: true
+        )
+        return try Self.decoder.decode(Envelope<PatientCommunicationMutationData>.self, from: data).data
+    }
+
+    func patientCommunicationRouteCandidates(
+        workItemUUID: String,
+        bearer: String
+    ) async throws -> PatientCommunicationRouteCandidatesData {
+        let canonicalWorkItemUUID = try Self.canonicalRoutingUUID(workItemUUID)
+        let encodedUUID = Self.pathComponent(canonicalWorkItemUUID)
+        let result = try await getEnvelope(
+            path: "/api/mobile/v1/patient-communications/threads/\(encodedUUID)/route-candidates",
+            bearer: bearer,
+            as: PatientCommunicationRouteCandidatesData.self,
+            noStore: true
+        ).data
+        guard result.workItemUuid == canonicalWorkItemUUID else {
+            throw APIError(message: "Routing options could not be verified.", statusCode: nil)
+        }
+        return result
+    }
+
+    func releasePatientCommunication(
+        workItemUUID: String,
+        workItemVersion: Int,
+        threadVersion: Int,
+        reasonCode: String,
+        idempotencyKey: UUID,
+        bearer: String
+    ) async throws -> PatientCommunicationMutationData {
+        try Self.requireRoutingReason(reasonCode, action: .release)
+        return try await patientCommunicationRoutingMutation(
+            workItemUUID: workItemUUID,
+            action: .release,
+            workItemVersion: workItemVersion,
+            threadVersion: threadVersion,
+            targetKey: nil,
+            targetUUID: nil,
+            reasonCode: reasonCode,
+            idempotencyKey: idempotencyKey,
+            bearer: bearer
+        )
+    }
+
+    func reassignPatientCommunication(
+        workItemUUID: String,
+        workItemVersion: Int,
+        threadVersion: Int,
+        targetMembershipUUID: String,
+        reasonCode: String,
+        idempotencyKey: UUID,
+        bearer: String
+    ) async throws -> PatientCommunicationMutationData {
+        try Self.requireRoutingReason(reasonCode, action: .reassign)
+        return try await patientCommunicationRoutingMutation(
+            workItemUUID: workItemUUID,
+            action: .reassign,
+            workItemVersion: workItemVersion,
+            threadVersion: threadVersion,
+            targetKey: "target_membership_uuid",
+            targetUUID: targetMembershipUUID,
+            reasonCode: reasonCode,
+            idempotencyKey: idempotencyKey,
+            bearer: bearer
+        )
+    }
+
+    func reroutePatientCommunication(
+        workItemUUID: String,
+        workItemVersion: Int,
+        threadVersion: Int,
+        targetPoolUUID: String,
+        reasonCode: String,
+        idempotencyKey: UUID,
+        bearer: String
+    ) async throws -> PatientCommunicationMutationData {
+        try Self.requireRoutingReason(reasonCode, action: .reroute)
+        return try await patientCommunicationRoutingMutation(
+            workItemUUID: workItemUUID,
+            action: .reroute,
+            workItemVersion: workItemVersion,
+            threadVersion: threadVersion,
+            targetKey: "target_pool_uuid",
+            targetUUID: targetPoolUUID,
+            reasonCode: reasonCode,
+            idempotencyKey: idempotencyKey,
+            bearer: bearer
+        )
+    }
+
+    private func patientCommunicationRoutingMutation(
+        workItemUUID: String,
+        action: PatientCommunicationRoutingAction,
+        workItemVersion: Int,
+        threadVersion: Int,
+        targetKey: String?,
+        targetUUID: String?,
+        reasonCode: String,
+        idempotencyKey: UUID,
+        bearer: String
+    ) async throws -> PatientCommunicationMutationData {
+        let canonicalWorkItemUUID = try Self.canonicalRoutingUUID(workItemUUID)
+        let encodedUUID = Self.pathComponent(canonicalWorkItemUUID)
+        var body: [String: Any] = [
+            "work_item_version": workItemVersion,
+            "thread_version": threadVersion,
+            "reason_code": reasonCode,
+        ]
+        if let targetKey {
+            guard let targetUUID else {
+                throw APIError(message: "A routing target is required.", statusCode: nil)
+            }
+            body[targetKey] = try Self.canonicalRoutingUUID(targetUUID)
+        } else if targetUUID != nil {
+            throw APIError(message: "This routing action does not accept a target.", statusCode: nil)
+        }
+
+        let data = try await send(
+            path: "/api/mobile/v1/patient-communications/threads/\(encodedUUID)/\(action.rawValue)",
+            method: "POST",
+            body: body,
+            bearer: bearer,
+            explicitIdempotencyKey: idempotencyKey,
+            noStore: true
+        )
+        return try Self.decoder.decode(Envelope<PatientCommunicationMutationData>.self, from: data).data
     }
 
     // MARK: Altitude 2.0 common contract (A0/A1/A2/A2P + relay/Eddy)
@@ -140,7 +384,7 @@ struct APIClient {
 
         let (data, response): (Data, URLResponse)
         do {
-            (data, response) = try await URLSession.shared.data(for: req)
+            (data, response) = try await session.data(for: req)
         } catch {
             throw APIError(message: "Can't reach Eddy. Is the server running at \(baseURL.absoluteString)?", statusCode: nil)
         }
@@ -414,17 +658,48 @@ struct APIClient {
         raw.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? raw
     }
 
+    private static func canonicalRoutingUUID(_ raw: String) throws -> String {
+        let pattern = "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        guard raw.range(of: pattern, options: .regularExpression) != nil,
+              let uuid = UUID(uuidString: raw),
+              raw == uuid.uuidString.lowercased() else {
+            throw APIError(message: "The routing identifier is invalid.", statusCode: nil)
+        }
+        return raw
+    }
+
+    private static func requireRoutingReason(
+        _ reasonCode: String,
+        action: PatientCommunicationRoutingAction
+    ) throws {
+        guard action.allows(reasonCode: reasonCode) else {
+            throw APIError(message: "The selected routing reason is unavailable.", statusCode: 422)
+        }
+    }
+
     private static func queryValue(_ raw: String) -> String {
         let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
         return raw.addingPercentEncoding(withAllowedCharacters: allowed) ?? raw
     }
 
-    private func getEnvelope<T: Decodable>(path: String, bearer: String, as: T.Type) async throws -> Envelope<T> {
-        let data = try await send(path: path, method: "GET", body: nil, bearer: bearer)
+    private func getEnvelope<T: Decodable>(
+        path: String,
+        bearer: String,
+        as: T.Type,
+        noStore: Bool = false
+    ) async throws -> Envelope<T> {
+        let data = try await send(path: path, method: "GET", body: nil, bearer: bearer, noStore: noStore)
         return try Self.decoder.decode(Envelope<T>.self, from: data)
     }
 
-    private func send(path: String, method: String, body: [String: Any]?, bearer: String?) async throws -> Data {
+    private func send(
+        path: String,
+        method: String,
+        body: [String: Any]?,
+        bearer: String?,
+        explicitIdempotencyKey: UUID? = nil,
+        noStore: Bool = false
+    ) async throws -> Data {
         guard let url = URL(string: path, relativeTo: baseURL) else {
             throw APIError(message: "Bad URL", statusCode: nil)
         }
@@ -432,9 +707,16 @@ struct APIClient {
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         if let bearer { req.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization") }
-        let bodyData = body.map { try JSONSerialization.data(withJSONObject: $0, options: [.sortedKeys]) }
-        if let idempotencyKey = Self.mobileIdempotencyKey(method: method, path: path, bodyData: bodyData) {
+        let bodyData = try body.map { try JSONSerialization.data(withJSONObject: $0, options: [.sortedKeys]) }
+        if let explicitIdempotencyKey {
+            req.setValue(explicitIdempotencyKey.uuidString.lowercased(), forHTTPHeaderField: "Idempotency-Key")
+        } else if let idempotencyKey = Self.mobileIdempotencyKey(method: method, path: path, bodyData: bodyData) {
             req.setValue(idempotencyKey, forHTTPHeaderField: "Idempotency-Key")
+        }
+        if noStore {
+            req.cachePolicy = .reloadIgnoringLocalCacheData
+            req.setValue("no-store, no-cache, max-age=0", forHTTPHeaderField: "Cache-Control")
+            req.setValue("no-cache", forHTTPHeaderField: "Pragma")
         }
         if body != nil {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -444,7 +726,7 @@ struct APIClient {
 
         let (data, response): (Data, URLResponse)
         do {
-            (data, response) = try await URLSession.shared.data(for: req)
+            (data, response) = try await session.data(for: req)
         } catch {
             throw APIError(message: "Can't reach the server. Is it running at \(baseURL.absoluteString)?", statusCode: nil)
         }

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Security\ClinicalPayloads\ClinicalContentGuard;
+use App\Services\Patient\PatientResponseDecorator;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,7 @@ final class EnsureClinicalFailureOutputSafe
         }
 
         $data = $response->getData(true);
-        $safeValidation = $this->safeValidationResponse($response->getStatusCode(), $data);
+        $safeValidation = $this->safeValidationResponse($request, $response->getStatusCode(), $data);
         if ($safeValidation !== null) {
             return $safeValidation;
         }
@@ -61,7 +62,7 @@ final class EnsureClinicalFailureOutputSafe
         ]));
     }
 
-    private function safeValidationResponse(int $status, mixed $data): ?JsonResponse
+    private function safeValidationResponse(Request $request, int $status, mixed $data): ?JsonResponse
     {
         if ($status !== 422
             || ! is_array($data)
@@ -82,12 +83,31 @@ final class EnsureClinicalFailureOutputSafe
             $errors[$field] = ['The submitted value is invalid.'];
         }
 
-        return response()->json([
-            'message' => 'The submitted data failed validation.',
-            'errors' => $errors,
-        ], 422)->withHeaders([
+        $payload = $request->is('api/patient/v1', 'api/patient/v1/*')
+            ? [
+                'data' => null,
+                'error' => [
+                    'code' => 'validation_failed',
+                    'message' => 'The submitted patient request is invalid.',
+                ],
+                'errors' => $errors,
+                'meta' => is_array($data['meta'] ?? null) ? $data['meta'] : [],
+                'links' => empty($data['links'] ?? null) ? (object) [] : $data['links'],
+            ]
+            : [
+                'message' => 'The submitted data failed validation.',
+                'errors' => $errors,
+            ];
+
+        $response = response()->json($payload, 422)->withHeaders([
             'Cache-Control' => 'private, no-store, max-age=0',
             'Pragma' => 'no-cache',
         ]);
+
+        if ($request->is('api/patient/v1', 'api/patient/v1/*')) {
+            return app(PatientResponseDecorator::class)->decorate($response, $request);
+        }
+
+        return $response;
     }
 }

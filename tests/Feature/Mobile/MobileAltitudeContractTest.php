@@ -60,7 +60,9 @@ class MobileAltitudeContractTest extends TestCase
             ->assertJsonPath('data.dependencies.0.dependency_type', 'bed_request');
 
         $this->getJson('/api/mobile/v1/patients/SECRET-MRN-ALTITUDE-1/operational-context?persona=bed_manager')
-            ->assertForbidden();
+            // Raw patient identifiers fail route matching before controller or
+            // authorization logic can disclose whether any patient exists.
+            ->assertNotFound();
     }
 
     public function test_mobile_write_records_activity_and_acknowledgement(): void

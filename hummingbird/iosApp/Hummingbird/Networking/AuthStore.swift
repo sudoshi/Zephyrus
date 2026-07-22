@@ -26,6 +26,31 @@ final class AuthStore: ObservableObject {
 
     init(api: APIClient) { self.api = api }
 
+    #if DEBUG
+    /// Credential-free, process-memory session used only when the UI-test runner
+    /// launches the dedicated patient-communications fixture mode. Nothing is
+    /// written to Keychain and this code is absent from Release builds.
+    func installPatientCommunicationsUITestSession() {
+        guard StaffCommunicationsUITestMode.isEnabled else { return }
+        accessToken = "ui-test-memory-token"
+        refreshToken = nil
+        changeToken = nil
+        me = MeData(
+            id: 9_999_001,
+            name: "UI Test Clinician",
+            username: "ui-test-clinician",
+            email: nil,
+            roles: ["bedside_nurse"],
+            isAdmin: true,
+            can: .init(viewPatientCommunications: true, respondPatientCommunications: true),
+            workflowPreference: "superuser",
+            mustChangePassword: false,
+            units: [.init(unitId: 85, name: "5 East — Medical/Surgical", role: "bedside_nurse", isPrimary: true)]
+        )
+        phase = .loggedIn
+    }
+    #endif
+
     /// On launch: if we have a stored token, validate it by loading /me.
     func bootstrap() async {
         guard let stored = keychain.get("accessToken") else {

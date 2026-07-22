@@ -47,6 +47,7 @@ use App\Http\Controllers\Api\Mobile\ImprovementController as MobileImprovementCo
 use App\Http\Controllers\Api\Mobile\MeController as MobileMeController;
 use App\Http\Controllers\Api\Mobile\OpsController as MobileOpsController;
 use App\Http\Controllers\Api\Mobile\ORController as MobileORController;
+use App\Http\Controllers\Api\Mobile\PatientCommunicationController as MobilePatientCommunicationController;
 use App\Http\Controllers\Api\Mobile\PatientContextController as MobilePatientContextController;
 use App\Http\Controllers\Api\Mobile\RealtimeConfigController as MobileRealtimeConfigController;
 use App\Http\Controllers\Api\Mobile\RtdcController as MobileRtdcController;
@@ -125,7 +126,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('cockpit')->group(fu
     // constraint 404s any non-context ref before it reaches the service.
     Route::get('/patient/{contextRef}', [\App\Http\Controllers\PatientLensController::class, 'show'])
         ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':patients')
-        ->where('contextRef', 'ptok_[A-Za-z0-9]+');
+        ->where('contextRef', 'ptok_[a-f0-9]{24}');
     Route::get('/stream', \App\Http\Controllers\Api\CockpitStreamController::class);
     // HFE Phase 1 — alert acknowledgement (any authenticated operator; the
     // engine clears the ack on warn->crit escalation so worsening re-alarms).
@@ -246,6 +247,12 @@ Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureRo
         Route::post('/patients/{roundPatientUuid}/pin', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'pin']);
         Route::post('/patients/{roundPatientUuid}/contributions', [\App\Http\Controllers\Api\Rounds\RoundContributionController::class, 'store']);
         Route::post('/patients/{roundPatientUuid}/questions', [\App\Http\Controllers\Api\Rounds\RoundQuestionController::class, 'store']);
+        Route::get('/patients/{roundPatientUuid}/patient-question-threads', [\App\Http\Controllers\Api\Rounds\RoundQuestionController::class, 'availablePatientQuestions'])
+            ->middleware(\App\Http\Middleware\EnsurePatientRoundsQuestionBridgeEnabled::class)
+            ->whereUuid('roundPatientUuid');
+        Route::post('/patients/{roundPatientUuid}/patient-question-threads/{threadUuid}/promote', [\App\Http\Controllers\Api\Rounds\RoundQuestionController::class, 'promotePatientQuestion'])
+            ->middleware(\App\Http\Middleware\EnsurePatientRoundsQuestionBridgeEnabled::class)
+            ->whereUuid(['roundPatientUuid', 'threadUuid']);
         Route::post('/patients/{roundPatientUuid}/tasks', [\App\Http\Controllers\Api\Rounds\RoundTaskController::class, 'store']);
 
         Route::post('/contributions/{contributionUuid}/submit', [\App\Http\Controllers\Api\Rounds\RoundContributionController::class, 'submit']);
@@ -803,7 +810,7 @@ Route::prefix('improvement')->middleware(['web', 'auth', 'throttle:web-api'])->g
 Route::prefix('auth')->group(function () {
     Route::post('/token', [MobileAuthController::class, 'token'])->middleware('throttle:credential-exchange');
 
-    Route::middleware(['auth:sanctum', 'throttle:mobile-authenticated'])->group(function () {
+    Route::middleware(['auth:sanctum', 'staff.realm', 'throttle:mobile-authenticated'])->group(function () {
         Route::post('/token/refresh', [MobileAuthController::class, 'refresh']);
         Route::post('/token/revoke', [MobileAuthController::class, 'revoke']);
         Route::post('/change-password', [MobileAuthController::class, 'changePassword']);
@@ -814,7 +821,7 @@ Route::prefix('auth')->group(function () {
 // `CheckForAnyAbility:mobile:read` rejects narrowly-scoped tokens (e.g. the
 // must_change_password challenge token) while admin `*` tokens pass. Write-vs-read
 // ability splitting (mobile:act) + per-resource Policies land with the P1 writes.
-Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'throttle:mobile-api'])->prefix('mobile/v1')->group(function () {
+Route::middleware(['auth:sanctum', 'staff.realm', CheckForAnyAbility::class.':mobile:read', 'throttle:mobile-api'])->prefix('mobile/v1')->group(function () {
     Route::get('/me', [MobileMeController::class, 'show']);
     Route::put('/me/preferences', [MobileMeController::class, 'updatePreferences']);
 
@@ -826,7 +833,8 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
     Route::get('/altitude/home', [MobileAltitudeController::class, 'home']);
     Route::get('/altitude/workspace/{domain}', [MobileAltitudeController::class, 'workspace']);
     Route::get('/drills/{itemUuid}', [MobileAltitudeController::class, 'drill']);
-    Route::get('/patients/{contextRef}/operational-context', [MobilePatientContextController::class, 'show']);
+    Route::get('/patients/{contextRef}/operational-context', [MobilePatientContextController::class, 'show'])
+        ->where('contextRef', 'ptok_[a-f0-9]{24}');
     Route::get('/activity', [MobileActivityController::class, 'index']);
     Route::post('/activity/{eventUuid}/ack', [MobileActivityController::class, 'ack'])
         ->middleware(CheckForAnyAbility::class.':mobile:act');
@@ -841,6 +849,42 @@ Route::middleware(['auth:sanctum', CheckForAnyAbility::class.':mobile:read', 'th
         ->middleware(CheckForAnyAbility::class.':mobile:act');
 
     Route::get('/for-you', [MobileForYouController::class, 'index']);
+
+    // Patient communications — the accountable care-team side of the separate
+    // patient messaging realm. Capability checks are necessary but never
+    // sufficient: the service also requires current responsibility-pool
+    // membership for every read and mutation.
+    Route::middleware([
+        \App\Http\Middleware\ProtectPatientCommunicationResponse::class,
+        'patient.staff-messaging',
+        'can:viewPatientCommunications',
+    ])
+        ->prefix('patient-communications')
+        ->group(function () {
+            Route::get('/inbox', [MobilePatientCommunicationController::class, 'inbox']);
+            Route::get('/threads/{workItemUuid}', [MobilePatientCommunicationController::class, 'show'])
+                ->whereUuid('workItemUuid');
+
+            Route::middleware([
+                CheckForAnyAbility::class.':mobile:act',
+                'can:respondPatientCommunications',
+            ])->group(function () {
+                Route::get('/threads/{workItemUuid}/route-candidates', [MobilePatientCommunicationController::class, 'routeCandidates'])
+                    ->whereUuid('workItemUuid');
+                Route::post('/threads/{workItemUuid}/claim', [MobilePatientCommunicationController::class, 'claim'])
+                    ->whereUuid('workItemUuid');
+                Route::post('/threads/{workItemUuid}/reply', [MobilePatientCommunicationController::class, 'reply'])
+                    ->whereUuid('workItemUuid');
+                Route::post('/threads/{workItemUuid}/close', [MobilePatientCommunicationController::class, 'close'])
+                    ->whereUuid('workItemUuid');
+                Route::post('/threads/{workItemUuid}/release', [MobilePatientCommunicationController::class, 'release'])
+                    ->whereUuid('workItemUuid');
+                Route::post('/threads/{workItemUuid}/reassign', [MobilePatientCommunicationController::class, 'reassign'])
+                    ->whereUuid('workItemUuid');
+                Route::post('/threads/{workItemUuid}/reroute', [MobilePatientCommunicationController::class, 'reroute'])
+                    ->whereUuid('workItemUuid');
+            });
+        });
 
     // Flow Window (FLOW-WINDOW-PLAN §6.4) — the persona-lensed 48h
     // spatiotemporal surface. /floors is the versioned plate asset (ETag);

@@ -19,11 +19,13 @@ final class HouseCapacityViewModel: ObservableObject {
     init(api: APIClient) { self.api = api }
 
     func load(bearer: String) async {
+        #if DEBUG
         if ProcessInfo.processInfo.environment["HB_FORCE_ERROR"] == "1" {
             errorMessage = "Can't reach the server. Check your connection and try again."
             stale = true
             return
         }
+        #endif
         isLoading = true
         defer { isLoading = false }
         do {
@@ -69,7 +71,13 @@ struct HouseCapacityView: View {
     @State private var autoOpenPlacement = false
     @State private var autoPlacementIndex = 0
     @State private var didAutoOpen = false
-    @State private var viewMode: FlowHomeMode = ProcessInfo.processInfo.environment["HB_HOME_MODE"] == "map" ? .map : .list
+    @State private var viewMode: FlowHomeMode = {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["HB_HOME_MODE"] == "map" ? .map : .list
+        #else
+        return .list
+        #endif
+    }()
 
     private let refreshInterval: Duration = .seconds(20)
 
@@ -122,6 +130,7 @@ struct HouseCapacityView: View {
                 }
             }
             .onChange(of: vm.placements.isEmpty) { _, empty in
+                #if DEBUG
                 if !empty, !didAutoOpen,
                    let raw = ProcessInfo.processInfo.environment["HB_OPEN_PLACEMENT"],
                    let n = Int(raw), vm.placements.indices.contains(n - 1) {
@@ -129,6 +138,7 @@ struct HouseCapacityView: View {
                     autoPlacementIndex = n - 1
                     autoOpenPlacement = true
                 }
+                #endif
             }
         }
         .tint(Z.primary)

@@ -95,6 +95,14 @@ struct RoleExperience {
             return .init(homeTitle: "Critical Care", homeFocus: "ICU & step-down",
                          censusScope: .criticalCare, queueTitle: "Critical care",
                          emptyQueue: "No critical-care items need action right now.", queueFilter: .criticalCare)
+        case "case_manager":
+            return .init(homeTitle: "Care Progression", homeFocus: "Barriers, transitions & patient follow-up",
+                         censusScope: .unitFocused, queueTitle: "Care progression",
+                         emptyQueue: "No care-progression items need action right now.", queueFilter: .myUnit)
+        case "discharge_coordinator":
+            return .init(homeTitle: "Discharge Readiness", homeFocus: "Transitions & patient follow-up",
+                         censusScope: .unitFocused, queueTitle: "Discharge follow-up",
+                         emptyQueue: "No discharge items need action right now.", queueFilter: .myUnit)
         case "bed_manager":
             return .init(homeTitle: "House Capacity", homeFocus: "Placement & flow",
                          censusScope: .house, queueTitle: "Placement queue",
@@ -126,7 +134,7 @@ struct RoleExperience {
                          censusScope: .house, queueTitle: "OR alerts",
                          emptyQueue: "No OR delays or cancellations right now.", queueFilter: .none,
                          home: .orBoard)
-        case "capacity_lead":
+        case "capacity_lead", "ops_leader":
             // Ops leader: capacity vs. demand + approvals. The full feed (placements + barriers +
             // capacity) is the honest proxy until the Ops approvals inbox lands (Wave 2).
             return .init(homeTitle: "Capacity & Demand", homeFocus: "Capacity, demand & approvals",
@@ -181,6 +189,12 @@ struct RoleExperience {
     // MARK: Queue filtering
 
     func keep(_ item: ForYouItem, unitsByName: [String: CensusUnit], myUnit: String?) -> Bool {
+        // /for-you has already applied capability + live responsibility-pool
+        // authorization. A local persona/domain heuristic must never hide that
+        // accountable attention item, including for roles whose legacy queue is
+        // otherwise `.none` or scoped to a different unit.
+        if item.isPatientCommunicationAttention { return true }
+
         switch queueFilter {
         case .all:
             return true

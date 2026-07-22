@@ -2,6 +2,18 @@
 
 namespace App\Services\Mobile;
 
+/**
+ * Maps operational events to the personas that should see them and how urgently.
+ *
+ * `STANDARD_EVENT_TYPES` is the full recognized Activity taxonomy. Some of those
+ * events are not yet emitted by any mobile source, so they are recorded in
+ * `NOT_EMITTED_YET_EVENT_TYPES` as a tracked implementation backlog: each entry
+ * explains why it is silent today, and the disposition, owner, and target phase
+ * for closing each gap live in the parity plan §5 delta matrix (e.g. operational
+ * action assign/start/complete, bed-request/barrier creation, OR delay/advance,
+ * huddle writes). `activityTaxonomy()` exposes the emitted-vs-pending split so no
+ * surface can imply the Activity feed is complete while those sources stay silent.
+ */
 class PersonaRelayPolicy
 {
     public const STANDARD_EVENT_TYPES = [
@@ -154,5 +166,59 @@ class PersonaRelayPolicy
     public function isDocumentedAsNotEmittedYet(string $eventType): bool
     {
         return array_key_exists($eventType, self::NOT_EMITTED_YET_EVENT_TYPES);
+    }
+
+    /**
+     * Event types with a real mobile emission path today.
+     *
+     * @return list<string>
+     */
+    public function emittedEventTypes(): array
+    {
+        return array_values(array_filter(
+            self::STANDARD_EVENT_TYPES,
+            fn (string $eventType): bool => ! $this->isDocumentedAsNotEmittedYet($eventType),
+        ));
+    }
+
+    /**
+     * Event types on the tracked backlog: part of the recognized taxonomy but
+     * not yet emitted by any mobile source.
+     *
+     * @return list<string>
+     */
+    public function pendingEventTypes(): array
+    {
+        return array_values(array_filter(
+            self::STANDARD_EVENT_TYPES,
+            fn (string $eventType): bool => $this->isDocumentedAsNotEmittedYet($eventType),
+        ));
+    }
+
+    /**
+     * The tracked Activity backlog: each pending event type mapped to the reason
+     * it is not yet emitted. Disposition, owner, and target phase live in the
+     * parity plan §5 matrix; this keeps the backlog explicit and code-adjacent.
+     *
+     * @return array<string, string>
+     */
+    public function pendingBacklog(): array
+    {
+        return self::NOT_EMITTED_YET_EVENT_TYPES;
+    }
+
+    /**
+     * Truthful Activity completeness taxonomy. Surfaces should use this rather
+     * than assume `STANDARD_EVENT_TYPES` is fully live, so they never imply the
+     * feed is complete while backlog sources are still silent.
+     *
+     * @return array{emitted: list<string>, pending: list<string>}
+     */
+    public function activityTaxonomy(): array
+    {
+        return [
+            'emitted' => $this->emittedEventTypes(),
+            'pending' => $this->pendingEventTypes(),
+        ];
     }
 }

@@ -7,6 +7,17 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
+schemes:
+  Hummingbird:
+    build:
+      targets:
+        Hummingbird: all
+    test:
+      targets:
+        - name: HummingbirdTests
+          parallelizable: false
+        - name: HummingbirdUITests
+          parallelizable: false
 targets:
   Hummingbird:
     type: application
@@ -81,3 +92,31 @@ targets:
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
+
+  HummingbirdTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - HummingbirdTests
+    dependencies:
+      - target: Hummingbird
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.hummingbird.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: TKXPY255A2
+
+  HummingbirdUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - HummingbirdUITests
+    dependencies:
+      - target: Hummingbird
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.hummingbird.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: TKXPY255A2

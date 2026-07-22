@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use App\Services\Audit\UserAuditRecorder;
 use Closure;
 use Illuminate\Http\RedirectResponse;
@@ -49,6 +50,12 @@ class AuditUserRequests
 
     private function shouldAudit(Request $request, Response $response): bool
     {
+        // Patient principals have their own append-only access/disclosure audit
+        // ledger. Never send them through the staff-only UserAuditRecorder.
+        if ($request->user() !== null && ! $request->user() instanceof User) {
+            return false;
+        }
+
         if ($request->user() === null || $this->recorder->requestWasAudited($request)) {
             return false;
         }

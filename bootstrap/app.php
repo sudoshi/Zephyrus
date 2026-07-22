@@ -21,7 +21,29 @@ return $builder
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'admin.scope' => \App\Http\Middleware\RequireAdminScope::class,
+            'patient.enabled' => \App\Http\Middleware\EnsureHummingbirdPatientEnabled::class,
+            'patient.feature' => \App\Http\Middleware\EnsureHummingbirdPatientFeatureEnabled::class,
+            'patient.realm' => \App\Http\Middleware\EnsurePatientRealm::class,
+            'patient.response' => \App\Http\Middleware\ProtectPatientResponse::class,
+            'patient.staff-messaging' => \App\Http\Middleware\EnsurePatientStaffMessagingEnabled::class,
+            'staff.realm' => \App\Http\Middleware\EnsureStaffRealm::class,
         ]);
+
+        // Patient product and feature gates must execute before Laravel's
+        // authentication priority so disabled capabilities are indistinguishable
+        // from absent routes. The response guard wraps both gates and auth errors.
+        $middleware->prependToPriorityList(
+            \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            \App\Http\Middleware\EnsureHummingbirdPatientFeatureEnabled::class,
+        );
+        $middleware->prependToPriorityList(
+            \App\Http\Middleware\EnsureHummingbirdPatientFeatureEnabled::class,
+            \App\Http\Middleware\EnsureHummingbirdPatientEnabled::class,
+        );
+        $middleware->prependToPriorityList(
+            \App\Http\Middleware\EnsureHummingbirdPatientEnabled::class,
+            \App\Http\Middleware\ProtectPatientResponse::class,
+        );
 
         $middleware->prepend(\App\Http\Middleware\AssignRequestIdentity::class);
 
@@ -46,6 +68,19 @@ return $builder
         );
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->respond(function (
+            \Symfony\Component\HttpFoundation\Response $response,
+            \Throwable $exception,
+            \Illuminate\Http\Request $request,
+        ) {
+            if ($request->is('api/patient/v1', 'api/patient/v1/*')) {
+                return app(\App\Services\Patient\PatientResponseDecorator::class)
+                    ->decorate($response, $request);
+            }
+
+            return $response;
+        });
+
         $exceptions->render(function (\App\Services\Auth\StepUpRequired $exception, \Illuminate\Http\Request $request) {
             if ($request->expectsJson()) {
                 return response()->json([

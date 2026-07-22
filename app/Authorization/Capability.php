@@ -42,6 +42,8 @@ enum Capability: string
     case RequestTransportOperations = 'requestTransportOperations';
     case ManageTransportDispatch = 'manageTransportDispatch';
     case ProgressTransportOperations = 'progressTransportOperations';
+    case ViewPatientCommunications = 'viewPatientCommunications';
+    case RespondPatientCommunications = 'respondPatientCommunications';
     case ViewCockpitPolicy = 'viewCockpitPolicy';
     case ManageCockpitPolicy = 'manageCockpitPolicy';
     case ViewAiGovernance = 'viewAiGovernance';

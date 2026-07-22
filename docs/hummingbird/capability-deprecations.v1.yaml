@@ -1,0 +1,15 @@
+# Deprecation records for retired or remapped Hummingbird capability ids.
+#
+# A capability id may only be removed from or remapped in capability-ledger.v1.yaml
+# if it has a record here (plan §6.1). verify-hummingbird-capability-ledger.php
+# enforces this against capability-registry.lock: a registered id that is neither
+# active in the ledger nor recorded here fails CI.
+#
+# Each record:
+#   - id:            the retired capability id (must exist in the registry lock)
+#     retired_on:    YYYY-MM-DD
+#     reason:        why it was retired or remapped
+#     replaced_by:   the successor capability id, or null if none
+#     migration_note: what consumers must do (routes, clients, docs)
+version: 1
+deprecations: []

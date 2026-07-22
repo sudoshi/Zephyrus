@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,8 +41,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,6 +57,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import net.acumenus.hummingbird.data.AltitudeViewModel
 import net.acumenus.hummingbird.data.AppLock
 import net.acumenus.hummingbird.data.AuthViewModel
@@ -66,6 +72,8 @@ import net.acumenus.hummingbird.data.MobileRole
 import net.acumenus.hummingbird.data.ORRoom
 import net.acumenus.hummingbird.data.OpsApproval
 import net.acumenus.hummingbird.data.Opportunity
+import net.acumenus.hummingbird.data.PatientCommunicationAccess
+import net.acumenus.hummingbird.data.PatientCommunicationsViewModel
 import net.acumenus.hummingbird.data.PdsaCycle
 import net.acumenus.hummingbird.data.Placement
 import net.acumenus.hummingbird.data.StaffingReq
@@ -81,6 +89,10 @@ import net.acumenus.hummingbird.ui.capacity.CapacityDemandScreen
 import net.acumenus.hummingbird.ui.capacity.HouseCapacityScreen
 import net.acumenus.hummingbird.ui.capacity.PlacementDetailScreen
 import net.acumenus.hummingbird.ui.components.panel
+import net.acumenus.hummingbird.ui.communications.PatientCommunicationDetailScreen
+import net.acumenus.hummingbird.ui.communications.PatientCommunicationsInboxScreen
+import net.acumenus.hummingbird.ui.communications.PatientCommunicationsPollingEffect
+import net.acumenus.hummingbird.ui.communications.shouldPollPatientCommunications
 import net.acumenus.hummingbird.ui.evs.BedTurnsScreen
 import net.acumenus.hummingbird.ui.evs.TurnDetailScreen
 import net.acumenus.hummingbird.ui.executive.HouseBriefScreen
@@ -96,7 +108,7 @@ import net.acumenus.hummingbird.ui.theme.Z
 import net.acumenus.hummingbird.ui.transport.TransportJobDetailScreen
 import net.acumenus.hummingbird.ui.transport.TransportJobsScreen
 
-private enum class HummingbirdTab { Home, ForYou, Activity }
+private enum class HummingbirdTab { Home, ForYou, Activity, Communications }
 
 data class HummingbirdLaunchConfig(
     val roleId: String? = null,
@@ -121,6 +133,7 @@ private sealed interface AltitudeDetail {
     data class ImprovementOpportunity(val opportunity: Opportunity) : AltitudeDetail
     data class PlacementDecision(val placement: Placement) : AltitudeDetail
     data class Unit(val unit: CensusUnit, val webLink: String?) : AltitudeDetail
+    data class PatientCommunication(val workItemUuid: String) : AltitudeDetail
     data object Profile : AltitudeDetail
     data object ProfileConfirmation : AltitudeDetail
     data object DebugExplorer : AltitudeDetail
@@ -132,12 +145,46 @@ fun MainScreen(
     launchConfig: HummingbirdLaunchConfig = HummingbirdLaunchConfig(),
 ) {
     val vm: AltitudeViewModel = viewModel()
+    val communicationsVm: PatientCommunicationsViewModel = viewModel()
+    val lifecycleOwner = LocalLifecycleOwner.current
     var topTab by remember { mutableStateOf(tabFromLaunch(launchConfig.tab)) }
     var detail by remember { mutableStateOf<AltitudeDetail?>(null) }
     var appliedLaunchConfig by remember { mutableStateOf(false) }
+    var communicationsForeground by remember {
+        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
+    }
+    var communicationsForegroundEpoch by remember { mutableIntStateOf(0) }
     val bearer = auth.accessToken ?: ""
     val selectedRole = vm.selectedRole
     val homeKind = selectedRole.homeKind
+    val canViewPatientCommunications = PatientCommunicationAccess.isEligible(auth.me)
+    val canRespondPatientCommunications = PatientCommunicationAccess.canRespond(auth.me)
+    val communicationsMayRead = communicationsForeground && !AppLock.locked
+    val communicationWorkItemUuid =
+        (detail as? AltitudeDetail.PatientCommunication)?.workItemUuid
+    val communicationsSurfaceVisible = communicationWorkItemUuid != null ||
+        (detail == null && topTab == HummingbirdTab.Communications)
+
+    PatientCommunicationsPollingEffect(
+        active = shouldPollPatientCommunications(
+            canView = canViewPatientCommunications,
+            foreground = communicationsForeground,
+            locked = AppLock.locked,
+            surfaceVisible = communicationsSurfaceVisible,
+        ),
+        bearer = bearer,
+        workItemUuid = communicationWorkItemUuid,
+        foregroundEpoch = communicationsForegroundEpoch,
+        onPoll = communicationsVm::refreshInboxForPolling,
+        isPollingStillAllowed = {
+            shouldPollPatientCommunications(
+                canView = canViewPatientCommunications,
+                foreground = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED),
+                locked = AppLock.locked,
+                surfaceVisible = communicationsSurfaceVisible,
+            )
+        },
+    )
 
     LaunchedEffect(launchConfig) {
         if (!appliedLaunchConfig) {
@@ -147,12 +194,45 @@ fun MainScreen(
         }
     }
     LaunchedEffect(auth.me?.id, launchConfig.roleId) {
+        communicationsVm.resetForIdentity(auth.me?.id)
         if (launchConfig.roleId == null) {
             vm.loadProfileForUser(auth.me)
         }
     }
+    LaunchedEffect(canViewPatientCommunications) {
+        if (!canViewPatientCommunications) {
+            if (topTab == HummingbirdTab.Communications) topTab = HummingbirdTab.Home
+            if (detail is AltitudeDetail.PatientCommunication) detail = null
+            communicationsVm.clearSensitiveState()
+        }
+    }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> {
+                    communicationsForeground = true
+                    communicationsForegroundEpoch += 1
+                }
+
+                Lifecycle.Event.ON_STOP -> {
+                    communicationsForeground = false
+                    communicationsVm.clearSensitiveState()
+                }
+
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            communicationsVm.clearSensitiveState()
+        }
+    }
     LaunchedEffect(vm.needsReauth) { if (vm.needsReauth) auth.logout() }
-    BackHandler(enabled = detail != null) { detail = null }
+    BackHandler(enabled = detail != null) {
+        if (detail is AltitudeDetail.PatientCommunication) communicationsVm.closeThread()
+        detail = null
+    }
 
     Scaffold(
         containerColor = Z.bg,
@@ -187,6 +267,15 @@ fun MainScreen(
                         label = { Text("Activity") },
                         colors = colors,
                     )
+                    if (canViewPatientCommunications) {
+                        NavigationBarItem(
+                            selected = topTab == HummingbirdTab.Communications,
+                            onClick = { topTab = HummingbirdTab.Communications },
+                            icon = { Icon(Icons.Filled.Forum, contentDescription = null) },
+                            label = { Text("Messages") },
+                            colors = colors,
+                        )
+                    }
                 }
             }
         },
@@ -262,9 +351,18 @@ fun MainScreen(
                         auth = auth,
                         selectedRole = selectedRole,
                         selectedUnitName = vm.confirmedProfile.unitName,
+                        canViewPatientCommunications = canViewPatientCommunications,
                         forceError = launchConfig.forceError,
                         onOpenProfile = { detail = AltitudeDetail.Profile },
                         onOpenDrill = { detail = AltitudeDetail.Drill(it) },
+                        onOpenPatientCommunication = if (canViewPatientCommunications) {
+                            { workItemUuid ->
+                                communicationsVm.closeThread()
+                                detail = AltitudeDetail.PatientCommunication(workItemUuid)
+                            }
+                        } else {
+                            null
+                        },
                         onOpenPatient = { detail = AltitudeDetail.Patient(it) },
                         onOpenUnit = { unit, webLink -> detail = AltitudeDetail.Unit(unit, webLink) },
                     )
@@ -276,6 +374,15 @@ fun MainScreen(
                         onOpenProfile = { detail = AltitudeDetail.Profile },
                         onOpenDrill = { detail = AltitudeDetail.Drill(it) },
                         onOpenPatient = { detail = AltitudeDetail.Patient(it) },
+                    )
+                    HummingbirdTab.Communications -> PatientCommunicationsInboxScreen(
+                        auth = auth,
+                        viewModel = communicationsVm,
+                        forceError = launchConfig.forceError,
+                        active = communicationsMayRead,
+                        refreshEpoch = communicationsForegroundEpoch,
+                        onOpenProfile = { detail = AltitudeDetail.Profile },
+                        onOpenThread = { detail = AltitudeDetail.PatientCommunication(it) },
                     )
                 }
             } else {
@@ -358,6 +465,19 @@ fun MainScreen(
                         webLink = currentDetail.webLink,
                         onBack = { detail = null },
                     )
+                    is AltitudeDetail.PatientCommunication -> PatientCommunicationDetailScreen(
+                        auth = auth,
+                        viewModel = communicationsVm,
+                        workItemUuid = currentDetail.workItemUuid,
+                        canRespond = canRespondPatientCommunications,
+                        active = communicationsMayRead,
+                        refreshEpoch = communicationsForegroundEpoch,
+                        onBack = { detail = null },
+                        onOpenPatient = {
+                            communicationsVm.closeThread()
+                            detail = AltitudeDetail.Patient(it)
+                        },
+                    )
                     AltitudeDetail.Profile -> ProfileSettingsScreen(
                         auth = auth,
                         vm = vm,
@@ -398,6 +518,7 @@ private fun iconForRole(role: MobileRole): ImageVector = when (role.androidIconN
 private fun tabFromLaunch(tab: String?): HummingbirdTab = when (tab?.lowercase()) {
     "foryou", "for_you", "for-you" -> HummingbirdTab.ForYou
     "activity" -> HummingbirdTab.Activity
+    "communications", "messages", "patient-communications" -> HummingbirdTab.Communications
     else -> HummingbirdTab.Home
 }
 
@@ -430,7 +551,8 @@ private fun ProfileSettingsScreen(
     val selectedRole = vm.selectedRole
     val confirmedProfile = vm.confirmedProfile
     val confirmedRole = confirmedProfile.roleId?.let(MobileRoleCatalog::byId)
-    val canSwitchRoles = auth.me?.isAdmin == true || auth.me?.username?.contains("demo", ignoreCase = true) == true
+    // Authorization comes from server-issued account attributes, never a username pattern.
+    val canSwitchRoles = auth.me?.isAdmin == true || auth.me?.workflowPreference == "superuser"
 
     Scaffold(
         containerColor = Z.bg,

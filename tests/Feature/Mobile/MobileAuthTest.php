@@ -3,7 +3,10 @@
 namespace Tests\Feature\Mobile;
 
 use App\Models\User;
+use App\Services\Auth\AccountSessionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 use Tests\TestCase;
 
 /**
@@ -164,6 +167,32 @@ class MobileAuthTest extends TestCase
             'reason' => 'password_changed',
             'target_id' => (string) $user->id,
         ]);
+    }
+
+    public function test_password_change_rolls_back_when_session_revocation_fails(): void
+    {
+        $user = $this->activeUser(['must_change_password' => true]);
+        $changeToken = $this->postJson('/api/auth/token', [
+            'username' => $user->username,
+            'password' => 'password',
+        ])->json('change_token');
+
+        $this->mock(AccountSessionService::class, function ($mock): void {
+            $mock->shouldReceive('revoke')
+                ->once()
+                ->andThrow(new RuntimeException('simulated session revocation failure'));
+        });
+
+        $this->withToken($changeToken)->postJson('/api/auth/change-password', [
+            'current_password' => 'password',
+            'new_password' => 'NewMobilePassword!123',
+            'new_password_confirmation' => 'NewMobilePassword!123',
+        ])->assertInternalServerError();
+
+        $user->refresh();
+        $this->assertTrue($user->must_change_password);
+        $this->assertTrue(Hash::check('password', $user->password));
+        $this->assertFalse(Hash::check('NewMobilePassword!123', $user->password));
     }
 
     public function test_device_registration_is_stored_for_the_user(): void

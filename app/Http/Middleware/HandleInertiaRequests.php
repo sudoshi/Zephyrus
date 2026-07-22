@@ -75,6 +75,8 @@ class HandleInertiaRequests extends Middleware
                     'operate_integrations' => $allows(Capability::OperateIntegrations),
                     'approve_integration_changes' => $allows(Capability::ApproveIntegrationChanges),
                     'manage_data_stewardship' => $allows(Capability::ManageDataStewardship),
+                    'view_patient_communications' => $allows(Capability::ViewPatientCommunications),
+                    'respond_patient_communications' => $allows(Capability::RespondPatientCommunications),
                 ],
             ],
             'adminScope' => $usesAdminScope
@@ -102,6 +104,12 @@ class HandleInertiaRequests extends Middleware
                 // link) until HOME_HOSPITAL_ENABLED is on — matching the server
                 // route gate (EnsureHomeHospitalEnabled).
                 'home_hospital' => (bool) config('home_hospital.enabled'),
+                // The staff workspace is visible only when the whole patient
+                // messaging chain and its independent governance gate are live.
+                'patient_communications' => (bool) config('hummingbird-patient.enabled', false)
+                    && (bool) config('hummingbird-patient.features.messaging', false)
+                    && (bool) config('hummingbird-patient.staff_messaging.enabled', false)
+                    && config('hummingbird-patient.staff_messaging.governance_status') === 'approved',
             ],
             'workflow' => $request->session()->get('workflow'),
             'flash' => [

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\Mobile;
 
+use App\Authorization\Capability;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
+use App\Services\Authorization\RoleCapabilityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,17 +17,28 @@ class MeController extends Controller
 {
     use RendersMobileEnvelope;
 
+    public function __construct(private readonly RoleCapabilityService $authorization) {}
+
     public function show(Request $request): JsonResponse
     {
         $user = $request->user();
+        $effectiveRoles = $this->authorization->effectiveRoleIds($user);
+        $effectiveCapabilities = collect($this->authorization->effectiveCapabilities($user))
+            ->map(fn (Capability $capability): string => $capability->value);
 
         return $this->envelope([
             'id' => $user->getKey(),
             'name' => $user->name,
             'username' => $user->username,
             'email' => $user->email,
-            'roles' => $user->getRoleNames()->values(),
-            'is_admin' => $user->hasRole(['super-admin', 'admin']),
+            // These are the canonical effective roles used by authorization,
+            // including scalar, Spatie, and active workforce assignments.
+            'roles' => $effectiveRoles,
+            'is_admin' => collect($effectiveRoles)->intersect(['super_admin', 'admin'])->isNotEmpty(),
+            'can' => [
+                'view_patient_communications' => $effectiveCapabilities->contains(Capability::ViewPatientCommunications->value),
+                'respond_patient_communications' => $effectiveCapabilities->contains(Capability::RespondPatientCommunications->value),
+            ],
             'workflow_preference' => $user->workflow_preference,
             'must_change_password' => (bool) $user->must_change_password,
             'units' => $this->unitAssignments($user),

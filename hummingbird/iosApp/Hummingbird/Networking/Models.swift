@@ -165,9 +165,18 @@ struct MeData: Decodable {
     let email: String?
     let roles: [String]
     let isAdmin: Bool
+    let can: MeCapabilities
     let workflowPreference: String?
     let mustChangePassword: Bool
     let units: [UnitAssignment]
+}
+
+/// Server-derived effective capabilities. These are calculated from the same
+/// scalar, Spatie, and active-workforce role sources used by authorization; the
+/// client must never infer patient-communication authority from a local persona.
+struct MeCapabilities: Decodable {
+    let viewPatientCommunications: Bool
+    let respondPatientCommunications: Bool
 }
 
 struct UnitAssignment: Decodable, Identifiable {
@@ -196,6 +205,12 @@ struct CensusUnit: Decodable, Identifiable {
 }
 
 /// GET /api/mobile/v1/for-you — one prioritized, PHI-minimized action item.
+///
+/// Patient-communication attention items are a stricter class than the legacy
+/// operational cards. Their custom decode path retains only an exact canonical
+/// work-item UUID, governed unit label, normalized urgency, and valid timestamp.
+/// Every server-provided free-text/detail field is replaced or discarded before
+/// the item enters observable UI state.
 struct ForYouItem: Decodable, Identifiable {
     let id: String
     let type: String
@@ -214,8 +229,137 @@ struct ForYouItem: Decodable, Identifiable {
     let recommendedActions: [MobileAction]?
     let activity: [ActivityEvent]?
     let provenance: Provenance?
+    /// Present only when the raw server item used the exact governed
+    /// type/domain/id triple. Malformed communication rows remain visible but
+    /// can never become a navigation destination.
+    let patientCommunicationWorkItemUUID: String?
 
     var capacity: CapacityStatus { CapacityStatus(apiValue: visualStatus ?? status ?? tier) }
+    var isPatientCommunicationAttention: Bool {
+        type == Self.patientCommunicationType && domain == Self.patientCommunicationDomain
+    }
+
+    private static let patientCommunicationType = "patient_communication"
+    private static let patientCommunicationDomain = "communications"
+    private static let patientCommunicationIDPrefix = "patient-communication-"
+
+    private enum CodingKeys: String, CodingKey {
+        case id, type, domain, altitude, tier, visualStatus, status, statusDetail
+        case title, subtitle, unit, at, patientContextRef, dependencies
+        case recommendedActions, activity, provenance
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let rawID = try? container.decode(String.self, forKey: .id)
+        let rawType = try? container.decode(String.self, forKey: .type)
+        let rawDomain = try? container.decode(String.self, forKey: .domain)
+        let isCommunicationCandidate = rawType == Self.patientCommunicationType
+            || rawDomain == Self.patientCommunicationDomain
+            || rawID?.hasPrefix(Self.patientCommunicationIDPrefix) == true
+
+        if isCommunicationCandidate {
+            let workItemUUID: String?
+            if rawType == Self.patientCommunicationType,
+               rawDomain == Self.patientCommunicationDomain,
+               let rawID {
+                workItemUUID = Self.canonicalPatientCommunicationUUID(from: rawID)
+            } else {
+                workItemUUID = nil
+            }
+
+            let urgency = Self.communicationUrgency(
+                try? container.decode(String.self, forKey: .visualStatus),
+                fallback: try? container.decode(String.self, forKey: .tier)
+            )
+            id = workItemUUID.map { Self.patientCommunicationIDPrefix + $0 }
+                ?? "malformed-patient-communication-\(UUID().uuidString.lowercased())"
+            type = Self.patientCommunicationType
+            domain = Self.patientCommunicationDomain
+            altitude = "A2"
+            tier = urgency
+            visualStatus = urgency
+            status = nil
+            statusDetail = nil
+            title = Self.communicationTitle(for: urgency)
+            subtitle = "Open the secure conversation to review the request."
+            unit = Self.governedUnitLabel(try? container.decode(String.self, forKey: .unit))
+            at = Self.validTimestamp(try? container.decode(String.self, forKey: .at))
+            patientContextRef = nil
+            dependencies = nil
+            recommendedActions = nil
+            activity = nil
+            provenance = nil
+            patientCommunicationWorkItemUUID = workItemUUID
+            return
+        }
+
+        id = try container.decode(String.self, forKey: .id)
+        type = try container.decode(String.self, forKey: .type)
+        domain = try container.decodeIfPresent(String.self, forKey: .domain)
+        altitude = try container.decodeIfPresent(String.self, forKey: .altitude)
+        tier = try container.decode(String.self, forKey: .tier)
+        visualStatus = try container.decodeIfPresent(String.self, forKey: .visualStatus)
+        status = try container.decodeIfPresent(String.self, forKey: .status)
+        statusDetail = try container.decodeIfPresent(OperationalStatus.self, forKey: .statusDetail)
+        title = try container.decode(String.self, forKey: .title)
+        subtitle = try container.decode(String.self, forKey: .subtitle)
+        unit = try container.decodeIfPresent(String.self, forKey: .unit)
+        at = try container.decodeIfPresent(String.self, forKey: .at)
+        patientContextRef = try container.decodeIfPresent(String.self, forKey: .patientContextRef)
+        dependencies = try container.decodeIfPresent([OperationalDependency].self, forKey: .dependencies)
+        recommendedActions = try container.decodeIfPresent([MobileAction].self, forKey: .recommendedActions)
+        activity = try container.decodeIfPresent([ActivityEvent].self, forKey: .activity)
+        provenance = try container.decodeIfPresent(Provenance.self, forKey: .provenance)
+        patientCommunicationWorkItemUUID = nil
+    }
+
+    private static func canonicalPatientCommunicationUUID(from id: String) -> String? {
+        guard id.hasPrefix(patientCommunicationIDPrefix) else { return nil }
+        let suffix = String(id.dropFirst(patientCommunicationIDPrefix.count))
+        guard let uuid = UUID(uuidString: suffix), suffix == uuid.uuidString.lowercased() else {
+            return nil
+        }
+        return suffix
+    }
+
+    private static func communicationUrgency(_ value: String?, fallback: String?) -> String {
+        switch (value ?? fallback ?? "info").lowercased() {
+        case "critical": return "critical"
+        case "warning": return "warning"
+        default: return "info"
+        }
+    }
+
+    private static func communicationTitle(for urgency: String) -> String {
+        switch urgency {
+        case "critical": return "Escalated patient communication"
+        case "warning": return "Patient communication response due"
+        default: return "Patient communication needs attention"
+        }
+    }
+
+    /// The mobile contract permits only the human label of the already-governed
+    /// unit-scoped responsibility pool. Reject multiline/control/oversized values
+    /// rather than allowing an unexpected field shape onto the device surface.
+    private static func governedUnitLabel(_ raw: String?) -> String? {
+        guard let label = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !label.isEmpty,
+              label.count <= 80,
+              label.unicodeScalars.allSatisfy({ !CharacterSet.controlCharacters.contains($0) }) else {
+            return nil
+        }
+        return label
+    }
+
+    private static func validTimestamp(_ raw: String?) -> String? {
+        guard let raw,
+              ISO8601DateFormatter().date(from: raw) != nil
+                || ISO8601DateFormatter.flexible.date(from: raw) != nil else {
+            return nil
+        }
+        return raw
+    }
 }
 
 /// GET /api/mobile/v1/transport/queue — the transporter's "My Trips" home payload.

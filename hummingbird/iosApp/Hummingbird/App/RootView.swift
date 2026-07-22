@@ -57,35 +57,47 @@ struct RootView: View {
             }
         }
         .task {
-            if case .loading = auth.phase { await auth.bootstrap() }
-            // Test/demo affordance: SIMCTL_CHILD_HB_AUTOLOGIN=1 lets UI tests and
-            // headless screenshots land on Home without a manual tap. No-op in production.
+            #if DEBUG
             let env = ProcessInfo.processInfo.environment
+            if StaffCommunicationsUITestMode.isEnabled {
+                auth.installPatientCommunicationsUITestSession()
+            } else if case .loading = auth.phase {
+                await auth.bootstrap()
+            }
+
+            // Test/demo affordance: SIMCTL_CHILD_HB_AUTOLOGIN=1 lets UI tests and
+            // headless screenshots land on Home without a manual tap. The credentials
+            // must be supplied explicitly; neither the app nor this hook has defaults.
             // Test affordance: SIMCTL_CHILD_HB_SHOWLOGIN=1 forces the sign-in screen even if a
-            // token is cached (useful for screenshots/QA). No-op in production.
+            // token is cached (useful for screenshots/QA).
             if env["HB_SHOWLOGIN"] == "1" { await auth.logout() }
-            if env["HB_AUTOLOGIN"] == "1", case .loggedOut = auth.phase {
-                await auth.login(username: env["HB_USER"] ?? "demo",
-                                 password: env["HB_PASS"] ?? "Password123!")
+            if env["HB_AUTOLOGIN"] == "1",
+               let username = env["HB_USER"], !username.isEmpty,
+               let password = env["HB_PASS"], !password.isEmpty,
+               case .loggedOut = auth.phase {
+                await auth.login(username: username, password: password)
             }
             // Test affordance: SIMCTL_CHILD_HB_ROLE=<id> pre-confirms onboarding so screenshots
-            // can land past it. No-op in production.
+            // can land past it.
             // (Overrides any prior confirmation so role-specific surfaces can be exercised per launch.)
             if let roleId = env["HB_ROLE"], Role.by(id: roleId) != nil, let me = auth.me {
                 profile.confirm(userId: me.id, roleId: roleId,
                                 unitId: env["HB_ONBOARD_UNIT"].flatMap { Int($0) },
                                 unitName: env["HB_ONBOARD_UNIT_NAME"] ?? "House-wide")
             }
-            // Cold-launch into a cached session → engage the lock so it requires auth.
-            if isLoggedIn, lock.enabled { lock.isLocked = true }
             // Test affordance: SIMCTL_CHILD_HB_LOCK=1 engages the lock screen for QA/screenshots
-            // even without enrolled biometrics (pair with HB_NO_AUTOUNLOCK=1). No-op in production.
+            // even without enrolled biometrics (pair with HB_NO_AUTOUNLOCK=1).
             if env["HB_LOCK"] == "1", isLoggedIn { lock.isLocked = true }
-            #if DEBUG
             // Test affordance: SIMCTL_CHILD_HB_DEMO_LIVE_ACTIVITY=1 starts a demo trip Live
             // Activity so the island/lock-screen UI can be screenshot-verified.
             JobActivityController.startDemoIfRequested()
+            #else
+            if case .loading = auth.phase { await auth.bootstrap() }
             #endif
+
+            // The real cold-launch lock behavior is part of every configuration.
+            // Engage it after any debug setup so a cached production session never bypasses it.
+            if isLoggedIn, lock.enabled { lock.isLocked = true }
 
             // Push: register the APNs token with the BFF once it arrives and we have a session.
             push.onToken = { token in
@@ -99,8 +111,11 @@ struct RootView: View {
                 }
             }
             push.bootstrap()
-            // Test affordance: SIMCTL_CHILD_HB_ASK_PUSH=1 triggers the permission prompt. No-op in prod.
+
+            #if DEBUG
+            // Test affordance: SIMCTL_CHILD_HB_ASK_PUSH=1 triggers the permission prompt.
             if env["HB_ASK_PUSH"] == "1" { await push.requestAuthorization() }
+            #endif
         }
     }
 
@@ -158,4 +173,3 @@ struct HummingbirdBackdrop: View {
         .accessibilityHidden(true)
     }
 }
-

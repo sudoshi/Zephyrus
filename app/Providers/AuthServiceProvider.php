@@ -4,7 +4,13 @@ namespace App\Providers;
 
 use App\Authorization\AuthorizationScope;
 use App\Authorization\Capability;
+use App\Models\Patient\PatientEncounterAccessGrant;
+use App\Models\Patient\PatientEncounterProjection;
+use App\Models\Patient\PatientMessageThread;
 use App\Models\User;
+use App\Policies\Patient\PatientEncounterAccessGrantPolicy;
+use App\Policies\Patient\PatientEncounterProjectionPolicy;
+use App\Policies\Patient\PatientMessageThreadPolicy;
 use App\Services\Authorization\RoleCapabilityService;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
@@ -17,7 +23,9 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        //
+        PatientEncounterAccessGrant::class => PatientEncounterAccessGrantPolicy::class,
+        PatientEncounterProjection::class => PatientEncounterProjectionPolicy::class,
+        PatientMessageThread::class => PatientMessageThreadPolicy::class,
     ];
 
     /** @var list<string> */
@@ -87,6 +95,8 @@ class AuthServiceProvider extends ServiceProvider
             'requestTransportOperations' => Capability::RequestTransportOperations,
             'manageTransportDispatch' => Capability::ManageTransportDispatch,
             'progressTransportOperations' => Capability::ProgressTransportOperations,
+            'viewPatientCommunications' => Capability::ViewPatientCommunications,
+            'respondPatientCommunications' => Capability::RespondPatientCommunications,
             'viewCockpitPolicy' => Capability::ViewCockpitPolicy,
             'manageCockpitPolicy' => Capability::ManageCockpitPolicy,
             'viewAiGovernance' => Capability::ViewAiGovernance,

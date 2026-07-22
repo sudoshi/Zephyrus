@@ -53,6 +53,7 @@ describe('navigationConfig', () => {
       'pharmacy',
       'transport',
       'staffing',
+      'patient-communications',
       'home',
       'analytics',
       'improvement',
@@ -74,9 +75,9 @@ describe('navigationConfig', () => {
     }
   });
 
-  it('registers exactly ten workspace domains in the workspaces section', () => {
+  it('registers exactly eleven workspace domains in the workspaces section', () => {
     const workspaces = NAV_SECTIONS.find((s) => s.key === 'workspaces')!;
-    expect(workspaces.domains).toHaveLength(10);
+    expect(workspaces.domains).toHaveLength(11);
     expect(workspaces.domains.map((d) => d.key)).toEqual([
       'rtdc',
       'care-pathways',
@@ -87,6 +88,7 @@ describe('navigationConfig', () => {
       'pharmacy',
       'transport',
       'staffing',
+      'patient-communications',
       'home',
     ]);
   });
@@ -104,6 +106,7 @@ describe('navigationConfig', () => {
       pharmacy: '/pharmacy',
       transport: '/transport/dispatch',
       staffing: '/staffing',
+      'patient-communications': '/patient-communications',
       home: '/home/command',
     });
   });
@@ -128,6 +131,30 @@ describe('navigationConfig', () => {
     expect(isDomainVisible(home, { isAdmin: false, features: { home_hospital: true } })).toBe(true);
     // Admin does not bypass the feature flag — nav and route gate must agree.
     expect(isDomainVisible(home, { isAdmin: true })).toBe(false);
+  });
+
+  it('shows Patient Communications only with its feature and read capability', () => {
+    const communications = NAVIGATION.find((d) => d.key === 'patient-communications')!;
+    expect(isDomainVisible(communications, { isAdmin: false })).toBe(false);
+    expect(isDomainVisible(communications, {
+      isAdmin: false,
+      features: { patient_communications: true },
+    })).toBe(false);
+    expect(isDomainVisible(communications, {
+      isAdmin: false,
+      can: { view_patient_communications: true },
+      features: { patient_communications: false },
+    })).toBe(false);
+    expect(isDomainVisible(communications, {
+      isAdmin: false,
+      can: { view_patient_communications: true },
+      features: { patient_communications: true },
+    })).toBe(true);
+    // Administrative status does not bypass clinical feature or capability gates.
+    expect(isDomainVisible(communications, {
+      isAdmin: true,
+      features: { patient_communications: true },
+    })).toBe(false);
   });
 
   it('keeps administration out of the top-level section controls', () => {

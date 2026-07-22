@@ -64,6 +64,14 @@ way, it is the anti-drift mechanism for behavior, exactly as the
   full web experience in one tap.
 - **Realtime:** `/realtime/config` returns the **PHI-free** Reverb channels to subscribe to,
   with the explicit reminder that Reverb does not replay — **re-snapshot on every reconnect**.
+- **Timestamps & time zone (one rule):** every wire timestamp is **UTC, ISO-8601 / RFC 3339
+  with a literal `Z`** (e.g. `2026-07-20T16:30:00.000000Z`) — never a numeric offset and never
+  an offset-less local time. The application runs in UTC (`APP_TIMEZONE=UTC`), so serialized
+  instants are unambiguous and **DST never applies** to a value crossing the API boundary.
+  Serialize with Carbon `->toISOString()` (not `->format()` in a local zone) and parse
+  everything as UTC. `tests/Feature/Patient/PatientTimestampContractTest.php` pins this and
+  proves an instant that is ambiguous (fall-back) or skipped (spring-forward) in a US/Eastern
+  wall clock still serializes to exactly one `Z` value.
 
 ## Validate / preview
 

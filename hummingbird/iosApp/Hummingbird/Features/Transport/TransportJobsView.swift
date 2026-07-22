@@ -19,12 +19,14 @@ final class TransportJobsViewModel: ObservableObject {
     init(api: APIClient) { self.api = api }
 
     func load(bearer: String) async {
-        // Test affordance: HB_FORCE_ERROR=1 simulates an unreachable server. No-op in prod.
+        #if DEBUG
+        // Test affordance: HB_FORCE_ERROR=1 simulates an unreachable server.
         if ProcessInfo.processInfo.environment["HB_FORCE_ERROR"] == "1" {
             errorMessage = "Can't reach the server. Check your connection and try again."
             stale = true
             return
         }
+        #endif
         isLoading = true
         defer { isLoading = false }
         do {

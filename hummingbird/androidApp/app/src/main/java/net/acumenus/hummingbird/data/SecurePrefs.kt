@@ -7,9 +7,9 @@ import androidx.security.crypto.MasterKey
 
 /**
  * Keystore-backed storage for auth tokens (parity with iOS Keychain
- * kSecAttrAccessibleWhenUnlockedThisDeviceOnly). Falls back to plain prefs only if the
- * Keystore is unusable (corrupt keyset after a backup-restore, etc.) so sign-in never
- * hard-fails; tokens are short-lived and revocable either way.
+ * kSecAttrAccessibleWhenUnlockedThisDeviceOnly). If Android Keystore or encrypted
+ * preferences cannot be opened, callers receive an explicit failure. Auth must stop;
+ * secrets must never fall back to plaintext storage.
  */
 object SecurePrefs {
     private const val SECURE_FILE = "hb_secure"
@@ -28,7 +28,7 @@ object SecurePrefs {
         }
     }
 
-    private fun create(context: Context): SharedPreferences = try {
+    private fun create(context: Context): SharedPreferences = requireEncryptedStorage {
         val key = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
@@ -39,8 +39,6 @@ object SecurePrefs {
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
         )
-    } catch (_: Exception) {
-        context.getSharedPreferences(SECURE_FILE, Context.MODE_PRIVATE)
     }
 
     /** One-time move of v1 plain-prefs tokens into encrypted storage. */
@@ -53,4 +51,14 @@ object SecurePrefs {
             .apply()
         legacy.edit().remove("access").remove("refresh").apply()
     }
+}
+
+class SecureStorageUnavailableException(cause: Exception) :
+    IllegalStateException("Encrypted credential storage is unavailable.", cause)
+
+/** Isolated policy seam: a secure-store construction failure is terminal, not a fallback. */
+internal inline fun <T> requireEncryptedStorage(create: () -> T): T = try {
+    create()
+} catch (error: Exception) {
+    throw SecureStorageUnavailableException(error)
 }

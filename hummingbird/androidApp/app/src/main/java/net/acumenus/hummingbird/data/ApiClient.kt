@@ -1,6 +1,7 @@
 package net.acumenus.hummingbird.data
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import net.acumenus.hummingbird.BuildConfig
 import org.json.JSONArray
@@ -31,24 +32,199 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         val body = JSONObject().put("username", username).put("password", password)
         val (code, text) = send("POST", "/api/auth/token", body.toString(), null)
         if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
-        val json = JSONObject(text)
+        parseTokenResult(JSONObject(text))
+    }
+
+    internal fun parseTokenResult(json: JSONObject): TokenResult =
         TokenResult(
             accessToken = json.optStringOrNull("access_token"),
             refreshToken = json.optStringOrNull("refresh_token"),
             abilities = json.optJSONArray("abilities")?.let { arr -> List(arr.length()) { arr.getString(it) } } ?: emptyList(),
             passwordChangeRequired = json.optBoolean("password_change_required", false),
+            changeToken = json.optStringOrNull("change_token"),
         )
+
+    suspend fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+        bearer: String,
+    ): TokenResult = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("current_password", currentPassword)
+            .put("new_password", newPassword)
+            .put("new_password_confirmation", newPassword)
+        val (code, text) = send("POST", "/api/auth/change-password", body.toString(), bearer)
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code, errorCode(text))
+        parseTokenResult(JSONObject(text))
     }
 
     suspend fun me(bearer: String): MeData = withContext(Dispatchers.IO) {
-        val data = getData("/api/mobile/v1/me", bearer)
-        MeData(
+        parseMeData(getData("/api/mobile/v1/me", bearer))
+    }
+
+    internal fun parseMeData(data: JSONObject): MeData {
+        val can = data.optJSONObject("can")
+        return MeData(
             id = data.optInt("id"),
             name = data.optString("name"),
             username = data.optString("username"),
             roles = data.optJSONArray("roles").strings(),
             workflowPreference = data.optStringOrNull("workflow_preference"),
             isAdmin = data.optBoolean("is_admin", false),
+            canViewPatientCommunications = can?.optBoolean("view_patient_communications", false) ?: false,
+            canRespondPatientCommunications = can?.optBoolean("respond_patient_communications", false) ?: false,
+        )
+    }
+
+    suspend fun patientCommunicationsInbox(bearer: String): PatientCommunicationInbox =
+        withContext(Dispatchers.IO) {
+            val data = getData("/api/mobile/v1/patient-communications/inbox", bearer)
+            val items = data.optJSONArray("items").objects().map(::parsePatientCommunicationWorkItem)
+            PatientCommunicationInbox(
+                items = items,
+                count = data.optInt("count", items.size),
+            )
+        }
+
+    suspend fun patientCommunicationThread(
+        bearer: String,
+        workItemUuid: String,
+    ): PatientCommunicationWorkItem = withContext(Dispatchers.IO) {
+        parsePatientCommunicationWorkItem(
+            getData(
+                "/api/mobile/v1/patient-communications/threads/${urlPart(workItemUuid)}",
+                bearer,
+            ),
+        )
+    }
+
+    suspend fun claimPatientCommunication(
+        bearer: String,
+        workItemUuid: String,
+        workItemVersion: Int,
+        threadVersion: Int,
+        idempotencyKey: String,
+    ): PatientCommunicationMutationResult = withContext(Dispatchers.IO) {
+        patientCommunicationMutation(
+            bearer = bearer,
+            path = "/api/mobile/v1/patient-communications/threads/${urlPart(workItemUuid)}/claim",
+            body = patientCommunicationClaimBody(workItemVersion, threadVersion),
+            idempotencyKey = idempotencyKey,
+        )
+    }
+
+    suspend fun replyToPatientCommunication(
+        bearer: String,
+        workItemUuid: String,
+        workItemVersion: Int,
+        threadVersion: Int,
+        message: String,
+        clientMessageUuid: String,
+        idempotencyKey: String,
+    ): PatientCommunicationMutationResult = withContext(Dispatchers.IO) {
+        patientCommunicationMutation(
+            bearer = bearer,
+            path = "/api/mobile/v1/patient-communications/threads/${urlPart(workItemUuid)}/reply",
+            body = patientCommunicationReplyBody(
+                workItemVersion = workItemVersion,
+                threadVersion = threadVersion,
+                message = message,
+                clientMessageUuid = clientMessageUuid,
+            ),
+            idempotencyKey = idempotencyKey,
+        )
+    }
+
+    suspend fun closePatientCommunication(
+        bearer: String,
+        workItemUuid: String,
+        workItemVersion: Int,
+        threadVersion: Int,
+        reason: PatientCommunicationCloseReason,
+        idempotencyKey: String,
+    ): PatientCommunicationMutationResult = withContext(Dispatchers.IO) {
+        patientCommunicationMutation(
+            bearer = bearer,
+            path = "/api/mobile/v1/patient-communications/threads/${urlPart(workItemUuid)}/close",
+            body = patientCommunicationCloseBody(workItemVersion, threadVersion, reason),
+            idempotencyKey = idempotencyKey,
+        )
+    }
+
+    suspend fun patientCommunicationRouteCandidates(
+        bearer: String,
+        workItemUuid: String,
+    ): PatientCommunicationRouteCandidates = withContext(Dispatchers.IO) {
+        val exactWorkItemUuid = PatientCommunicationCommandIds.requireUuid(workItemUuid)
+        parsePatientCommunicationRouteCandidates(
+            data = getData(
+                "/api/mobile/v1/patient-communications/threads/${urlPart(exactWorkItemUuid)}/route-candidates",
+                bearer,
+            ),
+            expectedWorkItemUuid = exactWorkItemUuid,
+        )
+    }
+
+    suspend fun releasePatientCommunication(
+        bearer: String,
+        workItemUuid: String,
+        workItemVersion: Int,
+        threadVersion: Int,
+        reasonCode: String,
+        idempotencyKey: String,
+    ): PatientCommunicationMutationResult = withContext(Dispatchers.IO) {
+        val exactWorkItemUuid = PatientCommunicationCommandIds.requireUuid(workItemUuid)
+        patientCommunicationMutation(
+            bearer = bearer,
+            path = "/api/mobile/v1/patient-communications/threads/${urlPart(exactWorkItemUuid)}/release",
+            body = patientCommunicationReleaseBody(workItemVersion, threadVersion, reasonCode),
+            idempotencyKey = idempotencyKey,
+        )
+    }
+
+    suspend fun reassignPatientCommunication(
+        bearer: String,
+        workItemUuid: String,
+        workItemVersion: Int,
+        threadVersion: Int,
+        targetMembershipUuid: String,
+        reasonCode: String,
+        idempotencyKey: String,
+    ): PatientCommunicationMutationResult = withContext(Dispatchers.IO) {
+        val exactWorkItemUuid = PatientCommunicationCommandIds.requireUuid(workItemUuid)
+        patientCommunicationMutation(
+            bearer = bearer,
+            path = "/api/mobile/v1/patient-communications/threads/${urlPart(exactWorkItemUuid)}/reassign",
+            body = patientCommunicationReassignBody(
+                workItemVersion = workItemVersion,
+                threadVersion = threadVersion,
+                targetMembershipUuid = targetMembershipUuid,
+                reasonCode = reasonCode,
+            ),
+            idempotencyKey = idempotencyKey,
+        )
+    }
+
+    suspend fun reroutePatientCommunication(
+        bearer: String,
+        workItemUuid: String,
+        workItemVersion: Int,
+        threadVersion: Int,
+        targetPoolUuid: String,
+        reasonCode: String,
+        idempotencyKey: String,
+    ): PatientCommunicationMutationResult = withContext(Dispatchers.IO) {
+        val exactWorkItemUuid = PatientCommunicationCommandIds.requireUuid(workItemUuid)
+        patientCommunicationMutation(
+            bearer = bearer,
+            path = "/api/mobile/v1/patient-communications/threads/${urlPart(exactWorkItemUuid)}/reroute",
+            body = patientCommunicationRerouteBody(
+                workItemVersion = workItemVersion,
+                threadVersion = threadVersion,
+                targetPoolUuid = targetPoolUuid,
+                reasonCode = reasonCode,
+            ),
+            idempotencyKey = idempotencyKey,
         )
     }
 
@@ -369,14 +545,25 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         return getEnvelope(path, bearer).getJSONObject("data")
     }
 
-    private fun send(method: String, path: String, body: String?, bearer: String?): Pair<Int, String> {
+    private fun send(
+        method: String,
+        path: String,
+        body: String?,
+        bearer: String?,
+        explicitIdempotencyKey: String? = null,
+    ): Pair<Int, String> {
         val conn = (URL(baseUrl + path).openConnection() as HttpURLConnection).apply {
             requestMethod = method
             connectTimeout = 15000
             readTimeout = 15000
             setRequestProperty("Accept", "application/json")
+            patientCommunicationNoStoreHeaders(path).forEach { (name, value) ->
+                setRequestProperty(name, value)
+            }
+            if (shouldDisableHttpCaches(path)) useCaches = false
             bearer?.let { setRequestProperty("Authorization", "Bearer $it") }
-            mobileIdempotencyKey(method, path, body)?.let { setRequestProperty("Idempotency-Key", it) }
+            requestIdempotencyKey(method, path, body, explicitIdempotencyKey)
+                ?.let { setRequestProperty("Idempotency-Key", it) }
             if (body != null) {
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json")
@@ -388,12 +575,37 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
             val text = stream?.bufferedReader()?.use(BufferedReader::readText) ?: ""
             return code to text
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (e: Exception) {
             throw ApiException("Can't reach the server at $baseUrl. Is it running?", null)
         } finally {
             conn.disconnect()
         }
     }
+
+    internal fun requestIdempotencyKey(
+        method: String,
+        path: String,
+        body: String?,
+        explicitIdempotencyKey: String?,
+    ): String? = explicitIdempotencyKey ?: mobileIdempotencyKey(method, path, body)
+
+    internal fun patientCommunicationNoStoreHeaders(path: String): Map<String, String> =
+        if (isPatientCommunicationPath(path)) {
+            mapOf(
+                "Cache-Control" to "no-store",
+                "Pragma" to "no-cache",
+            )
+        } else {
+            emptyMap()
+        }
+
+    internal fun shouldDisableHttpCaches(path: String): Boolean = isPatientCommunicationPath(path)
+
+    private fun isPatientCommunicationPath(path: String): Boolean =
+        path.startsWith("/api/mobile/v1/patient-communications/") ||
+            path.substringBefore('?') == "/api/mobile/v1/for-you"
 
     internal fun mobileIdempotencyKey(method: String, path: String, body: String?): String? {
         val verb = method.uppercase()
@@ -402,6 +614,105 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         val digest = MessageDigest.getInstance("SHA-256").digest(material.toByteArray())
             .joinToString("") { "%02x".format(it) }
         return "hb-$digest"
+    }
+
+    internal fun patientCommunicationClaimBody(workItemVersion: Int, threadVersion: Int): String =
+        JSONObject()
+            .put("work_item_version", workItemVersion)
+            .put("thread_version", threadVersion)
+            .toString()
+
+    internal fun patientCommunicationReplyBody(
+        workItemVersion: Int,
+        threadVersion: Int,
+        message: String,
+        clientMessageUuid: String,
+    ): String = JSONObject()
+        .put("work_item_version", workItemVersion)
+        .put("thread_version", threadVersion)
+        .put("message", message)
+        .put("client_message_uuid", PatientCommunicationCommandIds.requireUuid(clientMessageUuid))
+        .toString()
+
+    internal fun patientCommunicationCloseBody(
+        workItemVersion: Int,
+        threadVersion: Int,
+        reason: PatientCommunicationCloseReason,
+    ): String = JSONObject()
+        .put("work_item_version", workItemVersion)
+        .put("thread_version", threadVersion)
+        .put("reason_code", reason.wireValue)
+        .toString()
+
+    internal fun patientCommunicationReleaseBody(
+        workItemVersion: Int,
+        threadVersion: Int,
+        reasonCode: String,
+    ): String = patientCommunicationRoutingBody(
+        workItemVersion = workItemVersion,
+        threadVersion = threadVersion,
+        action = PatientCommunicationRoutingAction.Release,
+        reasonCode = reasonCode,
+    ).toString()
+
+    internal fun patientCommunicationReassignBody(
+        workItemVersion: Int,
+        threadVersion: Int,
+        targetMembershipUuid: String,
+        reasonCode: String,
+    ): String = patientCommunicationRoutingBody(
+        workItemVersion = workItemVersion,
+        threadVersion = threadVersion,
+        action = PatientCommunicationRoutingAction.Reassign,
+        reasonCode = reasonCode,
+    )
+        .put(
+            "target_membership_uuid",
+            PatientCommunicationCommandIds.requireUuid(targetMembershipUuid),
+        )
+        .toString()
+
+    internal fun patientCommunicationRerouteBody(
+        workItemVersion: Int,
+        threadVersion: Int,
+        targetPoolUuid: String,
+        reasonCode: String,
+    ): String = patientCommunicationRoutingBody(
+        workItemVersion = workItemVersion,
+        threadVersion = threadVersion,
+        action = PatientCommunicationRoutingAction.Reroute,
+        reasonCode = reasonCode,
+    )
+        .put("target_pool_uuid", PatientCommunicationCommandIds.requireUuid(targetPoolUuid))
+        .toString()
+
+    private fun patientCommunicationRoutingBody(
+        workItemVersion: Int,
+        threadVersion: Int,
+        action: PatientCommunicationRoutingAction,
+        reasonCode: String,
+    ): JSONObject {
+        require(workItemVersion >= 1) { "A current work-item version is required." }
+        require(threadVersion >= 1) { "A current thread version is required." }
+        require(reasonCode in PatientCommunicationRoutingPolicy.allowedReasonCodes(action)) {
+            "The reason code is not authorized for this action."
+        }
+        return JSONObject()
+            .put("work_item_version", workItemVersion)
+            .put("thread_version", threadVersion)
+            .put("reason_code", reasonCode)
+    }
+
+    private fun patientCommunicationMutation(
+        bearer: String,
+        path: String,
+        body: String,
+        idempotencyKey: String,
+    ): PatientCommunicationMutationResult {
+        val exactKey = PatientCommunicationCommandIds.requireUuid(idempotencyKey)
+        val (code, text) = send("POST", path, body, bearer, exactKey)
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code, errorCode(text))
+        return parsePatientCommunicationMutation(JSONObject(text).getJSONObject("data"))
     }
 
     /** The envelope's `error.code` (e.g. "invalid_since"), when present. */
@@ -425,6 +736,285 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
     }
 
     private fun urlPart(value: String): String = URLEncoder.encode(value, "UTF-8")
+
+    internal fun parsePatientCommunicationWorkItem(o: JSONObject): PatientCommunicationWorkItem {
+        val topic = o.optJSONObject("topic") ?: JSONObject()
+        val unit = o.optJSONObject("unit")
+        val pool = o.optJSONObject("pool") ?: JSONObject()
+
+        return PatientCommunicationWorkItem(
+            workItemUuid = o.optString("work_item_uuid"),
+            threadUuid = o.optString("thread_uuid"),
+            patientContextRef = o.optStringOrNull("patient_context_ref"),
+            topic = PatientCommunicationTopic(
+                code = topic.optString("code"),
+                label = topic.optStringOrNull("label") ?: "Patient question",
+            ),
+            unit = unit?.let {
+                PatientCommunicationUnit(
+                    id = it.optInt("id"),
+                    label = it.optStringOrNull("label") ?: "Unit",
+                )
+            },
+            pool = PatientCommunicationPool(
+                poolUuid = pool.optString("pool_uuid"),
+                label = pool.optStringOrNull("label") ?: "Care team",
+            ),
+            status = o.optString("status", "open"),
+            ownershipState = o.optString("ownership_state", "pool_owned"),
+            assignedToMe = o.optBoolean("assigned_to_me", false),
+            workItemVersion = o.optInt("work_item_version", 1),
+            threadVersion = o.optInt("thread_version", 1),
+            lastMessageAt = o.optStringOrNull("last_message_at"),
+            dueAt = o.optStringOrNull("due_at"),
+            escalateAt = o.optStringOrNull("escalate_at"),
+            isResponseDue = o.optBoolean("is_response_due", false),
+            isEscalationDue = o.optBoolean("is_escalation_due", false),
+            closedAt = o.optStringOrNull("closed_at"),
+            messages = o.optJSONArray("messages").objects().map(::parsePatientCommunicationMessage),
+            hasEarlierMessages = o.optBoolean("has_earlier_messages", false),
+        )
+    }
+
+    internal fun parsePatientCommunicationMessage(o: JSONObject): PatientCommunicationMessage =
+        PatientCommunicationMessage(
+            messageUuid = o.optString("message_uuid"),
+            senderDisplayRole = o.optStringOrNull("sender_display_role") ?: "Care team",
+            visibility = o.optString("visibility", "patient_visible"),
+            messageKind = o.optString("message_kind", "message"),
+            body = o.optStringOrNull("body"),
+            deliveryState = o.optString("delivery_state", "sent"),
+            sentAt = o.optStringOrNull("sent_at"),
+        )
+
+    internal fun parsePatientCommunicationMutation(data: JSONObject): PatientCommunicationMutationResult {
+        requireExactKeys(data, setOf("work_item", "message", "event_uuid", "replayed"))
+        val replayed = data.get("replayed")
+        require(replayed is Boolean) { "replayed must be a boolean." }
+
+        return PatientCommunicationMutationResult(
+            workItem = when (val rawWorkItem = data.get("work_item")) {
+                JSONObject.NULL -> null
+                is JSONObject -> parsePatientCommunicationWorkItem(rawWorkItem)
+                else -> throw IllegalArgumentException("work_item must be an object or null.")
+            },
+            message = when (val rawMessage = data.opt("message")) {
+                null, JSONObject.NULL -> null
+                is JSONObject -> parsePatientCommunicationMessage(rawMessage)
+                else -> throw IllegalArgumentException("message must be an object or null.")
+            },
+            eventUuid = PatientCommunicationCommandIds.requireUuid(data.getString("event_uuid")),
+            replayed = replayed,
+        )
+    }
+
+    internal fun parsePatientCommunicationRouteCandidates(
+        data: JSONObject,
+        expectedWorkItemUuid: String? = null,
+    ): PatientCommunicationRouteCandidates {
+        requireExactKeys(
+            data,
+            setOf(
+                "work_item_uuid",
+                "work_item_version",
+                "thread_version",
+                "actions",
+                "reason_options",
+                "reassign_candidates",
+                "reroute_candidates",
+            ),
+        )
+        val workItemUuid = strictCanonicalUuid(data, "work_item_uuid")
+        expectedWorkItemUuid?.let {
+            require(workItemUuid == PatientCommunicationCommandIds.requireUuid(it)) {
+                "Route candidates did not match the requested work item."
+            }
+        }
+        val workItemVersion = strictPositiveInt(data, "work_item_version")
+        val threadVersion = strictPositiveInt(data, "thread_version")
+        val actionJson = data.getJSONObject("actions")
+        requireExactKeys(actionJson, setOf("can_release", "can_reassign", "can_reroute"))
+        val actions = PatientCommunicationRouteActions(
+            canRelease = strictBoolean(actionJson, "can_release"),
+            canReassign = strictBoolean(actionJson, "can_reassign"),
+            canReroute = strictBoolean(actionJson, "can_reroute"),
+        )
+        val reasonJson = data.getJSONObject("reason_options")
+        requireExactKeys(reasonJson, setOf("release", "reassign", "reroute"))
+        val reasonOptions = PatientCommunicationRouteReasonOptions(
+            release = parseRouteReasons(
+                reasonJson.getJSONArray("release"),
+                PatientCommunicationRoutingPolicy.releaseReasonCodes,
+            ),
+            reassign = parseRouteReasons(
+                reasonJson.getJSONArray("reassign"),
+                PatientCommunicationRoutingPolicy.reassignReasonCodes,
+            ),
+            reroute = parseRouteReasons(
+                reasonJson.getJSONArray("reroute"),
+                PatientCommunicationRoutingPolicy.rerouteReasonCodes,
+            ),
+        )
+        val reassignCandidates = data.getJSONArray("reassign_candidates").let { array ->
+            require(array.length() <= PatientCommunicationRoutingPolicy.MAX_CANDIDATES) {
+                "Too many reassign candidates."
+            }
+            List(array.length()) { index ->
+                val candidate = array.getJSONObject(index)
+                requireExactKeys(candidate, setOf("membership_uuid", "label", "membership_role"))
+                val role = strictBoundedText(candidate, "membership_role", 32)
+                require(role in PatientCommunicationRoutingPolicy.membershipRoles) {
+                    "Unknown membership role."
+                }
+                PatientCommunicationReassignCandidate(
+                    membershipUuid = strictCanonicalUuid(candidate, "membership_uuid"),
+                    label = strictBoundedText(
+                        candidate,
+                        "label",
+                        PatientCommunicationRoutingPolicy.MAX_LABEL_LENGTH,
+                    ),
+                    membershipRole = role,
+                )
+            }.also { candidates ->
+                require(candidates.distinctBy { it.membershipUuid }.size == candidates.size) {
+                    "Duplicate reassign candidate."
+                }
+            }
+        }
+        val rerouteCandidates = data.getJSONArray("reroute_candidates").let { array ->
+            require(array.length() <= PatientCommunicationRoutingPolicy.MAX_CANDIDATES) {
+                "Too many reroute candidates."
+            }
+            List(array.length()) { index ->
+                val candidate = array.getJSONObject(index)
+                requireExactKeys(candidate, setOf("pool_uuid", "label", "scope_type", "unit"))
+                val scopeType = strictBoundedText(candidate, "scope_type", 32)
+                require(scopeType in PatientCommunicationRoutingPolicy.scopeTypes) {
+                    "Unknown responsibility-pool scope."
+                }
+                val unit = when (val rawUnit = candidate.get("unit")) {
+                    JSONObject.NULL -> null
+                    is JSONObject -> {
+                        requireExactKeys(rawUnit, setOf("id", "label"))
+                        PatientCommunicationUnit(
+                            id = strictPositiveInt(rawUnit, "id"),
+                            label = strictBoundedText(
+                                rawUnit,
+                                "label",
+                                PatientCommunicationRoutingPolicy.MAX_LABEL_LENGTH,
+                            ),
+                        )
+                    }
+
+                    else -> throw IllegalArgumentException("unit must be an object or null.")
+                }
+                require(scopeType != "unit" || unit != null) {
+                    "Unit-scoped responsibility pools require a unit."
+                }
+                require(scopeType == "unit" || unit == null) {
+                    "Non-unit responsibility pools cannot include a unit."
+                }
+                PatientCommunicationRerouteCandidate(
+                    poolUuid = strictCanonicalUuid(candidate, "pool_uuid"),
+                    label = strictBoundedText(
+                        candidate,
+                        "label",
+                        PatientCommunicationRoutingPolicy.MAX_LABEL_LENGTH,
+                    ),
+                    scopeType = scopeType,
+                    unit = unit,
+                )
+            }.also { candidates ->
+                require(candidates.distinctBy { it.poolUuid }.size == candidates.size) {
+                    "Duplicate reroute candidate."
+                }
+            }
+        }
+        require(!actions.canRelease || reasonOptions.release.isNotEmpty()) {
+            "Release is enabled without a valid reason option."
+        }
+        require(!actions.canReassign || (reasonOptions.reassign.isNotEmpty() && reassignCandidates.isNotEmpty())) {
+            "Reassign is enabled without valid reasons and targets."
+        }
+        require(actions.canReassign || reassignCandidates.isEmpty()) {
+            "Reassign candidates were returned for a disabled action."
+        }
+        require(!actions.canReroute || (reasonOptions.reroute.isNotEmpty() && rerouteCandidates.isNotEmpty())) {
+            "Reroute is enabled without valid reasons and targets."
+        }
+        require(actions.canReroute || rerouteCandidates.isEmpty()) {
+            "Reroute candidates were returned for a disabled action."
+        }
+        return PatientCommunicationRouteCandidates(
+            workItemUuid = workItemUuid,
+            workItemVersion = workItemVersion,
+            threadVersion = threadVersion,
+            actions = actions,
+            reasonOptions = reasonOptions,
+            reassignCandidates = reassignCandidates,
+            rerouteCandidates = rerouteCandidates,
+        )
+    }
+
+    private fun parseRouteReasons(
+        array: JSONArray,
+        allowlist: Set<String>,
+    ): List<PatientCommunicationRouteReason> {
+        require(array.length() <= PatientCommunicationRoutingPolicy.MAX_REASON_OPTIONS) {
+            "Too many routing reason options."
+        }
+        return List(array.length()) { index ->
+            val reason = array.getJSONObject(index)
+            requireExactKeys(reason, setOf("code", "label"))
+            val code = strictBoundedText(reason, "code", 64)
+            require(code in allowlist) { "Unknown routing reason code." }
+            PatientCommunicationRouteReason(
+                code = code,
+                label = strictBoundedText(
+                    reason,
+                    "label",
+                    PatientCommunicationRoutingPolicy.MAX_LABEL_LENGTH,
+                ),
+            )
+        }.also { reasons ->
+            require(reasons.distinctBy { it.code }.size == reasons.size) {
+                "Duplicate routing reason option."
+            }
+        }
+    }
+
+    private fun strictCanonicalUuid(json: JSONObject, key: String): String =
+        PatientCommunicationCommandIds.requireUuid(strictBoundedText(json, key, 36))
+
+    private fun requireExactKeys(json: JSONObject, expected: Set<String>) {
+        val actual = mutableSetOf<String>()
+        val keys = json.keys()
+        while (keys.hasNext()) actual += keys.next()
+        require(actual == expected) { "Routing response contained an unexpected shape." }
+    }
+
+    private fun strictPositiveInt(json: JSONObject, key: String): Int {
+        val value = json.get(key)
+        require(value is Int && value >= 1) { "$key must be a positive integer." }
+        return value
+    }
+
+    private fun strictBoolean(json: JSONObject, key: String): Boolean {
+        val value = json.get(key)
+        require(value is Boolean) { "$key must be a boolean." }
+        return value
+    }
+
+    private fun strictBoundedText(json: JSONObject, key: String, maxLength: Int): String {
+        val value = json.get(key)
+        require(value is String && value.isNotEmpty() && value.length <= maxLength) {
+            "$key must be bounded text."
+        }
+        require(value == value.trim() && value.none(Char::isISOControl)) {
+            "$key contains unsupported text."
+        }
+        return value
+    }
 
     internal fun parseAltitudeHome(data: JSONObject): AltitudeHome = AltitudeHome(
         altitude = data.optString("altitude", "A0"),
@@ -562,16 +1152,38 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
                 ?: o.optStringOrNull("status")
                 ?: o.optJSONObject("status_detail")?.optStringOrNull("value"),
         )
+        val id = o.optString("id")
+        val type = o.optString("type")
+        val domain = o.optStringOrNull("domain")
+        val patientCommunication = PatientCommunicationForYou.isRestrictedCandidate(
+            id = id,
+            type = type,
+            domain = domain,
+        )
+        val routeSafe = patientCommunication &&
+            PatientCommunicationForYou.isExactRoutableTriple(
+                id = id,
+                type = type,
+                domain = domain,
+            )
         return ForYouItem(
-            id = o.optString("id"),
-            type = o.optString("type"),
-            domain = o.optStringOrNull("domain"),
+            id = id,
+            type = if (patientCommunication) PatientCommunicationForYou.TYPE else type,
+            domain = if (routeSafe) PatientCommunicationForYou.DOMAIN else if (patientCommunication) null else domain,
             tier = status,
-            title = o.optStringOrNull("title") ?: "Operational item",
-            subtitle = o.optStringOrNull("subtitle") ?: "",
-            unit = o.optStringOrNull("unit"),
+            title = if (patientCommunication) {
+                PatientCommunicationForYou.TITLE
+            } else {
+                o.optStringOrNull("title") ?: "Operational item"
+            },
+            subtitle = if (patientCommunication) {
+                PatientCommunicationForYou.SUBTITLE
+            } else {
+                o.optStringOrNull("subtitle") ?: ""
+            },
+            unit = if (patientCommunication) null else o.optStringOrNull("unit"),
             at = o.optStringOrNull("at") ?: o.optStringOrNull("created_at"),
-            patientContextRef = o.optStringOrNull("patient_context_ref"),
+            patientContextRef = if (patientCommunication) null else o.optStringOrNull("patient_context_ref"),
         )
     }
 

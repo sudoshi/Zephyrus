@@ -15,5 +15,9 @@ return [
         'machine_agent_per_minute' => max(1, (int) env('RATE_LIMIT_MACHINE_AGENT', 60)),
         'mobile_auth_per_minute' => max(1, (int) env('RATE_LIMIT_MOBILE_AUTH', 60)),
         'mobile_api_per_minute' => max(1, (int) env('RATE_LIMIT_MOBILE_API', 120)),
+        'patient_enrollment_per_minute' => max(1, (int) env('RATE_LIMIT_PATIENT_ENROLLMENT', 5)),
+        'patient_credential_exchange_per_minute' => max(1, (int) env('RATE_LIMIT_PATIENT_CREDENTIAL_EXCHANGE', 5)),
+        'patient_auth_per_minute' => max(1, (int) env('RATE_LIMIT_PATIENT_AUTH', 30)),
+        'patient_api_per_minute' => max(1, (int) env('RATE_LIMIT_PATIENT_API', 90)),
     ],
 ];

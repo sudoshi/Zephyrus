@@ -30,6 +30,7 @@ import {
   GitBranch,
   HeartPulse,
   MapPinned,
+  MessageSquare,
   LineChart,
   LayoutDashboard,
   LayoutGrid,
@@ -71,6 +72,8 @@ export interface NavigationCapabilities {
   readonly view_authorization?: boolean;
   readonly view_system_health?: boolean;
   readonly run_diagnostics?: boolean;
+  readonly view_patient_communications?: boolean;
+  readonly respond_patient_communications?: boolean;
 }
 
 /** Server-shared feature flags (Inertia `features` prop). A leaf gated on a
@@ -79,6 +82,7 @@ export interface NavigationFeatures {
   readonly care_pathways_demo?: boolean;
   readonly virtual_rounds?: boolean;
   readonly home_hospital?: boolean;
+  readonly patient_communications?: boolean;
 }
 
 export interface NavigationAccess {
@@ -383,6 +387,31 @@ const STAFFING: NavDomain = {
   ],
 };
 
+const PATIENT_COMMUNICATIONS: NavDomain = {
+  key: 'patient-communications',
+  label: 'Patient Communications',
+  icon: MessageSquare,
+  dashboardHref: '/patient-communications',
+  dashboardLabel: 'Patient Message Inbox',
+  matchPrefixes: ['/patient-communications'],
+  requiredFeature: 'patient_communications',
+  requiredCapability: 'view_patient_communications',
+  groups: [
+    {
+      title: 'Care Team',
+      items: [
+        {
+          label: 'Patient Message Inbox',
+          href: '/patient-communications',
+          icon: MessageSquare,
+          requiredFeature: 'patient_communications',
+          requiredCapability: 'view_patient_communications',
+        },
+      ],
+    },
+  ],
+};
+
 const ANALYTICS: NavDomain = {
   key: 'analytics',
   label: 'Analytics',
@@ -604,7 +633,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     key: 'workspaces',
     title: 'Workspaces',
     icon: LayoutGrid,
-    domains: [RTDC, CARE_PATHWAYS, EMERGENCY, PERIOPERATIVE, RADIOLOGY, LAB, PHARMACY, TRANSPORT, STAFFING, HOME],
+    domains: [RTDC, CARE_PATHWAYS, EMERGENCY, PERIOPERATIVE, RADIOLOGY, LAB, PHARMACY, TRANSPORT, STAFFING, PATIENT_COMMUNICATIONS, HOME],
   },
   { key: 'study', title: 'Study', icon: BookOpen, domains: [ANALYTICS, IMPROVEMENT] },
   {

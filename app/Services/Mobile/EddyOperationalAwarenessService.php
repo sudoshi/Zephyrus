@@ -129,19 +129,19 @@ class EddyOperationalAwarenessService
             return $scopeRef;
         }
 
-        $patientRef = $this->patients->resolvePatientRef($scopeRef);
+        if ($this->patients->hasPatientContext($scopeRef)) {
+            return $scopeRef;
+        }
 
-        return $patientRef && $this->patients->hasPatientContext($patientRef)
-            ? (string) $this->patients->contextRefFor($patientRef)
-            : $scopeRef;
+        throw new AuthorizationException('This Eddy scope is not available to the current mobile persona.');
     }
 
     private function isFlowScopeRef(string $scopeRef): bool
     {
         return $scopeRef === 'house'
-            || str_starts_with($scopeRef, 'floor:')
-            || str_starts_with($scopeRef, 'unit:')
-            || str_starts_with($scopeRef, 'patient:');
+            || preg_match('/^floor:[0-9]+$/D', $scopeRef) === 1
+            || preg_match('/^unit:[A-Za-z0-9_-]+$/D', $scopeRef) === 1
+            || preg_match('/^patient:ptok_[a-f0-9]{24}$/D', $scopeRef) === 1;
     }
 
     /** @return array<string, mixed> */

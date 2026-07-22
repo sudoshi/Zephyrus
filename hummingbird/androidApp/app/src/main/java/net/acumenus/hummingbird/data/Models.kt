@@ -8,6 +8,7 @@ data class TokenResult(
     val refreshToken: String?,
     val abilities: List<String>,
     val passwordChangeRequired: Boolean,
+    val changeToken: String?,
 )
 
 data class MeData(
@@ -17,6 +18,8 @@ data class MeData(
     val roles: List<String>,
     val workflowPreference: String?,
     val isAdmin: Boolean,
+    val canViewPatientCommunications: Boolean = false,
+    val canRespondPatientCommunications: Boolean = false,
 )
 
 data class ConfirmedProfile(

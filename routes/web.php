@@ -24,6 +24,7 @@ use App\Http\Controllers\Integrations\IntegrationConsoleController;
 use App\Http\Controllers\LabController;
 use App\Http\Controllers\Operations;
 use App\Http\Controllers\Ops\OpsConsoleController;
+use App\Http\Controllers\PatientCommunicationController;
 use App\Http\Controllers\PharmacyController;
 use App\Http\Controllers\Predictions;
 use App\Http\Controllers\ProcessAnalysisController;
@@ -231,6 +232,49 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
 
         // Staffing Office
         Route::get('/staffing', [StaffingDashboardController::class, 'index'])->name('staffing');
+
+        // Patient Communications — the accountable care-team workspace for
+        // patient-originated messages. The service re-checks live responsibility-
+        // pool membership for every read and mutation in addition to these gates.
+        Route::prefix('patient-communications')
+            ->name('patient-communications.')
+            ->middleware([
+                \App\Http\Middleware\ProtectPatientCommunicationResponse::class,
+                'patient.staff-messaging',
+                'can:viewPatientCommunications',
+            ])
+            ->group(function () {
+                Route::get('/', [PatientCommunicationController::class, 'index'])->name('index');
+                Route::get('/inbox', [PatientCommunicationController::class, 'inbox'])->name('inbox');
+                Route::get('/threads/{workItemUuid}', [PatientCommunicationController::class, 'show'])
+                    ->whereUuid('workItemUuid')
+                    ->name('threads.show');
+
+                Route::middleware(['can:respondPatientCommunications', 'throttle:30,1'])
+                    ->group(function () {
+                        Route::get('/threads/{workItemUuid}/route-candidates', [PatientCommunicationController::class, 'routeCandidates'])
+                            ->whereUuid('workItemUuid')
+                            ->name('threads.route-candidates');
+                        Route::post('/threads/{workItemUuid}/claim', [PatientCommunicationController::class, 'claim'])
+                            ->whereUuid('workItemUuid')
+                            ->name('threads.claim');
+                        Route::post('/threads/{workItemUuid}/reply', [PatientCommunicationController::class, 'reply'])
+                            ->whereUuid('workItemUuid')
+                            ->name('threads.reply');
+                        Route::post('/threads/{workItemUuid}/close', [PatientCommunicationController::class, 'close'])
+                            ->whereUuid('workItemUuid')
+                            ->name('threads.close');
+                        Route::post('/threads/{workItemUuid}/release', [PatientCommunicationController::class, 'release'])
+                            ->whereUuid('workItemUuid')
+                            ->name('threads.release');
+                        Route::post('/threads/{workItemUuid}/reassign', [PatientCommunicationController::class, 'reassign'])
+                            ->whereUuid('workItemUuid')
+                            ->name('threads.reassign');
+                        Route::post('/threads/{workItemUuid}/reroute', [PatientCommunicationController::class, 'reroute'])
+                            ->whereUuid('workItemUuid')
+                            ->name('threads.reroute');
+                    });
+            });
 
         // Enterprise setup retains facility taxonomy/readiness; integrations have
         // their own strictly gated control plane below.

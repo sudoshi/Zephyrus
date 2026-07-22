@@ -1,0 +1,61 @@
+# Hummingbird capability registry lock — APPEND-ONLY.
+#
+# Every capability id that has ever existed in capability-ledger.v1.yaml is
+# recorded here. An id may only leave the active ledger if it is given a record
+# in capability-deprecations.v1.yaml; verify-hummingbird-capability-ledger.php
+# fails CI when an active id is missing here, when a registered id is neither
+# active nor deprecated (a silent delete/remap), or when the two files disagree.
+#
+# When introducing a capability: append its id below (keep sorted).
+# When retiring or remapping one: add a deprecation record; never delete a line.
+administration.access
+administration.cockpit_thresholds
+administration.enterprise_setup
+administration.system_health
+analytics.arena
+analytics.data_quality
+analytics.intelligence_hub
+analytics.opportunities
+analytics.predictive_workbench
+analytics.process_intelligence
+analytics.retrospective
+care_pathways.synthetic_journey_demo
+cockpit.agent_inbox
+cockpit.executive_brief
+cockpit.live_signals
+cockpit.overview
+ed.analytics
+ed.operations
+ed.patient_flow
+ed.predictions
+home_hospital.operations
+improvement.cycles
+improvement.diagnose
+integrations.control_plane
+laboratory.operations
+mobile.altitude
+mobile.auth_session
+mobile.eddy
+mobile.evs
+mobile.for_you
+mobile.profile_devices_realtime
+patient.experience
+patient_communications.staff_response
+perioperative.analytics
+perioperative.operations
+perioperative.predictions
+pharmacy.controlled_substances
+pharmacy.operations
+radiology.operations
+rtdc.analytics
+rtdc.ancillary_services
+rtdc.bed_flow
+rtdc.huddles
+rtdc.patient_flow
+rtdc.predictions
+rtdc.virtual_rounds
+staffing.administration
+staffing.operations
+transport.analytics
+transport.operations
+transport.resources

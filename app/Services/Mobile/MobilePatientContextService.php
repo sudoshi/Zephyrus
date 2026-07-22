@@ -18,6 +18,7 @@ class MobilePatientContextService
     public function __construct(
         private readonly OperationalActivityLedger $ledger,
         private readonly MobilePersonaCatalog $personas,
+        private readonly MobilePatientContextReferenceStore $references,
     ) {}
 
     public function contextRefFor(?string $patientRef): ?string
@@ -26,16 +27,16 @@ class MobilePatientContextService
             return null;
         }
 
-        return 'ptok_'.substr(hash_hmac('sha256', $patientRef, (string) config('app.key', 'zephyrus')), 0, 24);
+        return $this->references->issue($patientRef);
     }
 
     /** @return array<string, mixed> */
-    public function build(string $patientRefOrContextRef, ?User $user = null, ?string $roleId = null): array
+    public function build(string $contextRef, ?User $user = null, ?string $roleId = null): array
     {
-        $patientRef = $this->resolvePatientRef($patientRefOrContextRef);
+        $patientRef = $this->resolvePatientRef($contextRef);
         $roleId = $this->personas->normalize($roleId, $user);
 
-        if (! $patientRef || ! $this->canAccessPatientContext($patientRefOrContextRef, $patientRef, $user, $roleId)) {
+        if (! $patientRef || ! $this->canAccessPatientContext($contextRef, $patientRef, $user, $roleId)) {
             throw new AuthorizationException('This patient operational context is not available to the current mobile persona.');
         }
 
@@ -126,24 +127,29 @@ class MobilePatientContextService
         return $context;
     }
 
-    public function resolvePatientRef(string $patientRefOrContextRef): ?string
+    public function resolvePatientRef(string $contextRef): ?string
     {
-        if (! str_starts_with($patientRefOrContextRef, 'ptok_')) {
-            return $patientRefOrContextRef;
-        }
-
-        return $this->candidatePatientRefs()
-            ->first(fn (string $candidate): bool => $this->contextRefFor($candidate) === $patientRefOrContextRef);
+        return $this->references->resolve($contextRef);
     }
 
-    public function hasPatientContext(string $patientRefOrContextRef): bool
+    public function hasPatientContext(string $contextRef): bool
     {
-        $patientRef = $this->resolvePatientRef($patientRefOrContextRef);
+        $patientRef = $this->resolvePatientRef($contextRef);
 
         if (! $patientRef) {
             return false;
         }
 
+        return $this->hasRawPatientContext($patientRef);
+    }
+
+    public function isOpaqueContextRef(string $contextRef): bool
+    {
+        return $this->references->isOpaque($contextRef);
+    }
+
+    private function hasRawPatientContext(string $patientRef): bool
+    {
         return BedRequest::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
             || TransportRequest::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
             || EvsRequest::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
@@ -152,28 +158,9 @@ class MobilePatientContextService
             || DB::table('prod.or_cases')->where('patient_id', $patientRef)->where('is_deleted', false)->exists();
     }
 
-    /** @return Collection<int, string> */
-    private function candidatePatientRefs(): Collection
-    {
-        return collect()
-            ->merge(BedRequest::query()->whereNotNull('patient_ref')->where('is_deleted', false)->limit(500)->pluck('patient_ref'))
-            ->merge(TransportRequest::query()->whereNotNull('patient_ref')->where('is_deleted', false)->limit(500)->pluck('patient_ref'))
-            ->merge(EvsRequest::query()->whereNotNull('patient_ref')->where('is_deleted', false)->limit(500)->pluck('patient_ref'))
-            ->merge(EdVisit::query()->whereNotNull('patient_ref')->where('is_deleted', false)->limit(500)->pluck('patient_ref'))
-            // The inpatient census spine — every occupied bed on a unit-mount
-            // patient board must resolve at the A2P lens, not just patients who
-            // happen to have an open request or an ED visit (P8 unit rosters).
-            ->merge(Encounter::query()->active()->whereNotNull('patient_ref')->limit(1000)->pluck('patient_ref'))
-            // The periop platform — PACU bay-board rows descend by or_case ref.
-            ->merge(DB::table('prod.or_cases')->whereNotNull('patient_id')->where('is_deleted', false)->limit(500)->pluck('patient_id'))
-            ->filter()
-            ->unique()
-            ->values();
-    }
-
     private function canAccessPatientContext(string $requestedRef, string $patientRef, ?User $user, string $roleId): bool
     {
-        if (! $user || ! $this->hasPatientContext($patientRef)) {
+        if (! $user || ! $this->hasRawPatientContext($patientRef)) {
             return false;
         }
 
@@ -213,6 +200,11 @@ class MobilePatientContextService
     private function userSharesPatientUnit(User $user, string $patientRef): bool
     {
         $patientUnitIds = collect()
+            ->merge(Encounter::query()
+                ->active()
+                ->where('patient_ref', $patientRef)
+                ->whereNotNull('unit_id')
+                ->pluck('unit_id'))
             ->merge(EdVisit::query()
                 ->where('patient_ref', $patientRef)
                 ->where('is_deleted', false)

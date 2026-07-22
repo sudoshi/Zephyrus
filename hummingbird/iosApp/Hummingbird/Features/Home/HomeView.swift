@@ -114,9 +114,12 @@ struct HomeView: View {
             let token = auth.accessToken ?? ""
             vm.startLive(bearer: token)
             defer { vm.stopLive() }
+            #if DEBUG
             var first = true
+            #endif
             while !Task.isCancelled {
                 await vm.load(bearer: token)
+                #if DEBUG
                 if first {
                     first = false
                     // Deep-link test affordance: SIMCTL_CHILD_HB_OPEN_UNIT=<id> opens a unit.
@@ -128,6 +131,7 @@ struct HomeView: View {
                         showProfile = true
                     }
                 }
+                #endif
                 try? await Task.sleep(for: refreshInterval)
             }
         }

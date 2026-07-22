@@ -1,0 +1,91 @@
+# Hummingbird contract operations baseline — APPEND-ONLY.
+#
+# Every operation (METHOD full-path [operationId]) published by the two OpenAPI
+# contracts (hummingbird-bff.v1.yaml, hummingbird-patient.v1.yaml). An operation
+# may only be REMOVED or RENAMED here if it has a record in
+# contract-breaking-changes.v1.yaml; scripts/verify-hummingbird-contract-baseline.php
+# fails CI when a baselined operation disappears from the specs without one, or
+# when a spec operation is missing here (append new operations, keep sorted).
+DELETE /api/mobile/v1/devices/{device}
+DELETE /api/patient/v1/me/notification-devices/{deviceUuid} revokePatientNotificationDevice
+DELETE /api/patient/v1/me/sessions/{sessionUuid} revokePatientSessionById
+GET /api/mobile/v1/activity
+GET /api/mobile/v1/altitude/home
+GET /api/mobile/v1/altitude/workspace/{domain}
+GET /api/mobile/v1/command/house
+GET /api/mobile/v1/drills/{itemUuid}
+GET /api/mobile/v1/eddy/approvals
+GET /api/mobile/v1/eddy/approvals/{uuid}
+GET /api/mobile/v1/eddy/context/{scopeRef}
+GET /api/mobile/v1/eddy/conversations
+GET /api/mobile/v1/eddy/conversations/{uuid}
+GET /api/mobile/v1/evs/queue
+GET /api/mobile/v1/flow/demo-scenarios
+GET /api/mobile/v1/flow/floors
+GET /api/mobile/v1/flow/occupancy/history
+GET /api/mobile/v1/flow/spaces3d
+GET /api/mobile/v1/flow/window
+GET /api/mobile/v1/for-you
+GET /api/mobile/v1/improvement/opportunities
+GET /api/mobile/v1/improvement/pdsa
+GET /api/mobile/v1/me
+GET /api/mobile/v1/ops/inbox
+GET /api/mobile/v1/or/board
+GET /api/mobile/v1/patient-communications/inbox
+GET /api/mobile/v1/patient-communications/threads/{workItemUuid}
+GET /api/mobile/v1/patient-communications/threads/{workItemUuid}/route-candidates
+GET /api/mobile/v1/patients/{contextRef}/operational-context
+GET /api/mobile/v1/realtime/config
+GET /api/mobile/v1/rtdc/bed-requests
+GET /api/mobile/v1/rtdc/bed-requests/{id}/recommendations
+GET /api/mobile/v1/rtdc/census
+GET /api/mobile/v1/rtdc/house
+GET /api/mobile/v1/staffing/overview
+GET /api/mobile/v1/staffing/requests/{id}/candidates
+GET /api/mobile/v1/transport/queue
+GET /api/patient/v1/encounters listPatientEncounterAccess
+GET /api/patient/v1/encounters/{encounterUuid}/care-team getPatientCareTeamProjection
+GET /api/patient/v1/encounters/{encounterUuid}/discharge-readiness getPatientDischargeReadiness
+GET /api/patient/v1/encounters/{encounterUuid}/message-topics listPatientMessageTopics
+GET /api/patient/v1/encounters/{encounterUuid}/pathway getPatientPathwayProjection
+GET /api/patient/v1/encounters/{encounterUuid}/pathway/events getPatientPathwayEvents
+GET /api/patient/v1/encounters/{encounterUuid}/rounds/summary getPatientRoundsSummary
+GET /api/patient/v1/encounters/{encounterUuid}/threads listPatientMessageThreads
+GET /api/patient/v1/encounters/{encounterUuid}/today getPatientTodayProjection
+GET /api/patient/v1/me getPatientProfile
+GET /api/patient/v1/me/sessions listPatientSessions
+GET /api/patient/v1/threads/{threadUuid} getPatientMessageThread
+POST /api/mobile/v1/activity/{eventUuid}/ack
+POST /api/mobile/v1/auth/change-password
+POST /api/mobile/v1/auth/token
+POST /api/mobile/v1/auth/token/refresh
+POST /api/mobile/v1/auth/token/revoke
+POST /api/mobile/v1/devices
+POST /api/mobile/v1/eddy/approvals/{uuid}/decision
+POST /api/mobile/v1/eddy/chat
+POST /api/mobile/v1/eddy/chat/stream
+POST /api/mobile/v1/evs/requests/{id}/status
+POST /api/mobile/v1/ops/approvals/{uuid}/decision
+POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/claim
+POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/close
+POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/reassign
+POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/release
+POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/reply
+POST /api/mobile/v1/patient-communications/threads/{workItemUuid}/reroute
+POST /api/mobile/v1/rtdc/barriers/{id}/resolve
+POST /api/mobile/v1/rtdc/bed-requests/{id}/decision
+POST /api/mobile/v1/staffing/requests/{id}/fill
+POST /api/mobile/v1/transport/requests/{id}/handoff
+POST /api/mobile/v1/transport/requests/{id}/status
+POST /api/patient/v1/auth/enroll/challenge/verify verifyPatientEnrollmentChallenge
+POST /api/patient/v1/auth/token exchangePatientCredentials
+POST /api/patient/v1/auth/token/refresh refreshPatientSession
+POST /api/patient/v1/auth/token/revoke revokePatientSession
+POST /api/patient/v1/encounters/{encounterUuid}/education/{educationItemUuid}/clarifications requestPatientEducationClarification
+POST /api/patient/v1/encounters/{encounterUuid}/threads createPatientMessageThread
+POST /api/patient/v1/threads/{threadUuid}/close closePatientMessageThread
+POST /api/patient/v1/threads/{threadUuid}/messages sendPatientMessage
+POST /api/patient/v1/threads/{threadUuid}/messages/{messageUuid}/amend amendPatientMessage
+PUT /api/mobile/v1/me/preferences
+PUT /api/patient/v1/me/notification-devices/{deviceUuid} registerPatientNotificationDevice
+PUT /api/patient/v1/me/preferences updatePatientPreferences

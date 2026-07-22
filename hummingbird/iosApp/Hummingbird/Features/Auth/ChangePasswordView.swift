@@ -14,12 +14,18 @@ struct ChangePasswordView: View {
     private enum Field { case current, newPassword, confirm }
 
     init() {
+        #if DEBUG
         // Test/demo affordance: SIMCTL_CHILD_HB_PW_CURRENT / HB_PW_NEW prefill the form so
-        // screenshots and UI tests can land on a ready (or auto-submitting) state. No-op in production.
+        // screenshots and UI tests can land on a ready (or auto-submitting) state.
         let env = ProcessInfo.processInfo.environment
         _current = State(initialValue: env["HB_PW_CURRENT"] ?? "")
         _newPassword = State(initialValue: env["HB_PW_NEW"] ?? "")
         _confirm = State(initialValue: env["HB_PW_NEW"] ?? "")
+        #else
+        _current = State(initialValue: "")
+        _newPassword = State(initialValue: "")
+        _confirm = State(initialValue: "")
+        #endif
     }
 
     private var meetsLength: Bool { newPassword.count >= 8 }
@@ -91,11 +97,13 @@ struct ChangePasswordView: View {
         }
         .background { HummingbirdBackdrop(dim: 0.4) }
         .task {
+            #if DEBUG
             // Test affordance: SIMCTL_CHILD_HB_PW_AUTOSUBMIT=1 submits the prefilled form once
-            // so an end-to-end screenshot can land past the change gate. No-op in production.
+            // so an end-to-end screenshot can land past the change gate.
             if ProcessInfo.processInfo.environment["HB_PW_AUTOSUBMIT"] == "1", canSubmit {
                 submit()
             }
+            #endif
         }
     }
 

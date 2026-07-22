@@ -41,6 +41,7 @@ class UserAuditRecorder
         'admin_scope',
         'ai_provider_policy',
         'ancillary_barrier',
+        'patient_message_thread',
     ];
 
     private const CHANGE_KEYS = [
@@ -65,6 +66,7 @@ class UserAuditRecorder
         'provider_mode', 'selected_profile_id', 'fallback_used', 'will_call_paid_provider',
         'capability', 'scope_id', 'member_count', 'eligible_count', 'blocked_count',
         'valid_from', 'valid_until',
+        'work_item_uuid', 'pool_uuid', 'event_type', 'replayed',
     ];
 
     private const FORBIDDEN_KEY_FRAGMENTS = [
