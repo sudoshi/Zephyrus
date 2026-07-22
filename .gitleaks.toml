@@ -42,7 +42,9 @@ paths = [
   '''^tests/Feature/Patient/PatientStaffMessageHandoffConsumerTest\.php$''',
   '''^tests/Feature/Patient/StaffPatientCommunicationApiTest\.php$''',
 ]
-regexes = ['''encryption_key_version'\s*=>\s*'test-encryption-key-v1''']
+# Gitleaks applies an allowlist regex to the captured secret value, not the
+# complete PHP assignment expression.
+regexes = ['''test-encryption-key-v1''']
 
 [[allowlists]]
 # Same precise exception for the rounds-promotion fixture's public version
@@ -50,4 +52,5 @@ regexes = ['''encryption_key_version'\s*=>\s*'test-encryption-key-v1''']
 description = "Patient rounds fixture key-version label"
 condition = "AND"
 paths = ['''^tests/Feature/Rounds/PatientRoundQuestionPromotionTest\.php$''']
-regexes = ['''encryption_key_version'\s*=>\s*'test-rounds-question-key-v1''']
+# See the preceding allowlist: match the captured deterministic fixture value.
+regexes = ['''test-rounds-question-key-v1''']
