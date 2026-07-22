@@ -19,6 +19,13 @@ return [
     'eddy_instance_enabled' => filter_var(env('CARE_PATHWAYS_EDDY_INSTANCE_ENABLED', false), FILTER_VALIDATE_BOOL),
     'writeback_enabled' => filter_var(env('CARE_PATHWAYS_WRITEBACK_ENABLED', false), FILTER_VALIDATE_BOOL),
 
+    // The demo is a synthetic, read-only projection over catalog metadata. It
+    // never changes catalog/instance state and does not weaken serving gates.
+    'demo' => [
+        'enabled' => filter_var(env('CARE_PATHWAYS_DEMO_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'scenario_key' => 'heart-failure-awareness-demo-v1',
+    ],
+
     'source_release' => [
         'raw_release_id' => 1,
         'dataset_key' => 'drg-care-pathways-verification-package-v43.1-20260721',

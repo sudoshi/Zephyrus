@@ -76,6 +76,7 @@ export interface NavigationCapabilities {
 /** Server-shared feature flags (Inertia `features` prop). A leaf gated on a
  *  disabled feature is hidden — never rendered as a dead link that 404s. */
 export interface NavigationFeatures {
+  readonly care_pathways_demo?: boolean;
   readonly virtual_rounds?: boolean;
   readonly home_hospital?: boolean;
 }
@@ -173,6 +174,29 @@ const RTDC: NavDomain = {
         { label: 'Resource Planning', href: '/rtdc/predictions/resources', icon: Boxes },
         { label: 'Discharge Priorities', href: '/rtdc/predictions/discharge', icon: ArrowRightCircle },
         { label: 'Risk Assessment', href: '/rtdc/predictions/risk', icon: AlertCircle },
+      ],
+    },
+  ],
+};
+
+const CARE_PATHWAYS: NavDomain = {
+  key: 'care-pathways',
+  label: 'Care Pathways',
+  icon: HeartPulse,
+  dashboardHref: '/care-pathways/demo',
+  dashboardLabel: 'Pathway Journey Demo',
+  matchPrefixes: ['/care-pathways'],
+  requiredFeature: 'care_pathways_demo',
+  groups: [
+    {
+      title: 'Simulation',
+      items: [
+        {
+          label: 'Pathway Journey Demo',
+          href: '/care-pathways/demo',
+          icon: HeartPulse,
+          requiredFeature: 'care_pathways_demo',
+        },
       ],
     },
   ],
@@ -580,7 +604,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     key: 'workspaces',
     title: 'Workspaces',
     icon: LayoutGrid,
-    domains: [RTDC, EMERGENCY, PERIOPERATIVE, RADIOLOGY, LAB, PHARMACY, TRANSPORT, STAFFING, HOME],
+    domains: [RTDC, CARE_PATHWAYS, EMERGENCY, PERIOPERATIVE, RADIOLOGY, LAB, PHARMACY, TRANSPORT, STAFFING, HOME],
   },
   { key: 'study', title: 'Study', icon: BookOpen, domains: [ANALYTICS, IMPROVEMENT] },
   {

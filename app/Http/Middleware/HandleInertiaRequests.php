@@ -94,6 +94,9 @@ class HandleInertiaRequests extends Middleware
             // link) until VIRTUAL_ROUNDS_ENABLED is on — matching the server
             // route gate (EnsureRoundsEnabled) so nav and route never disagree.
             'features' => [
+                // A read-only synthetic journey; independent from every real
+                // catalog, assignment, patient, Hummingbird, and Eddy gate.
+                'care_pathways_demo' => (bool) config('care-pathways.demo.enabled'),
                 'virtual_rounds' => (bool) config('rounds.enabled'),
                 // Home Hospital ships disabled; nav stays hidden (never a dead
                 // link) until HOME_HOSPITAL_ENABLED is on — matching the server

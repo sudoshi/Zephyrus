@@ -46,6 +46,7 @@ export interface PageProps {
     ai_enabled: boolean;
   };
   features?: {
+    care_pathways_demo?: boolean;
     virtual_rounds?: boolean;
   };
   flash?: {

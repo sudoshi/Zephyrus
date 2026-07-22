@@ -13,6 +13,7 @@ use App\Http\Controllers\Analytics;
 use App\Http\Controllers\Analytics\LabTatController;
 use App\Http\Controllers\Analytics\PharmacyTatController;
 use App\Http\Controllers\Analytics\RadiologyTatController;
+use App\Http\Controllers\CarePathwayDemoPageController;
 use App\Http\Controllers\CommandCenterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Deployment\DeploymentConsoleController;
@@ -86,6 +87,10 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             }
         }
         Route::get('/dashboard', [CommandCenterController::class, 'index'])->name('dashboard');
+
+        Route::get('/care-pathways/demo', CarePathwayDemoPageController::class)
+            ->middleware(\App\Http\Middleware\EnsureCarePathwayDemoEnabled::class)
+            ->name('care-pathways.demo');
 
         // Radiology Workspace — keep this group ahead of RTDC so existing RTDC
         // bookmark ordering and the standalone /radiology URLs remain stable.

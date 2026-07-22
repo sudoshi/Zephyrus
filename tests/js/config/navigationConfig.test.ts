@@ -45,6 +45,7 @@ describe('navigationConfig', () => {
   it('exposes the dropdown domains in section order', () => {
     expect(NAVIGATION.map((d) => d.key)).toEqual([
       'rtdc',
+      'care-pathways',
       'emergency',
       'perioperative',
       'radiology',
@@ -73,11 +74,12 @@ describe('navigationConfig', () => {
     }
   });
 
-  it('registers exactly nine workspace domains in the workspaces section', () => {
+  it('registers exactly ten workspace domains in the workspaces section', () => {
     const workspaces = NAV_SECTIONS.find((s) => s.key === 'workspaces')!;
-    expect(workspaces.domains).toHaveLength(9);
+    expect(workspaces.domains).toHaveLength(10);
     expect(workspaces.domains.map((d) => d.key)).toEqual([
       'rtdc',
+      'care-pathways',
       'emergency',
       'perioperative',
       'radiology',
@@ -94,6 +96,7 @@ describe('navigationConfig', () => {
     const hrefs = Object.fromEntries(workspaces.domains.map((d) => [d.key, d.dashboardHref]));
     expect(hrefs).toEqual({
       rtdc: '/rtdc/bed-tracking',
+      'care-pathways': '/care-pathways/demo',
       emergency: '/ed/operations/triage',
       perioperative: '/operations/room-status',
       radiology: '/radiology',
@@ -103,6 +106,19 @@ describe('navigationConfig', () => {
       staffing: '/staffing',
       home: '/home/command',
     });
+  });
+
+  it('shows the care-pathway journey only when its synthetic demo gate is on', () => {
+    const carePathways = NAVIGATION.find((d) => d.key === 'care-pathways')!;
+    expect(isDomainVisible(carePathways, { isAdmin: false })).toBe(false);
+    expect(isDomainVisible(carePathways, {
+      isAdmin: false,
+      features: { care_pathways_demo: false },
+    })).toBe(false);
+    expect(isDomainVisible(carePathways, {
+      isAdmin: false,
+      features: { care_pathways_demo: true },
+    })).toBe(true);
   });
 
   it('hides the Home Hospital domain unless the home_hospital feature is on', () => {

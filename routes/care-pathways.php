@@ -1,8 +1,17 @@
 <?php
 
+use App\Http\Controllers\Api\CarePathways\CarePathwayDemoController;
 use App\Http\Controllers\Api\CarePathways\CatalogGovernanceController;
+use App\Http\Middleware\EnsureCarePathwayDemoEnabled;
 use App\Http\Middleware\EnsureCarePathwayGovernanceEnabled;
 use Illuminate\Support\Facades\Route;
+
+Route::middleware([
+    EnsureCarePathwayDemoEnabled::class,
+    'web',
+    'auth',
+    'throttle:30,1',
+])->get('/demo/scenario', CarePathwayDemoController::class)->name('demo.scenario');
 
 Route::middleware([
     EnsureCarePathwayGovernanceEnabled::class,
