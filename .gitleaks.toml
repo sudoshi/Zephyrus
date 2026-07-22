@@ -25,3 +25,29 @@ condition = "AND"
 paths = ['''^app/Services/Transport/RegionalTransferService\.php$''']
 regexes = ['''critical-care-surge-v1''']
 
+[[allowlists]]
+# Deterministic test-only message-encryption *version labels*, not keys. The
+# generic API-key rule recognizes the adjacent PHP map syntax as credential
+# material. Scope the exception to the exact fixtures and public test labels;
+# encryption key values, production configuration, and all other test files
+# remain subject to scanning.
+description = "Patient communication fixture key-version labels"
+condition = "AND"
+paths = [
+  '''^tests/Feature/Patient/PatientAuthoredGoalApiTest\.php$''',
+  '''^tests/Feature/Patient/PatientCarePreferenceApiTest\.php$''',
+  '''^tests/Feature/Patient/PatientCommunicationEscalationServiceTest\.php$''',
+  '''^tests/Feature/Patient/PatientEducationClarificationApiTest\.php$''',
+  '''^tests/Feature/Patient/PatientMessagingApiTest\.php$''',
+  '''^tests/Feature/Patient/PatientStaffMessageHandoffConsumerTest\.php$''',
+  '''^tests/Feature/Patient/StaffPatientCommunicationApiTest\.php$''',
+]
+regexes = ['''encryption_key_version'\s*=>\s*'test-encryption-key-v1''']
+
+[[allowlists]]
+# Same precise exception for the rounds-promotion fixture's public version
+# label. It is deliberately not a wildcard for all rounds tests.
+description = "Patient rounds fixture key-version label"
+condition = "AND"
+paths = ['''^tests/Feature/Rounds/PatientRoundQuestionPromotionTest\.php$''']
+regexes = ['''encryption_key_version'\s*=>\s*'test-rounds-question-key-v1''']
