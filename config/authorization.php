@@ -35,6 +35,7 @@ return [
             Capability::ManageCockpitPolicy->value,
             Capability::ViewAiGovernance->value,
             Capability::ManageAiGovernance->value,
+            Capability::ViewCarePathwayCatalog->value,
             Capability::ManageStaffingOperations->value,
             Capability::RequestTransportOperations->value,
             Capability::ManageTransportDispatch->value,
@@ -58,6 +59,10 @@ return [
             Capability::ExecuteDestructiveReplay->value,
             Capability::ManageOutboundPolicy->value,
             Capability::ManageDataStewardship->value,
+            Capability::ViewCarePathwayCatalog->value,
+            Capability::AdoptCarePathwaySource->value,
+            Capability::AuthorCarePathwayContent->value,
+            Capability::ReviewCarePathwayEvidence->value,
             Capability::ManageStaffingOperations->value,
             Capability::RequestTransportOperations->value,
             Capability::ManageTransportDispatch->value,
@@ -101,6 +106,30 @@ return [
         'data_steward' => [
             Capability::ViewIntegrations->value,
             Capability::ManageDataStewardship->value,
+            Capability::ViewCarePathwayCatalog->value,
+            Capability::AdoptCarePathwaySource->value,
+        ],
+        'care_pathway_author' => [
+            Capability::ViewCarePathwayCatalog->value,
+            Capability::AuthorCarePathwayContent->value,
+        ],
+        'care_pathway_evidence_reviewer' => [
+            Capability::ViewCarePathwayCatalog->value,
+            Capability::ReviewCarePathwayEvidence->value,
+        ],
+        'care_pathway_clinical_approver' => [
+            Capability::ViewCarePathwayCatalog->value,
+            Capability::ReviewCarePathwayEvidence->value,
+            Capability::ApproveCarePathwayClinical->value,
+        ],
+        'care_pathway_release_manager' => [
+            Capability::ViewCarePathwayCatalog->value,
+            Capability::ActivateCarePathwayCatalog->value,
+        ],
+        'care_pathway_instance_manager' => [
+            Capability::ViewCarePathwayCatalog->value,
+            Capability::ViewEncounterCarePathway->value,
+            Capability::ManageCarePathwayInstances->value,
         ],
         'auditor' => [
             Capability::ViewAdministration->value,
@@ -112,6 +141,7 @@ return [
             Capability::ViewIntegrations->value,
             Capability::ViewCockpitPolicy->value,
             Capability::ViewAiGovernance->value,
+            Capability::ViewCarePathwayCatalog->value,
         ],
         'facility_admin' => [
             Capability::ViewAdministration->value,
@@ -270,6 +300,8 @@ return [
         Capability::RequestTransportOperations->value,
         Capability::ManageTransportDispatch->value,
         Capability::ProgressTransportOperations->value,
+        Capability::ViewEncounterCarePathway->value,
+        Capability::ManageCarePathwayInstances->value,
         Capability::UseEddyActions->value,
         Capability::WriteOrCases->value,
         Capability::MobileRead->value,
@@ -318,6 +350,16 @@ return [
             Capability::ViewAiGovernance->value,
             Capability::ManageAiGovernance->value,
         ],
+        'Care pathway governance' => [
+            Capability::ViewCarePathwayCatalog->value,
+            Capability::AdoptCarePathwaySource->value,
+            Capability::AuthorCarePathwayContent->value,
+            Capability::ReviewCarePathwayEvidence->value,
+            Capability::ApproveCarePathwayClinical->value,
+            Capability::ActivateCarePathwayCatalog->value,
+            Capability::ViewEncounterCarePathway->value,
+            Capability::ManageCarePathwayInstances->value,
+        ],
         'Healthcare operations' => [
             Capability::ManageStaffingOperations->value,
             Capability::RequestTransportOperations->value,
@@ -348,6 +390,12 @@ return [
         Capability::ManageCockpitPolicy->value,
         Capability::ViewAiGovernance->value,
         Capability::ManageAiGovernance->value,
+        Capability::ViewCarePathwayCatalog->value,
+        Capability::AdoptCarePathwaySource->value,
+        Capability::AuthorCarePathwayContent->value,
+        Capability::ReviewCarePathwayEvidence->value,
+        Capability::ApproveCarePathwayClinical->value,
+        Capability::ActivateCarePathwayCatalog->value,
     ],
 
     'mobile_ability_map' => [

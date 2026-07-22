@@ -30,6 +30,14 @@ enum Capability: string
     case ExecuteDestructiveReplay = 'executeDestructiveReplay';
     case ManageOutboundPolicy = 'manageOutboundPolicy';
     case ManageDataStewardship = 'manageDataStewardship';
+    case ViewCarePathwayCatalog = 'viewCarePathwayCatalog';
+    case AdoptCarePathwaySource = 'adoptCarePathwaySource';
+    case AuthorCarePathwayContent = 'authorCarePathwayContent';
+    case ReviewCarePathwayEvidence = 'reviewCarePathwayEvidence';
+    case ApproveCarePathwayClinical = 'approveCarePathwayClinical';
+    case ActivateCarePathwayCatalog = 'activateCarePathwayCatalog';
+    case ViewEncounterCarePathway = 'viewEncounterCarePathway';
+    case ManageCarePathwayInstances = 'manageCarePathwayInstances';
     case ManageStaffingOperations = 'manageStaffingOperations';
     case RequestTransportOperations = 'requestTransportOperations';
     case ManageTransportDispatch = 'manageTransportDispatch';
