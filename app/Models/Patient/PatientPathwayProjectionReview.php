@@ -4,7 +4,6 @@ namespace App\Models\Patient;
 
 use App\Models\Patient\Concerns\AssignsExternalUuid;
 use App\Models\Patient\Concerns\IsAppendOnly;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -27,19 +26,18 @@ class PatientPathwayProjectionReview extends Model
         'review_uuid',
         'draft_projection_id',
         'release_policy_version_id',
-        'reviewer_user_id',
+        'reviewer_actor_digest',
         'decision',
         'reason_code',
         'review_digest',
         'reviewed_at',
     ];
 
-    protected $hidden = ['reviewer_user_id', 'review_digest'];
+    protected $hidden = ['reviewer_actor_digest', 'review_digest'];
 
     protected $casts = [
         'draft_projection_id' => 'integer',
         'release_policy_version_id' => 'integer',
-        'reviewer_user_id' => 'integer',
         'reviewed_at' => 'immutable_datetime',
         'recorded_at' => 'immutable_datetime',
     ];
@@ -60,10 +58,5 @@ class PatientPathwayProjectionReview extends Model
             'release_policy_version_id',
             'release_policy_version_id',
         );
-    }
-
-    public function reviewer(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'reviewer_user_id');
     }
 }

@@ -19,10 +19,13 @@ class MobilePersonaCatalog
         'house_supervisor',
         'hospitalist',
         'intensivist',
+        'case_manager',
+        'discharge_coordinator',
         'evs',
         'transport',
         'or_nurse',
         'capacity_lead',
+        'ops_leader',
         'periop_manager',
         'staffing_coordinator',
         'pi_lead',
@@ -36,10 +39,13 @@ class MobilePersonaCatalog
         'house_supervisor' => ['title' => 'House Supervisor', 'home' => 'census', 'focus' => 'House status and escalations', 'question' => 'What is threatening the house right now?', 'web' => '/dashboard?drill=rtdc'],
         'hospitalist' => ['title' => 'Hospitalist', 'home' => 'census', 'focus' => 'Service discharges and barriers', 'question' => 'Which patients are blocking flow or need a discharge decision?', 'web' => '/rtdc/barriers'],
         'intensivist' => ['title' => 'Intensivist', 'home' => 'census', 'focus' => 'Critical-care capacity', 'question' => 'Which critical-care decisions affect capacity and safety?', 'web' => '/rtdc/bed-tracking'],
+        'case_manager' => ['title' => 'Case Manager', 'home' => 'census', 'focus' => 'Care progression, barriers, and transitions', 'question' => 'Which transitions or barriers need care-team follow-up?', 'web' => '/rtdc/barriers'],
+        'discharge_coordinator' => ['title' => 'Discharge Coordinator', 'home' => 'census', 'focus' => 'Discharge readiness and patient transitions', 'question' => 'Which discharges need transition follow-up?', 'web' => '/rtdc/barriers'],
         'evs' => ['title' => 'EVS', 'home' => 'evsTurns', 'focus' => 'Bed turns unlocking care', 'question' => 'Which bed turn unlocks care next?', 'web' => '/rtdc/bed-tracking'],
         'transport' => ['title' => 'Transport', 'home' => 'transportJobs', 'focus' => 'Trips and handoffs', 'question' => 'What trip needs me now?', 'web' => '/transport/dispatch'],
         'or_nurse' => ['title' => 'OR Nurse', 'home' => 'orBoard', 'focus' => 'Room board, cases, safety notes', 'question' => 'What case or room needs action now?', 'web' => '/operations/room-status'],
         'capacity_lead' => ['title' => 'Capacity Lead', 'home' => 'capacityDemand', 'focus' => 'Forecast, approvals, huddles', 'question' => 'What decisions will change the next four hours?', 'web' => '/ops/agent-inbox'],
+        'ops_leader' => ['title' => 'Operations Leader', 'home' => 'capacityDemand', 'focus' => 'House operations, capacity, and accountable follow-up', 'question' => 'What operational decisions need accountable follow-up now?', 'web' => '/ops/agent-inbox'],
         'periop_manager' => ['title' => 'Perioperative Manager', 'home' => 'orBoard', 'focus' => 'OR day drift', 'question' => 'Is the OR day drifting?', 'web' => '/analytics/or-utilization'],
         'staffing_coordinator' => ['title' => 'Staffing Coordinator', 'home' => 'staffing', 'focus' => 'Safe coverage gaps', 'question' => 'Where are we below safe coverage?', 'web' => '/staffing'],
         'pi_lead' => ['title' => 'PI / Quality Lead', 'home' => 'improvement', 'focus' => 'PDSA and recurring barriers', 'question' => 'Which improvement work is tied to today\'s operational pain?', 'web' => '/improvement/pdsa'],
@@ -144,7 +150,14 @@ class MobilePersonaCatalog
 
     private function assignmentScope(string $roleId): string
     {
-        return in_array($roleId, ['charge_nurse', 'bedside_nurse', 'hospitalist', 'intensivist'], true)
+        return in_array($roleId, [
+            'charge_nurse',
+            'bedside_nurse',
+            'hospitalist',
+            'intensivist',
+            'case_manager',
+            'discharge_coordinator',
+        ], true)
             ? 'unit'
             : 'house';
     }

@@ -19,9 +19,15 @@ class MobileRoleCatalogParityTest extends TestCase
 
     private const ANDROID_ALTITUDE_VIEW_MODEL = 'hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/data/AltitudeViewModel.kt';
 
+    private const ANDROID_FOR_YOU_VIEW_MODEL = 'hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/data/ForYouViewModel.kt';
+
     private const ANDROID_MAIN_SCREEN = 'hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/MainScreen.kt';
 
     private const ANDROID_MAIN_ACTIVITY = 'hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/MainActivity.kt';
+
+    private const ANDROID_DEBUG_LAUNCH_HOOKS = 'hummingbird/androidApp/app/src/debug/java/net/acumenus/hummingbird/HummingbirdLaunchHooks.kt';
+
+    private const ANDROID_RELEASE_LAUNCH_HOOKS = 'hummingbird/androidApp/app/src/release/java/net/acumenus/hummingbird/HummingbirdLaunchHooks.kt';
 
     private const ANDROID_FOR_YOU_SCREEN = 'hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/ForYouScreen.kt';
 
@@ -674,7 +680,7 @@ class MobileRoleCatalogParityTest extends TestCase
     {
         $models = file_get_contents(base_path(self::ANDROID_MODELS));
         $apiClient = file_get_contents(base_path(self::ANDROID_API_CLIENT));
-        $viewModel = file_get_contents(base_path('hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/data/ForYouViewModel.kt'));
+        $viewModel = file_get_contents(base_path(self::ANDROID_FOR_YOU_VIEW_MODEL));
         $screen = file_get_contents(base_path(self::ANDROID_FOR_YOU_SCREEN));
         $mainScreen = file_get_contents(base_path(self::ANDROID_MAIN_SCREEN));
         $forYouService = file_get_contents(base_path(self::MOBILE_FOR_YOU_SERVICE));
@@ -696,9 +702,11 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringContainsString('staffMemberId: Int,', $apiClient);
         $this->assertStringContainsString('/api/mobile/v1/staffing/requests/$id/fill', $apiClient);
 
-        $this->assertStringContainsString('fun load(bearer: String, role: MobileRole)', $viewModel);
+        $this->assertStringContainsString('fun load(', $viewModel);
+        $this->assertStringContainsString('role: MobileRole,', $viewModel);
+        $this->assertStringContainsString('canViewPatientCommunications: Boolean = false', $viewModel);
         $this->assertStringContainsString('items = api.forYou(bearer, role.id)', $viewModel);
-        $this->assertStringContainsString('fun filteredItems(role: MobileRole, unitName: String?)', $viewModel);
+        $this->assertStringContainsString('fun filteredItems(', $viewModel);
         $this->assertStringContainsString('QueueFilter.Placements -> item.type == "bed_request" || item.type == "capacity"', $viewModel);
         $this->assertStringContainsString('QueueFilter.Escalations -> item.type == "barrier" || item.type == "capacity"', $viewModel);
         $this->assertStringContainsString('QueueFilter.MyUnit -> unitName == null || item.unit == unitName || item.type == "bed_request"', $viewModel);
@@ -709,10 +717,13 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringContainsString('fun rejectOpsAction(bearer: String, item: ForYouItem, role: MobileRole)', $viewModel);
         $this->assertStringContainsString('api.opsDecision(bearer, approvalUuid, decision)', $viewModel);
         $this->assertStringNotContainsString('api.fillStaffingRequest', $viewModel);
+        $this->assertStringContainsString('if (!canViewPatientCommunications) return false', $viewModel);
+        $this->assertStringContainsString('if (PatientCommunicationForYou.isType(item.type)) return true', $viewModel);
 
         $this->assertStringContainsString('selectedRole: MobileRole = MobileRoleCatalog.default', $screen);
         $this->assertStringContainsString('selectedUnitName: String? = null', $screen);
-        $this->assertStringContainsString('val visibleItems = vm.filteredItems(selectedRole, selectedUnitName)', $screen);
+        $this->assertStringContainsString('val visibleItems = vm.filteredItems(', $screen);
+        $this->assertStringContainsString('canViewPatientCommunications,', $screen);
         $this->assertStringContainsString('queueTitle(selectedRole)', $screen);
         $this->assertStringContainsString('emptyQueue(selectedRole)', $screen);
         $this->assertStringContainsString('onOpenUnit: ((CensusUnit, String?) -> Unit)? = null', $screen);
@@ -728,6 +739,7 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringContainsString('actions.forEach { action ->', $screen);
         $this->assertStringContainsString('title = "Can\'t load your queue"', $screen);
         $this->assertStringContainsString('title = "Loading your queue"', $screen);
+        $this->assertStringContainsString('AuthorizedPatientCommunicationAttentionRow(', $screen);
 
         $this->assertStringContainsString("'id' => 'ops-approval-'.\$approval->approval_uuid", $forYouService);
         $this->assertStringContainsString("'type' => 'ops_approval'", $forYouService);
@@ -747,12 +759,14 @@ class MobileRoleCatalogParityTest extends TestCase
     {
         $mainScreen = file_get_contents(base_path(self::ANDROID_MAIN_SCREEN));
 
-        $this->assertStringContainsString('private enum class HummingbirdTab { Home, ForYou, Activity }', $mainScreen);
+        $this->assertStringContainsString('private enum class HummingbirdTab { Home, ForYou, Activity, Communications }', $mainScreen);
         $this->assertStringContainsString('Text(homeKind.tabLabel)', $mainScreen);
         $this->assertStringContainsString('Text("For You")', $mainScreen);
         $this->assertStringContainsString('Icon(iconForRole(selectedRole)', $mainScreen);
         $this->assertStringContainsString('ForYouScreen(', $mainScreen);
         $this->assertStringContainsString('ActivityFeedScreen(', $mainScreen);
+        $this->assertStringContainsString('PatientCommunicationsInboxScreen(', $mainScreen);
+        $this->assertStringContainsString('if (canViewPatientCommunications)', $mainScreen);
         $this->assertStringNotContainsString('AltitudeTopTab', $mainScreen);
         $this->assertStringNotContainsString('HummingbirdTab.Workspace', $mainScreen);
         $this->assertStringNotContainsString('AltitudeWorkspaceScreen(', $mainScreen);
@@ -775,13 +789,17 @@ class MobileRoleCatalogParityTest extends TestCase
     public function test_android_shell_exposes_ios_equivalent_test_affordances(): void
     {
         $activity = file_get_contents(base_path(self::ANDROID_MAIN_ACTIVITY));
+        $debugHooks = file_get_contents(base_path(self::ANDROID_DEBUG_LAUNCH_HOOKS));
+        $releaseHooks = file_get_contents(base_path(self::ANDROID_RELEASE_LAUNCH_HOOKS));
         $mainScreen = file_get_contents(base_path(self::ANDROID_MAIN_SCREEN));
         $forYou = file_get_contents(base_path(self::ANDROID_FOR_YOU_SCREEN));
         $altitudeScreens = file_get_contents(base_path(self::ANDROID_ALTITUDE_SCREENS));
 
         foreach (['HB_AUTOLOGIN', 'HB_ROLE', 'HB_TAB', 'HB_OPEN_UNIT', 'HB_OPEN_TARGET', 'HB_FORCE_ERROR', 'HB_DEBUG_EXPLORER'] as $extra) {
-            $this->assertStringContainsString($extra, $activity, "MainActivity does not read {$extra}.");
+            $this->assertStringContainsString($extra, $debugHooks, "Debug launch hooks do not read {$extra}.");
+            $this->assertStringNotContainsString($extra, $releaseHooks, "Release launch hooks contain {$extra}.");
         }
+        $this->assertStringContainsString('HummingbirdLaunchHooks.from(intent)', $activity);
 
         $this->assertStringContainsString('data class HummingbirdLaunchConfig', $mainScreen);
         $this->assertStringContainsString('tabFromLaunch(launchConfig.tab)', $mainScreen);
@@ -797,11 +815,11 @@ class MobileRoleCatalogParityTest extends TestCase
 
     public function test_android_debug_altitude_explorer_is_gated_out_of_the_primary_shell(): void
     {
-        $activity = file_get_contents(base_path(self::ANDROID_MAIN_ACTIVITY));
+        $debugHooks = file_get_contents(base_path(self::ANDROID_DEBUG_LAUNCH_HOOKS));
         $mainScreen = file_get_contents(base_path(self::ANDROID_MAIN_SCREEN));
         $altitudeScreens = file_get_contents(base_path(self::ANDROID_ALTITUDE_SCREENS));
 
-        $this->assertStringContainsString('debugExplorer = intent.getStringExtra("HB_DEBUG_EXPLORER") == "1"', $activity);
+        $this->assertStringContainsString('debugExplorer = extra("HB_DEBUG_EXPLORER") == "1"', $debugHooks);
         $this->assertStringContainsString('debugExplorer: Boolean = false', $mainScreen);
         $this->assertStringContainsString('data object DebugExplorer : AltitudeDetail', $mainScreen);
         $this->assertStringContainsString(
@@ -836,7 +854,7 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringContainsString('onOpenDebugExplorer: () -> Unit', $mainScreen);
         $this->assertGreaterThanOrEqual(6, substr_count($mainScreen, 'heightIn(min = 48.dp)'));
         $this->assertStringContainsString(
-            'auth.me?.isAdmin == true || auth.me?.username?.contains("demo", ignoreCase = true) == true',
+            'auth.me?.isAdmin == true || auth.me?.workflowPreference == "superuser"',
             $mainScreen,
         );
         $this->assertStringContainsString('MobileRoleCatalog.roles, key = { it.id }', $mainScreen);
@@ -850,13 +868,13 @@ class MobileRoleCatalogParityTest extends TestCase
 
     public function test_android_profile_confirmation_matches_ios_onboarding_contract(): void
     {
-        $activity = file_get_contents(base_path(self::ANDROID_MAIN_ACTIVITY));
+        $debugHooks = file_get_contents(base_path(self::ANDROID_DEBUG_LAUNCH_HOOKS));
         $models = file_get_contents(base_path(self::ANDROID_MODELS));
         $apiClient = file_get_contents(base_path(self::ANDROID_API_CLIENT));
         $viewModel = file_get_contents(base_path(self::ANDROID_ALTITUDE_VIEW_MODEL));
         $mainScreen = file_get_contents(base_path(self::ANDROID_MAIN_SCREEN));
 
-        $this->assertStringContainsString('val user = intent.getStringExtra("HB_USER") ?: "demo"', $activity);
+        $this->assertStringContainsString('val username = extra("HB_USER")?.takeIf(String::isNotBlank)', $debugHooks);
         $this->assertStringContainsString('val default: MobileRole = roles.first { it.id == "house_supervisor" }', $models);
         $this->assertStringContainsString('roles: List<String>', $models);
         $this->assertStringContainsString('data class ConfirmedProfile', $models);
@@ -1041,7 +1059,16 @@ class MobileRoleCatalogParityTest extends TestCase
      */
     private function swiftRoleExperienceIds(): array
     {
-        return $this->sorted($this->regexMatches(self::IOS_ROLE_EXPERIENCE, '/case\\s+"([^"]+)":/'));
+        $source = file_get_contents(base_path(self::IOS_ROLE_EXPERIENCE));
+        preg_match_all('/^\\s*case\\s+((?:"[^"]+"\\s*,?\\s*)+):/m', $source, $caseMatches);
+
+        $roleIds = [];
+        foreach ($caseMatches[1] ?? [] as $caseValues) {
+            preg_match_all('/"([^"]+)"/', $caseValues, $roleMatches);
+            $roleIds = [...$roleIds, ...($roleMatches[1] ?? [])];
+        }
+
+        return $this->sorted($roleIds);
     }
 
     /**
@@ -1254,11 +1281,27 @@ class MobileRoleCatalogParityTest extends TestCase
 
     private function swiftSwitchCaseBlock(string $source, string $roleId): string
     {
-        $start = strpos($source, 'case "'.$roleId.'":');
+        preg_match_all(
+            '/^\\s*case\\s+((?:"[^"]+"\\s*,?\\s*)+):/m',
+            $source,
+            $matches,
+            PREG_SET_ORDER | PREG_OFFSET_CAPTURE,
+        );
+
+        $start = false;
+        foreach ($matches as $match) {
+            if (str_contains($match[1][0], '"'.$roleId.'"')) {
+                $start = $match[0][1];
+                break;
+            }
+        }
+
         $this->assertNotFalse($start, "Unable to find iOS RoleExperience case for {$roleId}.");
         $nextCase = strpos($source, "\n        case ", $start + 1);
         $default = strpos($source, "\n        default:", $start + 1);
-        $end = min(array_filter([$nextCase, $default], fn ($offset): bool => $offset !== false));
+        $endCandidates = array_values(array_filter([$nextCase, $default], fn ($offset): bool => $offset !== false));
+        $this->assertNotEmpty($endCandidates, "Unable to find the end of iOS RoleExperience case for {$roleId}.");
+        $end = min($endCandidates);
 
         return substr($source, $start, $end - $start);
     }

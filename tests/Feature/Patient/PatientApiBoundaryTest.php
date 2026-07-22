@@ -34,8 +34,8 @@ class PatientApiBoundaryTest extends TestCase
             ]);
 
         $this->assertSame([
-            'DELETE api/patient/v1/me/sessions/{sessionUuid}',
             'DELETE api/patient/v1/me/notification-devices/{deviceUuid}',
+            'DELETE api/patient/v1/me/sessions/{sessionUuid}',
             'GET api/patient/v1/encounters',
             'GET api/patient/v1/encounters/{encounterUuid}/care-team',
             'GET api/patient/v1/encounters/{encounterUuid}/discharge-readiness',

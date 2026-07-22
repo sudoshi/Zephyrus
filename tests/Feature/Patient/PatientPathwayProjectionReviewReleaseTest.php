@@ -66,7 +66,7 @@ class PatientPathwayProjectionReviewReleaseTest extends TestCase
             'version_pinned_pathway_history_clinical_release',
             $release['release']->provenance['projection_method'],
         );
-        $this->assertArrayNotHasKey('reviewer_user_id', $release['release']->provenance);
+        $this->assertArrayNotHasKey('reviewer_actor_digest', $release['release']->provenance);
         $this->assertArrayNotHasKey('source_assignment_digest', $release['release']->content);
         $this->assertSame(1, PatientPathwayProjectionReview::query()->count());
         $this->assertSame(1, PatientPathwayProjectionReleaseExecution::query()->count());

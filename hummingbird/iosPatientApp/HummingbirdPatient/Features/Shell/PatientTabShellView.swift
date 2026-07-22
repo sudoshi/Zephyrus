@@ -7,6 +7,7 @@ struct PatientTabShellView: View {
     @State private var selection: PatientTab
     @State private var isManagingDevices = false
     @State private var isManagingPreferences = false
+    @State private var isShowingAccountOptions = false
 
     init(
         viewModel: PatientAppViewModel,
@@ -45,6 +46,23 @@ struct PatientTabShellView: View {
         .navigationTitle(selection.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { accountMenu }
+        .confirmationDialog(
+            "Account options",
+            isPresented: $isShowingAccountOptions,
+            titleVisibility: .visible
+        ) {
+            Button("Preferences", systemImage: "textformat.size") {
+                isManagingPreferences = true
+            }
+            .accessibilityIdentifier("manage-preferences")
+            Button("Manage devices", systemImage: "iphone.gen3") {
+                isManagingDevices = true
+            }
+            .accessibilityIdentifier("manage-devices")
+            Button("Sign out", role: .destructive, action: signOut)
+        } message: {
+            Text("Choose account settings or manage the devices signed in to Hummingbird Patient.")
+        }
         .tint(PatientPalette.blue)
         .sheet(isPresented: $isManagingDevices, onDismiss: {
             viewModel.dismissSessionManagement()
@@ -59,20 +77,14 @@ struct PatientTabShellView: View {
     @ToolbarContentBuilder
     private var accountMenu: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Menu {
-                Button("Preferences", systemImage: "textformat.size") {
-                    isManagingPreferences = true
-                }
-                .accessibilityIdentifier("manage-preferences")
-                Button("Manage devices", systemImage: "iphone.gen3") {
-                    isManagingDevices = true
-                }
-                .accessibilityIdentifier("manage-devices")
-                Button("Sign out", role: .destructive, action: signOut)
+            Button {
+                isShowingAccountOptions = true
             } label: {
                 Image(systemName: "person.crop.circle")
-                    .accessibilityLabel("Account options")
             }
+            .accessibilityIdentifier("account-options")
+            .accessibilityLabel("Account options")
+            .accessibilityHint("Open preferences, signed-in devices, and sign-out options.")
         }
     }
 }

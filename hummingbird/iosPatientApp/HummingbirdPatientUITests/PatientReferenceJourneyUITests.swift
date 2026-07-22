@@ -59,16 +59,9 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Messages"].waitForExistence(timeout: 2))
         XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["message-immediate-help"]))
         XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["messages-no-offline-queue"]))
-        let newMessageComposer = app.descendants(matching: .any)["new-message-composer"]
-        XCTAssertTrue(scrollUntilHittable(newMessageComposer))
-        let topicPicker = app.descendants(matching: .any)["new-message-topic"]
-        XCTAssertTrue(topicPicker.isHittable)
-        topicPicker.tap()
-        let personalGoalTopic = app.buttons["A personal goal for my stay"]
-        XCTAssertTrue(personalGoalTopic.waitForExistence(timeout: 2))
-        personalGoalTopic.tap()
-        XCTAssertTrue(scrollUntilExists(staticText(containing: "does not change your care plan")))
-        XCTAssertTrue(scrollUntilExists(staticText(containing: "clinical order")))
+        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["messages-read-only-state"]))
+        XCTAssertFalse(app.descendants(matching: .any)["new-message-composer"].exists)
+        XCTAssertTrue(scrollUntilExists(staticText(containing: "synthetic preview")))
         attachScreenshot(named: "Messages")
 
         let threadTopic = app.staticTexts["Question about my care plan"]

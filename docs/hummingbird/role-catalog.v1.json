@@ -313,6 +313,32 @@
             "android_icon": "monitor_heart"
         },
         {
+            "role_id": "case_manager",
+            "title": "Case Manager",
+            "subtitle": "Care progression, barriers, and transitions",
+            "unit_bound": true,
+            "home_kind": "census",
+            "default_domain": "rtdc",
+            "queue_filter": "myUnit",
+            "glance_question": "Which transitions or barriers need care-team follow-up?",
+            "web_deeplink": "/rtdc/barriers",
+            "ios_icon": "person.text.rectangle.fill",
+            "android_icon": "assignment_ind"
+        },
+        {
+            "role_id": "discharge_coordinator",
+            "title": "Discharge Coordinator",
+            "subtitle": "Discharge readiness and patient transitions",
+            "unit_bound": true,
+            "home_kind": "census",
+            "default_domain": "rtdc",
+            "queue_filter": "myUnit",
+            "glance_question": "Which discharges need transition follow-up?",
+            "web_deeplink": "/rtdc/barriers",
+            "ios_icon": "door.left.hand.open",
+            "android_icon": "logout"
+        },
+        {
             "role_id": "evs",
             "title": "EVS",
             "subtitle": "Bed turns and cleaning",
@@ -363,6 +389,19 @@
             "web_deeplink": "/ops/agent-inbox",
             "ios_icon": "chart.bar.fill",
             "android_icon": "bar_chart"
+        },
+        {
+            "role_id": "ops_leader",
+            "title": "Operations Leader",
+            "subtitle": "House operations, capacity, and accountable follow-up",
+            "unit_bound": false,
+            "home_kind": "capacityDemand",
+            "default_domain": "ops",
+            "queue_filter": "all",
+            "glance_question": "What operational decisions need accountable follow-up now?",
+            "web_deeplink": "/ops/agent-inbox",
+            "ios_icon": "building.2.crop.circle.fill",
+            "android_icon": "account_tree"
         },
         {
             "role_id": "periop_manager",

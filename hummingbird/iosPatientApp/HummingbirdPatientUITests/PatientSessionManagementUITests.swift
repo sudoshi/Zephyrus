@@ -65,7 +65,7 @@ final class PatientSessionManagementUITests: XCTestCase {
     }
 
     func testPreferencesArePatientSafeAndReferenceModeDoesNotWriteAnAccount() {
-        let account = app.buttons["Account options"]
+        let account = app.buttons["account-options"]
         XCTAssertTrue(account.waitForExistence(timeout: 5))
         account.tap()
         let preferences = app.buttons["Preferences"]
@@ -86,7 +86,7 @@ final class PatientSessionManagementUITests: XCTestCase {
     }
 
     func testSavedAccessibilityPreferencesApplyAHighContrastExtraLargeCareView() {
-        let account = app.buttons["Account options"]
+        let account = app.buttons["account-options"]
         XCTAssertTrue(account.waitForExistence(timeout: 5))
         account.tap()
         app.buttons["Preferences"].tap()
@@ -121,7 +121,7 @@ final class PatientSessionManagementUITests: XCTestCase {
     }
 
     private func openManageDevices() {
-        let account = app.buttons["Account options"]
+        let account = app.buttons["account-options"]
         XCTAssertTrue(account.waitForExistence(timeout: 5))
         account.tap()
         let manageDevices = app.buttons["Manage devices"]

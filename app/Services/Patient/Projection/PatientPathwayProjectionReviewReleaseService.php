@@ -70,7 +70,8 @@ class PatientPathwayProjectionReviewReleaseService
             if (! $review instanceof PatientPathwayProjectionReview || $review->decision !== 'approved') {
                 throw new InvalidArgumentException('patient_pathway_release_clinical_approval_required');
             }
-            if ((int) $review->reviewer_user_id === (int) $manager->getKey()) {
+            $managerActorDigest = $this->actorDigest($manager);
+            if (hash_equals((string) $review->reviewer_actor_digest, $managerActorDigest)) {
                 throw new AuthorizationException('Independent clinical approval and pathway release are required.');
             }
 
@@ -80,8 +81,8 @@ class PatientPathwayProjectionReviewReleaseService
                 ->lockForUpdate()
                 ->first();
             if ($existing instanceof PatientPathwayProjectionReleaseExecution) {
-                if ((int) $existing->release_manager_user_id !== (int) $manager->getKey()
-                    || ! $existing->releasedProjection instanceof PatientEncounterProjection) {
+                if (! hash_equals((string) $existing->release_manager_actor_digest, $managerActorDigest)
+                    || ! ($existing->releasedProjection instanceof PatientEncounterProjection)) {
                     throw new InvalidArgumentException('patient_pathway_release_already_executed');
                 }
 
@@ -141,13 +142,13 @@ class PatientPathwayProjectionReviewReleaseService
             $execution = PatientPathwayProjectionReleaseExecution::query()->create([
                 'pathway_projection_review_id' => $review->getKey(),
                 'released_projection_id' => $release->getKey(),
-                'release_manager_user_id' => $manager->getKey(),
+                'release_manager_actor_digest' => $managerActorDigest,
                 'release_digest' => $this->hmac->digest(
                     'patient-pathway-release-execution',
                     implode('|', [
                         (string) $review->review_uuid,
                         (string) $release->projection_uuid,
-                        (string) $manager->getKey(),
+                        $managerActorDigest,
                     ]),
                 ),
                 'released_at' => $releasedAt,
@@ -173,9 +174,10 @@ class PatientPathwayProjectionReviewReleaseService
                 ->where('draft_projection_id', $lockedDraft->getKey())
                 ->lockForUpdate()
                 ->first();
+            $reviewerActorDigest = $this->actorDigest($reviewer);
             if ($existing instanceof PatientPathwayProjectionReview) {
                 if ($existing->decision !== $decision
-                    || (int) $existing->reviewer_user_id !== (int) $reviewer->getKey()) {
+                    || ! hash_equals((string) $existing->reviewer_actor_digest, $reviewerActorDigest)) {
                     throw new InvalidArgumentException('patient_pathway_review_already_decided');
                 }
 
@@ -186,7 +188,7 @@ class PatientPathwayProjectionReviewReleaseService
             $review = PatientPathwayProjectionReview::query()->create([
                 'draft_projection_id' => $lockedDraft->getKey(),
                 'release_policy_version_id' => $policy->getKey(),
-                'reviewer_user_id' => $reviewer->getKey(),
+                'reviewer_actor_digest' => $reviewerActorDigest,
                 'decision' => $decision,
                 'reason_code' => $decision === 'approved'
                     ? 'clinical_pathway_review_approved'
@@ -196,7 +198,7 @@ class PatientPathwayProjectionReviewReleaseService
                     implode('|', [
                         (string) $lockedDraft->projection_uuid,
                         (string) $policy->version,
-                        (string) $reviewer->getKey(),
+                        $reviewerActorDigest,
                         $decision,
                     ]),
                 ),
@@ -282,5 +284,15 @@ class PatientPathwayProjectionReviewReleaseService
         }
 
         $this->hmac->assertAvailable();
+    }
+
+    /**
+     * The patient schema records a non-reversible reviewer attestation, never
+     * a foreign key or raw staff identifier. Authorization is evaluated
+     * against the freshly locked staff account before this digest is written.
+     */
+    private function actorDigest(User $actor): string
+    {
+        return $this->hmac->digest('patient-pathway-release-actor', (string) $actor->getKey());
     }
 }

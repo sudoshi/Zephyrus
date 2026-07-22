@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS patient_experience.pathway_projection_reviews (
     release_policy_version_id    bigint NOT NULL
                                REFERENCES patient_experience.release_policy_versions(release_policy_version_id)
                                ON DELETE RESTRICT,
-    reviewer_user_id             bigint NOT NULL REFERENCES prod.users(id) ON DELETE RESTRICT,
+    reviewer_actor_digest        char(64) NOT NULL CHECK (reviewer_actor_digest ~ '^[0-9a-f]{64}$'),
     decision                     text NOT NULL CHECK (decision IN ('approved', 'withheld')),
     reason_code                  varchar(120) NOT NULL,
     review_digest                char(64) NOT NULL CHECK (review_digest ~ '^[0-9a-f]{64}$'),
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS patient_experience.pathway_projection_release_executi
     released_projection_id                  bigint NOT NULL
                                            REFERENCES patient_experience.encounter_projections(encounter_projection_id)
                                            ON DELETE RESTRICT,
-    release_manager_user_id                 bigint NOT NULL REFERENCES prod.users(id) ON DELETE RESTRICT,
+    release_manager_actor_digest            char(64) NOT NULL CHECK (release_manager_actor_digest ~ '^[0-9a-f]{64}$'),
     release_digest                          char(64) NOT NULL CHECK (release_digest ~ '^[0-9a-f]{64}$'),
     released_at                             timestamptz NOT NULL,
     recorded_at                             timestamptz NOT NULL DEFAULT now(),
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS patient_experience.pathway_projection_release_executi
 );
 
 CREATE INDEX IF NOT EXISTS idx_patient_pathway_projection_release_manager
-    ON patient_experience.pathway_projection_release_executions(release_manager_user_id, released_at DESC);
+    ON patient_experience.pathway_projection_release_executions(release_manager_actor_digest, released_at DESC);
 
 COMMENT ON TABLE patient_experience.pathway_projection_release_executions IS
     'Append-only, second-person release execution for an approved pathway draft. The linked projection release remains immutable and publishes through the existing outbox trigger.';
@@ -103,7 +103,7 @@ CREATE OR REPLACE FUNCTION patient_experience.validate_pathway_projection_releas
 RETURNS trigger AS $$
 DECLARE
     review_decision text;
-    reviewer_id bigint;
+    reviewer_actor_digest varchar(64);
     review_policy_id bigint;
     draft_projection_id bigint;
     draft_grant_id bigint;
@@ -114,10 +114,13 @@ DECLARE
     released_grant_id bigint;
     released_content_digest varchar(128);
 BEGIN
-    SELECT decision, reviewer_user_id, release_policy_version_id, draft_projection_id
-      INTO review_decision, reviewer_id, review_policy_id, draft_projection_id
-      FROM patient_experience.pathway_projection_reviews
-     WHERE pathway_projection_review_id = NEW.pathway_projection_review_id;
+    SELECT reviews.decision,
+           reviews.reviewer_actor_digest,
+           reviews.release_policy_version_id,
+           reviews.draft_projection_id
+      INTO review_decision, reviewer_actor_digest, review_policy_id, draft_projection_id
+      FROM patient_experience.pathway_projection_reviews AS reviews
+     WHERE reviews.pathway_projection_review_id = NEW.pathway_projection_review_id;
 
     SELECT access_grant_id, content_digest
       INTO draft_grant_id, draft_content_digest
@@ -130,8 +133,8 @@ BEGIN
      WHERE encounter_projection_id = NEW.released_projection_id;
 
     IF review_decision IS DISTINCT FROM 'approved'
-       OR reviewer_id IS NULL
-       OR reviewer_id = NEW.release_manager_user_id
+       OR reviewer_actor_digest IS NULL
+       OR reviewer_actor_digest = NEW.release_manager_actor_digest
        OR released_kind IS DISTINCT FROM 'pathway'
        OR released_state IS DISTINCT FROM 'released'
        OR review_policy_id IS DISTINCT FROM released_policy_id
