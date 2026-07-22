@@ -68,15 +68,15 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
         $this->assertSame([
             'patient_content_actions_append_only',
             'patient_encounter_projections_append_only',
-            'patient_projection_cursors_append_only',
-            'patient_projection_failures_append_only',
             'patient_pathway_projection_release_execution_valid',
             'patient_pathway_projection_release_executions_append_only',
             'patient_pathway_projection_review_valid',
             'patient_pathway_projection_reviews_append_only',
             'patient_pathway_release_execution_required',
-            'patient_released_projection_outbox',
+            'patient_projection_cursors_append_only',
+            'patient_projection_failures_append_only',
             'patient_release_policy_versions_append_only',
+            'patient_released_projection_outbox',
         ], $triggers);
     }
 
