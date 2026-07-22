@@ -1,6 +1,6 @@
 <?php
 
-namespace AppServices\Patient;
+namespace App\Services\Patient;
 
 use RuntimeException;
 
