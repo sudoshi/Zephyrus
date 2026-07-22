@@ -57,8 +57,8 @@ class PatientApiBoundaryTest extends TestCase
             'POST api/patient/v1/threads/{threadUuid}/close',
             'POST api/patient/v1/threads/{threadUuid}/messages',
             'POST api/patient/v1/threads/{threadUuid}/messages/{messageUuid}/amend',
-            'PUT api/patient/v1/me/preferences',
             'PUT api/patient/v1/me/notification-devices/{deviceUuid}',
+            'PUT api/patient/v1/me/preferences',
         ], $routes->keys()->sort()->values()->all());
 
         foreach ($routes as $route) {
