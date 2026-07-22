@@ -208,11 +208,6 @@ class PatientMessagingService
         string $expectedCompositionMode,
     ): array {
         $disclosurePolicy = $this->policies->disclosurePolicy();
-        $declaredTopic = $disclosurePolicy['topics'][(string) $input['topic_code']] ?? null;
-        if (! is_array($declaredTopic)
-            || $declaredTopic['composition_mode'] !== $expectedCompositionMode) {
-            throw PatientMessagingFailure::notFound();
-        }
         $grant = $this->grant(
             $request,
             $principal,
@@ -310,6 +305,12 @@ class PatientMessagingService
                     );
 
                     return $result;
+                }
+
+                $declaredTopic = $disclosurePolicy['topics'][(string) $input['topic_code']] ?? null;
+                if (! is_array($declaredTopic)
+                    || $declaredTopic['composition_mode'] !== $expectedCompositionMode) {
+                    throw PatientMessagingFailure::notFound();
                 }
 
                 $policy = $this->policies->mutationPolicy();
