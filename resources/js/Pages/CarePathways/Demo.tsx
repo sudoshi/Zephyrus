@@ -147,7 +147,7 @@ function StatusPill({ value }: { value: string }) {
 
     return (
         <span
-            className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${
+            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${
                 positive
                     ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
                     : attention
@@ -774,7 +774,7 @@ export default function Demo({ initialScenario }: DemoProps) {
                                         key={label}
                                         className="rounded-xl border border-white/10 bg-white/5 p-3"
                                     >
-                                        <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                                        <p className="text-xs uppercase tracking-wide text-slate-400">
                                             {label}
                                         </p>
                                         <p className="mt-1 text-sm font-semibold text-white">
@@ -808,7 +808,7 @@ export default function Demo({ initialScenario }: DemoProps) {
                                         {step.state === "complete" ? (
                                             <Check className="h-4 w-4 text-emerald-600" />
                                         ) : (
-                                            <span className="grid h-5 w-5 place-items-center rounded-full border border-current text-[10px]">
+                                            <span className="grid h-5 w-5 place-items-center rounded-full border border-current text-xs">
                                                 {step.index + 1}
                                             </span>
                                         )}
