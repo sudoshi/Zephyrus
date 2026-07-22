@@ -266,16 +266,29 @@ class PatientPathwayProjectionReviewReleaseTest extends TestCase
 
     private function activateFixtureRelease(): void
     {
-        app(CatalogImportService::class)->import(1);
-        DB::table('care_pathways.catalog_releases')->update([
-            'state' => 'active',
-            'clinical_signoff_complete' => true,
+        $summary = app(CatalogImportService::class)->adopt(1, 'test-data-steward');
+        DB::table('care_pathways.definitions')->update([
+            'lifecycle_state' => 'active',
+            'updated_at' => now(),
         ]);
         DB::table('care_pathways.versions')->update([
-            'activation_status' => 'active',
             'institutional_approval_status' => 'approved',
+            'activation_status' => 'active',
+            'updated_at' => now(),
         ]);
-        DB::table('care_pathways.stage_definitions')->update(['review_state' => 'approved']);
-        DB::table('care_pathways.milestone_definitions')->update(['review_state' => 'approved']);
+        DB::table('care_pathways.milestone_definitions')->update([
+            'review_state' => 'approved',
+            'updated_at' => now(),
+        ]);
+        DB::table('care_pathways.catalog_releases')
+            ->where('catalog_release_id', $summary['catalog_release_id'])
+            ->update([
+                'state' => 'active',
+                'clinical_signoff_complete' => true,
+                'clinical_signoff_count' => 2,
+                'activated_by_user_id' => 999,
+                'activated_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 }
