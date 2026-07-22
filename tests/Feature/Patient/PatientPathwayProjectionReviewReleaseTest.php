@@ -267,6 +267,7 @@ class PatientPathwayProjectionReviewReleaseTest extends TestCase
     private function activateFixtureRelease(): void
     {
         $summary = app(CatalogImportService::class)->adopt(1, 'test-data-steward');
+        $this->seedApprovedPatientPathwayDefinitions();
         DB::table('care_pathways.definitions')->update([
             'lifecycle_state' => 'active',
             'updated_at' => now(),

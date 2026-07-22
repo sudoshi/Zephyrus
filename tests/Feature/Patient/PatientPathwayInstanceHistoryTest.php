@@ -14,7 +14,6 @@ use App\Services\Patient\Projection\SyntheticPatientProjectionProvisioner;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Tests\Support\CarePathwayRawFixture;
 use Tests\TestCase;
@@ -304,34 +303,10 @@ class PatientPathwayInstanceHistoryTest extends TestCase
     /** @return array{PathwayStageDefinition, PathwayStageDefinition} */
     private function stageDefinitions(): array
     {
-        $versions = PathwayVersion::query()->orderBy('source_rank')->get();
-        $definitions = $versions->map(function (PathwayVersion $version, int $index): PathwayStageDefinition {
-            MilestoneDefinition::query()->firstOrCreate(
-                ['pathway_version_id' => $version->getKey(), 'stable_key' => 'first_milestone'],
-                [
-                    'milestone_uuid' => (string) Str::uuid(),
-                    'title' => 'First steps in your care',
-                    'phase' => 'arrival',
-                    'sequence' => 1,
-                    'predecessor_keys' => [],
-                    'expected_range' => ['display' => 'Today'],
-                    'review_state' => 'approved',
-                ],
-            );
-
-            return PathwayStageDefinition::query()->firstOrCreate(
-                ['pathway_version_id' => $version->getKey(), 'stable_key' => 'arrival_stage'],
-                [
-                    'stage_uuid' => (string) Str::uuid(),
-                    'display_order' => 1,
-                    'approved_label' => 'Arriving and getting settled',
-                    'approved_explanation' => 'Your team helps you get settled and reviews the next steps.',
-                    'expected_range' => ['display' => 'Today'],
-                    'review_state' => 'approved',
-                    'content_digest' => hash('sha256', 'arrival-stage-'.$index),
-                ],
-            );
-        });
+        $definitions = PathwayStageDefinition::query()
+            ->orderBy('pathway_version_id')
+            ->orderBy('display_order')
+            ->get();
 
         return [$definitions->get(0), $definitions->get(1)];
     }
@@ -339,6 +314,7 @@ class PatientPathwayInstanceHistoryTest extends TestCase
     private function activateFixtureRelease(): void
     {
         $summary = app(CatalogImportService::class)->adopt(1, 'test-data-steward');
+        $this->seedApprovedPatientPathwayDefinitions();
 
         DB::table('care_pathways.definitions')->update([
             'lifecycle_state' => 'active',

@@ -2,7 +2,11 @@
 
 namespace Tests\Support;
 
+use App\Models\CarePathways\MilestoneDefinition;
+use App\Models\CarePathways\PathwayStageDefinition;
+use App\Models\CarePathways\PathwayVersion;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 trait CarePathwayRawFixture
 {
@@ -217,5 +221,44 @@ INSERT INTO raw.cp_test_completeness VALUES
     ('required_pathway_fields', 0, 'complete', 'None required.', 0, 'Every required field is populated.', '2026-07-21 12:00:00+00'),
     ('source_index.first_author', 1, 'one_enriched_fifteen_explicitly_not_listed', 'Resolution recorded.', 0, 'Every blank has explicit semantics.', '2026-07-21 12:00:00+00');
 SQL);
+    }
+
+    /**
+     * The raw catalog fixture intentionally contains only source-grounded
+     * catalog content. Patient pathway tests add these governed, patient-safe
+     * definitions explicitly so every patient history fixture exercises the
+     * same pinned stage and milestone contract.
+     */
+    protected function seedApprovedPatientPathwayDefinitions(): void
+    {
+        PathwayVersion::query()->orderBy('source_rank')->each(
+            function (PathwayVersion $version, int $index): void {
+                PathwayStageDefinition::query()->firstOrCreate(
+                    ['pathway_version_id' => $version->getKey(), 'stable_key' => 'arrival_stage'],
+                    [
+                        'stage_uuid' => (string) Str::uuid(),
+                        'display_order' => 1,
+                        'approved_label' => 'Arriving and getting settled',
+                        'approved_explanation' => 'Your team helps you get settled and reviews the next steps.',
+                        'expected_range' => ['display' => 'Today'],
+                        'review_state' => 'approved',
+                        'content_digest' => hash('sha256', 'arrival-stage-'.$index),
+                    ],
+                );
+
+                MilestoneDefinition::query()->firstOrCreate(
+                    ['pathway_version_id' => $version->getKey(), 'stable_key' => 'first_milestone'],
+                    [
+                        'milestone_uuid' => (string) Str::uuid(),
+                        'title' => 'First steps in your care',
+                        'phase' => 'arrival',
+                        'sequence' => 1,
+                        'predecessor_keys' => [],
+                        'expected_range' => ['display' => 'Today'],
+                        'review_state' => 'approved',
+                    ],
+                );
+            },
+        );
     }
 }
