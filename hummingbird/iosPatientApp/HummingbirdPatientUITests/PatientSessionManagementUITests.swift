@@ -74,7 +74,7 @@ final class PatientSessionManagementUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["patient-preferences"].waitForExistence(timeout: 3))
         XCTAssertTrue(
-            app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "do not change your care plan"))
+            app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "never change your care plan"))
                 .firstMatch.exists
         )
         app.buttons["save-patient-preferences"].tap()
