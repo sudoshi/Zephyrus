@@ -24,6 +24,7 @@ jobs:
     env:
       APP_ENV: testing
       APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
+      HUMMINGBIRD_PATIENT_CONTEXT_KEY: test-hummingbird-patient-context-key-v1
       APP_URL: http://zephyrus.test
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
@@ -132,6 +133,7 @@ jobs:
     env:
       APP_ENV: testing
       APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
+      HUMMINGBIRD_PATIENT_CONTEXT_KEY: test-hummingbird-patient-context-key-v1
       APP_URL: http://zephyrus.test
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
@@ -370,6 +372,7 @@ jobs:
     env:
       APP_ENV: testing
       APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
+      HUMMINGBIRD_PATIENT_CONTEXT_KEY: test-hummingbird-patient-context-key-v1
       APP_URL: http://127.0.0.1:8084
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
@@ -455,6 +458,7 @@ jobs:
     env:
       APP_ENV: testing
       APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
+      HUMMINGBIRD_PATIENT_CONTEXT_KEY: test-hummingbird-patient-context-key-v1
       APP_URL: http://127.0.0.1:8085
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
