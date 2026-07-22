@@ -1,0 +1,4 @@
+generated/
+logs/
+*.dump
+*.sql.gz
