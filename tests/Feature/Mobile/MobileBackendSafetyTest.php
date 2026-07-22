@@ -656,6 +656,75 @@ class MobileBackendSafetyTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_patient_context_authorization_uses_named_scope_policy_and_safe_audit_reason_codes(): void
+    {
+        $patientRef = 'SECRET-MRN-PATIENT-CONTEXT-AUDIT';
+        $assignedUnit = Unit::create([
+            'name' => 'Authorized Context Unit',
+            'abbreviation' => 'ACU',
+            'type' => 'med_surg',
+            'staffed_bed_count' => 8,
+            'ratio_floor' => 4,
+            'is_deleted' => false,
+        ]);
+        $otherUnit = Unit::create([
+            'name' => 'Unauthorized Context Unit',
+            'abbreviation' => 'UCU',
+            'type' => 'med_surg',
+            'staffed_bed_count' => 8,
+            'ratio_floor' => 4,
+            'is_deleted' => false,
+        ]);
+        Encounter::create([
+            'patient_ref' => $patientRef,
+            'unit_id' => $assignedUnit->unit_id,
+            'admitted_at' => now()->subHour(),
+            'acuity_tier' => 2,
+            'status' => 'active',
+            'is_deleted' => false,
+        ]);
+        $contextRef = app(MobilePatientContextService::class)->contextRefFor($patientRef);
+
+        // House-operations access is an explicit named policy, and its audit
+        // row contains only the opaque reference plus a machine reason code.
+        $this->actingAsPersonaMobile(['mobile:read'], 'bed_manager');
+        $this->getJson("/api/mobile/v1/patients/{$contextRef}/operational-context?persona=bed_manager")
+            ->assertOk();
+
+        $authorized = DB::table('audit.user_events')
+            ->where('action', 'mobile.patient_context.access')
+            ->where('outcome', 'success')
+            ->latest('event_cursor')
+            ->first();
+        $this->assertNotNull($authorized);
+        $this->assertSame('house_operations_persona_authorized', $authorized->reason);
+        $this->assertSame('mobile_patient_context', $authorized->target_type);
+        $this->assertSame($contextRef, $authorized->target_id);
+        $this->assertStringNotContainsString($patientRef, json_encode($authorized, JSON_THROW_ON_ERROR));
+
+        // A unit persona without an overlapping live assignment receives the
+        // same generic response while the ledger records the governed reason.
+        $unassigned = $this->actingAsPersonaMobile(['mobile:read'], 'bedside_nurse');
+        $unassigned->units()->attach($otherUnit->unit_id, ['role' => 'bedside_nurse', 'is_primary' => true]);
+
+        $deniedBody = $this->getJson("/api/mobile/v1/patients/{$contextRef}/operational-context?persona=bedside_nurse")
+            ->assertForbidden()
+            ->getContent();
+        $this->assertStringNotContainsString('shared_active_unit_required', $deniedBody);
+        $this->assertStringNotContainsString($patientRef, $deniedBody);
+
+        $denied = DB::table('audit.user_events')
+            ->where('action', 'mobile.patient_context.access')
+            ->where('outcome', 'denied')
+            ->latest('event_cursor')
+            ->first();
+        $this->assertNotNull($denied);
+        $this->assertSame('shared_active_unit_required', $denied->reason);
+        $this->assertSame('mobile_patient_context', $denied->target_type);
+        $this->assertSame($contextRef, $denied->target_id);
+        $this->assertStringNotContainsString($patientRef, json_encode($denied, JSON_THROW_ON_ERROR));
+    }
+
     public function test_patient_context_handles_use_indexed_expiring_revocable_mappings(): void
     {
         $patientRef = 'SECRET-MRN-INDEXED-CONTEXT';

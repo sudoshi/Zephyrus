@@ -42,6 +42,7 @@ class UserAuditRecorder
         'ai_provider_policy',
         'ancillary_barrier',
         'patient_message_thread',
+        'mobile_patient_context',
     ];
 
     private const CHANGE_KEYS = [

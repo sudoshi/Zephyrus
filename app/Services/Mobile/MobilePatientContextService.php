@@ -11,7 +11,6 @@ use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class MobilePatientContextService
 {
@@ -19,6 +18,9 @@ class MobilePatientContextService
         private readonly OperationalActivityLedger $ledger,
         private readonly MobilePersonaCatalog $personas,
         private readonly MobilePatientContextReferenceStore $references,
+        private readonly PatientOperationalContextLookup $contexts,
+        private readonly MobilePatientContextAuthorizationService $authorization,
+        private readonly MobilePatientContextAccessAuditor $accessAudit,
     ) {}
 
     public function contextRefFor(?string $patientRef): ?string
@@ -35,10 +37,18 @@ class MobilePatientContextService
     {
         $patientRef = $this->resolvePatientRef($contextRef);
         $roleId = $this->personas->normalize($roleId, $user);
+        $accessDecision = $this->authorization->decide($contextRef, $patientRef, $user, $roleId);
 
-        if (! $patientRef || ! $this->canAccessPatientContext($contextRef, $patientRef, $user, $roleId)) {
+        if (! $accessDecision->allowed) {
+            $this->accessAudit->record($user, $contextRef, $accessDecision);
+
             throw new AuthorizationException('This patient operational context is not available to the current mobile persona.');
         }
+
+        // Audit durability is part of a successful disclosure. If the ledger
+        // cannot accept the content-free event, UserAuditRecorder throws and
+        // this method returns no patient context.
+        $this->accessAudit->record($user, $contextRef, $accessDecision);
 
         $contextRef = $this->contextRefFor($patientRef);
 
@@ -140,93 +150,12 @@ class MobilePatientContextService
             return false;
         }
 
-        return $this->hasRawPatientContext($patientRef);
+        return $this->contexts->exists($patientRef);
     }
 
     public function isOpaqueContextRef(string $contextRef): bool
     {
         return $this->references->isOpaque($contextRef);
-    }
-
-    private function hasRawPatientContext(string $patientRef): bool
-    {
-        return BedRequest::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
-            || TransportRequest::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
-            || EvsRequest::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
-            || EdVisit::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
-            || Encounter::query()->active()->where('patient_ref', $patientRef)->exists()
-            || DB::table('prod.or_cases')->where('patient_id', $patientRef)->where('is_deleted', false)->exists();
-    }
-
-    private function canAccessPatientContext(string $requestedRef, string $patientRef, ?User $user, string $roleId): bool
-    {
-        if (! $user || ! $this->hasRawPatientContext($patientRef)) {
-            return false;
-        }
-
-        if (! str_starts_with($requestedRef, 'ptok_')) {
-            return false;
-        }
-
-        if ($this->personas->isBroadAccessUser($user)) {
-            return true;
-        }
-
-        if (in_array($roleId, ['bed_manager', 'house_supervisor', 'capacity_lead'], true)) {
-            return true;
-        }
-
-        if ($roleId === 'transport') {
-            return TransportRequest::query()
-                ->where('patient_ref', $patientRef)
-                ->active()
-                ->exists();
-        }
-
-        if ($roleId === 'evs') {
-            return EvsRequest::query()
-                ->where('patient_ref', $patientRef)
-                ->active()
-                ->exists();
-        }
-
-        if (in_array($roleId, ['charge_nurse', 'bedside_nurse', 'hospitalist', 'intensivist'], true)) {
-            return $this->userSharesPatientUnit($user, $patientRef);
-        }
-
-        return false;
-    }
-
-    private function userSharesPatientUnit(User $user, string $patientRef): bool
-    {
-        $patientUnitIds = collect()
-            ->merge(Encounter::query()
-                ->active()
-                ->where('patient_ref', $patientRef)
-                ->whereNotNull('unit_id')
-                ->pluck('unit_id'))
-            ->merge(EdVisit::query()
-                ->where('patient_ref', $patientRef)
-                ->where('is_deleted', false)
-                ->whereNotNull('unit_id')
-                ->pluck('unit_id'))
-            ->merge(EvsRequest::query()
-                ->where('patient_ref', $patientRef)
-                ->where('is_deleted', false)
-                ->whereNotNull('unit_id')
-                ->pluck('unit_id'))
-            ->filter()
-            ->map(fn ($unitId): int => (int) $unitId)
-            ->unique()
-            ->values();
-
-        if ($patientUnitIds->isEmpty() || ! Schema::hasTable('prod.user_unit')) {
-            return false;
-        }
-
-        return $user->units()
-            ->wherePivotIn('unit_id', $patientUnitIds->all())
-            ->exists();
     }
 
     private function statusSpine(Collection $bedRequests, Collection $transport, Collection $evs, Collection $edVisits): array
