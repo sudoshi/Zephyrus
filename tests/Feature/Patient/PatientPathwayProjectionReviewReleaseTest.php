@@ -172,7 +172,7 @@ class PatientPathwayProjectionReviewReleaseTest extends TestCase
                 // deferred constraint while the nested transaction/savepoint
                 // is still active so its failure proves the invariant without
                 // aborting the fixture transaction.
-                DB::statement('SET CONSTRAINTS patient_pathway_release_execution_required IMMEDIATE');
+                DB::statement('SET CONSTRAINTS patient_experience.patient_pathway_release_execution_required IMMEDIATE');
             });
             $this->fail('A clinical pathway release without an execution unexpectedly committed.');
         } catch (QueryException $exception) {
