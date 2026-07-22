@@ -1,0 +1,726 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		232A5C1B050ED8F476C171BF /* PatientAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E5BEE0430FBE4B91C8DF9B9 /* PatientAPIClientTests.swift */; };
+		2AFBD24CD6B5B3A0D56900F1 /* PatientAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE868B960B3DC31EE2B347E4 /* PatientAPIClient.swift */; };
+		2DFFED2370FCACC5AF836F40 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 11076E0B0592299241BCCCC9 /* Assets.xcassets */; };
+		34797B0591A617138EF146AA /* PatientComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50810AEA9C8B8239B94C761B /* PatientComponents.swift */; };
+		3A09E30662F9226C20877253 /* PatientMessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DCBF03A898F217E3EC8A7C /* PatientMessagesView.swift */; };
+		3FC1DDC70B0B1B8D2FBC7035 /* PatientSecureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED6EF17810BCA3BBA81C562 /* PatientSecureStore.swift */; };
+		4060F7EFBBC9DCDD9012F944 /* PatientTabShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DF7815A41067CC7B4B752CD /* PatientTabShellView.swift */; };
+		4683E65195EDD285DBA995F7 /* PatientCareTeamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AB5C24E483CDE8470E47122 /* PatientCareTeamView.swift */; };
+		49CB6B8CA69A42742ADBE22C /* PatientAPIBoundaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED0E0EC1C43CEB7620558F5 /* PatientAPIBoundaryTests.swift */; };
+		54278E3D310853F8F208DFAC /* PatientAppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0949D2912E3F95C57F805F01 /* PatientAppViewModel.swift */; };
+		5AF5613AF9A363E61BB1CDFD /* PatientRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 942CE32E763E60A5C8E38D4E /* PatientRootView.swift */; };
+		6169D4104731995E14D2741E /* PatientAPIModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4D69C0729DDB27A85B63F1C /* PatientAPIModelTests.swift */; };
+		6C62114ECCC10A6C9DFF2708 /* PatientPrivacyCoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DD6B3A7E73D5972BA62A511 /* PatientPrivacyCoverView.swift */; };
+		6CC8D271F92089E1B3A4F8C9 /* PatientAPIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96D70C980AAB2F24F1AD621B /* PatientAPIModels.swift */; };
+		7157B32778621E23F1CB17B4 /* PatientWelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1CC241E9817344F4F225365 /* PatientWelcomeView.swift */; };
+		7C637874122BA81F2DE939FF /* PatientPresentationPreferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ED1DA0565C00382A5930DD8 /* PatientPresentationPreferencesTests.swift */; };
+		8BD5B1D1D1B4274CF59AB0B1 /* PatientTodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4140C9926496124254D7C603 /* PatientTodayView.swift */; };
+		A87412409BBCC4E0E031161F /* PatientPresentationPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = F01C0C873F928346403EC32F /* PatientPresentationPreferences.swift */; };
+		B16DE51681783040975193AC /* PatientAppViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB8D6ED57313E8910B83DDCE /* PatientAppViewModelTests.swift */; };
+		B7587DEC0F9ECA973A1EEECC /* PatientSessionManagementUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AB65159A6B1525375C2AD24 /* PatientSessionManagementUITests.swift */; };
+		BBCA39396624EE7E77DEA89E /* PatientRoundsQuestionTopicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF158F0D489131A207689870 /* PatientRoundsQuestionTopicTests.swift */; };
+		BDD8BFF0BB922D16C2FE4C2D /* PatientPreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4DBA0A79382FB4937EC8797 /* PatientPreferencesView.swift */; };
+		BF7FE018F7836808073D7B89 /* HummingbirdPatientApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EF1C66A430E2E7F4A53627E /* HummingbirdPatientApp.swift */; };
+		C06B6C27C972DF13E2B21B62 /* PatientAppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 792B90DA7BEF2698D2DDE34D /* PatientAppConfiguration.swift */; };
+		C23C1F9A6B0C22F9C828A234 /* PatientPathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CA2C22BD1F46539C6491E86 /* PatientPathView.swift */; };
+		D2983E8F986C240F32E4A575 /* PatientStateVocabulary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46506264551036BD3668BF2C /* PatientStateVocabulary.swift */; };
+		D6977D90E8D5D854DD5B3AAF /* PatientMessagingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F691080392CA0B68C1953EBB /* PatientMessagingState.swift */; };
+		DDCFA3095CA03E8CDDBAF909 /* PatientReferenceJourneyUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F619781590A61CF9646316 /* PatientReferenceJourneyUITests.swift */; };
+		E3511CBB8139CC3108EE17B3 /* PatientExperienceSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D12D6D2CDB952F2EC69212A /* PatientExperienceSnapshot.swift */; };
+		F07C09D3F6BC610FA4476F91 /* PatientSessionManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71745FAEEE74B9FA54B235DE /* PatientSessionManagementView.swift */; };
+		F365960086404D8B4ABAB637 /* PatientPhotoBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CD961922524F96FE20FC5DA /* PatientPhotoBackground.swift */; };
+		FB05F914C1431BE1E67B2435 /* PatientStateVocabularyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31E9B9822CCB0FA0D322F4CC /* PatientStateVocabularyTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7752CD9CB287418F0B8238D4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0DEB90F8F65D05D5F5C2D24C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10E415C5B6B4EC7BE6EBDA7;
+			remoteInfo = HummingbirdPatient;
+		};
+		929014438D19F94E7F1D3B50 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0DEB90F8F65D05D5F5C2D24C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10E415C5B6B4EC7BE6EBDA7;
+			remoteInfo = HummingbirdPatient;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		07453F9CEAE7935E8E632F2D /* HummingbirdPatientUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = HummingbirdPatientUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0949D2912E3F95C57F805F01 /* PatientAppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientAppViewModel.swift; sourceTree = "<group>"; };
+		0DF7815A41067CC7B4B752CD /* PatientTabShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientTabShellView.swift; sourceTree = "<group>"; };
+		0EF1C66A430E2E7F4A53627E /* HummingbirdPatientApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HummingbirdPatientApp.swift; sourceTree = "<group>"; };
+		11076E0B0592299241BCCCC9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1AB65159A6B1525375C2AD24 /* PatientSessionManagementUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientSessionManagementUITests.swift; sourceTree = "<group>"; };
+		1D12D6D2CDB952F2EC69212A /* PatientExperienceSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientExperienceSnapshot.swift; sourceTree = "<group>"; };
+		1ED1DA0565C00382A5930DD8 /* PatientPresentationPreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientPresentationPreferencesTests.swift; sourceTree = "<group>"; };
+		2EC1F400FEC71CC06FDC6134 /* HummingbirdPatientTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = HummingbirdPatientTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		2ED6EF17810BCA3BBA81C562 /* PatientSecureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientSecureStore.swift; sourceTree = "<group>"; };
+		31E9B9822CCB0FA0D322F4CC /* PatientStateVocabularyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientStateVocabularyTests.swift; sourceTree = "<group>"; };
+		3CA2C22BD1F46539C6491E86 /* PatientPathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientPathView.swift; sourceTree = "<group>"; };
+		3CD961922524F96FE20FC5DA /* PatientPhotoBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientPhotoBackground.swift; sourceTree = "<group>"; };
+		4140C9926496124254D7C603 /* PatientTodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientTodayView.swift; sourceTree = "<group>"; };
+		46506264551036BD3668BF2C /* PatientStateVocabulary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientStateVocabulary.swift; sourceTree = "<group>"; };
+		50810AEA9C8B8239B94C761B /* PatientComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientComponents.swift; sourceTree = "<group>"; };
+		5ED0E0EC1C43CEB7620558F5 /* PatientAPIBoundaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientAPIBoundaryTests.swift; sourceTree = "<group>"; };
+		6DD6B3A7E73D5972BA62A511 /* PatientPrivacyCoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientPrivacyCoverView.swift; sourceTree = "<group>"; };
+		71745FAEEE74B9FA54B235DE /* PatientSessionManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientSessionManagementView.swift; sourceTree = "<group>"; };
+		792B90DA7BEF2698D2DDE34D /* PatientAppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientAppConfiguration.swift; sourceTree = "<group>"; };
+		7AB5C24E483CDE8470E47122 /* PatientCareTeamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientCareTeamView.swift; sourceTree = "<group>"; };
+		8E5BEE0430FBE4B91C8DF9B9 /* PatientAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientAPIClientTests.swift; sourceTree = "<group>"; };
+		942CE32E763E60A5C8E38D4E /* PatientRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientRootView.swift; sourceTree = "<group>"; };
+		96D70C980AAB2F24F1AD621B /* PatientAPIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientAPIModels.swift; sourceTree = "<group>"; };
+		A2D32C5FDFA58D4DF7B69351 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		AF158F0D489131A207689870 /* PatientRoundsQuestionTopicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientRoundsQuestionTopicTests.swift; sourceTree = "<group>"; };
+		B29007D3412D95251C6ACBEE /* HummingbirdPatient.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = HummingbirdPatient.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B4DBA0A79382FB4937EC8797 /* PatientPreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientPreferencesView.swift; sourceTree = "<group>"; };
+		C0DCBF03A898F217E3EC8A7C /* PatientMessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientMessagesView.swift; sourceTree = "<group>"; };
+		CB8D6ED57313E8910B83DDCE /* PatientAppViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientAppViewModelTests.swift; sourceTree = "<group>"; };
+		CE868B960B3DC31EE2B347E4 /* PatientAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientAPIClient.swift; sourceTree = "<group>"; };
+		D1CC241E9817344F4F225365 /* PatientWelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientWelcomeView.swift; sourceTree = "<group>"; };
+		E5F619781590A61CF9646316 /* PatientReferenceJourneyUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientReferenceJourneyUITests.swift; sourceTree = "<group>"; };
+		F01C0C873F928346403EC32F /* PatientPresentationPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientPresentationPreferences.swift; sourceTree = "<group>"; };
+		F4D69C0729DDB27A85B63F1C /* PatientAPIModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientAPIModelTests.swift; sourceTree = "<group>"; };
+		F691080392CA0B68C1953EBB /* PatientMessagingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientMessagingState.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		03F99003A4D1EA4F5E64F397 /* HummingbirdPatientUITests */ = {
+			isa = PBXGroup;
+			children = (
+				E5F619781590A61CF9646316 /* PatientReferenceJourneyUITests.swift */,
+				1AB65159A6B1525375C2AD24 /* PatientSessionManagementUITests.swift */,
+			);
+			path = HummingbirdPatientUITests;
+			sourceTree = "<group>";
+		};
+		0523E10D6FEBB1797218AB7F /* Privacy */ = {
+			isa = PBXGroup;
+			children = (
+				6DD6B3A7E73D5972BA62A511 /* PatientPrivacyCoverView.swift */,
+			);
+			path = Privacy;
+			sourceTree = "<group>";
+		};
+		0B9FFD57619D38FC772DBA5B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B29007D3412D95251C6ACBEE /* HummingbirdPatient.app */,
+				2EC1F400FEC71CC06FDC6134 /* HummingbirdPatientTests.xctest */,
+				07453F9CEAE7935E8E632F2D /* HummingbirdPatientUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		1690DA8B833A0355252B8311 /* Path */ = {
+			isa = PBXGroup;
+			children = (
+				3CA2C22BD1F46539C6491E86 /* PatientPathView.swift */,
+			);
+			path = Path;
+			sourceTree = "<group>";
+		};
+		23A112EE6477C52572F5E1B5 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				912BBE30510AB6F2BBCD9713 /* Account */,
+				C7407D0E389DAF79AF81E269 /* Authentication */,
+				990A9F73C34F484E718EA06C /* CareTeam */,
+				9D52F9EBC6F1FEA81AD60608 /* Messages */,
+				1690DA8B833A0355252B8311 /* Path */,
+				8EABEAAE858B0470A2A2432F /* Shell */,
+				A680FDA50210DE875294176C /* Today */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		370ED40CEB593EAF0715E1C4 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				0EF1C66A430E2E7F4A53627E /* HummingbirdPatientApp.swift */,
+				792B90DA7BEF2698D2DDE34D /* PatientAppConfiguration.swift */,
+				0949D2912E3F95C57F805F01 /* PatientAppViewModel.swift */,
+				942CE32E763E60A5C8E38D4E /* PatientRootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		8EABEAAE858B0470A2A2432F /* Shell */ = {
+			isa = PBXGroup;
+			children = (
+				0DF7815A41067CC7B4B752CD /* PatientTabShellView.swift */,
+			);
+			path = Shell;
+			sourceTree = "<group>";
+		};
+		912BBE30510AB6F2BBCD9713 /* Account */ = {
+			isa = PBXGroup;
+			children = (
+				B4DBA0A79382FB4937EC8797 /* PatientPreferencesView.swift */,
+				71745FAEEE74B9FA54B235DE /* PatientSessionManagementView.swift */,
+			);
+			path = Account;
+			sourceTree = "<group>";
+		};
+		959A779BEC5E7D2F889A6950 /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				CE868B960B3DC31EE2B347E4 /* PatientAPIClient.swift */,
+				96D70C980AAB2F24F1AD621B /* PatientAPIModels.swift */,
+				2ED6EF17810BCA3BBA81C562 /* PatientSecureStore.swift */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
+		990A9F73C34F484E718EA06C /* CareTeam */ = {
+			isa = PBXGroup;
+			children = (
+				7AB5C24E483CDE8470E47122 /* PatientCareTeamView.swift */,
+			);
+			path = CareTeam;
+			sourceTree = "<group>";
+		};
+		9C06ED415B5E1D73D61F2340 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				1D12D6D2CDB952F2EC69212A /* PatientExperienceSnapshot.swift */,
+				F691080392CA0B68C1953EBB /* PatientMessagingState.swift */,
+				46506264551036BD3668BF2C /* PatientStateVocabulary.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		9D52F9EBC6F1FEA81AD60608 /* Messages */ = {
+			isa = PBXGroup;
+			children = (
+				C0DCBF03A898F217E3EC8A7C /* PatientMessagesView.swift */,
+			);
+			path = Messages;
+			sourceTree = "<group>";
+		};
+		A680FDA50210DE875294176C /* Today */ = {
+			isa = PBXGroup;
+			children = (
+				4140C9926496124254D7C603 /* PatientTodayView.swift */,
+			);
+			path = Today;
+			sourceTree = "<group>";
+		};
+		A9B70BAA2C4AFD75185FF35B /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				50810AEA9C8B8239B94C761B /* PatientComponents.swift */,
+				3CD961922524F96FE20FC5DA /* PatientPhotoBackground.swift */,
+				F01C0C873F928346403EC32F /* PatientPresentationPreferences.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		C7407D0E389DAF79AF81E269 /* Authentication */ = {
+			isa = PBXGroup;
+			children = (
+				D1CC241E9817344F4F225365 /* PatientWelcomeView.swift */,
+			);
+			path = Authentication;
+			sourceTree = "<group>";
+		};
+		CC548D0638CD07E0E3CBCBDF = {
+			isa = PBXGroup;
+			children = (
+				F1AE4C5A4343EE2A6D0055EB /* HummingbirdPatient */,
+				CEFF27F583DF57E63DDCACB1 /* HummingbirdPatientTests */,
+				03F99003A4D1EA4F5E64F397 /* HummingbirdPatientUITests */,
+				0B9FFD57619D38FC772DBA5B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CEFF27F583DF57E63DDCACB1 /* HummingbirdPatientTests */ = {
+			isa = PBXGroup;
+			children = (
+				5ED0E0EC1C43CEB7620558F5 /* PatientAPIBoundaryTests.swift */,
+				8E5BEE0430FBE4B91C8DF9B9 /* PatientAPIClientTests.swift */,
+				F4D69C0729DDB27A85B63F1C /* PatientAPIModelTests.swift */,
+				CB8D6ED57313E8910B83DDCE /* PatientAppViewModelTests.swift */,
+				1ED1DA0565C00382A5930DD8 /* PatientPresentationPreferencesTests.swift */,
+				AF158F0D489131A207689870 /* PatientRoundsQuestionTopicTests.swift */,
+				31E9B9822CCB0FA0D322F4CC /* PatientStateVocabularyTests.swift */,
+			);
+			path = HummingbirdPatientTests;
+			sourceTree = "<group>";
+		};
+		F1AE4C5A4343EE2A6D0055EB /* HummingbirdPatient */ = {
+			isa = PBXGroup;
+			children = (
+				11076E0B0592299241BCCCC9 /* Assets.xcassets */,
+				A2D32C5FDFA58D4DF7B69351 /* Info.plist */,
+				370ED40CEB593EAF0715E1C4 /* App */,
+				A9B70BAA2C4AFD75185FF35B /* DesignSystem */,
+				23A112EE6477C52572F5E1B5 /* Features */,
+				9C06ED415B5E1D73D61F2340 /* Models */,
+				959A779BEC5E7D2F889A6950 /* Networking */,
+				0523E10D6FEBB1797218AB7F /* Privacy */,
+			);
+			path = HummingbirdPatient;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9412ACF9EEA0FAF118784E78 /* HummingbirdPatientUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AFE2ABC7819C39C993C596BC /* Build configuration list for PBXNativeTarget "HummingbirdPatientUITests" */;
+			buildPhases = (
+				7695D5D0CAFCDD33657173E7 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				62C2A2C3CCD0DEB769191EFE /* PBXTargetDependency */,
+			);
+			name = HummingbirdPatientUITests;
+			packageProductDependencies = (
+			);
+			productName = HummingbirdPatientUITests;
+			productReference = 07453F9CEAE7935E8E632F2D /* HummingbirdPatientUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		A10E415C5B6B4EC7BE6EBDA7 /* HummingbirdPatient */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 59EB66AF0A6D9278AD497D64 /* Build configuration list for PBXNativeTarget "HummingbirdPatient" */;
+			buildPhases = (
+				EE743C1FB6B0D96170D15B92 /* Sources */,
+				3DE6D595A613016BE12674D6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HummingbirdPatient;
+			packageProductDependencies = (
+			);
+			productName = HummingbirdPatient;
+			productReference = B29007D3412D95251C6ACBEE /* HummingbirdPatient.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EBE2076A5FE84608509DB19E /* HummingbirdPatientTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C8C5DC3B73AA089ACA70313B /* Build configuration list for PBXNativeTarget "HummingbirdPatientTests" */;
+			buildPhases = (
+				6F559B1F2A83A569C2872550 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA2CE187946B41BBD7F781D5 /* PBXTargetDependency */,
+			);
+			name = HummingbirdPatientTests;
+			packageProductDependencies = (
+			);
+			productName = HummingbirdPatientTests;
+			productReference = 2EC1F400FEC71CC06FDC6134 /* HummingbirdPatientTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0DEB90F8F65D05D5F5C2D24C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					9412ACF9EEA0FAF118784E78 = {
+						TestTargetID = A10E415C5B6B4EC7BE6EBDA7;
+					};
+					A10E415C5B6B4EC7BE6EBDA7 = {
+						DevelopmentTeam = TKXPY255A2;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = D3C8FDDA3B17D32F6A80370B /* Build configuration list for PBXProject "HummingbirdPatient" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = CC548D0638CD07E0E3CBCBDF;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 0B9FFD57619D38FC772DBA5B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10E415C5B6B4EC7BE6EBDA7 /* HummingbirdPatient */,
+				EBE2076A5FE84608509DB19E /* HummingbirdPatientTests */,
+				9412ACF9EEA0FAF118784E78 /* HummingbirdPatientUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3DE6D595A613016BE12674D6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2DFFED2370FCACC5AF836F40 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6F559B1F2A83A569C2872550 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				49CB6B8CA69A42742ADBE22C /* PatientAPIBoundaryTests.swift in Sources */,
+				232A5C1B050ED8F476C171BF /* PatientAPIClientTests.swift in Sources */,
+				6169D4104731995E14D2741E /* PatientAPIModelTests.swift in Sources */,
+				B16DE51681783040975193AC /* PatientAppViewModelTests.swift in Sources */,
+				7C637874122BA81F2DE939FF /* PatientPresentationPreferencesTests.swift in Sources */,
+				BBCA39396624EE7E77DEA89E /* PatientRoundsQuestionTopicTests.swift in Sources */,
+				FB05F914C1431BE1E67B2435 /* PatientStateVocabularyTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7695D5D0CAFCDD33657173E7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DDCFA3095CA03E8CDDBAF909 /* PatientReferenceJourneyUITests.swift in Sources */,
+				B7587DEC0F9ECA973A1EEECC /* PatientSessionManagementUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EE743C1FB6B0D96170D15B92 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF7FE018F7836808073D7B89 /* HummingbirdPatientApp.swift in Sources */,
+				2AFBD24CD6B5B3A0D56900F1 /* PatientAPIClient.swift in Sources */,
+				6CC8D271F92089E1B3A4F8C9 /* PatientAPIModels.swift in Sources */,
+				C06B6C27C972DF13E2B21B62 /* PatientAppConfiguration.swift in Sources */,
+				54278E3D310853F8F208DFAC /* PatientAppViewModel.swift in Sources */,
+				4683E65195EDD285DBA995F7 /* PatientCareTeamView.swift in Sources */,
+				34797B0591A617138EF146AA /* PatientComponents.swift in Sources */,
+				E3511CBB8139CC3108EE17B3 /* PatientExperienceSnapshot.swift in Sources */,
+				3A09E30662F9226C20877253 /* PatientMessagesView.swift in Sources */,
+				D6977D90E8D5D854DD5B3AAF /* PatientMessagingState.swift in Sources */,
+				C23C1F9A6B0C22F9C828A234 /* PatientPathView.swift in Sources */,
+				F365960086404D8B4ABAB637 /* PatientPhotoBackground.swift in Sources */,
+				BDD8BFF0BB922D16C2FE4C2D /* PatientPreferencesView.swift in Sources */,
+				A87412409BBCC4E0E031161F /* PatientPresentationPreferences.swift in Sources */,
+				6C62114ECCC10A6C9DFF2708 /* PatientPrivacyCoverView.swift in Sources */,
+				5AF5613AF9A363E61BB1CDFD /* PatientRootView.swift in Sources */,
+				3FC1DDC70B0B1B8D2FBC7035 /* PatientSecureStore.swift in Sources */,
+				F07C09D3F6BC610FA4476F91 /* PatientSessionManagementView.swift in Sources */,
+				D2983E8F986C240F32E4A575 /* PatientStateVocabulary.swift in Sources */,
+				4060F7EFBBC9DCDD9012F944 /* PatientTabShellView.swift in Sources */,
+				8BD5B1D1D1B4274CF59AB0B1 /* PatientTodayView.swift in Sources */,
+				7157B32778621E23F1CB17B4 /* PatientWelcomeView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		62C2A2C3CCD0DEB769191EFE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10E415C5B6B4EC7BE6EBDA7 /* HummingbirdPatient */;
+			targetProxy = 7752CD9CB287418F0B8238D4 /* PBXContainerItemProxy */;
+		};
+		AA2CE187946B41BBD7F781D5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10E415C5B6B4EC7BE6EBDA7 /* HummingbirdPatient */;
+			targetProxy = 929014438D19F94E7F1D3B50 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		30883F005DFF225744E99F40 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TKXPY255A2;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HummingbirdPatient/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.acumenus.hummingbird.patient;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		330CDC10CE8D30777CA26D79 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4313FDD51E99F5CA73FABF1A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TKXPY255A2;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HummingbirdPatient/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.acumenus.hummingbird.patient;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		6FE498C5D6E5C51E6868580A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "net.acumenus.hummingbird.patient.ui-tests";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = HummingbirdPatient;
+			};
+			name = Debug;
+		};
+		AE43B382A65D9E8849B36094 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		D5D78D71F05510755D990B27 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "net.acumenus.hummingbird.patient.ui-tests";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = HummingbirdPatient;
+			};
+			name = Release;
+		};
+		D9FB7FFC61730F77952B4072 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.acumenus.hummingbird.patient.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HummingbirdPatient.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HummingbirdPatient";
+			};
+			name = Release;
+		};
+		FEFD50C1F550941AFB53BBF2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.acumenus.hummingbird.patient.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HummingbirdPatient.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HummingbirdPatient";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		59EB66AF0A6D9278AD497D64 /* Build configuration list for PBXNativeTarget "HummingbirdPatient" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				30883F005DFF225744E99F40 /* Debug */,
+				4313FDD51E99F5CA73FABF1A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		AFE2ABC7819C39C993C596BC /* Build configuration list for PBXNativeTarget "HummingbirdPatientUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6FE498C5D6E5C51E6868580A /* Debug */,
+				D5D78D71F05510755D990B27 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C8C5DC3B73AA089ACA70313B /* Build configuration list for PBXNativeTarget "HummingbirdPatientTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FEFD50C1F550941AFB53BBF2 /* Debug */,
+				D9FB7FFC61730F77952B4072 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D3C8FDDA3B17D32F6A80370B /* Build configuration list for PBXProject "HummingbirdPatient" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				330CDC10CE8D30777CA26D79 /* Debug */,
+				AE43B382A65D9E8849B36094 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 0DEB90F8F65D05D5F5C2D24C /* Project object */;
+}
