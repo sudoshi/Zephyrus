@@ -42,7 +42,7 @@ notification channels registered at start (FCM send still blocked on
 server credentials); 17 new pure-logic unit tests + assembleDebug green.
 Whole feature verified: backend mobile/flow suites green, both mobile
 builds green. REMAINING (tracked, not blocking): persona screenshot matrix
-(14 roles × surfaces × 2 platforms), plate-LOD/dot-batching perf pass,
+(17 roles × surfaces × 2 platforms), plate-LOD/dot-batching perf pass,
 real APNs/FCM push credentials, EDD write-back + service-scope patient
 access (§11 open questions), and the pre-existing pgvector env gap in
 EddyKnowledgeRagTest (unrelated to this feature).
@@ -102,6 +102,7 @@ actually happened; the future half renders honest projections with confidence
 and provenance.
 
 Design gut-checks (from PRODUCT.md / DESIGN.md):
+
 - **Defensible:** every projected item cites its source service and the
   reconciliation-derived reliability score. No unlabeled speculation.
 - **Earned urgency:** the future is rendered as ghosts (dashed, translucent),
@@ -114,6 +115,7 @@ Design gut-checks (from PRODUCT.md / DESIGN.md):
 ## 2. What exists today (grounding)
 
 ### 2.1 The 4D Navigator (web)
+
 - `resources/js/Components/PatientFlowNavigator/PatientFlowNavigator.tsx` (720-line
   monolith) + `resources/js/features/patientFlowNavigator/{types,api,stateProjection}.ts`.
   Raw three.js (not R3F): GLB building (`public/vendor/zephyrus-facility-models/zep-500/hospital_model.glb`,
@@ -130,6 +132,7 @@ Design gut-checks (from PRODUCT.md / DESIGN.md):
   rebuilt every animation frame; three.js not code-split; zero mobile presence.
 
 ### 2.2 Spatial model
+
 - **Operational spine** (`prod.units` → `prod.beds` → `prod.encounters`): no
   floors, no inpatient rooms. Floor lives in the hospital manifest
   (`config/hospital/hospital-1.php`, `HospitalManifest`) — every unit has
@@ -143,6 +146,7 @@ Design gut-checks (from PRODUCT.md / DESIGN.md):
 - **Periop rooms** (`prod.locations` → `prod.rooms`): OR/pre-op/PACU only.
 
 ### 2.3 Temporal spine (the past 24h)
+
 - `prod.operational_events` (EncounterStarted/Transferred/Discharged,
   BedStatusChanged, AcuityChanged) with a **pure, replayable projector**
   (`app/Rtdc/CensusProjector.php`, `CensusRebuilder.php`).
@@ -153,21 +157,23 @@ Design gut-checks (from PRODUCT.md / DESIGN.md):
   **no hourly series today**. `flow_core.occupancy_snapshots` exists, unused.
 
 ### 2.4 Prediction inventory (the future 24h — all deterministic, no ML)
-| Source | Horizon | Granularity | File |
-|---|---|---|---|
-| `prod.rtdc_predictions` (+ plans) | today `by_2pm` / `by_midnight` | per unit: weighted discharges (definite/probable/possible), demand by source, bed_need | `2026_06_20_000040` migration; `Api/Rtdc/PredictionController` |
-| Reconciliation loop | daily backward | reliability_score per unit (predicted vs actual) | `app/Jobs/ReconcileRtdcPredictions.php`, `prod.rtdc_reconciliations` |
-| ED arrival forecast | **next 24h, hourly**, with confidence band | house/ED | `app/Services/Ed/ArrivalPredictionService.php` |
-| Command Center forecast band + occupancy curve | 24h/48h; curve at 2h steps ±3pp | house | `app/Services/CommandCenterDataService.php` (`computeForecastMetrics`, `forecastDetail`) |
-| Demand forecast (census walk) | intraday | per unit + house | `app/Services/Rtdc/DemandForecastService.php` |
-| ED acuity mix | next 4h | ED | `app/Services/Ed/AcuityPredictionService.php` |
-| Discharge/readmit risk composite | per active encounter | patient | `app/Services/Rtdc/RiskAssessmentService.php` |
-| OR schedule + room status clock | rest of day | room/case | `Operations\RoomStatusService` |
-| Deadlines | hours | transport `needed_at`, EVS `needed_at`, staffing `needed_by` | domain tables |
+
+| Source                                         | Horizon                                    | Granularity                                                                            | File                                                                                     |
+| ---------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `prod.rtdc_predictions` (+ plans)              | today `by_2pm` / `by_midnight`             | per unit: weighted discharges (definite/probable/possible), demand by source, bed_need | `2026_06_20_000040` migration; `Api/Rtdc/PredictionController`                           |
+| Reconciliation loop                            | daily backward                             | reliability_score per unit (predicted vs actual)                                       | `app/Jobs/ReconcileRtdcPredictions.php`, `prod.rtdc_reconciliations`                     |
+| ED arrival forecast                            | **next 24h, hourly**, with confidence band | house/ED                                                                               | `app/Services/Ed/ArrivalPredictionService.php`                                           |
+| Command Center forecast band + occupancy curve | 24h/48h; curve at 2h steps ±3pp            | house                                                                                  | `app/Services/CommandCenterDataService.php` (`computeForecastMetrics`, `forecastDetail`) |
+| Demand forecast (census walk)                  | intraday                                   | per unit + house                                                                       | `app/Services/Rtdc/DemandForecastService.php`                                            |
+| ED acuity mix                                  | next 4h                                    | ED                                                                                     | `app/Services/Ed/AcuityPredictionService.php`                                            |
+| Discharge/readmit risk composite               | per active encounter                       | patient                                                                                | `app/Services/Rtdc/RiskAssessmentService.php`                                            |
+| OR schedule + room status clock                | rest of day                                | room/case                                                                              | `Operations\RoomStatusService`                                                           |
+| Deadlines                                      | hours                                      | transport `needed_at`, EVS `needed_at`, staffing `needed_by`                           | domain tables                                                                            |
 
 **Only `net_bed_need` (by-2pm sum) reaches mobile today.**
 
 ### 2.5 Persona gating (already solved — reuse, don't reinvent)
+
 `app/Services/Mobile/MobilePatientContextService.php`: opaque `ptok_` HMAC
 context refs everywhere; role matrix — bed_manager/house_supervisor/capacity_lead
 see any operational patient; transport/EVS only task-linked patients; nurses/
@@ -179,16 +185,16 @@ the **patient-dot policy** for every map payload.
 
 ## 3. Gap analysis — what stands between today and the vision
 
-| # | Gap | Bridge |
-|---|---|---|
-| G1 | 4D data universe (`flow_core` fixture) is disconnected from live `prod.*` and not rebased to wall clock | Build the mobile Flow Window on **`prod.*` events/projections**; keep `flow_core` for the web twin and add a rebase/bridge (§6.5) |
-| G2 | No floor dimension on the operational spine | `FloorRollupService` joining manifest floors + `facility_spaces` plates + unit census (§6.1) |
-| G3 | No census time series (snapshots are sentinel-only) | Hourly snapshot job + 24h backfill via `CensusRebuilder` (§6.2) |
-| G4 | No unified event timeline (5 separate event tables) | `OperationalTimelineService` normalizing all sources into one event shape (§6.2) |
-| G5 | No forward event stream — predictions are scattered aggregates | `ForwardProjectionService` synthesizing a +24h projection stream with confidence + provenance (§6.3) |
-| G6 | No mobile spatial rendering; web viewer is desktop three.js | Native 2.5D Floor Plates (SwiftUI Canvas / Compose Canvas) + simplified geometry endpoint (§7.2) |
-| G7 | 4D API has no RBAC; inspector leaks patient detail to any authed user | Lens config + persona middleware on both web and mobile flow APIs (§6.4) |
-| G8 | Android still hand-parses JSON (`ApiClient.kt`, 1,027 lines org.json) | Land reconciliation **P1.4 (generated DTOs) before** adding these payloads |
+| #   | Gap                                                                                                     | Bridge                                                                                                                            |
+| --- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| G1  | 4D data universe (`flow_core` fixture) is disconnected from live `prod.*` and not rebased to wall clock | Build the mobile Flow Window on **`prod.*` events/projections**; keep `flow_core` for the web twin and add a rebase/bridge (§6.5) |
+| G2  | No floor dimension on the operational spine                                                             | `FloorRollupService` joining manifest floors + `facility_spaces` plates + unit census (§6.1)                                      |
+| G3  | No census time series (snapshots are sentinel-only)                                                     | Hourly snapshot job + 24h backfill via `CensusRebuilder` (§6.2)                                                                   |
+| G4  | No unified event timeline (5 separate event tables)                                                     | `OperationalTimelineService` normalizing all sources into one event shape (§6.2)                                                  |
+| G5  | No forward event stream — predictions are scattered aggregates                                          | `ForwardProjectionService` synthesizing a +24h projection stream with confidence + provenance (§6.3)                              |
+| G6  | No mobile spatial rendering; web viewer is desktop three.js                                             | Native 2.5D Floor Plates (SwiftUI Canvas / Compose Canvas) + simplified geometry endpoint (§7.2)                                  |
+| G7  | 4D API has no RBAC; inspector leaks patient detail to any authed user                                   | Lens config + persona middleware on both web and mobile flow APIs (§6.4)                                                          |
+| G8  | Android still hand-parses JSON (`ApiClient.kt`, 1,027 lines org.json)                                   | Land reconciliation **P1.4 (generated DTOs) before** adding these payloads                                                        |
 
 ---
 
@@ -201,7 +207,7 @@ the **patient-dot policy** for every map payload.
   Server-side filtering from day one (this is the spatial sibling of
   reconciliation P5.2 — don't repeat the client-side-filtering mistake).
 - **D2 — Past = checkpoint + replay.** Hourly census/occupancy snapshots as
-  checkpoints; seek to time *t* = nearest snapshot ≤ *t* + replay of remaining
+  checkpoints; seek to time _t_ = nearest snapshot ≤ _t_ + replay of remaining
   normalized events. Same event-sourcing pattern `PatientStateProjector`
   already proves; now applied to `prod.*`.
 - **D3 — Future = projection events, not a second UI.** The +24h half of the
@@ -245,18 +251,18 @@ T−24h                             ││                                 T+24h
 ```
 
 - **Window:** `[now−24h, now+24h]`, server-capped at a 48h span. Default
-  center = now; personas may default the *view* elsewhere (e.g. OR manager
+  center = now; personas may default the _view_ elsewhere (e.g. OR manager
   centers on today's schedule) but the data window is constant.
-- **Seek semantics (past):** state at *t* = snapshot(≤*t*) ⊕ replay(events in
-  (snapshot, *t*]). Bed-level state replays `BedStatusChanged` + encounter
+- **Seek semantics (past):** state at _t_ = snapshot(≤*t*) ⊕ replay(events in
+  (snapshot, _t_]). Bed-level state replays `BedStatusChanged` + encounter
   moves; unit rollups come straight from checkpoints for cheap scrubbing.
 - **Future semantics:** projections are bucketed (hourly for counts, 2h for
   census curve) or point-events (scheduled case at 14:30, EDD discharge
-  "probable by 15:00"). Scrubbing forward accumulates ghosts up to *t* the
+  "probable by 15:00"). Scrubbing forward accumulates ghosts up to _t_ the
   same way the past accumulates events — symmetric interaction grammar.
 - **Confidence rendering:** `definite` ghost at 0.8 opacity, `probable` 0.5,
   `possible` 0.3; bands as soft ribbons on curves. Colors stay in the
-  operational palette; urgency tier only for *current* breaches.
+  operational palette; urgency tier only for _current_ breaches.
 - **Provenance:** tapping any projection shows "Source: Demand forecast ·
   unit reliability 0.86 (14-day)" — reliability from `prod.rtdc_reconciliations`.
 - **Live edge:** Reverb `hospital.beds` events (and existing re-snapshot
@@ -268,6 +274,7 @@ T−24h                             ││                                 T+24h
 ## 6. Data plane (backend workstreams)
 
 ### 6.1 W1 — Spatial join hardening (S)
+
 - `app/Services/Flow/FloorRollupService.php`: floors from `HospitalManifest`
   (+ `facility_spaces.floor_number` as cross-check), each floor → units →
   census/staffing/EVS rollups.
@@ -280,6 +287,7 @@ T−24h                             ││                                 T+24h
   check to `DATA-PLAUSIBILITY.md` gates (every staffed bed must map to a space).
 
 ### 6.2 W2 — Temporal spine: review half (M)
+
 - `app/Services/Flow/TimelineSnapshotService.php` + scheduled command
   `flow:snapshot` (hourly): write per-unit rows to `prod.census_snapshots`
   and per-space occupancy to `flow_core.occupancy_snapshots` (finally used).
@@ -291,40 +299,42 @@ T−24h                             ││                                 T+24h
   barrier open/resolve into one normalized shape:
   `{t, kind, entity{type, ref|ptok}, from_space, to_space, unit_id, label, tier, provenance}`.
   Kinds: `admit, transfer, discharge, bed_status, ed_arrival, ed_admit_decision,
-  bed_request, placement, transport_status, evs_status, barrier_opened,
-  barrier_resolved, staffing_fill, or_milestone`.
+bed_request, placement, transport_status, evs_status, barrier_opened,
+barrier_resolved, staffing_fill, or_milestone`.
 - Patient refs are **always** re-tokenized through `MobilePatientContextService`
   before serialization (same rule the ledger already follows).
 
 ### 6.3 W3 — Temporal spine: prediction half (M)
+
 - `app/Services/Flow/ForwardProjectionService.php` composing the existing
   services into one +24h stream, computed on demand with a 5-min cache
   (skip materialization until profiling says otherwise):
-  - `expected_discharge` per encounter — `prod.encounters.expected_discharge_date`
-    × `rtdc_predictions` definite/probable/possible vocabulary × time-of-day
-    bell (discharge trough logic already in `CommandCenterDataService`).
-  - `predicted_census` per unit at 2h steps — extend `DemandForecastService`
-    beyond by_2pm/by_midnight to a walked curve; house curve already exists.
-  - `predicted_arrivals` hourly — `ArrivalPredictionService` (band included);
-    admission split via existing admit-rate; feeds ED + downstream unit demand.
-  - `scheduled_or_case` — OR schedule with room, expected start/end, PACU
-    handoff estimate (`RoomStatusService` clock).
-  - `transport_due` / `evs_due` / `staffing_shift_gap` — deadline projections
-    from `needed_at`/`needed_by`; plus **derived ghosts**: each probable
-    discharge spawns a "likely discharge transport ~t" and a "bed turn ~t+20m"
-    ghost (this is what makes the future half genuinely useful to P1/P2).
-  - `surge_probability` — house-level, from the Command Center heuristic.
+    - `expected_discharge` per encounter — `prod.encounters.expected_discharge_date`
+      × `rtdc_predictions` definite/probable/possible vocabulary × time-of-day
+      bell (discharge trough logic already in `CommandCenterDataService`).
+    - `predicted_census` per unit at 2h steps — extend `DemandForecastService`
+      beyond by_2pm/by_midnight to a walked curve; house curve already exists.
+    - `predicted_arrivals` hourly — `ArrivalPredictionService` (band included);
+      admission split via existing admit-rate; feeds ED + downstream unit demand.
+    - `scheduled_or_case` — OR schedule with room, expected start/end, PACU
+      handoff estimate (`RoomStatusService` clock).
+    - `transport_due` / `evs_due` / `staffing_shift_gap` — deadline projections
+      from `needed_at`/`needed_by`; plus **derived ghosts**: each probable
+      discharge spawns a "likely discharge transport ~t" and a "bed turn ~t+20m"
+      ghost (this is what makes the future half genuinely useful to P1/P2).
+    - `surge_probability` — house-level, from the Command Center heuristic.
 - Every item: `{t, kind, confidence, space|unit_id, value?, band?, entity?,
-  provenance{service, reliability}}`.
+provenance{service, reliability}}`.
 
 ### 6.4 W4 — Lens, RBAC, and the window endpoint (M)
-- `config/hummingbird/flow_lens.php` — per role id (all 14):
+
+- `config/hummingbird/flow_lens.php` — per role id (all 17):
   `scope_default, scopes_allowed, event_kinds, projection_kinds,
-  patient_dots ∈ {full, unit, task, none}, actions[]`. `patient_dots` maps 1:1
+patient_dots ∈ {full, unit, task, none}, actions[]`. `patient_dots` maps 1:1
   onto the `MobilePatientContextService` matrix (exec/PI/staffing/OR ⇒ `none`
   — they get aggregate heat only).
 - `GET /api/mobile/v1/flow/window?scope=house|floor:{n}|unit:{id}|patient:{ptok}
-  &from&to&layers=snapshots,events,projections` → envelope with
+&from&to&layers=snapshots,events,projections` → envelope with
   `{window{from,to,now}, spaces?, snapshots[], events[], projections[]}`.
   Server clamps scope + layers + kinds to the caller's lens; unauthorized
   scope ⇒ 403 with the explicit unauthorized state (reconciliation P4.2's
@@ -335,10 +345,11 @@ T−24h                             ││                                 T+24h
   `/api/patient-flow/projections` reusing `ForwardProjectionService`.
 
 ### 6.5 W5 — Demo-data honesty (S)
+
 - `patient-flow:rebase-synthetic --anchor=now`: shift the `flow_core` fixture
   window to end at wall-clock now, so the web twin and the mobile window agree
   during demos.
-- Extend `rtdc:simulate` to emit a *plausible trailing 24h* of
+- Extend `rtdc:simulate` to emit a _plausible trailing 24h_ of
   `prod.operational_events` on demand (it already does 24 hourly ticks from
   06:00) and verify `DemoTuningSeeder` ordering keeps boarding/SLA tuning intact.
 - Seed `rtdc_predictions` for **tomorrow** as well as today (the +24h window
@@ -349,6 +360,7 @@ T−24h                             ││                                 T+24h
 ## 7. Experience plane
 
 ### 7.1 Shared components (both platforms)
+
 - **Chronobar** — the 48h scrubber (D5). One implementation per platform in
   the design system (`DesignSystem/` / `ui/components/`), used by every lens.
 - **FloorPlateView** — renders one floor's plates + state: room/bed fills by
@@ -370,6 +382,7 @@ A2/A2P** ("where is this, what's around it"). Deep links:
 `hummingbird://flow?scope=unit:MICU&t=-4h`.
 
 ### 7.2 Mobile integration points
+
 - iOS: new `Features/Flow/` (FlowWindowStore, ChronobarView, FloorPlateView,
   HouseStackView, TimelineLanes, GhostLayer). Android: `ui/flow/` package +
   `FlowViewModel`, models via generated DTOs (**after P1.4**).
@@ -380,6 +393,7 @@ A2/A2P** ("where is this, what's around it"). Deep links:
   cache-last-read); scrubbing the past works fully offline once cached.
 
 ### 7.3 Web 4D Navigator upgrade (parity, not port)
+
 - Do the long-planned decomposition of `PatientFlowNavigator.tsx`
   (Scene/Toolbar/Inspector/Feed/Chronobar), fix per-frame trail/heat rebuild,
   code-split three.js.
@@ -401,6 +415,7 @@ Format — **Scope** (spatial), **Frame** (default time focus), **Review −24h*
 **Depth** (patient-dot policy), **Actions** (from the map), **Signature moment**.
 
 ### P1 · Transporter (`transport`) — "My day in the building"
+
 - **Scope:** house corridors + origin/destination spaces of own jobs (plates
   include `corridor`/`vertical_transport` categories — routes render).
 - **Frame:** now, ±4h zoom default.
@@ -414,6 +429,7 @@ Format — **Scope** (spatial), **Frame** (default time focus), **Review −24h*
 - **Signature:** end-of-shift replay card — "11 trips, 4 floors, 2 SLA saves."
 
 ### P2 · EVS Technician (`evs`) — "The turn map"
+
 - **Scope:** house, colored by bed status (dirty/cleaning/clean); floor descent.
 - **Frame:** now.
 - **Review:** completed turns; turnaround-time heat per floor; isolation turns flagged.
@@ -424,6 +440,7 @@ Format — **Scope** (spatial), **Frame** (default time focus), **Review −24h*
 - **Signature:** "Floor 4 will need ~5 turns between 14:00–17:00 — 3 are yours."
 
 ### P3 · Charge / Bedside Nurse (`charge_nurse`, `bedside_nurse`) — "My unit, my shift"
+
 - **Scope:** own unit's floor plate, room/bed grid (this **is** the pending
   bespoke unit board from PERSONA-SCREENS-PLAN, now spatial). Charge sees unit;
   bedside defaults to assigned-room subset when assignment data exists.
@@ -442,6 +459,7 @@ Format — **Scope** (spatial), **Frame** (default time focus), **Review −24h*
   2 ED boarders headed your way."
 
 ### Hospitalist / Intensivist (`hospitalist`, `intensivist`) — "My patients across the house"
+
 - **Scope:** service-line / critical-care filtered beds across all floors
   (multi-floor dot map, HouseStack with only their beds lit).
 - **Frame:** now.
@@ -456,6 +474,7 @@ Format — **Scope** (spatial), **Frame** (default time focus), **Review −24h*
   what their discharge unblocks downstream.
 
 ### P5 · Bed Manager / House Supervisor (`bed_manager`, `house_supervisor`) — "The whole board, in time"
+
 - **Scope:** house — the fullest lens; HouseStack default, floor/unit descent.
 - **Frame:** now, full ±24h visible.
 - **Review:** placement decisions replay (chosen bed vs runner-up), boarding
@@ -472,6 +491,7 @@ Format — **Scope** (spatial), **Frame** (default time focus), **Review −24h*
   transfers happen — here are the two" (ghost transfers with provenance).
 
 ### P4 · OR Circulating Nurse (`or_nurse`) — "My room's day"
+
 - **Scope:** periop floor plate (ORs, pre-op, PACU); own room highlighted.
 - **Frame:** today's schedule (frame shifts to schedule span, window unchanged).
 - **Review:** completed cases + milestones + turnover durations for own room.
@@ -485,6 +505,7 @@ Format — **Scope** (spatial), **Frame** (default time focus), **Review −24h*
   at 16:00."
 
 ### P7 · Periop Manager (`periop_manager`) — "All rooms, the cascade"
+
 - Same surface as P4 across **all** rooms: review = utilization/turnover heat
   by room; predict = full-schedule Gantt against the Chronobar + PACU-to-floor
   handoff ghosts feeding the house prediction layer (their cases become
@@ -493,17 +514,19 @@ Format — **Scope** (spatial), **Frame** (default time focus), **Review −24h*
   OR-4 is about to cost the 13:00 slot."
 
 ### P6 · Capacity Lead (`capacity_lead`) — "Strain over time"
+
 - **Scope:** house; primary visual is the **48h strain/occupancy curve** with
   the map as supporting heat (curve-first, map-second — inverse of P5).
 - **Review:** strain trajectory with cause markers (boarding spikes, closures);
   approval decisions plotted at decision time with observed impact after.
 - **Predict:** occupancy curve ±band per floor/unit, surge probability,
-  pending approvals plotted at *projected impact time*; (stretch) overlay a
+  pending approvals plotted at _projected impact time_; (stretch) overlay a
   `OperationsSimulationService` scenario as a second ghost curve.
 - **Depth:** `full` (existing rule). **Actions:** approve/reject from timeline.
 - **Signature:** "This approval moves the 18:00 peak down 2.1 beds — reliability 0.83."
 
 ### P9 · Executive (`executive`) — "Is the hospital OK — and will it be?"
+
 - **Scope:** house only. **No patient dots, ever** (matrix says 403; the lens
   enforces `none` so the payload never contains ptoks).
 - **Review:** a **15-second auto-playing time-lapse** of the last 24h — floor
@@ -517,6 +540,7 @@ Format — **Scope** (spatial), **Frame** (default time focus), **Review −24h*
   settles on now → shows tomorrow's band. Done in 30 seconds.
 
 ### P10 · Staffing Coordinator (`staffing_coordinator`) — "Coverage vs the curve"
+
 - **Scope:** house by floor, colored by staffing gap (scheduled vs minimum-safe).
 - **Review:** fills/callouts replay; where gaps opened vs where census actually went.
 - **Predict:** the money view — **predicted census per unit overlaid on
@@ -527,6 +551,7 @@ Format — **Scope** (spatial), **Frame** (default time focus), **Review −24h*
 - **Signature:** the 19:00 detent — one glance shows tonight's exposure.
 
 ### P8 · PI / Quality Lead (`pi_lead`) — "The pattern, not the patient"
+
 - **Scope:** house, fully de-identified (aggregate heat only, no dots, no ptoks).
 - **Review:** process replay at 4h/s — boarding accumulation, EVS turnaround
   heat, transport delay hotspots; **"clip" a time window** (e.g. yesterday
@@ -546,7 +571,7 @@ Format — **Scope** (spatial), **Frame** (default time focus), **Review −24h*
 W1 spatial (plates export, floor rollup) · W2 snapshots + timeline service +
 backfill · W3 projection service · W4 lens config + window endpoint + RBAC on
 web flow API · W5 demo rebase/seeding · OpenAPI + fixtures + drift tests +
-redaction matrix tests (14 roles × window). **Precondition: land P1.4
+redaction matrix tests (17 roles × window). **Precondition: land P1.4
 (Android generated DTOs) for the new payloads.**
 
 **Phase 1 — Shared surfaces + the two highest-value lenses (both platforms)**
@@ -573,7 +598,7 @@ handoff.
 **Phase 5 — Stickiness + hardening**
 Live Activities fed by window data (trip/turn ghosts → lock screen) · widgets
 showing "next 4h" slice · delta refresh (`?since=`) · offline window cache ·
-persona screenshot matrix rows for every lens (14 roles × map/chronobar states)
+persona screenshot matrix rows for every lens (17 roles × map/chronobar states)
 · performance passes (plate LOD, dot batching).
 
 Each phase ends demo-able against the seeded Summit demo DB (local `hb_pg` —
@@ -583,16 +608,16 @@ never `migrate:fresh` the shared remote).
 
 ## 10. Risks & mitigations
 
-| Risk | Mitigation |
-|---|---|
-| Payload size (48h events + geometry) | Plates as cached versioned asset; per-scope windowing; `?since=` deltas; server caps (the web API's 20k-event cap stays) |
-| Mobile render cost | 2D Canvas, pre-simplified polygons, ≤500 shapes/floor, dots batched; no 3D engine in v1 |
-| PHI leakage via a new surface | Lens is server-side; ptok-only refs; `patient_dots: none` roles get payloads with **no** patient entities at all; redaction matrix tests are a Phase-0 gate |
-| Prediction over-trust | Confidence + provenance + reliability mandatory on every ghost; ghost grammar never uses status colors; copy says "probable/possible", never "will" |
-| Fabricated-feeling demo | W5 rebase + tomorrow-seeding + backfill make the window real against seeded data; extend `DATA-PLAUSIBILITY.md` checks |
-| Android JSON fragility | Hard dependency on P1.4 before Phase 1 Android work |
-| Scope creep into an EHR | The lens shows *operational* state only — same A2P boundary; no clinical data enters the window payload |
-| Timeline UX complexity for frontline | Frontline lenses default to ±4h zoom with detents; the 48h span is capability, not default posture |
+| Risk                                 | Mitigation                                                                                                                                                  |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Payload size (48h events + geometry) | Plates as cached versioned asset; per-scope windowing; `?since=` deltas; server caps (the web API's 20k-event cap stays)                                    |
+| Mobile render cost                   | 2D Canvas, pre-simplified polygons, ≤500 shapes/floor, dots batched; no 3D engine in v1                                                                     |
+| PHI leakage via a new surface        | Lens is server-side; ptok-only refs; `patient_dots: none` roles get payloads with **no** patient entities at all; redaction matrix tests are a Phase-0 gate |
+| Prediction over-trust                | Confidence + provenance + reliability mandatory on every ghost; ghost grammar never uses status colors; copy says "probable/possible", never "will"         |
+| Fabricated-feeling demo              | W5 rebase + tomorrow-seeding + backfill make the window real against seeded data; extend `DATA-PLAUSIBILITY.md` checks                                      |
+| Android JSON fragility               | Hard dependency on P1.4 before Phase 1 Android work                                                                                                         |
+| Scope creep into an EHR              | The lens shows _operational_ state only — same A2P boundary; no clinical data enters the window payload                                                     |
+| Timeline UX complexity for frontline | Frontline lenses default to ±4h zoom with detents; the 48h span is capability, not default posture                                                          |
 
 ---
 
@@ -615,7 +640,7 @@ never `migrate:fresh` the shared remote).
 
 ## 12. Success criteria
 
-- Every one of the 14 role ids opens a Map mode and sees a *different*,
+- Every one of the 14 role ids opens a Map mode and sees a _different_,
   role-correct view (verified by the screenshot matrix + redaction tests).
 - Charge nurse start-of-shift replay renders in < 3s on device from cold cache.
 - A placement decision can be made entirely from the bed manager's map.

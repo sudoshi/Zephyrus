@@ -85,7 +85,7 @@ This audit reconciles runtime routes, server services, contracts, both native cl
 
 ### 3.2 Current implementation snapshot
 
-- The staff catalog has **14 roles** in backend, iOS, and Android.
+- The staff catalog has **17 roles** in backend, iOS, and Android.
 - The capability ledger currently inventories **58 staff mobile/auth operations** with a single owner, including all nine accountable patient-communication operations.
 - Both native apps use a role home + For You + Activity production shell.
 - Both implement Flow snapshot/delta logic and a local Flow cache.
@@ -383,9 +383,9 @@ The “target” column is the recommended product disposition. It must be ratif
 ### 6.6 Native validation
 
 - [ ] Create an iOS XCTest target for models, auth, cache, routing, role homes, and mutation state machines.
-- [ ] Add iOS XCUITest journeys for all 14 roles using deterministic server fixtures.
+- [ ] Add iOS XCUITest journeys for all 17 roles using deterministic server fixtures.
 - [ ] Expand Android unit tests to DTOs, auth refresh, role routing, every action transition, cache/outbox, and error mapping.
-- [ ] Add Android instrumentation/Compose tests for all 14 roles.
+- [ ] Add Android instrumentation/Compose tests for all 17 roles.
 - [ ] Add accessibility identifiers/test tags from the capability ledger.
 - [ ] Test screen reader order, focus, actions, content descriptions, Dynamic Type/font scale to 200%, display zoom, contrast, reduced motion, and non-color status.
 - [ ] Test minimum supported OS versions, low-memory termination, process restore, clock skew, DST, background/foreground, airplane mode, slow network, packet loss, duplicate response, and server schema additive change.

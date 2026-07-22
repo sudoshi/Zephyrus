@@ -4,7 +4,7 @@
 |--------------------------------------------------------------------------
 | Hummingbird Flow Window — per-persona lens configuration
 |--------------------------------------------------------------------------
-| One lens per Hummingbird role id (all 14 — MobilePersonaCatalog::ROLE_IDS).
+| One lens per Hummingbird role id (all 17 — MobilePersonaCatalog::ROLE_IDS).
 | The lens is enforced SERVER-SIDE by FlowLensService on every flow payload
 | (mobile /api/mobile/v1/flow/* and the web /api/patient-flow/* surface):
 |
@@ -148,6 +148,33 @@ return [
         'default_zoom_hours' => 24,
     ],
 
+    // Care-transition coordinators — unit-bound, discharge and barrier focused.
+    // They can see only the patient context that is allowed by their current
+    // unit assignments; no flow action is granted by this observational lens.
+    'case_manager' => [
+        'scope_default' => 'house',
+        'scopes_allowed' => ['house', 'floor', 'unit', 'patient'],
+        'layers' => ['snapshots', 'events', 'projections', 'spaces', 'duties'],
+        'event_kinds' => ['admit', 'transfer', 'discharge', 'acuity_changed', 'barrier_opened', 'barrier_resolved'],
+        'projection_kinds' => ['expected_discharge', 'predicted_census'],
+        'duty_kinds' => ['discharge_leverage'],
+        'patient_dots' => 'unit',
+        'actions' => ['open_patient'],
+        'default_zoom_hours' => 24,
+    ],
+
+    'discharge_coordinator' => [
+        'scope_default' => 'house',
+        'scopes_allowed' => ['house', 'floor', 'unit', 'patient'],
+        'layers' => ['snapshots', 'events', 'projections', 'spaces', 'duties'],
+        'event_kinds' => ['admit', 'transfer', 'discharge', 'acuity_changed', 'barrier_opened', 'barrier_resolved'],
+        'projection_kinds' => ['expected_discharge', 'predicted_census'],
+        'duty_kinds' => ['discharge_leverage'],
+        'patient_dots' => 'unit',
+        'actions' => ['open_patient'],
+        'default_zoom_hours' => 24,
+    ],
+
     // P1 · Transporter — "My day in the building"
     'transport' => [
         'scope_default' => 'house',
@@ -202,6 +229,26 @@ return [
 
     // P6 · Capacity Lead — "Strain over time" (curve-first, map-second)
     'capacity_lead' => [
+        'scope_default' => 'house',
+        'scopes_allowed' => ['house', 'floor', 'unit', 'patient'],
+        'layers' => ['snapshots', 'events', 'projections', 'spaces', 'duties'],
+        'event_kinds' => [
+            'admit', 'transfer', 'discharge', 'ed_arrival', 'ed_admit_decision',
+            'bed_request', 'placement', 'barrier_opened', 'barrier_resolved',
+        ],
+        'projection_kinds' => [
+            'expected_discharge', 'predicted_census', 'predicted_arrivals',
+            'staffing_shift_gap', 'surge_probability',
+        ],
+        'duty_kinds' => ['approval', 'placement', 'barrier_resolve'],
+        'patient_dots' => 'full',
+        'actions' => ['decide_approval', 'open_patient'],
+        'default_zoom_hours' => 48,
+    ],
+
+    // Operations leaders share the accountable capacity lens, including
+    // governed approval work, without acquiring a separate Flow API path.
+    'ops_leader' => [
         'scope_default' => 'house',
         'scopes_allowed' => ['house', 'floor', 'unit', 'patient'],
         'layers' => ['snapshots', 'events', 'projections', 'spaces', 'duties'],

@@ -68,7 +68,7 @@ final class PatientSessionManagementUITests: XCTestCase {
         let account = app.buttons["account-options"]
         XCTAssertTrue(account.waitForExistence(timeout: 5))
         account.tap()
-        let preferences = app.buttons["Preferences"]
+        let preferences = app.buttons["manage-preferences"].firstMatch
         XCTAssertTrue(preferences.waitForExistence(timeout: 2))
         preferences.tap()
 
@@ -89,7 +89,9 @@ final class PatientSessionManagementUITests: XCTestCase {
         let account = app.buttons["account-options"]
         XCTAssertTrue(account.waitForExistence(timeout: 5))
         account.tap()
-        app.buttons["Preferences"].tap()
+        let preferences = app.buttons["manage-preferences"].firstMatch
+        XCTAssertTrue(preferences.waitForExistence(timeout: 2))
+        preferences.tap()
 
         let textSize = app.descendants(matching: .any)["patient-preference-text-size"]
         XCTAssertTrue(textSize.waitForExistence(timeout: 2))
@@ -124,7 +126,7 @@ final class PatientSessionManagementUITests: XCTestCase {
         let account = app.buttons["account-options"]
         XCTAssertTrue(account.waitForExistence(timeout: 5))
         account.tap()
-        let manageDevices = app.buttons["Manage devices"]
+        let manageDevices = app.buttons["manage-devices"].firstMatch
         XCTAssertTrue(manageDevices.waitForExistence(timeout: 2))
         manageDevices.tap()
         XCTAssertTrue(

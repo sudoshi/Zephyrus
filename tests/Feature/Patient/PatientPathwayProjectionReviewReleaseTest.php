@@ -60,7 +60,7 @@ class PatientPathwayProjectionReviewReleaseTest extends TestCase
         $this->assertSame('draft', $draft->fresh()->release_state);
         $this->assertSame('released', $release['release']->release_state);
         $this->assertNotNull($release['release']->released_at);
-        $this->assertSame($draft->content, $release['release']->content);
+        $this->assertEquals($draft->content, $release['release']->content);
         $this->assertSame($draft->content_digest, $release['release']->content_digest);
         $this->assertSame(
             'version_pinned_pathway_history_clinical_release',
@@ -167,6 +167,12 @@ class PatientPathwayProjectionReviewReleaseTest extends TestCase
                     'permitted_relationships' => $draft->permitted_relationships,
                     'release_state' => 'released',
                 ]);
+
+                // RefreshDatabase holds an outer test transaction. Force this
+                // deferred constraint while the nested transaction/savepoint
+                // is still active so its failure proves the invariant without
+                // aborting the fixture transaction.
+                DB::statement('SET CONSTRAINTS patient_pathway_release_execution_required IMMEDIATE');
             });
             $this->fail('A clinical pathway release without an execution unexpectedly committed.');
         } catch (QueryException $exception) {

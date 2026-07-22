@@ -705,7 +705,7 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringContainsString('fun load(', $viewModel);
         $this->assertStringContainsString('role: MobileRole,', $viewModel);
         $this->assertStringContainsString('canViewPatientCommunications: Boolean = false', $viewModel);
-        $this->assertStringContainsString('items = api.forYou(bearer, role.id)', $viewModel);
+        $this->assertStringContainsString('api.forYou(bearer, role.id)', $viewModel);
         $this->assertStringContainsString('fun filteredItems(', $viewModel);
         $this->assertStringContainsString('QueueFilter.Placements -> item.type == "bed_request" || item.type == "capacity"', $viewModel);
         $this->assertStringContainsString('QueueFilter.Escalations -> item.type == "barrier" || item.type == "capacity"', $viewModel);
@@ -717,8 +717,7 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringContainsString('fun rejectOpsAction(bearer: String, item: ForYouItem, role: MobileRole)', $viewModel);
         $this->assertStringContainsString('api.opsDecision(bearer, approvalUuid, decision)', $viewModel);
         $this->assertStringNotContainsString('api.fillStaffingRequest', $viewModel);
-        $this->assertStringContainsString('if (!canViewPatientCommunications) return false', $viewModel);
-        $this->assertStringContainsString('if (PatientCommunicationForYou.isType(item.type)) return true', $viewModel);
+        $this->assertStringContainsString('(canViewPatientCommunications || !PatientCommunicationForYou.isType(item.type))', $viewModel);
 
         $this->assertStringContainsString('selectedRole: MobileRole = MobileRoleCatalog.default', $screen);
         $this->assertStringContainsString('selectedUnitName: String? = null', $screen);

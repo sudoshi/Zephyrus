@@ -51,7 +51,7 @@ A0/A1/A2/A2P, activity, patient context, and Eddy context calls. The remaining A
 onboarding/persona-switching polish), plus optional polish such as a bespoke P3 charge-nurse unit
 board. The section below is the design plan.
 
-> **2026-07-03 update:** the P3 charge-nurse unit board shipped *spatially* on both
+> **2026-07-03 update:** the P3 charge-nurse unit board shipped _spatially_ on both
 > platforms as the Flow Window Map segment (FLOW-WINDOW-PLAN Phase 1) — unit floor
 > plate + 48h Chronobar + start-of-shift replay, entered via List ⇄ Map on the census
 > home. bed_manager / house_supervisor got the house lens (HouseStack + floor descent)
@@ -65,12 +65,12 @@ Hummingbird ships today at **Phase 0 / early Phase 1**:
 
 - **The original two-screen shell is no longer the whole app.** iOS has role-aware feature homes,
   and Android now has an altitude shell (`AltitudeViewModel` + `ui/altitude/AltitudeScreens.kt`) that can switch
-  among all 14 mobile personas and call A0/A1/A2/A2P, activity, patient-context, and Eddy context
+  among all 17 mobile personas and call A0/A1/A2/A2P, activity, patient-context, and Eddy context
   endpoints. Android still needs the final role-package UX parity: the bespoke transport/EVS/OR/
   staffing/improvement homes, detail flows, and onboarding/persona-switching polish.
 - **Persona awareness is implemented but not fully even across platforms.** iOS `Role.swift` and
-  `RoleExperience.swift` enumerate all 14 personas and map them to `HomeKind` values. Android
-  `MobileRoleCatalog` also has all 14 role ids, but it is currently a lighter altitude-domain
+  `RoleExperience.swift` enumerate all 17 personas and map them to `HomeKind` values. Android
+  `MobileRoleCatalog` also has all 17 role ids, but it is currently a lighter altitude-domain
   selector rather than a full `RoleExperience`/feature-package router.
 - **The BFF now covers the high-value implemented domains.** `/api/mobile/v1/*` includes
   altitude, patient operational context, activity, RTDC census/house/placements, transport, EVS,
@@ -628,7 +628,7 @@ The architecture is persona-ready; the integration points are small and known.
 - **iOS** `Features/Onboarding/Role.swift`: add `or_nurse`, `periop_manager`, `capacity_lead`,
   `executive`, `staffing_coordinator`, `pi_lead` (id, title, subtitle, SF Symbol, `unitBound`).
   Keep `matching(serverRoles:)` mapping server role names → ids.
-- **Android:** `data/Models.kt` now contains `MobileRoleCatalog` with all 14 role ids, and
+- **Android:** `data/Models.kt` now contains `MobileRoleCatalog` with all 17 role ids, and
   `AltitudeViewModel`/`ui/altitude/AltitudeScreens.kt` use it to select persona/domain for altitude,
   activity, patient-context, and Eddy context calls. Remaining work: map that catalog into the
   same final role-package UX as iOS (`RoleExperience`/`HomeKind` equivalent plus onboarding and
