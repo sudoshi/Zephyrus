@@ -45,7 +45,7 @@ class PatientPathwayHistoryDraftService
             }
 
             $grant = PatientEncounterAccessGrant::query()
-                ->scopeEffective()
+                ->effective()
                 ->lockForUpdate()
                 ->find($lockedInstance->access_grant_id);
             if (! $grant instanceof PatientEncounterAccessGrant || ! $grant->permits('pathway:read')) {

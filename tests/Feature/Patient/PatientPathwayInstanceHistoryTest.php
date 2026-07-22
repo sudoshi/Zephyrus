@@ -306,6 +306,19 @@ class PatientPathwayInstanceHistoryTest extends TestCase
     {
         $versions = PathwayVersion::query()->orderBy('source_rank')->get();
         $definitions = $versions->map(function (PathwayVersion $version, int $index): PathwayStageDefinition {
+            MilestoneDefinition::query()->firstOrCreate(
+                ['pathway_version_id' => $version->getKey(), 'stable_key' => 'first_milestone'],
+                [
+                    'milestone_uuid' => (string) Str::uuid(),
+                    'title' => 'First steps in your care',
+                    'phase' => 'arrival',
+                    'sequence' => 1,
+                    'predecessor_keys' => [],
+                    'expected_range' => ['display' => 'Today'],
+                    'review_state' => 'approved',
+                ],
+            );
+
             return PathwayStageDefinition::query()->firstOrCreate(
                 ['pathway_version_id' => $version->getKey(), 'stable_key' => 'arrival_stage'],
                 [

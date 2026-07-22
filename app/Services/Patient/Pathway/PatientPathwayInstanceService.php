@@ -43,7 +43,7 @@ class PatientPathwayInstanceService
 
         return DB::transaction(function () use ($grant, $pathwayVersion, $sourceSystemKey, $sourceAssignmentReference, $sourceObservedAt): PatientPathwayInstance {
             $lockedGrant = PatientEncounterAccessGrant::query()
-                ->scopeEffective()
+                ->effective()
                 ->lockForUpdate()
                 ->find($grant->getKey());
             if (! $lockedGrant instanceof PatientEncounterAccessGrant || ! $lockedGrant->permits('pathway:read')) {

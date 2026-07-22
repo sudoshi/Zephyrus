@@ -56,7 +56,7 @@ class PatientPathwaySourceReconciliationService
 
         return DB::transaction(function () use ($grant, $snapshot): array {
             $lockedGrant = PatientEncounterAccessGrant::query()
-                ->scopeEffective()
+                ->effective()
                 ->lockForUpdate()
                 ->find($grant->getKey());
             if (! $lockedGrant instanceof PatientEncounterAccessGrant || ! $lockedGrant->permits('pathway:read')) {

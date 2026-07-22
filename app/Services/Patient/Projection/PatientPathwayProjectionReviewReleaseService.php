@@ -227,7 +227,7 @@ class PatientPathwayProjectionReviewReleaseService
         }
 
         $grant = PatientEncounterAccessGrant::query()
-            ->scopeEffective()
+            ->effective()
             ->lockForUpdate()
             ->find($lockedDraft->access_grant_id);
         if (! $grant instanceof PatientEncounterAccessGrant || ! $grant->permits('pathway:read')) {

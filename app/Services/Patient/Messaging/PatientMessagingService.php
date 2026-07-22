@@ -245,6 +245,7 @@ class PatientMessagingService
                 $bodyDigest,
                 $operationDigest,
                 $payloadDigest,
+                $expectedCompositionMode,
             ): array {
                 $this->acquireReplayLocks([
                     'operation|'.$operationDigest,
