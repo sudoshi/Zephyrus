@@ -864,6 +864,9 @@ class MobileBackendSafetyTest extends TestCase
             'status' => 'pending',
         ]);
         $contextRef = app(MobilePatientContextReferenceStore::class)->issue($patientRef);
+        $initialCachedPayload = DB::table('ops.patient_operational_context_cache')
+            ->where('patient_context_ref', $contextRef)
+            ->value('context_payload');
 
         $this->mock(OperationalActivityLedger::class, function (MockInterface $mock): void {
             $mock->shouldReceive('forPatient')
@@ -883,7 +886,7 @@ class MobileBackendSafetyTest extends TestCase
             'outcome' => 'success',
             'target_id' => $contextRef,
         ]);
-        $this->assertNull(DB::table('ops.patient_operational_context_cache')
+        $this->assertSame($initialCachedPayload, DB::table('ops.patient_operational_context_cache')
             ->where('patient_context_ref', $contextRef)
             ->value('context_payload'));
     }
@@ -899,6 +902,9 @@ class MobileBackendSafetyTest extends TestCase
             'status' => 'pending',
         ]);
         $contextRef = app(MobilePatientContextReferenceStore::class)->issue($patientRef);
+        $initialCachedPayload = DB::table('ops.patient_operational_context_cache')
+            ->where('patient_context_ref', $contextRef)
+            ->value('context_payload');
 
         $this->mock(UserAuditRecorder::class, function (MockInterface $mock): void {
             $mock->shouldReceive('record')
@@ -922,7 +928,7 @@ class MobileBackendSafetyTest extends TestCase
             'outcome' => 'success',
             'target_id' => $contextRef,
         ]);
-        $this->assertNull(DB::table('ops.patient_operational_context_cache')
+        $this->assertSame($initialCachedPayload, DB::table('ops.patient_operational_context_cache')
             ->where('patient_context_ref', $contextRef)
             ->value('context_payload'));
     }
