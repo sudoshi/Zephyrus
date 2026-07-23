@@ -91,6 +91,7 @@ jobs:
         run: |
           php scripts/verify-hummingbird-capability-ledger.php
           php scripts/generate-hummingbird-capability-report.php --check
+          php scripts/verify-hummingbird-staff-contract.php --self-test-governance
           php scripts/verify-hummingbird-staff-contract.php
           php scripts/verify-hummingbird-patient-disclosure-matrix.php
           php scripts/verify-hummingbird-patient-accessibility-matrix.php

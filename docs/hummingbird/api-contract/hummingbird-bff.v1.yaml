@@ -38,6 +38,22 @@ tags:
 paths:
   /auth/token:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: staff_password
+        required_abilities: []
+      x-zephyrus-data-classification:
+        request: staff_identity_secret
+        response: staff_authentication_secret
+        storage: protected_credential_store
+      x-zephyrus-idempotency:
+        semantics: non_idempotent
+        idempotency_key: unsupported
+        retry: never_automatic
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 413, 415, 422, 429, 500]
       tags: [auth]
       security: []
       servers:
@@ -68,6 +84,22 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
   /auth/token/refresh:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [token:refresh]
+      x-zephyrus-data-classification:
+        request: staff_authentication_secret
+        response: staff_authentication_secret
+        storage: protected_credential_store
+      x-zephyrus-idempotency:
+        semantics: non_idempotent_token_rotation
+        idempotency_key: presented_refresh_token
+        retry: never_concurrent_or_automatic
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 413, 415, 422, 429, 500]
       tags: [auth]
       servers:
         [
@@ -76,7 +108,8 @@ paths:
             variables: { host: { default: zephyrus.example.org } },
           },
         ]
-      security: []
+      security:
+        - bearerAuth: []
       summary: Rotate refresh → new access token.
       responses:
         "200":
@@ -91,6 +124,22 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
   /auth/token/revoke:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: []
+      x-zephyrus-data-classification:
+        request: staff_authentication_secret
+        response: content_free_confirmation
+        storage: protected_credential_store
+      x-zephyrus-idempotency:
+        semantics: idempotent
+        idempotency_key: resource_or_presented_token_identity
+        retry: explicit_retry_treating_already_absent_as_success
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 413, 415, 422, 429, 500]
       tags: [auth]
       servers:
         [
@@ -105,6 +154,22 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
   /auth/change-password:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: []
+      x-zephyrus-data-classification:
+        request: staff_authentication_secret
+        response: staff_authentication_secret
+        storage: protected_credential_store
+      x-zephyrus-idempotency:
+        semantics: non_idempotent
+        idempotency_key: unsupported
+        retry: never_automatic
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 413, 415, 422, 429, 500]
       tags: [auth]
       servers:
         [
@@ -138,6 +203,22 @@ paths:
 
   /me:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [me]
       summary: Profile, role, workflow_preference, prefs.
       responses:
@@ -154,6 +235,22 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /me/preferences:
     put:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: phi_minimized_operational_command
+        response: phi_minimized_operational_state
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: idempotent
+        idempotency_key: resource_identity
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 413, 415, 422, 429, 500]
       tags: [me]
       summary: Notification tiers, quiet hours, theme, default workflow.
       requestBody:
@@ -172,6 +269,22 @@ paths:
         "422": { $ref: "#/components/responses/InvalidBody" }
   /devices:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: notification_device_secret
+        response: opaque_device_registration
+        storage: protected_device_registry
+      x-zephyrus-idempotency:
+        semantics: idempotent
+        idempotency_key: device_registration_identity
+        retry: explicit_retry_after_authorized_refetch
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 413, 415, 422, 429, 500]
       tags: [me]
       summary: Register an APNs/FCM push token for this device.
       requestBody:
@@ -190,6 +303,22 @@ paths:
         "422": { $ref: "#/components/responses/InvalidBody" }
   /devices/{device}:
     delete:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: notification_device_secret
+        response: opaque_device_registration
+        storage: protected_device_registry
+      x-zephyrus-idempotency:
+        semantics: idempotent
+        idempotency_key: resource_or_presented_token_identity
+        retry: explicit_retry_treating_already_absent_as_success
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
       tags: [me]
       summary: Revoke a registered mobile device token.
       parameters:
@@ -210,6 +339,22 @@ paths:
 
   /altitude/home:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [altitude]
       summary: A0 Persona Glance composed from the shared operational snapshot.
       parameters:
@@ -240,6 +385,22 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /altitude/workspace/{domain}:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
       tags: [altitude]
       summary: A1 Live Workspace for a domain queue or board.
       parameters:
@@ -279,6 +440,22 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
   /drills/{itemUuid}:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
       tags: [altitude]
       summary: A2 drill for a For You item, alert, queue row, or operational event.
       parameters:
@@ -308,6 +485,22 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
   /patients/{contextRef}/operational-context:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_patient_context_reference
+        response: staff_authorized_patient_phi
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
       tags: [patients]
       summary: A2P Patient/Encounter Lens for authorized operational detail entry.
       parameters:
@@ -343,6 +536,22 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
   /patient-communications/inbox:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: patient_communication_phi
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500, 503]
       tags: [patient-communications]
       summary: List open patient-message work items for the staff member's active responsibility-pool memberships.
       description: >
@@ -369,6 +578,22 @@ paths:
         "503": { $ref: "#/components/responses/ServiceUnavailable" }
   /patient-communications/threads/{workItemUuid}:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: patient_communication_phi
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500, 503]
       tags: [patient-communications]
       summary: Read one authorized patient-message work item and its bounded message history.
       description: >
@@ -396,6 +621,22 @@ paths:
         "503": { $ref: "#/components/responses/ServiceUnavailable" }
   /patient-communications/threads/{workItemUuid}/route-candidates:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: patient_communication_phi
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 429, 500, 503]
       tags: [patient-communications]
       summary: List the currently authorized release, reassign, and reroute choices for one work item.
       description: >
@@ -427,6 +668,22 @@ paths:
         "503": { $ref: "#/components/responses/ServiceUnavailable" }
   /patient-communications/threads/{workItemUuid}/claim:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: patient_communication_phi
+        response: patient_communication_phi
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500, 503]
       tags: [patient-communications]
       summary: Atomically claim an unassigned patient-message work item.
       description: >
@@ -465,6 +722,22 @@ paths:
         "503": { $ref: "#/components/responses/ServiceUnavailable" }
   /patient-communications/threads/{workItemUuid}/reply:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: patient_communication_phi
+        response: patient_communication_phi
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500, 503]
       tags: [patient-communications]
       summary: Append a patient-visible care-team reply to a claimed work item.
       description: >
@@ -502,6 +775,22 @@ paths:
         "503": { $ref: "#/components/responses/ServiceUnavailable" }
   /patient-communications/threads/{workItemUuid}/close:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: patient_communication_phi
+        response: patient_communication_phi
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500, 503]
       tags: [patient-communications]
       summary: Close an assigned work item after a patient-visible care-team response.
       description: >
@@ -539,6 +828,22 @@ paths:
         "503": { $ref: "#/components/responses/ServiceUnavailable" }
   /patient-communications/threads/{workItemUuid}/release:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: patient_communication_phi
+        response: patient_communication_phi
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500, 503]
       tags: [patient-communications]
       summary: Release an assigned communication back to its current accountable pool.
       description: >
@@ -577,6 +882,22 @@ paths:
         "503": { $ref: "#/components/responses/ServiceUnavailable" }
   /patient-communications/threads/{workItemUuid}/reassign:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: patient_communication_phi
+        response: patient_communication_phi
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500, 503]
       tags: [patient-communications]
       summary: Reassign an assigned communication to an eligible member of the same pool.
       description: >
@@ -614,6 +935,22 @@ paths:
         "503": { $ref: "#/components/responses/ServiceUnavailable" }
   /patient-communications/threads/{workItemUuid}/reroute:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: patient_communication_phi
+        response: patient_communication_phi
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500, 503]
       tags: [patient-communications]
       summary: Reroute an open communication to another approved accountable pool.
       description: >
@@ -659,6 +996,22 @@ paths:
         "503": { $ref: "#/components/responses/ServiceUnavailable" }
   /activity:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [activity]
       summary: Role-filtered cross-persona operational event feed.
       parameters:
@@ -685,6 +1038,22 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /activity/{eventUuid}/ack:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: phi_minimized_operational_command
+        response: phi_minimized_operational_state
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 413, 415, 422, 429, 500]
       tags: [activity]
       summary: Acknowledge that an event was seen without mutating the operational object.
       parameters:
@@ -712,6 +1081,22 @@ paths:
 
   /for-you:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: operational_filter
+        response: phi_minimized_restricted
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500, 503]
       tags: [for-you]
       summary: The unified, ranked, cross-domain action queue for this worker.
       description: >
@@ -753,9 +1138,24 @@ paths:
 
   /flow/floors:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: operational_filter
+        response: internal_operational_non_phi
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [flow]
-      summary:
-        Versioned, simplified 2D floor-plate asset (geometry + unit/bed
+      summary: Versioned, simplified 2D floor-plate asset (geometry + unit/bed
         bridges, no live state). Strong ETag; clients revalidate with
         If-None-Match and render from cache on 304.
       parameters:
@@ -781,9 +1181,24 @@ paths:
 
   /flow/spaces3d:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: operational_filter
+        response: internal_operational_non_phi
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [flow]
-      summary:
-        Versioned 3D space-anchor asset for the native SceneKit/Filament
+      summary: Versioned 3D space-anchor asset for the native SceneKit/Filament
         viewers — per-space centroid (metres) + unit/bed bridges to place
         patient tokens and duty markers over the GLB shell. Geometry only,
         no live state. Strong ETag; revalidate with If-None-Match.
@@ -800,7 +1215,8 @@ paths:
               {
                 application/json:
                   {
-                    schema: { $ref: "#/components/schemas/FlowSpaces3dEnvelope" },
+                    schema:
+                      { $ref: "#/components/schemas/FlowSpaces3dEnvelope" },
                   },
               },
           }
@@ -810,6 +1226,22 @@ paths:
 
   /flow/demo-scenarios:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: operational_filter
+        response: internal_operational_non_phi
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [flow]
       summary:
         Available synthetic Patient Flow scenarios and their enabled state.
@@ -830,9 +1262,24 @@ paths:
 
   /flow/occupancy/history:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 422, 429, 500]
       tags: [flow]
-      summary:
-        Persona-lensed persisted occupancy history for Patient Flow review.
+      summary: Persona-lensed persisted occupancy history for Patient Flow review.
       parameters:
         - name: persona
           in: query
@@ -843,7 +1290,11 @@ paths:
         - { name: service_line, in: query, schema: { type: string } }
         - { name: floor, in: query, schema: { type: integer } }
         - { name: scenario, in: query, schema: { type: string } }
-        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500 } }
+        - {
+            name: limit,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 500 },
+          }
       responses:
         "200":
           {
@@ -868,9 +1319,24 @@ paths:
 
   /flow/window:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 422, 429, 500]
       tags: [flow]
-      summary:
-        The persona-lensed 48h Flow Window — census checkpoints (review),
+      summary: The persona-lensed 48h Flow Window — census checkpoints (review),
         normalized events (review), and typed projections with confidence +
         provenance (prediction), for one scope. Layers, kinds, scope, and
         patient depth are clamped server-side by the caller's flow lens;
@@ -921,8 +1387,7 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "422":
-          description:
-            Invalid `since` — not parseable as ISO8601, or outside
+          description: Invalid `since` — not parseable as ISO8601, or outside
             [window.from, window.to).
           content:
             application/json:
@@ -930,6 +1395,22 @@ paths:
 
   /rtdc/census:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [rtdc]
       summary: Live unit census + acuity-adjusted safe capacity (mirrors Reverb CensusUpdated).
       responses:
@@ -946,6 +1427,22 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /rtdc/house:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [rtdc]
       summary: Hospital bed-need roll-up (net/deficit per unit + total).
       responses:
@@ -965,6 +1462,22 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /rtdc/bed-requests:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [rtdc]
       summary: Pending bed requests (role-scoped).
       responses:
@@ -984,6 +1497,22 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /rtdc/bed-requests/{id}/recommendations:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
       tags: [rtdc]
       summary: Ranked bed recommendations for a pending placement.
       parameters:
@@ -1008,6 +1537,22 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
   /rtdc/bed-requests/{id}/decision:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: phi_minimized_operational_command
+        response: phi_minimized_operational_state
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500]
       tags: [rtdc]
       summary: Accept or reject a placement decision. Delegates to the placement service.
       parameters:
@@ -1030,6 +1575,22 @@ paths:
         "422": { $ref: "#/components/responses/InvalidBody" }
   /rtdc/barriers/{id}/resolve:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: phi_minimized_operational_command
+        response: phi_minimized_operational_state
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 413, 415, 422, 429, 500]
       tags: [rtdc]
       summary: Resolve a discharge barrier.
       parameters:
@@ -1042,6 +1603,22 @@ paths:
 
   /ops/inbox:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [ops]
       summary: Approvals/actions summary (pending/active/assigned/overdue).
       responses:
@@ -1058,6 +1635,22 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /ops/approvals/{uuid}/decision:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: phi_minimized_operational_command
+        response: phi_minimized_operational_state
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500]
       tags: [ops]
       summary: Approve / reject a recommendation's action. Delegates to OperationalActionLifecycleService.
       parameters:
@@ -1088,6 +1681,22 @@ paths:
 
   /or/board:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [or]
       summary: Live OR room-status board (Available/In-Progress/Turnover from the wheels clock).
       responses:
@@ -1105,6 +1714,22 @@ paths:
 
   /command/house:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [command]
       summary: House strain/surge index (0-4) + hero KPIs + 24h forecast.
       responses:
@@ -1124,15 +1749,42 @@ paths:
 
   /transport/queue:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [transport]
       summary: Cursor-paginated queue containing only this transporter's assignments and unclaimed work.
       parameters:
-        - { name: persona, in: query, schema: { type: string, enum: [transport], default: transport } }
+        - {
+            name: persona,
+            in: query,
+            schema: { type: string, enum: [transport], default: transport },
+          }
         - { name: cursor, in: query, schema: { type: string, maxLength: 1000 } }
-        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
-        - { name: priority, in: query, schema: { type: string, enum: [routine, urgent, stat] } }
-        -
-          name: status
+        - {
+            name: per_page,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 25 },
+          }
+        - {
+            name: priority,
+            in: query,
+            schema: { type: string, enum: [routine, urgent, stat] },
+          }
+        - name: status
           in: query
           schema: { $ref: "#/components/schemas/TransportStatus" }
       responses:
@@ -1152,16 +1804,37 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /transport/requests/{id}/status:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: phi_minimized_operational_command
+        response: phi_minimized_operational_state
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500]
       tags: [transport]
       summary: Claim or perform one server-authorized transition in the canonical transport lifecycle.
       parameters:
         - { name: id, in: path, required: true, schema: { type: integer } }
-        -
-          name: Idempotency-Key
+        - name: Idempotency-Key
           in: header
           required: true
           description: Stable per-command retry key. Reuse only when retrying the same payload.
-          schema: { type: string, minLength: 1, maxLength: 200, pattern: "^[A-Za-z0-9._:-]+$" }
+          schema:
+            {
+              type: string,
+              minLength: 1,
+              maxLength: 200,
+              pattern: "^[A-Za-z0-9._:-]+$",
+            }
       requestBody:
         {
           required: true,
@@ -1180,16 +1853,37 @@ paths:
         "422": { $ref: "#/components/responses/InvalidBody" }
   /transport/requests/{id}/handoff:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: phi_minimized_operational_command
+        response: phi_minimized_operational_state
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500]
       tags: [transport]
       summary: Record append-only receiver acceptance evidence and complete the governed handoff.
       parameters:
         - { name: id, in: path, required: true, schema: { type: integer } }
-        -
-          name: Idempotency-Key
+        - name: Idempotency-Key
           in: header
           required: true
           description: Stable per-command retry key. Reuse only when retrying the same payload.
-          schema: { type: string, minLength: 1, maxLength: 200, pattern: "^[A-Za-z0-9._:-]+$" }
+          schema:
+            {
+              type: string,
+              minLength: 1,
+              maxLength: 200,
+              pattern: "^[A-Za-z0-9._:-]+$",
+            }
       requestBody:
         {
           required: true,
@@ -1209,6 +1903,22 @@ paths:
 
   /evs/queue:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [evs]
       summary: "Next dirty bed + my bed-turns (turn_type, isolation badged)."
       responses:
@@ -1225,6 +1935,22 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /evs/requests/{id}/status:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: phi_minimized_operational_command
+        response: phi_minimized_operational_state
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500]
       tags: [evs]
       summary: Progress a bed-turn (claim→start→complete). Delegates to EvsOperationsService.
       parameters:
@@ -1248,6 +1974,22 @@ paths:
 
   /staffing/overview:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [staffing]
       summary: "Staffing coordinator overview: coverage, units at risk, role gaps, and active queue."
       responses:
@@ -1267,12 +2009,32 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /staffing/requests/{id}/candidates:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 422, 429, 500]
       tags: [staffing]
       summary: Canonical staffing candidates with qualification, availability, and conflict evidence.
       parameters:
         - { name: id, in: path, required: true, schema: { type: integer } }
         - { name: page, in: query, schema: { type: integer, minimum: 1 } }
-        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+        - {
+            name: per_page,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100 },
+          }
         - { name: eligible_only, in: query, schema: { type: boolean } }
       responses:
         "200":
@@ -1281,7 +2043,12 @@ paths:
             content:
               {
                 application/json:
-                  { schema: { $ref: "#/components/schemas/StaffingCandidatePageEnvelope" } },
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/StaffingCandidatePageEnvelope",
+                      },
+                  },
               },
           }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -1290,6 +2057,22 @@ paths:
         "422": { $ref: "#/components/responses/InvalidBody" }
   /staffing/requests/{id}/fill:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: phi_minimized_operational_command
+        response: phi_minimized_operational_state
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500]
       tags: [staffing]
       summary: Fill with a named, server-validated canonical staff member. Requires mobile:act.
       parameters:
@@ -1324,6 +2107,22 @@ paths:
 
   /improvement/pdsa:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [improvement]
       summary: PDSA cycles for the PI / quality lead role.
       responses:
@@ -1343,6 +2142,22 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /improvement/opportunities:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: phi_minimized_operational
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [improvement]
       summary: Improvement opportunities ordered by priority and estimated impact.
       responses:
@@ -1365,6 +2180,22 @@ paths:
 
   /realtime/config:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: operational_filter
+        response: internal_operational_non_phi
+        storage: capability_ledger_offline_policy
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [realtime]
       summary: Reverb host/key + the PHI-free channels this user should subscribe to.
       responses:
@@ -1386,6 +2217,22 @@ paths:
   # ---- Eddy — process-aware AI agent (Phase 5 mobile embed) ----
   /eddy/chat:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: possible_phi_prompt_or_decision
+        response: possible_phi_governed_ai_output
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: non_idempotent
+        idempotency_key: unsupported
+        retry: never_automatic
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 413, 415, 422, 429, 500, 503]
       tags: [eddy]
       summary: Send a turn to Eddy. Stateless service; Laravel persists the conversation (origin=hummingbird).
       requestBody:
@@ -1414,6 +2261,22 @@ paths:
           description: Eddy unreachable. envelope.meta.stale=true; data.message is a notice string.
   /eddy/chat/stream:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: possible_phi_prompt_or_decision
+        response: possible_phi_governed_ai_output
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: non_idempotent
+        idempotency_key: unsupported
+        retry: never_automatic
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 413, 415, 422, 429, 500]
       tags: [eddy]
       summary: SSE token stream. Frames - conversation_id, then token, a terminal persisted (with proposed_action), then [DONE].
       requestBody:
@@ -1436,6 +2299,22 @@ paths:
         "422": { $ref: "#/components/responses/InvalidBody" }
   /eddy/conversations:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: possible_phi_governed_ai_output
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [eddy]
       summary: The user's recent Eddy conversations (most recent first).
       responses:
@@ -1452,6 +2331,22 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /eddy/conversations/{uuid}:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: possible_phi_governed_ai_output
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
       tags: [eddy]
       summary: One conversation with its messages (user-scoped).
       parameters:
@@ -1478,6 +2373,22 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
   /eddy/approvals:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: possible_phi_governed_ai_output
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 429, 500]
       tags: [eddy]
       summary: Pending Eddy-proposed approvals the user may act on (the doorbell deep-links here). PHI-minimized.
       responses:
@@ -1497,6 +2408,22 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
   /eddy/approvals/{uuid}:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: possible_phi_governed_ai_output
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
       tags: [eddy]
       summary: Fetch-on-open dry-run preview for one pending approval (operational params only — no patient PHI).
       parameters:
@@ -1528,6 +2455,22 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
   /eddy/approvals/{uuid}/decision:
     post:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read, mobile:act]
+      x-zephyrus-data-classification:
+        request: possible_phi_prompt_or_decision
+        response: possible_phi_governed_ai_output
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: exact_replay
+        idempotency_key: idempotency_key_header
+        retry: explicit_same_key_and_payload_only
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500]
       tags: [eddy]
       summary: Approve/reject a pending Eddy approval. Requires the mobile:act scope (a human decision; never the agent). Block offline.
       parameters:
@@ -1567,6 +2510,22 @@ paths:
         "422": { $ref: "#/components/responses/InvalidBody" }
   /eddy/context/{scopeRef}:
     get:
+      x-zephyrus-authorization:
+        realm: staff
+        authentication: bearer
+        required_abilities: [mobile:read]
+      x-zephyrus-data-classification:
+        request: opaque_resource_reference_or_filter
+        response: possible_phi_governed_ai_output
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe_read
+        idempotency_key: not_applicable
+        retry: automatic_once_after_successful_auth_refresh
+      x-zephyrus-error-behavior:
+        envelope: Error
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
       tags: [eddy]
       summary: Eddy-safe context packet for a drill, patient lens, event, or flow scope.
       parameters:
@@ -1805,19 +2764,25 @@ components:
           minItems: 1
           maxItems: 12
           items:
-            { $ref: "#/components/schemas/PatientCommunicationReleaseReasonOption" }
+            {
+              $ref: "#/components/schemas/PatientCommunicationReleaseReasonOption",
+            }
         reassign:
           type: array
           minItems: 1
           maxItems: 12
           items:
-            { $ref: "#/components/schemas/PatientCommunicationReassignReasonOption" }
+            {
+              $ref: "#/components/schemas/PatientCommunicationReassignReasonOption",
+            }
         reroute:
           type: array
           minItems: 1
           maxItems: 12
           items:
-            { $ref: "#/components/schemas/PatientCommunicationRerouteReasonOption" }
+            {
+              $ref: "#/components/schemas/PatientCommunicationRerouteReasonOption",
+            }
       required: [release, reassign, reroute]
     PatientCommunicationReassignCandidate:
       type: object
@@ -1825,8 +2790,7 @@ components:
       properties:
         membership_uuid: { type: string, format: uuid }
         label: { type: string, minLength: 1, maxLength: 120 }
-        membership_role:
-          { type: string, enum: [responder, triage, supervisor] }
+        membership_role: { type: string, enum: [responder, triage, supervisor] }
       required: [membership_uuid, label, membership_role]
     PatientCommunicationRerouteCandidate:
       type: object
@@ -1857,12 +2821,16 @@ components:
           type: array
           maxItems: 50
           items:
-            { $ref: "#/components/schemas/PatientCommunicationReassignCandidate" }
+            {
+              $ref: "#/components/schemas/PatientCommunicationReassignCandidate",
+            }
         reroute_candidates:
           type: array
           maxItems: 50
           items:
-            { $ref: "#/components/schemas/PatientCommunicationRerouteCandidate" }
+            {
+              $ref: "#/components/schemas/PatientCommunicationRerouteCandidate",
+            }
       required:
         [
           work_item_uuid,
@@ -2106,7 +3074,9 @@ components:
       additionalProperties: false
       properties:
         data:
-          { $ref: "#/components/schemas/PatientCommunicationRerouteMutationData" }
+          {
+            $ref: "#/components/schemas/PatientCommunicationRerouteMutationData",
+          }
         meta:
           { $ref: "#/components/schemas/PatientCommunicationRestrictedMeta" }
         links: { $ref: "#/components/schemas/Links" }
@@ -2119,7 +3089,9 @@ components:
         as mobile but omits the mobile-only links object.
       properties:
         data:
-          { $ref: "#/components/schemas/PatientCommunicationRerouteMutationData" }
+          {
+            $ref: "#/components/schemas/PatientCommunicationRerouteMutationData",
+          }
         meta:
           { $ref: "#/components/schemas/PatientCommunicationWebRestrictedMeta" }
       required: [data, meta]
@@ -2201,12 +3173,7 @@ components:
               ],
           }
       required:
-        [
-          work_item_version,
-          thread_version,
-          target_membership_uuid,
-          reason_code,
-        ]
+        [work_item_version, thread_version, target_membership_uuid, reason_code]
     ReroutePatientCommunication:
       type: object
       additionalProperties: false
@@ -2844,13 +3811,7 @@ components:
               ],
           }
         label: { type: string }
-        rect:
-          {
-            type: array,
-            items: { type: number },
-            minItems: 4,
-            maxItems: 4,
-          }
+        rect: { type: array, items: { type: number }, minItems: 4, maxItems: 4 }
         unit_id: { type: integer }
         bed_id: { type: integer }
 
@@ -2864,7 +3825,8 @@ components:
               required: [version, facility, floors]
               properties:
                 version: { type: string }
-                units: { type: string, description: Geometry unit contract note. }
+                units:
+                  { type: string, description: Geometry unit contract note. }
                 facility:
                   type: object
                   properties:
@@ -2923,9 +3885,18 @@ components:
       required: [name, color]
       properties:
         name: { type: string, description: Display name for the legend row. }
-        domain: { type: string, nullable: true, description: Clinical domain family. }
-        color: { type: string, description: Hex color (categorical data-viz palette). }
-        sort: { type: integer, description: Registry sort order for stable legend sequence. }
+        domain:
+          { type: string, nullable: true, description: Clinical domain family. }
+        color:
+          {
+            type: string,
+            description: Hex color (categorical data-viz palette).,
+          }
+        sort:
+          {
+            type: integer,
+            description: Registry sort order for stable legend sequence.,
+          }
 
     FlowSpaces3dEnvelope:
       allOf:
@@ -2937,7 +3908,8 @@ components:
               required: [version, facility, service_lines, spaces]
               properties:
                 version: { type: string }
-                units: { type: string, description: Geometry unit contract note. }
+                units:
+                  { type: string, description: Geometry unit contract note. }
                 facility:
                   type: object
                   properties:
@@ -2950,7 +3922,8 @@ components:
                     Colored legend for the service lines present in this asset, keyed by
                     canonical code, plus an `unassigned` entry. The single source of truth
                     for map color so iOS/Android never drift.
-                  additionalProperties: { $ref: "#/components/schemas/FlowServiceLineStyle" }
+                  additionalProperties:
+                    { $ref: "#/components/schemas/FlowServiceLineStyle" }
                 spaces:
                   type: array
                   items: { $ref: "#/components/schemas/FlowSpace3d" }
@@ -3154,12 +4127,10 @@ components:
                   properties:
                     role_id: { $ref: "#/components/schemas/MobilePersonaId" }
                     scope_default: { type: string }
-                    scopes_allowed:
-                      { type: array, items: { type: string } }
+                    scopes_allowed: { type: array, items: { type: string } }
                     layers: { type: array, items: { type: string } }
                     event_kinds: { type: array, items: { type: string } }
-                    projection_kinds:
-                      { type: array, items: { type: string } }
+                    projection_kinds: { type: array, items: { type: string } }
                     patient_dots:
                       { type: string, enum: [full, unit, task, none] }
                     actions: { type: array, items: { type: string } }
@@ -3167,8 +4138,7 @@ components:
                 scope:
                   type: object
                   properties:
-                    type:
-                      { type: string, enum: [house, floor, unit, patient] }
+                    type: { type: string, enum: [house, floor, unit, patient] }
                     floor: { oneOf: [{ type: integer }, { type: "null" }] }
                     unit_id: { oneOf: [{ type: integer }, { type: "null" }] }
                     patient_context_ref:
@@ -3192,8 +4162,7 @@ components:
                 events:
                   {
                     type: array,
-                    items:
-                      { $ref: "#/components/schemas/FlowTimelineEvent" },
+                    items: { $ref: "#/components/schemas/FlowTimelineEvent" },
                   }
                 projections:
                   {
@@ -3516,7 +4485,10 @@ components:
         resource_name: { oneOf: [{ type: string }, { type: "null" }] }
         handoff_required: { type: boolean }
         allowed_transitions:
-          { type: array, items: { $ref: "#/components/schemas/TransportStatus" } }
+          {
+            type: array,
+            items: { $ref: "#/components/schemas/TransportStatus" },
+          }
         can_handoff: { type: boolean }
         lifecycle_version: { type: integer, minimum: 1 }
         sla: { $ref: "#/components/schemas/Sla" }
@@ -3715,7 +4687,10 @@ components:
               type: object
               properties:
                 data:
-                  { type: array, items: { $ref: "#/components/schemas/StaffingCandidate" } }
+                  {
+                    type: array,
+                    items: { $ref: "#/components/schemas/StaffingCandidate" },
+                  }
                 meta:
                   type: object
                   properties:
@@ -3741,7 +4716,10 @@ components:
         role_label: { type: string }
         eligible: { type: boolean }
         eligibility_state:
-          { type: string, enum: [eligible, unqualified, unavailable, conflicted] }
+          {
+            type: string,
+            enum: [eligible, unqualified, unavailable, conflicted],
+          }
         reason_codes: { type: array, items: { type: string } }
         qualification_requirements:
           { type: array, items: { type: object, additionalProperties: true } }
@@ -3749,7 +4727,16 @@ components:
         overlapping_assignments: { type: integer }
         shift: { type: object, additionalProperties: true }
       required:
-        [staff_member_id, display_name, role_code, role_label, eligible, eligibility_state, reason_codes, overlapping_assignments]
+        [
+          staff_member_id,
+          display_name,
+          role_code,
+          role_label,
+          eligible,
+          eligibility_state,
+          reason_codes,
+          overlapping_assignments,
+        ]
     StaffingRequestEnvelope:
       allOf:
         - { $ref: "#/components/schemas/Envelope" }

@@ -86,6 +86,193 @@ function hummingbirdStaffParameterReferences(array $operation): array
     return $references;
 }
 
+/** @return list<int> */
+function hummingbirdStaffDocumentedErrorStatuses(array $operation): array
+{
+    $statuses = [];
+    foreach (array_keys($operation['responses'] ?? []) as $status) {
+        if ((is_int($status) || (is_string($status) && ctype_digit($status)))
+            && (int) $status >= 400) {
+            $statuses[] = (int) $status;
+        }
+    }
+
+    sort($statuses);
+
+    return array_values(array_unique($statuses));
+}
+
+/**
+ * @param  list<string>  $errors
+ * @return list<string>
+ */
+function hummingbirdStaffOperationGovernanceErrors(
+    string $method,
+    string $path,
+    array $operation,
+    array $errors,
+): array {
+    $operationKey = strtoupper($method).' '.$path;
+
+    $authorization = $operation['x-zephyrus-authorization'] ?? null;
+    if (! is_array($authorization)
+        || ($authorization['realm'] ?? null) !== 'staff'
+        || ! is_string($authorization['authentication'] ?? null)
+        || trim($authorization['authentication']) === ''
+        || ! is_array($authorization['required_abilities'] ?? null)
+        || ! array_is_list($authorization['required_abilities'])) {
+        $errors[] = "{$operationKey} is missing complete x-zephyrus-authorization metadata.";
+    } else {
+        foreach ($authorization['required_abilities'] as $ability) {
+            if (! is_string($ability) || trim($ability) === '') {
+                $errors[] = "{$operationKey} has an invalid required authorization ability.";
+                break;
+            }
+        }
+    }
+
+    $classification = $operation['x-zephyrus-data-classification'] ?? null;
+    if (! is_array($classification)) {
+        $errors[] = "{$operationKey} is missing x-zephyrus-data-classification metadata.";
+    } else {
+        foreach (['request', 'response', 'storage'] as $field) {
+            if (! is_string($classification[$field] ?? null)
+                || trim($classification[$field]) === '') {
+                $errors[] = "{$operationKey} data classification is missing {$field}.";
+            }
+        }
+    }
+
+    $idempotency = $operation['x-zephyrus-idempotency'] ?? null;
+    if (! is_array($idempotency)) {
+        $errors[] = "{$operationKey} is missing x-zephyrus-idempotency metadata.";
+    } else {
+        foreach (['semantics', 'idempotency_key', 'retry'] as $field) {
+            if (! is_string($idempotency[$field] ?? null)
+                || trim($idempotency[$field]) === '') {
+                $errors[] = "{$operationKey} idempotency policy is missing {$field}.";
+            }
+        }
+        if ($method === 'get'
+            && (($idempotency['semantics'] ?? null) !== 'safe_read'
+                || ($idempotency['idempotency_key'] ?? null) !== 'not_applicable')) {
+            $errors[] = "{$operationKey} must declare safe-read idempotency without a key.";
+        }
+    }
+
+    $errorBehavior = $operation['x-zephyrus-error-behavior'] ?? null;
+    if (! is_array($errorBehavior)
+        || ($errorBehavior['envelope'] ?? null) !== 'Error'
+        || ($errorBehavior['diagnostic_detail_exposed'] ?? null) !== false
+        || ! is_array($errorBehavior['expected_statuses'] ?? null)
+        || ! array_is_list($errorBehavior['expected_statuses'])) {
+        $errors[] = "{$operationKey} is missing complete x-zephyrus-error-behavior metadata.";
+    } else {
+        $declared = [];
+        foreach ($errorBehavior['expected_statuses'] as $status) {
+            if (! is_int($status) && ! (is_string($status) && ctype_digit($status))) {
+                $errors[] = "{$operationKey} has a non-numeric expected error status.";
+
+                continue;
+            }
+            $declared[] = (int) $status;
+        }
+        sort($declared);
+        $declared = array_values(array_unique($declared));
+        $missing = array_values(array_diff(
+            hummingbirdStaffDocumentedErrorStatuses($operation),
+            $declared,
+        ));
+        if ($missing !== []) {
+            $errors[] = "{$operationKey} error behavior omits documented statuses: ".
+                implode(', ', $missing).'.';
+        }
+    }
+
+    if ($path === '/auth/token') {
+        if (($operation['security'] ?? null) !== []
+            || ($authorization['authentication'] ?? null) !== 'staff_password'
+            || ($authorization['required_abilities'] ?? null) !== []) {
+            $errors[] = 'POST /auth/token must declare unauthenticated staff-password exchange.';
+        }
+    } elseif ($path === '/auth/token/refresh') {
+        if (($operation['security'] ?? null) !== [['bearerAuth' => []]]
+            || ($authorization['authentication'] ?? null) !== 'bearer'
+            || ($authorization['required_abilities'] ?? null) !== ['token:refresh']) {
+            $errors[] = 'POST /auth/token/refresh must require only the refresh-token ability.';
+        }
+    }
+
+    $legacyIdempotency = $operation['x-idempotency'] ?? null;
+    if ($legacyIdempotency === 'NOT_APPLICABLE'
+        && ($idempotency['semantics'] ?? null) !== 'safe_read') {
+        $errors[] = "{$operationKey} legacy and governed idempotency declarations conflict.";
+    }
+    if (is_string($legacyIdempotency)
+        && str_starts_with($legacyIdempotency, 'REQUIRED_')
+        && ($idempotency['semantics'] ?? null) !== 'exact_replay') {
+        $errors[] = "{$operationKey} must preserve exact-replay semantics from its legacy contract.";
+    }
+
+    return $errors;
+}
+
+function selfTestHummingbirdStaffOperationGovernance(): never
+{
+    $valid = [
+        'responses' => [
+            '200' => ['description' => 'OK'],
+            '401' => ['description' => 'Unauthorized'],
+        ],
+        'x-zephyrus-authorization' => [
+            'realm' => 'staff',
+            'authentication' => 'bearer',
+            'required_abilities' => ['mobile:read'],
+        ],
+        'x-zephyrus-data-classification' => [
+            'request' => 'operational_filter',
+            'response' => 'phi_minimized_operational',
+            'storage' => 'capability_ledger_offline_policy',
+        ],
+        'x-zephyrus-idempotency' => [
+            'semantics' => 'safe_read',
+            'idempotency_key' => 'not_applicable',
+            'retry' => 'automatic_once_after_successful_auth_refresh',
+        ],
+        'x-zephyrus-error-behavior' => [
+            'envelope' => 'Error',
+            'diagnostic_detail_exposed' => false,
+            'expected_statuses' => [401],
+        ],
+    ];
+
+    if (hummingbirdStaffOperationGovernanceErrors('get', '/self-test', $valid, []) !== []) {
+        fwrite(STDERR, "Staff operation-governance self-test rejected its valid fixture.\n");
+        exit(1);
+    }
+
+    foreach ([
+        'x-zephyrus-authorization' => 'authorization',
+        'x-zephyrus-data-classification' => 'data-classification',
+        'x-zephyrus-idempotency' => 'idempotency',
+        'x-zephyrus-error-behavior' => 'error-behavior',
+    ] as $extension => $label) {
+        $invalid = $valid;
+        unset($invalid[$extension]);
+        if (hummingbirdStaffOperationGovernanceErrors('get', '/self-test', $invalid, []) === []) {
+            fwrite(STDERR, "Staff operation-governance self-test did not reject missing {$label} metadata.\n");
+            exit(1);
+        }
+    }
+
+    fwrite(STDOUT, "Hummingbird staff operation-governance negative self-test passed.\n");
+    exit(0);
+}
+
+if (in_array('--self-test-governance', $argv, true)) {
+    selfTestHummingbirdStaffOperationGovernance();
+}
+
 $root = dirname(__DIR__);
 $contractFile = $root.'/'.HUMMINGBIRD_STAFF_CONTRACT;
 $errors = [];
@@ -238,6 +425,26 @@ $paths = $spec['paths'] ?? [];
 if (! is_array($paths)) {
     $errors[] = 'The staff BFF contract paths node must be a mapping.';
     $paths = [];
+}
+
+$governedOperationCount = 0;
+foreach ($paths as $path => $pathItem) {
+    if (! is_string($path) || ! is_array($pathItem)) {
+        continue;
+    }
+    foreach (['get', 'post', 'put', 'patch', 'delete'] as $method) {
+        $operation = $pathItem[$method] ?? null;
+        if (! is_array($operation)) {
+            continue;
+        }
+        $governedOperationCount++;
+        $errors = hummingbirdStaffOperationGovernanceErrors(
+            $method,
+            $path,
+            $operation,
+            $errors,
+        );
+    }
 }
 
 foreach ($paths as $path => $pathItem) {
@@ -599,6 +806,84 @@ if (! is_array($meCapabilityProperties)
 $app = require $root.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
+$specOperationKeys = [];
+foreach ($paths as $path => $pathItem) {
+    if (! is_string($path) || ! is_array($pathItem)) {
+        continue;
+    }
+    foreach (['get', 'post', 'put', 'patch', 'delete'] as $method) {
+        if (is_array($pathItem[$method] ?? null)) {
+            $specOperationKeys[strtoupper($method).' '.$path] = true;
+        }
+    }
+}
+
+$registeredStaffOperationKeys = [];
+$authUris = [
+    'api/auth/token',
+    'api/auth/token/refresh',
+    'api/auth/token/revoke',
+    'api/auth/change-password',
+];
+foreach (Route::getRoutes() as $route) {
+    $uri = $route->uri();
+    if (str_starts_with($uri, 'api/mobile/v1/')) {
+        $relativePath = '/'.substr($uri, strlen('api/mobile/v1/'));
+        $isMobileBff = true;
+    } elseif (in_array($uri, $authUris, true)) {
+        $relativePath = '/'.substr($uri, strlen('api/'));
+        $isMobileBff = false;
+    } else {
+        continue;
+    }
+
+    foreach ($route->methods() as $method) {
+        if (! in_array($method, ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+            continue;
+        }
+
+        $operationKey = $method.' '.$relativePath;
+        $registeredStaffOperationKeys[$operationKey] = true;
+        $operation = $paths[$relativePath][strtolower($method)] ?? null;
+        if (! is_array($operation)) {
+            $errors[] = "Laravel registers staff operation {$operationKey}, but OpenAPI does not.";
+
+            continue;
+        }
+
+        if (! $isMobileBff) {
+            continue;
+        }
+
+        $middleware = array_map('strval', $route->gatherMiddleware());
+        $hasMobileRead = collect($middleware)
+            ->contains(fn (string $entry): bool => str_contains($entry, 'mobile:read'));
+        $hasMobileAct = collect($middleware)
+            ->contains(fn (string $entry): bool => str_contains($entry, 'mobile:act'));
+        $declaredAbilities = $operation['x-zephyrus-authorization']['required_abilities'] ?? [];
+        if (! $hasMobileRead
+            || ! is_array($declaredAbilities)
+            || ! in_array('mobile:read', $declaredAbilities, true)
+            || $hasMobileAct !== in_array('mobile:act', $declaredAbilities, true)) {
+            $errors[] = "{$operationKey} authorization metadata has drifted from Laravel middleware.";
+        }
+    }
+}
+
+$expectedStaffOperationKeys = array_keys($specOperationKeys);
+$actualStaffOperationKeys = array_keys($registeredStaffOperationKeys);
+sort($expectedStaffOperationKeys);
+sort($actualStaffOperationKeys);
+if ($expectedStaffOperationKeys !== $actualStaffOperationKeys) {
+    $missingFromLaravel = array_values(array_diff(
+        $expectedStaffOperationKeys,
+        $actualStaffOperationKeys,
+    ));
+    if ($missingFromLaravel !== []) {
+        $errors[] = 'OpenAPI-only staff operations: '.implode(', ', $missingFromLaravel).'.';
+    }
+}
+
 $registeredOperations = [];
 foreach (Route::getRoutes() as $route) {
     if (! $route instanceof IlluminateRoute
@@ -665,7 +950,8 @@ if ($errors !== []) {
 fwrite(
     STDOUT,
     sprintf(
-        "Hummingbird staff contract verified: %d accountable patient-communications operations match Laravel, authorization, idempotency, bounded schemas, and offline policy.\n",
+        "Hummingbird staff contract verified: %d operations carry governed authorization, data classification, idempotency, and error behavior; %d accountable patient-communications operations also match Laravel, bounded schemas, and offline policy.\n",
+        $governedOperationCount,
         count($expectedOperations),
     ),
 );

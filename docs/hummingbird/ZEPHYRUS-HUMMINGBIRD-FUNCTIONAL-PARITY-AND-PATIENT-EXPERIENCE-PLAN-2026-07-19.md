@@ -1,7 +1,7 @@
 # Zephyrus–Hummingbird Functional Parity and Inpatient Experience Plan
 
 > **Status:** Current execution plan and capability audit
-> **Original audit date:** 2026-07-19; **implementation evidence verified through:** 2026-07-22
+> **Original audit date:** 2026-07-19; **implementation evidence verified through:** 2026-07-23
 > **Scope:** Zephyrus web, Hummingbird staff iOS, Hummingbird staff Android, the Laravel mobile BFF, and a new patient-facing Hummingbird product
 > **Supersedes for execution status:** the current-state assumptions and unfinished sequence in `PLATFORM-RECONCILIATION-TODO.md`; that document remains historical evidence
 > **Decision rule:** functional parity means an intentional, verified disposition for every Zephyrus capability—not a literal phone-sized copy of every web page
@@ -125,6 +125,13 @@ This checkpoint records repository implementation, not production approval or de
 - [x] Run the reference-identity dry run and commit on the deployed runtime without `--show-secrets`. It created one pending patient principal, one verified encrypted identity link, one pending access grant, and one redacted one-time enrollment challenge for each native platform. No challenge value, verification code, application key, or HMAC value was emitted to the terminal, checklist, or source tree.
 - [x] Restore the safety boundary immediately after the controlled exercise. `HUMMINGBIRD_PATIENT_ENABLED`, `HUMMINGBIRD_PATIENT_MESSAGING_ENABLED`, and `HUMMINGBIRD_PATIENT_REFERENCE_PROVISIONING_ENABLED` are all `false`; an unauthenticated deployed `GET /api/patient/v1/me` returns generic `404`.
 - [ ] Deliver the separately held iOS and Android one-time enrollment challenges through the approved secure enrollment workflow; do not use terminal output, chat, or source control. Do not activate a patient account, enable a patient feature, or begin a clinical pilot from this reference exercise.
+
+#### 3.2.4 Staff contract-governance and emulator revalidation — 2026-07-23
+
+- Every one of the **58** registered staff mobile/auth operations now carries governed authorization, request/response/storage data classification, idempotency/retry, and error-envelope/status behavior in `hummingbird-bff.v1.yaml`. The verifier compares the complete OpenAPI operation inventory with Laravel, requires `mobile:read` on all 54 mobile BFF operations, and proves `mobile:act` declarations match route middleware exactly. Refresh-token authentication is now explicitly bearer-token protected in the contract.
+- The CI gate includes a negative self-test that independently removes each required extension and proves the verifier rejects authorization, data-classification, idempotency, and error-behavior omissions. Normal staff, patient, capability-ledger, route-inventory, and immutable contract-baseline verification all pass locally.
+- Device revalidation is green: staff iOS passed **60/60 unit** and **16/16 simulator UI** tests; staff Android passed **16/16 connected instrumentation** tests; the focused patient iOS reference journey passed **4/4 simulator UI** tests; and the patient Android suite passed **15/15 connected instrumentation** tests. There were no failures or skips. These are simulator/emulator and synthetic-contract results, not a live patient pilot.
+- A read-only, content-minimized production check reconfirmed the command-owned synthetic encounter `10040` in active unit `85`, one pending patient principal, one verified identity link, one pending access grant, two issued platform enrollment challenges, and **zero** released patient projections. No challenge or credential value was emitted. The patient product and reference-provisioning flags remain disabled, so this evidence does not activate an account, approve content, or authorize patient use.
 
 ### 3.3 Parity status vocabulary
 
@@ -337,7 +344,7 @@ The “target” column is the recommended product disposition. It must be ratif
 - [x] Add CI that fails when a new navigation capability or staff mobile/auth API operation lacks a ledger record. _(2026-07-19: `scripts/verify-hummingbird-capability-ledger.php` runs in backend quality CI.)_
 - [ ] Extend the same ownership gate to non-mobile named API domains and background-job capabilities.
 - [x] Add CI that fails when a `NATIVE` capability has only one native platform route. _(2026-07-19: planned capabilities may have neither platform; one-platform drift fails.)_
-- [ ] Add CI that fails when an OpenAPI operation is missing an authorization, data-classification, idempotency, and error-behavior extension.
+- [x] Add CI that fails when an OpenAPI operation is missing an authorization, data-classification, idempotency, and error-behavior extension. _(2026-07-23: all 58 registered staff mobile/auth operations now carry the four governed extensions. `verify-hummingbird-staff-contract.php` checks every operation, validates extension structure and documented error coverage, compares the complete contract inventory with Laravel, and reconciles `mobile:read`/`mobile:act` metadata with actual middleware. CI also runs a negative self-test that removes each extension in turn and proves the gate fails.)_
 - [x] Add a generated Markdown report that shows domain coverage and unresolved dispositions without treating route count as parity percentage. _(2026-07-19: `generated/capability-coverage.md`, with a deterministic CI freshness check.)_
 - [ ] Assign one accountable product owner and one engineering owner per capability.
 - [x] Require a deprecation record before deleting or remapping a capability ID. _(2026-07-20: added the append-only `docs/hummingbird/capability-registry.lock` (every capability id ever created) and `docs/hummingbird/capability-deprecations.v1.yaml` (retirement records: id, retired_on, reason, replaced_by, migration_note). `verify-hummingbird-capability-ledger.php` now fails CI when an active id is missing from the lock, when a deprecation record is malformed or points at an unknown successor, when an id is both active and deprecated, or—critically—when a registered id is neither active nor deprecated, i.e. a capability was deleted or remapped without a deprecation record. Verified: the extended gate passes green (50 ids, 0 deprecations) and a simulated silent deletion fails with the exact remediation message.)_
