@@ -128,7 +128,17 @@ The backend serves as a thin layer that passes data to React via Inertia.js — 
 
 Production deployment is manual-only. GitHub Actions is for CI and must not deploy to production.
 
-Manual deployment: `./deploy.sh` (builds, rsyncs to `/var/www/Zephyrus/`, clears Laravel caches, restarts Apache, and verifies the Zephyrus vhost).
+Manual deployment from a clean, synchronized local `main` checkout:
+`./deploy.sh --check` followed by `./deploy.sh`. The canonical script verifies
+exact-commit CI, connects to `smudoshi@zephyrus.acumenus.net`, fast-forwards the
+canonical production checkout, builds an immutable release, rsyncs it to
+`/var/www/Zephyrus/`, clears Laravel caches, restarts services, and verifies the
+Zephyrus vhost.
+
+Production migrations are separate and path-scoped:
+`./deploy.sh --migrate --path database/migrations/<file.php>`. The command
+previews only the named paths and creates and verifies a full logical backup
+before migration. Never use blanket `migrate --force` in the deploy path.
 
 Do not use automated GitHub Actions deploy jobs, ad hoc SSH command blocks, direct production `git pull`, or alternate deploy scripts as application deployment mechanisms.
 

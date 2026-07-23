@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Auth\AuthDriverRegistry;
 use App\Auth\Drivers\AuthentikOidcAuthDriver;
+use App\Database\ProductionDatabaseReadOnlyGuard;
 use App\Security\ClinicalPayloads\ClinicalContentGuard;
 use App\Security\ClinicalPayloads\ClinicalPayloadException;
 use App\Security\ClinicalPayloads\ClinicalPayloadSafeQueueJob;
@@ -24,6 +25,7 @@ use App\Services\Auth\Oidc\OidcProviderConfig;
 use App\Services\Auth\Oidc\OidcReconciliationService;
 use App\Services\Auth\Oidc\OidcTokenValidator;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
+use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -35,6 +37,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(ProductionDatabaseReadOnlyGuard::class);
+        $this->app->make('events')->listen(
+            ConnectionEstablished::class,
+            function (ConnectionEstablished $event): void {
+                $this->app->make(ProductionDatabaseReadOnlyGuard::class)
+                    ->protect($event->connection, $this->app->environment());
+            },
+        );
+
         $this->app->singleton('log', fn ($app) => new ClinicalSafeLogManager($app));
 
         $this->app->singleton(\App\Services\Authorization\RoleCapabilityService::class);
