@@ -244,14 +244,18 @@ Production is **manual-only**. GitHub Actions runs **CI only** (Pint, PHPUnit, T
 build) and must never deploy.
 
 ```bash
-./deploy.sh              # build + rsync to /var/www/Zephyrus, clear caches, restart Apache, verify vhost
-./deploy.sh --frontend   # frontend rebuild only
-./deploy.sh --db         # run pending migrations (explicit; the default deploy does NOT migrate)
+./deploy.sh --check      # read-only local/GitHub/SSH/production preflight
+./deploy.sh              # sync exact CI-successful main, build, deploy, and verify
+./deploy.sh --frontend   # compatibility label; full app deploy, no migrations
+./deploy.sh --migrate \
+  --path database/migrations/YYYY_MM_DD_HHMMSS_example.php
+                         # backed-up, path-scoped migration after app deployment
 ```
 
 Production runs behind **Apache + php8.5-fpm** at `https://zephyrus.acumenus.net`, with Reverb as a
 systemd WebSocket service. Do **not** deploy via GitHub Actions, ad-hoc SSH, or direct production
-`git pull`. See [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md).
+`git pull`. See [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) and the
+[development/release runbook](docs/operations/DEVELOPMENT-AND-PRODUCTION-RELEASE-RUNBOOK.md).
 
 ---
 

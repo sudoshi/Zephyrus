@@ -1,40 +1,413 @@
 #!/bin/bash
-# Deploy script for Zephyrus
+# Canonical local-to-production release script for Zephyrus.
 
 set -Eeuo pipefail
 
 EXPECTED_REPOSITORY_ROOT="/home/smudoshi/Github/Zephyrus"
+PRODUCTION_APPLICATION_ROOT="/var/www/Zephyrus"
+PRODUCTION_SSH_TARGET="smudoshi@zephyrus.acumenus.net"
+DEPLOY_LOCK="/tmp/zephyrus-production-release.lock"
+ORIGINAL_ARGS=("$@")
+DEPLOY_ACTION="application"
+FRONTEND_LABEL=0
+CHECK_ONLY=0
+HOST_ONLY=0
+EXPECTED_COMMIT_ARG=""
+CONFIRM_COMMIT=""
+MIGRATION_PATHS=()
+
+usage() {
+    cat <<'USAGE'
+Usage:
+  ./deploy.sh [--frontend] [--confirm <full-commit-sha>]
+  ./deploy.sh --migrate --path database/migrations/<file.php> [--path ...]
+  ./deploy.sh --check
+
+Run from a clean local main branch to synchronize and deploy the exact
+CI-successful origin/main commit through smudoshi@zephyrus.acumenus.net.
+
+Options:
+  --frontend              Compatibility label; still publishes a full immutable
+                          application snapshot and never runs migrations.
+  --migrate, --db         Run only explicitly named migration paths after the
+                          application commit is deployed and a verified logical
+                          backup is captured.
+  --path <path>           Exact database/migrations/*.php path; repeat as needed.
+  --check                 Read-only local, GitHub CI, SSH, and server preflight.
+  --confirm <commit>      Non-interactive confirmation; must equal the full SHA.
+  --help                  Show this help.
+USAGE
+}
+
+fail() {
+    echo "❌ Error: $*" >&2
+    exit 1
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --frontend)
+            FRONTEND_LABEL=1
+            shift
+            ;;
+        --migrate|--db)
+            DEPLOY_ACTION="migration"
+            shift
+            ;;
+        --path)
+            [[ $# -ge 2 ]] || fail "--path requires a migration file"
+            MIGRATION_PATHS+=("$2")
+            shift 2
+            ;;
+        --path=*)
+            MIGRATION_PATHS+=("${1#--path=}")
+            shift
+            ;;
+        --check)
+            CHECK_ONLY=1
+            shift
+            ;;
+        --confirm)
+            [[ $# -ge 2 ]] || fail "--confirm requires the full release commit"
+            CONFIRM_COMMIT="$2"
+            shift 2
+            ;;
+        --host-only)
+            HOST_ONLY=1
+            shift
+            ;;
+        --expected-commit)
+            [[ $# -ge 2 ]] || fail "--expected-commit requires a full commit SHA"
+            EXPECTED_COMMIT_ARG="$2"
+            shift 2
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        *)
+            usage >&2
+            fail "unknown option: $1"
+            ;;
+    esac
+done
+
+if [[ "${DEPLOY_RUN_MIGRATIONS:-0}" != "0" ]]; then
+    fail "DEPLOY_RUN_MIGRATIONS is no longer supported; use --migrate with explicit --path values"
+fi
+
+if [[ "$DEPLOY_ACTION" == "application" && ${#MIGRATION_PATHS[@]} -gt 0 ]]; then
+    fail "--path is valid only with --migrate"
+fi
+if [[ "$DEPLOY_ACTION" == "migration" && ${#MIGRATION_PATHS[@]} -eq 0 ]]; then
+    fail "--migrate requires at least one explicit --path"
+fi
+if [[ "$FRONTEND_LABEL" -eq 1 && "$DEPLOY_ACTION" == "migration" ]]; then
+    fail "--frontend and --migrate cannot be combined"
+fi
+
+assert_main_release_source() {
+    local repository_root="$1"
+    local current_branch
+    local upstream
+
+    current_branch="$(git -C "$repository_root" branch --show-current)"
+    upstream="$(git -C "$repository_root" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
+    if [[ "$current_branch" != "main" || "$upstream" != "origin/main" ]]; then
+        echo "🌿 Current branch: ${current_branch:-detached HEAD}" >&2
+        echo "📡 Current upstream: ${upstream:-none}" >&2
+        fail "production releases must come from main tracking origin/main"
+    fi
+
+    if [[ -n "$(git -C "$repository_root" status --porcelain=v1 --untracked-files=normal)" ]]; then
+        git -C "$repository_root" status --short --branch >&2
+        fail "the release worktree must be clean"
+    fi
+
+    git -C "$repository_root" fetch --quiet origin main
+}
+
+validate_migration_paths() {
+    local repository_root="$1"
+    local migration_path
+
+    for migration_path in "${MIGRATION_PATHS[@]}"; do
+        if [[ ! "$migration_path" =~ ^database/migrations/[A-Za-z0-9._-]+\.php$ ]]; then
+            fail "migration path is not a direct database/migrations/*.php file: $migration_path"
+        fi
+        if [[ ! -f "$repository_root/$migration_path" ]]; then
+            fail "migration file does not exist: $migration_path"
+        fi
+        if ! git -C "$repository_root" ls-files --error-unmatch "$migration_path" >/dev/null 2>&1; then
+            fail "migration path is not tracked by Git: $migration_path"
+        fi
+    done
+}
+
+verify_release_ci() {
+    local repository_root="$1"
+    local commit="$2"
+    "$repository_root/scripts/deployment/verify-github-ci.sh" "$commit"
+}
+
+confirm_release() {
+    local commit="$1"
+    local verb="DEPLOY"
+    local expected
+    local answer
+
+    if [[ "$DEPLOY_ACTION" == "migration" ]]; then
+        verb="MIGRATE"
+    fi
+
+    if [[ -n "$CONFIRM_COMMIT" ]]; then
+        [[ "$CONFIRM_COMMIT" == "$commit" ]] \
+            || fail "--confirm must exactly match release commit $commit"
+        return
+    fi
+
+    [[ -t 0 ]] || fail "interactive confirmation unavailable; pass --confirm $commit"
+    expected="$verb ${commit:0:12}"
+    read -r -p "Type '$expected' to continue: " answer
+    [[ "$answer" == "$expected" ]] || fail "release confirmation did not match"
+}
+
+run_remote_preflight() {
+    local commit="$1"
+
+    ssh -o BatchMode=yes -o ConnectTimeout=10 "$PRODUCTION_SSH_TARGET" \
+        bash -s -- "$commit" <<'REMOTE_CHECK'
+set -Eeuo pipefail
+EXPECTED_COMMIT="$1"
+REPOSITORY_ROOT="/home/smudoshi/Github/Zephyrus"
+
+[[ "$(id -un)" == "smudoshi" ]] || {
+    echo "Error: production SSH user is not smudoshi" >&2
+    exit 1
+}
+[[ -d "$REPOSITORY_ROOT/.git" ]] || {
+    echo "Error: canonical production checkout is missing" >&2
+    exit 1
+}
+[[ "$(git -C "$REPOSITORY_ROOT" branch --show-current)" == "main" ]] || {
+    echo "Error: production checkout is not on main" >&2
+    exit 1
+}
+[[ "$(git -C "$REPOSITORY_ROOT" rev-parse --abbrev-ref --symbolic-full-name '@{u}')" == "origin/main" ]] || {
+    echo "Error: production checkout does not track origin/main" >&2
+    exit 1
+}
+[[ -z "$(git -C "$REPOSITORY_ROOT" status --porcelain=v1 --untracked-files=normal)" ]] || {
+    echo "Error: production checkout is dirty" >&2
+    exit 1
+}
+REMOTE_COMMIT="$(git -C "$REPOSITORY_ROOT" ls-remote --exit-code origin refs/heads/main | awk '{print $1}')"
+[[ "$REMOTE_COMMIT" == "$EXPECTED_COMMIT" ]] || {
+    echo "Error: origin/main changed during preflight" >&2
+    exit 1
+}
+sudo -n true
+printf 'Production preflight passed: user=%s branch=main origin/main=%s\n' \
+    "$(id -un)" "$EXPECTED_COMMIT"
+REMOTE_CHECK
+}
+
+run_remote_release() {
+    local commit="$1"
+
+    ssh -o BatchMode=yes "$PRODUCTION_SSH_TARGET" \
+        bash -s -- "$commit" "$DEPLOY_ACTION" "$FRONTEND_LABEL" "${MIGRATION_PATHS[@]}" <<'REMOTE_RELEASE'
+set -Eeuo pipefail
+EXPECTED_COMMIT="$1"
+DEPLOY_ACTION="$2"
+FRONTEND_LABEL="$3"
+shift 3
+MIGRATION_PATHS=("$@")
+REPOSITORY_ROOT="/home/smudoshi/Github/Zephyrus"
+LOCK_FILE="/tmp/zephyrus-production-release.lock"
+
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+    echo "Error: another Zephyrus production release is already running" >&2
+    exit 1
+fi
+
+cd "$REPOSITORY_ROOT"
+[[ "$(id -un)" == "smudoshi" ]] || {
+    echo "Error: production SSH user is not smudoshi" >&2
+    exit 1
+}
+[[ "$(git branch --show-current)" == "main" ]] || {
+    echo "Error: production checkout is not on main" >&2
+    exit 1
+}
+[[ "$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}')" == "origin/main" ]] || {
+    echo "Error: production checkout does not track origin/main" >&2
+    exit 1
+}
+[[ -z "$(git status --porcelain=v1 --untracked-files=normal)" ]] || {
+    echo "Error: production checkout is dirty" >&2
+    exit 1
+}
+
+git fetch --quiet origin main
+[[ "$(git rev-parse origin/main)" == "$EXPECTED_COMMIT" ]] || {
+    echo "Error: origin/main no longer matches the approved commit" >&2
+    exit 1
+}
+git merge --ff-only "$EXPECTED_COMMIT"
+[[ "$(git rev-parse HEAD)" == "$EXPECTED_COMMIT" ]] || {
+    echo "Error: production checkout did not reach the approved commit" >&2
+    exit 1
+}
+
+DEPLOY_ARGS=(--host-only --expected-commit "$EXPECTED_COMMIT")
+if [[ "$DEPLOY_ACTION" == "migration" ]]; then
+    DEPLOY_ARGS+=(--migrate)
+    for migration_path in "${MIGRATION_PATHS[@]}"; do
+        DEPLOY_ARGS+=(--path "$migration_path")
+    done
+elif [[ "$FRONTEND_LABEL" == "1" ]]; then
+    DEPLOY_ARGS+=(--frontend)
+fi
+
+exec env \
+    ZEPHYRUS_DEPLOY_LOCK_HELD=1 \
+    ZEPHYRUS_REMOTE_APPROVED_COMMIT="$EXPECTED_COMMIT" \
+    ./deploy.sh "${DEPLOY_ARGS[@]}"
+REMOTE_RELEASE
+}
+
+run_path_scoped_migrations() {
+    local release_commit="$1"
+    local deployed_commit
+    local metadata
+    local environment
+    local driver
+    local host
+    local database
+    local short_commit="${release_commit:0:12}"
+    local timestamp
+    local backup_path
+    local ledger_path
+    local migration_path
+    local migration_arguments=()
+
+    validate_migration_paths "$REPOSITORY_ROOT"
+
+    [[ -f "$PRODUCTION_APPLICATION_ROOT/.release-commit" ]] \
+        || fail "the production release marker is missing; deploy the application first"
+    deployed_commit="$(sudo cat "$PRODUCTION_APPLICATION_ROOT/.release-commit")"
+    [[ "$deployed_commit" == "$release_commit" ]] \
+        || fail "deployed application commit $deployed_commit does not match $release_commit"
+
+    metadata="$(
+        cd "$PRODUCTION_APPLICATION_ROOT"
+        sudo -u www-data php -r '
+            require "vendor/autoload.php";
+            $app = require "bootstrap/app.php";
+            $app->make("Illuminate\\Contracts\\Console\\Kernel")->bootstrap();
+            $name = (string) config("database.default");
+            $config = (array) config("database.connections.".$name);
+            echo app()->environment(), "\t";
+            echo (string) ($config["driver"] ?? ""), "\t";
+            echo (string) ($config["host"] ?? ""), "\t";
+            echo (string) ($config["database"] ?? "");
+        '
+    )"
+    IFS=$'\t' read -r environment driver host database <<< "$metadata"
+
+    [[ "$environment" == "production" ]] || fail "deployed application is not in production mode"
+    [[ "$driver" == "pgsql" ]] || fail "production database driver is not PostgreSQL"
+    [[ "$host" == "127.0.0.1" || "$host" == "localhost" || "$host" == "::1" ]] \
+        || fail "production database is not the expected host-local PostgreSQL service"
+    [[ "$database" =~ ^[A-Za-z0-9_.-]+$ ]] || fail "production database name is invalid"
+
+    for migration_path in "${MIGRATION_PATHS[@]}"; do
+        migration_arguments+=(--path "$migration_path")
+    done
+
+    echo "🔎 Previewing only the approved migration paths..."
+    (
+        cd "$PRODUCTION_APPLICATION_ROOT"
+        sudo -u www-data php artisan migrate \
+            --pretend --force --no-interaction "${migration_arguments[@]}"
+    )
+
+    timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+    backup_path="/var/backups/zephyrus/pre-migrate-${short_commit}-${timestamp}.dir"
+    ledger_path="${backup_path}.migrate-status.txt"
+
+    sudo install -d -o postgres -g postgres -m 0700 /var/backups/zephyrus
+    if sudo test -e "$backup_path" || sudo test -e "$ledger_path"; then
+        fail "migration backup target already exists"
+    fi
+
+    echo "💾 Capturing full PostgreSQL logical backup..."
+    sudo -u postgres pg_dump \
+        --format=directory \
+        --jobs=2 \
+        --file="$backup_path" \
+        --dbname="$database"
+    sudo -u postgres pg_restore --list "$backup_path" >/dev/null
+    (
+        cd "$PRODUCTION_APPLICATION_ROOT"
+        sudo -u www-data php artisan migrate:status --no-ansi
+    ) | sudo -u postgres tee "$ledger_path" >/dev/null
+
+    echo "✅ Verified backup: $backup_path"
+    echo "🧾 Migration ledger: $ledger_path"
+    echo "🗄️  Running only the approved migration paths..."
+    (
+        cd "$PRODUCTION_APPLICATION_ROOT"
+        sudo -u www-data php artisan migrate \
+            --force --no-interaction "${migration_arguments[@]}"
+    )
+
+    echo "🔍 Verifying migration status..."
+    (
+        cd "$PRODUCTION_APPLICATION_ROOT"
+        sudo -u www-data php artisan migrate:status --no-ansi
+    )
+    echo "✅ Path-scoped migration release completed for $release_commit"
+}
+
 REPOSITORY_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 
-# Production releases must originate from the canonical main checkout. Other
-# worktrees are useful for development, but are not release sources.
+[[ -n "$REPOSITORY_ROOT" ]] || fail "run this script from a Zephyrus Git worktree"
+
 if [[ "$REPOSITORY_ROOT" != "$EXPECTED_REPOSITORY_ROOT" ]]; then
-    echo "❌ Error: This script must be run from the canonical development checkout"
-    echo "📂 Current repository: ${REPOSITORY_ROOT:-not a Git worktree}"
-    echo "📂 Expected repository: $EXPECTED_REPOSITORY_ROOT"
-    exit 1
+    [[ "$HOST_ONLY" -eq 0 ]] || fail "--host-only is valid only in the canonical production checkout"
+    cd "$REPOSITORY_ROOT"
+    assert_main_release_source "$REPOSITORY_ROOT"
+    validate_migration_paths "$REPOSITORY_ROOT"
+
+    RELEASE_COMMIT="$(git rev-parse HEAD)"
+    REMOTE_COMMIT="$(git rev-parse origin/main)"
+    [[ "$RELEASE_COMMIT" == "$REMOTE_COMMIT" ]] \
+        || fail "local main must exactly match origin/main before release"
+    verify_release_ci "$REPOSITORY_ROOT" "$RELEASE_COMMIT"
+    run_remote_preflight "$RELEASE_COMMIT"
+
+    if [[ "$CHECK_ONLY" -eq 1 ]]; then
+        echo "✅ Read-only release preflight passed for $RELEASE_COMMIT"
+        exit 0
+    fi
+
+    confirm_release "$RELEASE_COMMIT"
+    run_remote_release "$RELEASE_COMMIT"
+    exit 0
 fi
+
 cd "$REPOSITORY_ROOT"
 
-CURRENT_BRANCH="$(git branch --show-current)"
-UPSTREAM="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
-if [[ "$CURRENT_BRANCH" != "main" || "$UPSTREAM" != "origin/main" ]]; then
-    echo "❌ Error: Production deployments must come from main tracking origin/main"
-    echo "🌿 Current branch: ${CURRENT_BRANCH:-detached HEAD}"
-    echo "📡 Current upstream: ${UPSTREAM:-none}"
-    exit 1
-fi
-
-# Check for uncommitted or untracked source before resolving the release.
-if [[ -n "$(git status --porcelain=v1 --untracked-files=normal)" ]]; then
-    echo "❌ Error: You have uncommitted changes"
-    echo "💡 Please commit or stash your changes before deploying"
-    git status
-    exit 1
+if [[ -z "${ZEPHYRUS_DEPLOY_LOCK_HELD:-}" ]]; then
+    exec flock -n "$DEPLOY_LOCK" \
+        env ZEPHYRUS_DEPLOY_LOCK_HELD=1 "$0" "${ORIGINAL_ARGS[@]}"
 fi
 
 echo "📡 Checking remote status..."
-git fetch --quiet origin main
+assert_main_release_source "$REPOSITORY_ROOT"
 RELEASE_COMMIT="$(git rev-parse HEAD)"
 REMOTE_COMMIT="$(git rev-parse origin/main)"
 
@@ -46,10 +419,36 @@ if [[ "$RELEASE_COMMIT" != "$REMOTE_COMMIT" ]]; then
 fi
 echo "✅ main is current at $RELEASE_COMMIT"
 
+if [[ -n "$EXPECTED_COMMIT_ARG" && "$EXPECTED_COMMIT_ARG" != "$RELEASE_COMMIT" ]]; then
+    fail "production checkout does not match expected commit $EXPECTED_COMMIT_ARG"
+fi
+if [[ "$HOST_ONLY" -eq 1 ]]; then
+    [[ -n "$EXPECTED_COMMIT_ARG" ]] || fail "--host-only requires an expected commit"
+    [[ "${ZEPHYRUS_REMOTE_APPROVED_COMMIT:-}" == "$EXPECTED_COMMIT_ARG" ]] \
+        || fail "--host-only requires the local controller's exact-commit approval"
+fi
+
+verify_release_ci "$REPOSITORY_ROOT" "$RELEASE_COMMIT"
+
+if [[ "$CHECK_ONLY" -eq 1 ]]; then
+    echo "✅ Production-host release preflight passed for $RELEASE_COMMIT"
+    exit 0
+fi
+
+if [[ "$HOST_ONLY" -eq 0 ]]; then
+    confirm_release "$RELEASE_COMMIT"
+fi
+
 if [[ ! -f "$REPOSITORY_ROOT/vendor/autoload.php" ]]; then
     echo "❌ Error: Composer dependencies are missing; run composer install"
     exit 1
 fi
+
+if [[ "$DEPLOY_ACTION" == "migration" ]]; then
+    run_path_scoped_migrations "$RELEASE_COMMIT"
+    exit 0
+fi
+
 if [[ ! -d "$REPOSITORY_ROOT/node_modules" ]]; then
     echo "❌ Error: Node dependencies are missing; run npm install"
     exit 1
@@ -156,10 +555,6 @@ fi
 echo "Clearing Laravel caches..."
 # Clear Laravel caches
 cd /var/www/Zephyrus
-if [[ "${DEPLOY_RUN_MIGRATIONS:-0}" == "1" ]]; then
-    echo "Running database migrations..."
-    sudo -u www-data php artisan migrate --force
-fi
 sudo -u www-data php artisan cache:clear
 sudo -u www-data php artisan view:clear
 sudo -u www-data php artisan config:clear
