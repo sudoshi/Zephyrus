@@ -47,3 +47,5 @@ The audit writer's clinical-content guard and allowlists reject clinical bodies,
 ## Verification
 
 The focused `MobileBackendSafetyTest` policy cases prove a permitted house-operations disclosure, nonoverlapping and historical-unit denials, current-unit access, and rejection when only terminal workflow history remains. They assert exact audit reason/policy targets, generic client denials, absence of source patient references, no success audit after context-construction failure, and fail-closed rollback of both audit and populated cache when the strict success audit cannot persist. The patient header projection also ignores terminal transport/EVS and departed ED locations so historical state cannot be presented as current.
+
+Mainline CI run `29973300332` on commit `affe3684` (which contains implementation/test head `ba030686`) passed all 17 jobs. PostgreSQL feature shard 6 passed 237 tests with 3,067 assertions, including the five focused patient-context policy cases above; the iOS and Android patient emulator jobs also passed.
