@@ -813,7 +813,8 @@ Route::prefix('auth')->group(function () {
     Route::middleware(['auth:sanctum', 'staff.realm', 'throttle:mobile-authenticated'])->group(function () {
         Route::post('/token/refresh', [MobileAuthController::class, 'refresh']);
         Route::post('/token/revoke', [MobileAuthController::class, 'revoke']);
-        Route::post('/change-password', [MobileAuthController::class, 'changePassword']);
+        Route::post('/change-password', [MobileAuthController::class, 'changePassword'])
+            ->middleware(CheckForAnyAbility::class.':password:change,mobile:read,token:refresh');
     });
 });
 

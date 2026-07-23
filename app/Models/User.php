@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Authorization\Capability;
+use App\Models\Auth\MobileTokenSession;
 use App\Models\Auth\UserAccessScope;
 use App\Models\Auth\UserExternalIdentity;
 use App\Services\Authorization\RoleCapabilityService;
@@ -117,6 +118,15 @@ class User extends Authenticatable
     public function mobileDevices(): HasMany
     {
         return $this->hasMany(MobileDevice::class, 'user_id');
+    }
+
+    /**
+     * Server-side lifecycle records for Hummingbird staff token families.
+     * Bearer secrets remain one-way hashed in Sanctum, never in this relation.
+     */
+    public function mobileTokenSessions(): HasMany
+    {
+        return $this->hasMany(MobileTokenSession::class, 'user_id');
     }
 
     /**

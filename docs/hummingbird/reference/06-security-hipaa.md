@@ -16,12 +16,16 @@ the locked auth rules in [.claude/rules/auth-system.md](../../../.claude/rules/a
 ## 1. Authentication & session (additive to the locked flow)
 
 - [ ] Token-based auth (**Sanctum PATs** v1; **OIDC + PKCE** via existing Authentik for SSO
-      orgs) — a *new path*, never a modification of the temp-password / `must_change_password`
+      orgs) — a _new path_, never a modification of the temp-password / `must_change_password`
       / Resend flow. → [04 §1](04-backend-requirements.md).
 - [ ] **PKCE** for any OAuth/OIDC native flow; system browser (ASWebAuthenticationSession /
       Custom Tabs via AppAuth), never an embedded webview.
-- [ ] **Short-lived access tokens + rotating refresh tokens**; refresh rotation detects
-      replay (revoke family on reuse).
+- [x] **Short-lived access tokens + rotating refresh tokens**; refresh rotation detects
+      replay and revokes only the represented family on reuse. _(2026-07-23: stable
+      server-side family state, non-sliding absolute expiry, one-way predecessor
+      tombstones, generic client failure, specific audit reason, account-lifecycle
+      reconciliation, bounded pruning, isolated PostgreSQL feature coverage, and native
+      terminal-reuse handling are verified.)_
 - [ ] Tokens stored in **Keychain** (iOS, `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`,
       `.biometryCurrentSet`) / **Android Keystore-backed EncryptedSharedPreferences**;
       **never** in plain prefs/UserDefaults.
@@ -78,7 +82,7 @@ the locked auth rules in [.claude/rules/auth-system.md](../../../.claude/rules/a
 
 ## 6. Authorization
 
-- [ ] **Action-level RBAC** (Laravel Policies) so a device can only *act* within its role/
+- [ ] **Action-level RBAC** (Laravel Policies) so a device can only _act_ within its role/
       assignment — only the assigned transporter progresses a trip; only an authorized
       approver decides an action. → [04 §3](04-backend-requirements.md).
 - [ ] **Reads role-scoped + PHI-gated** by the BFF; broad glanceable status, gated identity.

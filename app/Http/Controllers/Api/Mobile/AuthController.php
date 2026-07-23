@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Audit\UserAuditRecorder;
 use App\Services\Auth\AccountSessionService;
+use App\Services\Auth\MobileTokenSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 /**
  * Token-based authentication for the Hummingbird mobile companion.
@@ -28,6 +30,7 @@ class AuthController extends Controller
     public function __construct(
         private readonly UserAuditRecorder $audit,
         private readonly AccountSessionService $sessions,
+        private readonly MobileTokenSessionService $mobileTokenSessions,
     ) {}
 
     /**
@@ -97,7 +100,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $pair = $this->issueTokenPair($user);
+        $pair = $this->mobileTokenSessions->issueNewFamily($user);
         $this->auditAuth($request, 'mobile.auth.token_exchange', 'success', $user, [
             'auth_method' => 'password',
             'http_status' => 200,
@@ -116,7 +119,7 @@ class AuthController extends Controller
         $user = $request->user();
         $current = $user->currentAccessToken();
 
-        if (! $current || ! $current->can('token:refresh')) {
+        if (! $current instanceof PersonalAccessToken) {
             $this->auditAuth($request, 'mobile.auth.token_refresh', 'denied', $user, [
                 'reason' => 'invalid_refresh_token',
                 'auth_method' => 'mobile_token',
@@ -128,47 +131,27 @@ class AuthController extends Controller
             ], 401);
         }
 
-        if (! $user->is_active) {
-            $current->delete();
+        $result = $this->mobileTokenSessions->rotate($user, $current);
+
+        if ($result['pair'] === null) {
+            $reason = (string) $result['reason'];
+            $httpStatus = (int) $result['http_status'];
+            $accountInactive = $reason === 'account_inactive';
+
             $this->auditAuth($request, 'mobile.auth.token_refresh', 'denied', $user, [
-                'reason' => 'account_inactive',
+                'reason' => $reason,
                 'auth_method' => 'mobile_token',
-                'http_status' => 403,
+                'http_status' => $httpStatus,
             ]);
 
             return response()->json([
-                'error' => ['code' => 'account_inactive', 'message' => 'This account is not active.'],
-            ], 403);
-        }
-
-        // Serialize rotation on the presented database token. Two foreground
-        // readers may observe the same access-token expiry at once; only one request
-        // may consume this one-time refresh credential and mint a successor pair.
-        $pair = DB::transaction(function () use ($current, $user): ?array {
-            $locked = $user->tokens()
-                ->whereKey($current->getKey())
-                ->lockForUpdate()
-                ->first();
-
-            if (! $locked || ! $locked->can('token:refresh')) {
-                return null;
-            }
-
-            $locked->delete();
-
-            return $this->issueTokenPair($user);
-        });
-
-        if ($pair === null) {
-            $this->auditAuth($request, 'mobile.auth.token_refresh', 'denied', $user, [
-                'reason' => 'invalid_refresh_token',
-                'auth_method' => 'mobile_token',
-                'http_status' => 401,
-            ]);
-
-            return response()->json([
-                'error' => ['code' => 'invalid_refresh_token', 'message' => 'A valid refresh token is required.'],
-            ], 401);
+                'error' => [
+                    'code' => $accountInactive ? 'account_inactive' : 'invalid_refresh_token',
+                    'message' => $accountInactive
+                        ? 'This account is not active.'
+                        : 'A valid refresh token is required.',
+                ],
+            ], $httpStatus);
         }
 
         $this->auditAuth($request, 'mobile.auth.token_refresh', 'success', $user, [
@@ -177,7 +160,7 @@ class AuthController extends Controller
             'metadata' => ['token_kind' => 'access_refresh_pair'],
         ]);
 
-        return response()->json($pair);
+        return response()->json($result['pair']);
     }
 
     /**
@@ -186,7 +169,13 @@ class AuthController extends Controller
     public function revoke(Request $request): JsonResponse
     {
         $user = $request->user();
-        $user->currentAccessToken()?->delete();
+        $current = $user->currentAccessToken();
+
+        if ($current instanceof PersonalAccessToken) {
+            $this->mobileTokenSessions->revokeForToken($user, $current, 'user_logout');
+        } else {
+            $current?->delete();
+        }
 
         $this->auditAuth($request, 'mobile.auth.token_revoke', 'success', $user, [
             'auth_method' => 'mobile_token',
@@ -268,7 +257,7 @@ class AuthController extends Controller
             // Revoke every pre-change web/mobile credential, then issue one new pair.
             $this->sessions->revoke($user, $request, 'password_changed');
 
-            return $this->issueTokenPair($user);
+            return $this->mobileTokenSessions->issueNewFamily($user);
         });
         $this->auditAuth($request, 'mobile.auth.password_change', 'success', $user, [
             'auth_method' => 'mobile_token',
@@ -283,29 +272,6 @@ class AuthController extends Controller
         ]);
 
         return response()->json($pair);
-    }
-
-    /**
-     * Issue an access + refresh token pair with role-derived abilities.
-     *
-     * @return array<string, mixed>
-     */
-    private function issueTokenPair(User $user): array
-    {
-        $accessTtlMinutes = (int) config('hummingbird.token.access_ttl_minutes', 30);
-        $refreshTtlDays = (int) config('hummingbird.token.refresh_ttl_days', 30);
-        $abilities = $user->mobileTokenAbilities();
-
-        $access = $user->createToken('mobile-access', $abilities, now()->addMinutes($accessTtlMinutes));
-        $refresh = $user->createToken('mobile-refresh', ['token:refresh'], now()->addDays($refreshTtlDays));
-
-        return [
-            'token_type' => 'Bearer',
-            'access_token' => $access->plainTextToken,
-            'refresh_token' => $refresh->plainTextToken,
-            'expires_in' => $accessTtlMinutes * 60,
-            'abilities' => $abilities,
-        ];
     }
 
     /** @param  array<string, mixed>  $context */

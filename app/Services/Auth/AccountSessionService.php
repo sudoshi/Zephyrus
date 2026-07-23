@@ -12,7 +12,10 @@ class AccountSessionService
 {
     public const SESSION_VERSION_KEY = 'auth_session_version';
 
-    public function __construct(private readonly UserAuditRecorder $audit) {}
+    public function __construct(
+        private readonly UserAuditRecorder $audit,
+        private readonly MobileTokenSessionService $mobileTokenSessions,
+    ) {}
 
     public function establish(Request $request, User $user): void
     {
@@ -40,6 +43,9 @@ class AccountSessionService
         $hadRememberToken = is_string($user->getRememberToken()) && $user->getRememberToken() !== '';
         $apiTokens = $user->tokens()->count();
         $user->tokens()->delete();
+        // Keep the token-row -> family-row lock order aligned with refresh and
+        // logout so account-wide revocation cannot deadlock a concurrent rotation.
+        $this->mobileTokenSessions->revokeAllForUser($user, $reason);
 
         $databaseSessions = 0;
         if (Schema::hasTable('prod.sessions')) {

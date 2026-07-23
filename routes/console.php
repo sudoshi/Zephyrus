@@ -8,6 +8,14 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+// Rotated refresh predecessors remain only as one-way hashes until their
+// absolute family expiry so replay can be detected. Bound that tombstone
+// retention after expiry for both staff and patient Sanctum realms.
+Schedule::command('sanctum:prune-expired --hours=24')
+    ->daily()
+    ->onOneServer()
+    ->withoutOverlapping(60);
+
 Schedule::command('integrations:execute-scheduled-activations --limit=25 --lease-seconds=120')
     ->everyMinute()
     ->onOneServer()

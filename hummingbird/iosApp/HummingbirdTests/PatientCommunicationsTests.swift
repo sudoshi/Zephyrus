@@ -433,6 +433,41 @@ final class StaffTokenRefreshTests: XCTestCase {
         XCTAssertNil(stored)
     }
 
+    func testServerDetectedRefreshReuseClearsSessionWithoutLeakingDiagnosticDetail() async throws {
+        let coordinator = StaffTokenCoordinator()
+        try await coordinator.install(Self.session(access: "old-access", refresh: "reused-refresh", expiresIn: 600))
+        var requests: [URLRequest] = []
+        PatientCommunicationsURLProtocol.handler = { request in
+            requests.append(request)
+            if requests.count == 1 {
+                return (401, Data(#"{"error":{"code":"unauthenticated","message":"Expired."}}"#.utf8))
+            }
+            return (
+                401,
+                Data(
+                    #"{"error":{"code":"invalid_refresh_token","message":"Server-only family diagnostic."}}"#.utf8
+                )
+            )
+        }
+        let client = Self.client(coordinator: coordinator)
+
+        do {
+            _ = try await client.me(bearer: "old-access")
+            XCTFail("Expected server-detected refresh reuse to end the session")
+        } catch let error as APIError {
+            XCTAssertEqual(error.statusCode, 401)
+            XCTAssertEqual(error.message, "Your session has expired. Please sign in again.")
+        }
+
+        XCTAssertEqual(requests.map(\.url?.path), [
+            "/api/mobile/v1/me",
+            "/api/auth/token/refresh",
+        ])
+        XCTAssertEqual(requests[1].value(forHTTPHeaderField: "Authorization"), "Bearer reused-refresh")
+        let stored = await coordinator.snapshot()
+        XCTAssertNil(stored)
+    }
+
     func testTransientProactiveRefreshFailureUsesStillValidAccessToken() async throws {
         let coordinator = StaffTokenCoordinator()
         try await coordinator.install(Self.session(access: "old-access", refresh: "old-refresh", expiresIn: 30))

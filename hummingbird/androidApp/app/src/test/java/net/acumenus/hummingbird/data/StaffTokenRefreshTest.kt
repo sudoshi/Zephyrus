@@ -158,6 +158,32 @@ class StaffTokenRefreshTest {
     }
 
     @Test
+    fun `server detected refresh reuse clears session without leaking diagnostic detail`() = runBlocking {
+        coordinator.install(session("old-access", "reused-refresh", expiresInMs = 600_000))
+        server.enqueue(jsonResponse(401, """{"error":{"code":"unauthenticated","message":"Expired."}}"""))
+        server.enqueue(
+            jsonResponse(
+                401,
+                """{"error":{"code":"invalid_refresh_token","message":"Server-only family diagnostic."}}""",
+            ),
+        )
+
+        val failure = runCatching { api.me("old-access") }.exceptionOrNull()
+
+        assertTrue(failure is ApiException)
+        assertEquals(401, (failure as ApiException).statusCode)
+        assertEquals("Your session has expired. Please sign in again.", failure.message)
+        assertEquals(2, server.requestCount)
+        val originalRead = server.takeRequest()
+        val refresh = server.takeRequest()
+        assertEquals("/api/mobile/v1/me", originalRead.path)
+        assertEquals("/api/auth/token/refresh", refresh.path)
+        assertEquals("Bearer reused-refresh", refresh.getHeader("Authorization"))
+        assertNull(coordinator.snapshot())
+        assertNull(store.saved)
+    }
+
+    @Test
     fun `transient proactive refresh failure uses the still-valid access token`() {
         coordinator.install(session("old-access", "old-refresh", expiresInMs = 30_000))
 

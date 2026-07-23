@@ -5,16 +5,17 @@ auth, the assignment model, the push-device registry, the `PushNotifier` seam, a
 slice of the mobile BFF. It implements the backend half of
 [Phase 0](IMPLEMENTATION-PLAN.md#phase-0--foundation).
 
-> ⚠️ **Not executed in the authoring environment** (no PHP runtime was available). The code
-> is written to the repo's conventions but **must be verified** with the steps in §5 before
-> it is trusted. Treat §5 as the acceptance gate.
+> **Current verification note (2026-07-23):** the auth/session slice now passes its focused
+> Laravel matrix on an isolated PostgreSQL 16/pgvector database, along with the governed
+> contract checks and full native build/test matrices. This does not waive the complete §6
+> acceptance gate or the broader release gates in the current execution plan.
 
 ---
 
 ## 1. The additive guarantee
 
 Per [.claude/rules/auth-system.md](../../.claude/rules/auth-system.md), the web auth system is
-locked. **No protected file was modified.** Token auth is a *new, parallel path*:
+locked. **No protected file was modified.** Token auth is a _new, parallel path_:
 
 - **Untouched:** `AuthenticatedSessionController`, `RegisteredUserController`,
   `ChangePasswordController`, `HandleInertiaRequests`, `routes/auth.php`, `config/services.php`,
@@ -31,13 +32,20 @@ locked. **No protected file was modified.** Token auth is a *new, parallel path*
 ## 2. What shipped (files)
 
 **Modified (additive only)**
+
 - [`app/Models/User.php`](../../app/Models/User.php) — added `HasApiTokens`; `units()` (the
-  `user_unit` assignment relation), `mobileDevices()`, and `mobileTokenAbilities()`.
+  `user_unit` assignment relation), `mobileDevices()`, `mobileTokenSessions()`, and
+  `mobileTokenAbilities()`.
 - [`routes/api.php`](../../routes/api.php) — added the `/api/auth/*` and `/api/mobile/v1/*`
   route groups (+ imports).
+- [`routes/console.php`](../../routes/console.php) — bounds expired one-way token-tombstone
+  retention through the single-server Sanctum prune schedule.
+- [`app/Services/Auth/AccountSessionService.php`](../../app/Services/Auth/AccountSessionService.php)
+  — reconciles stable family lifecycle rows whenever account-wide credentials are revoked.
 - [`bootstrap/providers.php`](../../bootstrap/providers.php) — registered `HummingbirdServiceProvider`.
 
 **New**
+
 - Migrations:
   [`…_create_mobile_assignment_model.php`](../../database/migrations/2026_06_27_000110_create_mobile_assignment_model.php)
   (`prod.user_unit` + `owner_user_id` on `prod.barriers` & `prod.rtdc_plans`) and
@@ -45,6 +53,11 @@ locked. **No protected file was modified.** Token auth is a *new, parallel path*
   (`prod.mobile_devices`).
 - Model: [`app/Models/MobileDevice.php`](../../app/Models/MobileDevice.php).
 - Auth: [`app/Http/Controllers/Api/Mobile/AuthController.php`](../../app/Http/Controllers/Api/Mobile/AuthController.php).
+- Staff token-family lifecycle:
+  [`app/Models/Auth/MobileTokenSession.php`](../../app/Models/Auth/MobileTokenSession.php),
+  [`app/Services/Auth/MobileTokenSessionService.php`](../../app/Services/Auth/MobileTokenSessionService.php),
+  and
+  [`…_create_mobile_token_sessions.php`](../../database/migrations/2026_07_23_000100_create_mobile_token_sessions.php).
 - BFF: `MeController`, `DeviceController`, `RealtimeConfigController`, `RtdcController`
   (under [`app/Http/Controllers/Api/Mobile/`](../../app/Http/Controllers/Api/Mobile/)) +
   [`app/Http/Concerns/RendersMobileEnvelope.php`](../../app/Http/Concerns/RendersMobileEnvelope.php).
@@ -61,22 +74,26 @@ locked. **No protected file was modified.** Token auth is a *new, parallel path*
 All paths are under the existing `api` prefix. Matches
 [api-contract/hummingbird-bff.v1.yaml](api-contract/hummingbird-bff.v1.yaml).
 
-| Method | Path | Auth | Purpose |
-|--------|------|------|---------|
-| POST | `/api/auth/token` | public (throttle 10/min) | Exchange username/email + password for tokens; honors `must_change_password` |
-| POST | `/api/auth/token/refresh` | `auth:sanctum` (refresh token) | Rotate the refresh token into a new pair |
-| POST | `/api/auth/token/revoke` | `auth:sanctum` | Revoke the presented token (logout / wipe) |
-| POST | `/api/auth/change-password` | `auth:sanctum` | Forced/voluntary change; mirrors web rules |
-| GET | `/api/mobile/v1/me` | `auth:sanctum` | Profile, roles, workflow, unit assignments |
-| PUT | `/api/mobile/v1/me/preferences` | `auth:sanctum` | Default workflow + theme (P0 subset) |
-| POST | `/api/mobile/v1/devices` | `auth:sanctum` | Register/refresh an APNs/FCM push token |
-| DELETE | `/api/mobile/v1/devices/{device}` | `auth:sanctum` | Revoke a device |
-| GET | `/api/mobile/v1/realtime/config` | `auth:sanctum` | Reverb host/key + PHI-free channels to subscribe |
-| GET | `/api/mobile/v1/rtdc/census` | `auth:sanctum` | First live BFF read: unit census + safe capacity |
+| Method | Path                              | Auth                           | Purpose                                                                      |
+| ------ | --------------------------------- | ------------------------------ | ---------------------------------------------------------------------------- |
+| POST   | `/api/auth/token`                 | public (throttle 10/min)       | Exchange username/email + password for tokens; honors `must_change_password` |
+| POST   | `/api/auth/token/refresh`         | `auth:sanctum` (refresh token) | Rotate one generation; predecessor reuse revokes the stable family           |
+| POST   | `/api/auth/token/revoke`          | `auth:sanctum`                 | Revoke the represented token family (logout / wipe)                          |
+| POST   | `/api/auth/change-password`       | `auth:sanctum`                 | Forced/voluntary change; mirrors web rules                                   |
+| GET    | `/api/mobile/v1/me`               | `auth:sanctum`                 | Profile, roles, workflow, unit assignments                                   |
+| PUT    | `/api/mobile/v1/me/preferences`   | `auth:sanctum`                 | Default workflow + theme (P0 subset)                                         |
+| POST   | `/api/mobile/v1/devices`          | `auth:sanctum`                 | Register/refresh an APNs/FCM push token                                      |
+| DELETE | `/api/mobile/v1/devices/{device}` | `auth:sanctum`                 | Revoke a device                                                              |
+| GET    | `/api/mobile/v1/realtime/config`  | `auth:sanctum`                 | Reverb host/key + PHI-free channels to subscribe                             |
+| GET    | `/api/mobile/v1/rtdc/census`      | `auth:sanctum`                 | First live BFF read: unit census + safe capacity                             |
 
-**Tokens:** short-lived `mobile-access` (abilities from role/workflow) + longer-lived
-`mobile-refresh` (ability `token:refresh`, rotated on use). TTLs in `config/hummingbird.php`.
-Sanctum's `personal_access_tokens` table already exists (migration `2025_01_30_173302…`).
+**Tokens:** short-lived `mobile-access:{family_uuid}` (abilities from role/workflow) +
+longer-lived `mobile-refresh:{family_uuid}` (ability `token:refresh`, rotated on use).
+`prod.mobile_token_sessions` stores the stable family lifecycle and current generation ID,
+never a bearer value. Rotated predecessors retain only a one-way Sanctum hash with no
+abilities so reuse can revoke the family; access and refresh TTLs remain in
+`config/hummingbird.php`. Sanctum's `personal_access_tokens` table already exists (migration
+`2025_01_30_173302…`).
 
 ---
 
@@ -101,14 +118,14 @@ Verified against the **authoritative Laravel migrations** (which build the test/
 not only the `db/schemas/` SQL:
 
 - **`ORCaseController@store`** now persists `status_id` (Scheduled — `case_statuses.code =
-  SCHED`, fallback `1`, matching the `update_case_status_column` migration's default) instead
+SCHED`, fallback `1`, matching the `update_case_status_column` migration's default) instead
   of writing a **non-existent string `status` column** — the previous line broke inserts.
-  > ⚠️ **Honest scope note:** `store()`/`validateCase` still carry a *broader* schema mismatch
-  > (they validate `patient_name` / `mrn` / `service_id` / `case_class` / `estimated_duration`,
-  > but `prod.or_cases` stores `patient_id` / `case_service_id` / `case_class_id` /
-  > `scheduled_duration` and requires a `case_number`). A full, **tested** overhaul of case
-  > creation is out of scope for this pass and remains flagged for before P2. This fix
-  > corrects the specific `status_id` bug only.
+    > ⚠️ **Honest scope note:** `store()`/`validateCase` still carry a _broader_ schema mismatch
+    > (they validate `patient_name` / `mrn` / `service_id` / `case_class` / `estimated_duration`,
+    > but `prod.or_cases` stores `patient_id` / `case_service_id` / `case_class_id` /
+    > `scheduled_duration` and requires a `case_number`). A full, **tested** overhaul of case
+    > creation is out of scope for this pass and remains flagged for before P2. This fix
+    > corrects the specific `status_id` bug only.
 - **Reference endpoints** — `ServiceController` / `RoomController` / `ProviderController` now
   filter **`active_status`** (the real column on `prod.services` / `rooms` / `providers` per
   `2024_01_29_163500/163600`), not `is_active`. Regression test:
@@ -156,6 +173,6 @@ gate on `/api/mobile/v1/*`); web auth regression suite still green
 (`php artisan test --testsuite=Feature`); `pint --test` clean.
 
 > If `php artisan migrate` reports an FK/column type issue on `prod.users`, confirm that
-> table's PK is bigint `id` (the assignment migration uses the house convention of *plain
-> `unsignedBigInteger` user refs with no FK to `prod.users`*, so this should not occur — but
+> table's PK is bigint `id` (the assignment migration uses the house convention of _plain
+> `unsignedBigInteger` user refs with no FK to `prod.users`_, so this should not occur — but
 > verify on first migrate).

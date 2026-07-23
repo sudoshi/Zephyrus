@@ -101,9 +101,11 @@ that shape this entire plan. Full detail in [research/](research/).
 5. **Three platform-hardening gaps still gate expansion:**
     - **Session lifecycle still has release gaps.** Both staff clients now complete
       proactive, process-wide single-flight rotation, protected complete-pair persistence,
-      terminal invalidation, and GET-only automatic replay; Android forced-password
-      completion is also device-verified. Token-family/reuse-theft detection, user-facing
-      session management, background timeout, and high-risk reauthentication remain open.
+      terminal invalidation, and GET-only automatic replay; Laravel now adds stable,
+      absolute-expiry token families, one-time predecessor tombstones, reuse-theft
+      detection, and family-wide revocation. Android forced-password completion is also
+      device-verified. User-facing session management, background timeout, and high-risk
+      reauthentication remain open.
     - **Push is not cross-platform complete.** Device registration and the iOS APNs path
       exist; Android notification channels exist, but end-to-end FCM registration and
       delivery remain open.

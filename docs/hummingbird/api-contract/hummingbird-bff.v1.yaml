@@ -95,11 +95,11 @@ paths:
       x-zephyrus-idempotency:
         semantics: non_idempotent_token_rotation
         idempotency_key: presented_refresh_token
-        retry: never_concurrent_or_automatic
+        retry: never_concurrent_or_automatic; predecessor reuse revokes the stable token family
       x-zephyrus-error-behavior:
         envelope: Error
         diagnostic_detail_exposed: false
-        expected_statuses: [401, 413, 415, 422, 429, 500]
+        expected_statuses: [401, 403, 413, 415, 422, 429, 500]
       tags: [auth]
       servers:
         [
@@ -110,7 +110,7 @@ paths:
         ]
       security:
         - bearerAuth: []
-      summary: Rotate refresh → new access token.
+      summary: Rotate a one-time refresh credential within a stable server-side family; detected predecessor reuse revokes that family.
       responses:
         "200":
           {
@@ -122,6 +122,7 @@ paths:
               },
           }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /auth/token/revoke:
     post:
       x-zephyrus-authorization:
@@ -133,9 +134,9 @@ paths:
         response: content_free_confirmation
         storage: protected_credential_store
       x-zephyrus-idempotency:
-        semantics: idempotent
-        idempotency_key: resource_or_presented_token_identity
-        retry: explicit_retry_treating_already_absent_as_success
+        semantics: idempotent_effect_with_consumed_bearer
+        idempotency_key: presented_token_identity
+        retry: do_not_retry; clients erase protected local credentials even when best-effort server revocation is ambiguous
       x-zephyrus-error-behavior:
         envelope: Error
         diagnostic_detail_exposed: false
@@ -148,16 +149,25 @@ paths:
             variables: { host: { default: zephyrus.example.org } },
           },
         ]
-      summary: Revoke this device's tokens (logout / remote-wipe support).
+      summary: Revoke the stable staff token family represented by a family credential; non-family challenge tokens revoke only themselves.
       responses:
-        "204": { description: Revoked }
+        "200":
+          description: The represented family or challenge token was revoked.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [revoked]
+                properties:
+                  revoked: { type: boolean, const: true }
         "401": { $ref: "#/components/responses/Unauthorized" }
   /auth/change-password:
     post:
       x-zephyrus-authorization:
         realm: staff
         authentication: bearer
-        required_abilities: []
+        required_abilities: [password:change, mobile:read, token:refresh]
       x-zephyrus-data-classification:
         request: staff_authentication_secret
         response: staff_authentication_secret
@@ -169,7 +179,7 @@ paths:
       x-zephyrus-error-behavior:
         envelope: Error
         diagnostic_detail_exposed: false
-        expected_statuses: [401, 413, 415, 422, 429, 500]
+        expected_statuses: [401, 403, 413, 415, 422, 429, 500]
       tags: [auth]
       servers:
         [

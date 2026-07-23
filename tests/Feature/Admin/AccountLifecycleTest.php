@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\Auth\AccountLifecyclePolicy;
 use App\Services\Auth\AccountLifecycleViolation;
 use App\Services\Auth\AccountSessionService;
+use App\Services\Auth\MobileTokenSessionService;
 use App\Services\Auth\StepUpAuthenticationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -24,8 +25,8 @@ final class AccountLifecycleTest extends TestCase
             'username' => 'revoked-user',
             'remember_token' => 'remember-me',
         ]);
-        $target->createToken('mobile-one');
-        $target->createToken('mobile-two');
+        app(MobileTokenSessionService::class)->issueNewFamily($target);
+        $mobileSession = $target->mobileTokenSessions()->sole();
         DB::table('prod.sessions')->insert([
             [
                 'id' => 'session-one',
@@ -56,6 +57,10 @@ final class AccountLifecycleTest extends TestCase
         $this->assertSame(1, $target->auth_session_version);
         $this->assertSame('', $target->getRememberToken());
         $this->assertSame(0, $target->tokens()->count());
+        $mobileSession->refresh();
+        $this->assertSame('revoked', $mobileSession->status);
+        $this->assertSame('account_deactivation', $mobileSession->revocation_reason);
+        $this->assertNull($mobileSession->refresh_token_id);
         $this->assertSame(0, DB::table('prod.sessions')->where('user_id', $target->id)->count());
         $this->assertDatabaseHas('audit.user_events', [
             'actor_user_id' => $admin->id,
