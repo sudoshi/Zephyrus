@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$script_dir/../.." && pwd)"
+export UMLS_META_DIR="${UMLS_META_DIR:-/home/smudoshi/Downloads/Datasets/2026AA/META}"
+export UMLS_DATABASE="${UMLS_DATABASE:-umls_2026aa}"
+export UMLS_SCHEMA="${UMLS_SCHEMA:-umls}"
+export UMLS_PSQL_BIN="${UMLS_PSQL_BIN:-/usr/lib/postgresql/17/bin/psql}"
+export UMLS_CREATEDB_BIN="${UMLS_CREATEDB_BIN:-/usr/lib/postgresql/17/bin/createdb}"
+export UMLS_GENERATED_DIR="${UMLS_GENERATED_DIR:-$script_dir/generated/2026AA}"
+
+command_name="${1:-}"
+mkdir -p "$UMLS_GENERATED_DIR/logs"
+
+prepare() {
+    python3 "$script_dir/generate_release.py" \
+        --meta-dir "$UMLS_META_DIR" \
+        --output-dir "$UMLS_GENERATED_DIR" \
+        --database "$UMLS_DATABASE" \
+        --schema "$UMLS_SCHEMA"
+}
+
+ensure_prepared() {
+    [[ -f "$UMLS_GENERATED_DIR/manifest.tsv" && -f "$UMLS_GENERATED_DIR/01-schema.sql" ]] || prepare
+}
+
+mark_source_validated() {
+    [[ -f "$UMLS_GENERATED_DIR/source-validation.ok" ]] || return 0
+    cmp -s "$UMLS_GENERATED_DIR/manifest.sha256" "$UMLS_GENERATED_DIR/source-validation.ok" || return 0
+    if "$UMLS_PSQL_BIN" -X -d "$UMLS_DATABASE" -Atqc "SELECT to_regclass('$UMLS_SCHEMA._release') IS NOT NULL" 2>/dev/null | grep -qx t; then
+        "$UMLS_PSQL_BIN" -X -d "$UMLS_DATABASE" -v ON_ERROR_STOP=1 \
+            -c "SET ROLE umls_owner; UPDATE $UMLS_SCHEMA._release SET source_validated_at=clock_timestamp() WHERE release_name='2026AA' AND manifest_sha256='$(tr -d '\n' < "$UMLS_GENERATED_DIR/manifest.sha256")';" \
+            >/dev/null
+    fi
+}
+
+source_validate() {
+    ensure_prepared
+    log="$UMLS_GENERATED_DIR/logs/source-validation-$(date +%Y%m%d-%H%M%S).log"
+    "$script_dir/validate_source.sh" | tee "$log"
+    mark_source_validated
+    echo "Source validation log: $log"
+}
+
+bootstrap() {
+    "$script_dir/bootstrap.sh"
+}
+
+schema() {
+    ensure_prepared
+    "$UMLS_PSQL_BIN" -X -d "$UMLS_DATABASE" -v ON_ERROR_STOP=1 -f "$UMLS_GENERATED_DIR/01-schema.sql"
+    mark_source_validated
+}
+
+load_release() {
+    ensure_prepared
+    "$script_dir/load.sh"
+}
+
+finalize() {
+    ensure_prepared
+    "$UMLS_PSQL_BIN" -X -d "$UMLS_DATABASE" -v ON_ERROR_STOP=1 -f "$UMLS_GENERATED_DIR/02-finalize.sql"
+}
+
+index_release() {
+    ensure_prepared
+    log="$UMLS_GENERATED_DIR/logs/index-$(date +%Y%m%d-%H%M%S).log"
+    "$UMLS_PSQL_BIN" -X -d "$UMLS_DATABASE" -v ON_ERROR_STOP=1 -f "$UMLS_GENERATED_DIR/03-indexes.sql" | tee "$log"
+    echo "Index log: $log"
+}
+
+validate_release() {
+    ensure_prepared
+    log="$UMLS_GENERATED_DIR/logs/database-validation-$(date +%Y%m%d-%H%M%S).log"
+    {
+        "$UMLS_PSQL_BIN" -X -d "$UMLS_DATABASE" -v ON_ERROR_STOP=1 -f "$UMLS_GENERATED_DIR/04-validate.sql"
+        "$UMLS_PSQL_BIN" -X -d "$UMLS_DATABASE" -v ON_ERROR_STOP=1 -f "$UMLS_GENERATED_DIR/05-lengths.sql"
+    } | tee "$log"
+    echo "Database validation log: $log"
+}
+
+status() {
+    "$UMLS_PSQL_BIN" -X -d "$UMLS_DATABASE" -v ON_ERROR_STOP=1 -P pager=off -c "
+        SELECT status,count(*) AS files,sum(expected_rows) AS expected_rows,sum(COALESCE(loaded_rows,0)) AS loaded_rows
+        FROM $UMLS_SCHEMA._load_file WHERE release_name='2026AA' GROUP BY status ORDER BY status;
+        SELECT release_name,manifest_sha256,expected_file_count,expected_row_count,source_validated_at,loaded_at,indexed_at,validated_at
+        FROM $UMLS_SCHEMA._release WHERE release_name='2026AA';"
+}
+
+case "$command_name" in
+    prepare) prepare ;;
+    source-validate) source_validate ;;
+    bootstrap) bootstrap ;;
+    schema) schema ;;
+    load) load_release ;;
+    finalize) finalize ;;
+    index) index_release ;;
+    validate) validate_release ;;
+    status) status ;;
+    all)
+        prepare
+        source_validate
+        bootstrap
+        schema
+        load_release
+        finalize
+        index_release
+        validate_release
+        ;;
+    *)
+        echo "usage: ${0#$repo_root/} {prepare|source-validate|bootstrap|schema|load|finalize|index|validate|status|all}" >&2
+        exit 64
+        ;;
+esac
