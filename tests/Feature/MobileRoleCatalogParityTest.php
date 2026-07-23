@@ -79,6 +79,8 @@ class MobileRoleCatalogParityTest extends TestCase
 
     private const MOBILE_PATIENT_CONTEXT_SERVICE = 'app/Services/Mobile/MobilePatientContextService.php';
 
+    private const MOBILE_PATIENT_CONTEXT_AUTHORIZATION_SERVICE = 'app/Services/Mobile/MobilePatientContextAuthorizationService.php';
+
     private const MOBILE_OR_CONTROLLER = 'app/Http/Controllers/Api/Mobile/ORController.php';
 
     private const MOBILE_COMMAND_CONTROLLER = 'app/Http/Controllers/Api/Mobile/CommandController.php';
@@ -906,6 +908,7 @@ class MobileRoleCatalogParityTest extends TestCase
         $forYou = file_get_contents(base_path(self::ANDROID_FOR_YOU_SCREEN));
         $altitudeScreens = file_get_contents(base_path(self::ANDROID_ALTITUDE_SCREENS));
         $patientContextService = file_get_contents(base_path(self::MOBILE_PATIENT_CONTEXT_SERVICE));
+        $patientContextAuthorizationService = file_get_contents(base_path(self::MOBILE_PATIENT_CONTEXT_AUTHORIZATION_SERVICE));
 
         foreach (['s1 = 4.dp', 's2 = 8.dp', 's3 = 12.dp', 's4 = 16.dp', 's5 = 20.dp', 's6 = 24.dp'] as $token) {
             $this->assertStringContainsString($token, $theme, "Missing Android spacing token {$token}.");
@@ -948,7 +951,9 @@ class MobileRoleCatalogParityTest extends TestCase
         $this->assertStringContainsString('patientContext = api.patientOperationalContext(bearer, contextRef, selectedRole.id)', $altitudeViewModel);
         $this->assertStringContainsString('getData(withPersona("/api/mobile/v1/patients/${urlPart(contextRef)}/operational-context", persona), bearer)', $apiClient);
         $this->assertStringContainsString("throw new AuthorizationException('This patient operational context is not available to the current mobile persona.')", $patientContextService);
-        $this->assertStringContainsString("if (! str_starts_with(\$requestedRef, 'ptok_'))", $patientContextService);
+        $this->assertStringContainsString('$this->authorization->decide($contextRef, $patientRef, $user, $roleId)', $patientContextService);
+        $this->assertStringContainsString('$this->accessAudit->record($user, $contextRef, $accessDecision)', $patientContextService);
+        $this->assertStringContainsString('if (! $this->references->isOpaque($requestedRef))', $patientContextAuthorizationService);
         $this->assertStringContainsString('Text("Explorer domain"', $altitudeScreens);
         $this->assertStringContainsString('Text("Operational drill"', $altitudeScreens);
         $this->assertStringContainsString('Text("Authorized operational context"', $altitudeScreens);

@@ -14,7 +14,10 @@ use Illuminate\Http\Request;
  */
 final class MobilePatientContextAccessAuditor
 {
-    public function __construct(private readonly UserAuditRecorder $audit) {}
+    public function __construct(
+        private readonly UserAuditRecorder $audit,
+        private readonly MobilePatientContextReferenceStore $references,
+    ) {}
 
     public function record(
         ?User $user,
@@ -26,12 +29,13 @@ final class MobilePatientContextAccessAuditor
             return;
         }
 
+        $opaqueTarget = $this->references->isOpaque($contextRef);
         $context = [
             'request' => $request,
             'actor' => $user,
             'reason' => $decision->reasonCode,
-            'target_type' => $this->isOpaqueContextRef($contextRef) ? 'mobile_patient_context' : null,
-            'target_id' => $this->isOpaqueContextRef($contextRef) ? $contextRef : null,
+            'target_type' => $opaqueTarget ? 'mobile_patient_context' : null,
+            'target_id' => $opaqueTarget ? $contextRef : null,
             'metadata' => ['policy_key' => $decision->policyKey],
             'http_status' => $decision->allowed ? 200 : 403,
         ];
@@ -56,10 +60,5 @@ final class MobilePatientContextAccessAuditor
         $request = app('request');
 
         return $request instanceof Request ? $request : null;
-    }
-
-    private function isOpaqueContextRef(string $contextRef): bool
-    {
-        return preg_match('/^ptok_[a-f0-9]{24}$/D', $contextRef) === 1;
     }
 }

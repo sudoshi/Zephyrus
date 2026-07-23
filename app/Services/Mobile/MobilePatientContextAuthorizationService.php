@@ -44,12 +44,12 @@ final class MobilePatientContextAuthorizationService
             return PatientOperationalContextAccessDecision::deny('opaque_context_reference', 'opaque_context_reference_required');
         }
 
-        if ($patientRef === null || ! $this->contexts->exists($patientRef)) {
-            return PatientOperationalContextAccessDecision::deny('current_patient_context', 'patient_context_unavailable');
-        }
-
         if (! in_array($roleId, $this->personas->allowedForUser($user), true)) {
             return PatientOperationalContextAccessDecision::deny('authorized_persona', 'mobile_persona_not_authorized');
+        }
+
+        if ($patientRef === null || ! $this->contexts->exists($patientRef)) {
+            return PatientOperationalContextAccessDecision::deny('current_patient_context', 'patient_context_unavailable');
         }
 
         foreach ([$this->broad, $this->house, $this->task, $this->unit] as $policy) {

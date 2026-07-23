@@ -4,6 +4,7 @@ namespace Tests\Feature\Mobile;
 
 use App\Models\Barrier;
 use App\Models\BedRequest;
+use App\Models\EdVisit;
 use App\Models\Encounter;
 use App\Models\Evs\EvsRequest;
 use App\Models\Ops\Approval;
@@ -16,6 +17,7 @@ use App\Models\Staffing\StaffingRequest;
 use App\Models\Transport\TransportRequest;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Audit\UserAuditRecorder;
 use App\Services\Mobile\MobilePatientContextReferenceStore;
 use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Mobile\OperationalActivityLedger;
@@ -723,6 +725,206 @@ class MobileBackendSafetyTest extends TestCase
         $this->assertSame('mobile_patient_context', $denied->target_type);
         $this->assertSame($contextRef, $denied->target_id);
         $this->assertStringNotContainsString($patientRef, json_encode($denied, JSON_THROW_ON_ERROR));
+    }
+
+    public function test_unit_policy_excludes_departed_ed_and_terminal_evs_unit_history(): void
+    {
+        $patientRef = 'SECRET-MRN-HISTORICAL-UNIT-DENIAL';
+        $historicalUnit = Unit::create([
+            'name' => 'Historical Patient Unit',
+            'abbreviation' => 'HPU',
+            'type' => 'med_surg',
+            'staffed_bed_count' => 8,
+            'ratio_floor' => 4,
+            'is_deleted' => false,
+        ]);
+        $currentUnit = Unit::create([
+            'name' => 'Current Patient Unit',
+            'abbreviation' => 'CPU',
+            'type' => 'med_surg',
+            'staffed_bed_count' => 8,
+            'ratio_floor' => 4,
+            'is_deleted' => false,
+        ]);
+        Encounter::create([
+            'patient_ref' => $patientRef,
+            'unit_id' => $currentUnit->unit_id,
+            'admitted_at' => now()->subHour(),
+            'acuity_tier' => 2,
+            'status' => 'active',
+            'is_deleted' => false,
+        ]);
+        EdVisit::create([
+            'patient_ref' => $patientRef,
+            'unit_id' => $historicalUnit->unit_id,
+            'arrived_at' => now()->subHours(8),
+            'departed_at' => now()->subHours(2),
+            'disposition' => 'admitted',
+            'is_deleted' => false,
+        ]);
+        $this->evsRequest([
+            'patient_ref' => $patientRef,
+            'unit_id' => $historicalUnit->unit_id,
+            'status' => 'completed',
+            'completed_at' => now()->subHour(),
+        ]);
+        $contextRef = app(MobilePatientContextReferenceStore::class)->issue($patientRef);
+
+        $historicalOnly = $this->actingAsPersonaMobile(['mobile:read'], 'bedside_nurse');
+        $historicalOnly->units()->attach($historicalUnit->unit_id, [
+            'role' => 'bedside_nurse',
+            'is_primary' => true,
+        ]);
+
+        $deniedBody = $this->getJson("/api/mobile/v1/patients/{$contextRef}/operational-context?persona=bedside_nurse")
+            ->assertForbidden()
+            ->getContent();
+        $this->assertStringNotContainsString($patientRef, $deniedBody);
+        $this->assertDatabaseHas('audit.user_events', [
+            'action' => 'mobile.patient_context.access',
+            'outcome' => 'denied',
+            'reason' => 'shared_active_unit_required',
+            'target_id' => $contextRef,
+        ]);
+
+        $currentlyAssigned = $this->actingAsPersonaMobile(['mobile:read'], 'bedside_nurse');
+        $currentlyAssigned->units()->attach($currentUnit->unit_id, [
+            'role' => 'bedside_nurse',
+            'is_primary' => true,
+        ]);
+
+        $this->getJson("/api/mobile/v1/patients/{$contextRef}/operational-context?persona=bedside_nurse")
+            ->assertOk()
+            ->assertJsonPath('data.header.current_location', 'Current Patient Unit');
+    }
+
+    public function test_historical_workflow_rows_do_not_keep_patient_context_current(): void
+    {
+        $patientRef = 'SECRET-MRN-HISTORICAL-CONTEXT-DENIAL';
+        $unit = Unit::create([
+            'name' => 'Historical Workflow Unit',
+            'abbreviation' => 'HWU',
+            'type' => 'med_surg',
+            'staffed_bed_count' => 8,
+            'ratio_floor' => 4,
+            'is_deleted' => false,
+        ]);
+        BedRequest::create([
+            'patient_ref' => $patientRef,
+            'source' => 'ed',
+            'service' => 'Medicine',
+            'acuity_tier' => 2,
+            'status' => 'placed',
+        ]);
+        EdVisit::create([
+            'patient_ref' => $patientRef,
+            'unit_id' => $unit->unit_id,
+            'arrived_at' => now()->subHours(8),
+            'departed_at' => now()->subHours(2),
+            'disposition' => 'admitted',
+            'is_deleted' => false,
+        ]);
+        $this->transportRequest([
+            'patient_ref' => $patientRef,
+            'status' => 'completed',
+            'completed_at' => now()->subHours(2),
+        ]);
+        $this->evsRequest([
+            'patient_ref' => $patientRef,
+            'unit_id' => $unit->unit_id,
+            'status' => 'completed',
+            'completed_at' => now()->subHour(),
+        ]);
+        $contextRef = app(MobilePatientContextReferenceStore::class)->issue($patientRef);
+
+        $this->assertFalse(app(MobilePatientContextService::class)->hasPatientContext($contextRef));
+        $this->actingAsPersonaMobile(['mobile:read'], 'bed_manager');
+
+        $body = $this->getJson("/api/mobile/v1/patients/{$contextRef}/operational-context?persona=bed_manager")
+            ->assertForbidden()
+            ->getContent();
+
+        $this->assertStringNotContainsString($patientRef, $body);
+        $this->assertDatabaseHas('audit.user_events', [
+            'action' => 'mobile.patient_context.access',
+            'outcome' => 'denied',
+            'reason' => 'patient_context_unavailable',
+            'target_id' => $contextRef,
+        ]);
+    }
+
+    public function test_patient_context_does_not_audit_success_when_context_build_fails(): void
+    {
+        $patientRef = 'SECRET-MRN-CONTEXT-BUILD-FAILURE';
+        BedRequest::create([
+            'patient_ref' => $patientRef,
+            'source' => 'ed',
+            'service' => 'Medicine',
+            'acuity_tier' => 2,
+            'status' => 'pending',
+        ]);
+        $contextRef = app(MobilePatientContextReferenceStore::class)->issue($patientRef);
+
+        $this->mock(OperationalActivityLedger::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('forPatient')
+                ->once()
+                ->andThrow(new RuntimeException('simulated context-build failure'));
+        });
+        $this->actingAsPersonaMobile(['mobile:read'], 'bed_manager');
+
+        $body = $this->getJson("/api/mobile/v1/patients/{$contextRef}/operational-context?persona=bed_manager")
+            ->assertInternalServerError()
+            ->getContent();
+
+        $this->assertStringNotContainsString($patientRef, $body);
+        $this->assertStringNotContainsString('Authorized operational patient context', $body);
+        $this->assertDatabaseMissing('audit.user_events', [
+            'action' => 'mobile.patient_context.access',
+            'outcome' => 'success',
+            'target_id' => $contextRef,
+        ]);
+        $this->assertNull(DB::table('ops.patient_operational_context_cache')
+            ->where('patient_context_ref', $contextRef)
+            ->value('context_payload'));
+    }
+
+    public function test_patient_context_fails_closed_when_success_audit_cannot_persist(): void
+    {
+        $patientRef = 'SECRET-MRN-CONTEXT-AUDIT-FAILURE';
+        BedRequest::create([
+            'patient_ref' => $patientRef,
+            'source' => 'ed',
+            'service' => 'Medicine',
+            'acuity_tier' => 2,
+            'status' => 'pending',
+        ]);
+        $contextRef = app(MobilePatientContextReferenceStore::class)->issue($patientRef);
+
+        $this->mock(UserAuditRecorder::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('record')
+                ->once()
+                ->withArgs(static fn (string $action, string $category, string $outcome, array $context): bool => $action === 'mobile.patient_context.access'
+                    && $category === 'access'
+                    && $outcome === 'success'
+                    && ($context['target_type'] ?? null) === 'mobile_patient_context')
+                ->andThrow(new RuntimeException('simulated patient-context audit outage'));
+        });
+        $this->actingAsPersonaMobile(['mobile:read'], 'bed_manager');
+
+        $body = $this->getJson("/api/mobile/v1/patients/{$contextRef}/operational-context?persona=bed_manager")
+            ->assertInternalServerError()
+            ->getContent();
+
+        $this->assertStringNotContainsString($patientRef, $body);
+        $this->assertStringNotContainsString('Authorized operational patient context', $body);
+        $this->assertDatabaseMissing('audit.user_events', [
+            'action' => 'mobile.patient_context.access',
+            'outcome' => 'success',
+            'target_id' => $contextRef,
+        ]);
+        $this->assertNull(DB::table('ops.patient_operational_context_cache')
+            ->where('patient_context_ref', $contextRef)
+            ->value('context_payload'));
     }
 
     public function test_patient_context_handles_use_indexed_expiring_revocable_mappings(): void

@@ -46,11 +46,6 @@ class MobilePatientContextService
             throw new AuthorizationException('This patient operational context is not available to the current mobile persona.');
         }
 
-        // Audit durability is part of a successful disclosure. If the ledger
-        // cannot accept the content-free event, UserAuditRecorder throws and
-        // this method returns no patient context.
-        $this->accessAudit->record($user, $contextRef, $accessDecision);
-
         $contextRef = $this->contextRefFor($patientRef);
 
         $bedRequests = BedRequest::query()
@@ -133,7 +128,13 @@ class MobilePatientContextService
             ],
         ];
 
-        $this->cache($contextRef, $patientRef, $context);
+        // Cache persistence and the success event are one disclosure commit.
+        // Either both durable writes succeed or neither survives; an audit
+        // outage therefore cannot leave a populated unaudited context cache.
+        DB::transaction(function () use ($contextRef, $patientRef, $context, $user, $accessDecision): void {
+            $this->cache($contextRef, $patientRef, $context);
+            $this->accessAudit->record($user, $contextRef, $accessDecision);
+        });
 
         return $context;
     }
@@ -258,9 +259,19 @@ class MobilePatientContextService
 
     private function currentLocation(Collection $edVisits, Collection $transport, Collection $evs): ?string
     {
-        return $transport->first()?->origin
-            ?? $evs->first()?->location_label
-            ?? $edVisits->first()?->unit?->name;
+        $activeTransport = $transport->first(
+            static fn (TransportRequest $request): bool => ! in_array($request->status, ['completed', 'canceled', 'failed'], true),
+        );
+        $activeEvs = $evs->first(
+            static fn (EvsRequest $request): bool => ! in_array($request->status, ['completed', 'canceled', 'failed'], true),
+        );
+        $activeEdVisit = $edVisits->first(
+            static fn (EdVisit $visit): bool => $visit->departed_at === null,
+        );
+
+        return $activeTransport?->origin
+            ?? $activeEvs?->location_label
+            ?? $activeEdVisit?->unit?->name;
     }
 
     /** 'Unit name · BED-LABEL' for an admitted patient, or null without an active encounter. */
@@ -304,8 +315,15 @@ class MobilePatientContextService
 
     private function targetLocation(Collection $bedRequests, Collection $transport): ?string
     {
-        return $transport->first()?->destination
-            ?? $bedRequests->first()?->required_unit_type;
+        $activeTransport = $transport->first(
+            static fn (TransportRequest $request): bool => ! in_array($request->status, ['completed', 'canceled', 'failed'], true),
+        );
+        $pendingBedRequest = $bedRequests->first(
+            static fn (BedRequest $request): bool => $request->status === 'pending',
+        );
+
+        return $activeTransport?->destination
+            ?? $pendingBedRequest?->required_unit_type;
     }
 
     private function responsibleTeam(string $roleId): string

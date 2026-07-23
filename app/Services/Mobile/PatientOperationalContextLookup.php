@@ -18,12 +18,21 @@ final class PatientOperationalContextLookup
 {
     public function exists(string $patientRef): bool
     {
-        return BedRequest::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
-            || TransportRequest::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
-            || EvsRequest::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
-            || EdVisit::query()->where('patient_ref', $patientRef)->where('is_deleted', false)->exists()
+        return BedRequest::query()->pending()->where('patient_ref', $patientRef)->exists()
+            || TransportRequest::query()->active()->where('patient_ref', $patientRef)->exists()
+            || EvsRequest::query()->active()->where('patient_ref', $patientRef)->exists()
+            || EdVisit::query()
+                ->where('patient_ref', $patientRef)
+                ->where('is_deleted', false)
+                ->whereNull('departed_at')
+                ->exists()
             || Encounter::query()->active()->where('patient_ref', $patientRef)->exists()
-            || DB::table('prod.or_cases')->where('patient_id', $patientRef)->where('is_deleted', false)->exists();
+            || DB::table('prod.or_cases as cases')
+                ->join('prod.case_statuses as statuses', 'statuses.status_id', '=', 'cases.status_id')
+                ->where('cases.patient_id', $patientRef)
+                ->where('cases.is_deleted', false)
+                ->whereIn('statuses.code', ['SCHED', 'INPROG', 'DELAY'])
+                ->exists();
     }
 
     /** @return list<int> */
@@ -38,11 +47,12 @@ final class PatientOperationalContextLookup
             ->merge(EdVisit::query()
                 ->where('patient_ref', $patientRef)
                 ->where('is_deleted', false)
+                ->whereNull('departed_at')
                 ->whereNotNull('unit_id')
                 ->pluck('unit_id'))
             ->merge(EvsRequest::query()
                 ->where('patient_ref', $patientRef)
-                ->where('is_deleted', false)
+                ->active()
                 ->whereNotNull('unit_id')
                 ->pluck('unit_id'))
             ->filter()
