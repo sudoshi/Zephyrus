@@ -12,12 +12,232 @@ import java.net.URL
 import java.net.URLEncoder
 import java.security.MessageDigest
 
+data class StaffTokenSession(
+    val accessToken: String,
+    val refreshToken: String,
+    val accessExpiresAtEpochMs: Long,
+)
+
+interface StaffTokenStore {
+    fun load(): StaffTokenSession?
+    fun save(session: StaffTokenSession): Boolean
+    fun clear()
+}
+
+private class VolatileStaffTokenStore : StaffTokenStore {
+    private var session: StaffTokenSession? = null
+    override fun load(): StaffTokenSession? = session
+    override fun save(session: StaffTokenSession): Boolean {
+        this.session = session
+        return true
+    }
+    override fun clear() {
+        session = null
+    }
+}
+
+/**
+ * One process-wide refresh coordinator shared by every ApiClient instance. Network
+ * rotation happens while holding [lock], so simultaneous reads cannot present the
+ * same one-time refresh credential twice.
+ */
+class StaffTokenCoordinator(
+    private var store: StaffTokenStore = VolatileStaffTokenStore(),
+) {
+    private data class BearerOutcome(
+        val bearer: String,
+        val replacement: StaffTokenSession? = null,
+    )
+
+    private val lock = Any()
+    private var session: StaffTokenSession? = store.load()
+    @Volatile private var listener: ((StaffTokenSession?) -> Unit)? = null
+
+    fun configure(persistentStore: StaffTokenStore) {
+        synchronized(lock) {
+            store = persistentStore
+            session = store.load()
+        }
+        notifyCurrent()
+    }
+
+    fun setSessionListener(listener: ((StaffTokenSession?) -> Unit)?) {
+        this.listener = listener
+        listener?.invoke(snapshot())
+    }
+
+    fun snapshot(): StaffTokenSession? = synchronized(lock) { session }
+
+    fun install(result: TokenResult, nowEpochMs: Long = System.currentTimeMillis()): StaffTokenSession {
+        val access = result.accessToken?.takeIf(String::isNotBlank)
+            ?: throw ApiException("The server returned an incomplete staff session.")
+        val refresh = result.refreshToken?.takeIf(String::isNotBlank)
+            ?: throw ApiException("The server returned an incomplete staff session.")
+        val expiresIn = result.expiresIn?.takeIf { it > 0 }
+            ?: throw ApiException("The server returned an incomplete staff session.")
+        return install(
+            StaffTokenSession(
+                accessToken = access,
+                refreshToken = refresh,
+                accessExpiresAtEpochMs = nowEpochMs + expiresIn * 1_000L,
+            ),
+        )
+    }
+
+    fun install(replacement: StaffTokenSession): StaffTokenSession {
+        val installed = try {
+            synchronized(lock) {
+                require(replacement.accessToken.isNotBlank() && replacement.refreshToken.isNotBlank()) {
+                    "A complete staff token pair is required."
+                }
+                if (!store.save(replacement)) {
+                    throw ApiException(
+                        "Secure credential storage is unavailable. Please sign in again.",
+                        401,
+                    )
+                }
+                session = replacement
+                replacement
+            }
+        } catch (error: Exception) {
+            if (isTerminal(error)) {
+                clear()
+            }
+            throw error
+        }
+        notifyCurrent()
+        return installed
+    }
+
+    fun clear() {
+        synchronized(lock) { clearLocked() }
+        notifyCurrent()
+    }
+
+    /**
+     * A freshly rotated bearer rejected on the one permitted GET replay is terminal
+     * for that generation. A newer concurrently installed pair is never cleared.
+     */
+    fun invalidateAfterRejectedReplay(bearer: String) {
+        val cleared = synchronized(lock) {
+            if (session?.accessToken != bearer) return@synchronized false
+            clearLocked()
+            true
+        }
+        if (cleared) notifyCurrent()
+    }
+
+    fun bearerBeforeRequest(
+        presentedBearer: String,
+        nowEpochMs: Long = System.currentTimeMillis(),
+        refresh: (String) -> StaffTokenSession,
+    ): String {
+        val outcome = try {
+            synchronized(lock) {
+                val current = session ?: return@synchronized BearerOutcome(presentedBearer)
+                if (current.accessToken != presentedBearer) {
+                    return@synchronized BearerOutcome(current.accessToken)
+                }
+                if (current.accessExpiresAtEpochMs > nowEpochMs + REFRESH_LEAD_TIME_MS) {
+                    return@synchronized BearerOutcome(current.accessToken)
+                }
+
+                try {
+                    val replacement = rotateLocked(current, refresh)
+                    BearerOutcome(replacement.accessToken, replacement)
+                } catch (error: Exception) {
+                    if (current.accessExpiresAtEpochMs > nowEpochMs && !isTerminal(error)) {
+                        BearerOutcome(current.accessToken)
+                    } else {
+                        throw error
+                    }
+                }
+            }
+        } catch (error: Exception) {
+            if (isTerminal(error)) {
+                clear()
+                throw ApiException("Your session has expired. Please sign in again.", 401)
+            }
+            throw error
+        }
+        if (outcome.replacement != null) notifyCurrent()
+        return outcome.bearer
+    }
+
+    fun bearerAfterUnauthorized(
+        failedBearer: String,
+        refresh: (String) -> StaffTokenSession,
+    ): String {
+        val outcome = try {
+            synchronized(lock) {
+                val current = session
+                    ?: throw ApiException("Your session has expired. Please sign in again.", 401)
+                if (current.accessToken != failedBearer) {
+                    return@synchronized BearerOutcome(current.accessToken)
+                }
+                val replacement = rotateLocked(current, refresh)
+                BearerOutcome(replacement.accessToken, replacement)
+            }
+        } catch (error: Exception) {
+            if (isTerminal(error)) {
+                clear()
+                throw ApiException("Your session has expired. Please sign in again.", 401)
+            }
+            throw error
+        }
+        if (outcome.replacement != null) notifyCurrent()
+        return outcome.bearer
+    }
+
+    private fun rotateLocked(
+        current: StaffTokenSession,
+        refresh: (String) -> StaffTokenSession,
+    ): StaffTokenSession {
+        val replacement = refresh(current.refreshToken)
+        if (
+            replacement.accessToken == current.accessToken ||
+            replacement.refreshToken == current.refreshToken ||
+            replacement.accessExpiresAtEpochMs <= System.currentTimeMillis()
+        ) {
+            throw ApiException("Your session has expired. Please sign in again.", 401)
+        }
+        if (!store.save(replacement)) {
+            throw ApiException(
+                "Secure credential storage is unavailable. Please sign in again.",
+                401,
+            )
+        }
+        session = replacement
+        return replacement
+    }
+
+    private fun clearLocked() {
+        session = null
+        store.clear()
+    }
+
+    private fun notifyCurrent() {
+        listener?.invoke(snapshot())
+    }
+
+    private fun isTerminal(error: Exception): Boolean =
+        error is ApiException && error.statusCode in setOf(401, 403)
+
+    companion object {
+        private const val REFRESH_LEAD_TIME_MS = 120_000L
+        val shared = StaffTokenCoordinator()
+    }
+}
+
 /**
  * Thin coroutine API client for the Hummingbird BFF. The Android emulator reaches the Mac
  * host via 10.0.2.2, so the Dockerized `php artisan serve` on :8001 is at 10.0.2.2:8001.
  * This is the seam the KMP shared `data` module (Ktor) will replace later.
  */
-class ApiClient(private val baseUrl: String = BASE_URL) {
+class ApiClient(
+    private val baseUrl: String = BASE_URL,
+    private val tokenCoordinator: StaffTokenCoordinator = StaffTokenCoordinator.shared,
+) {
 
     companion object {
         val BASE_URL: String = BuildConfig.ZEPHYRUS_BASE_URL
@@ -39,6 +259,7 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         TokenResult(
             accessToken = json.optStringOrNull("access_token"),
             refreshToken = json.optStringOrNull("refresh_token"),
+            expiresIn = json.optInt("expires_in").takeIf { json.has("expires_in") && it > 0 },
             abilities = json.optJSONArray("abilities")?.let { arr -> List(arr.length()) { arr.getString(it) } } ?: emptyList(),
             passwordChangeRequired = json.optBoolean("password_change_required", false),
             changeToken = json.optStringOrNull("change_token"),
@@ -551,6 +772,80 @@ class ApiClient(private val baseUrl: String = BASE_URL) {
         body: String?,
         bearer: String?,
         explicitIdempotencyKey: String? = null,
+    ): Pair<Int, String> {
+        val presentedStaffBearer = bearer?.takeIf { path.startsWith("/api/mobile/v1/") }
+        val managesStaffSession = presentedStaffBearer != null
+        var effectiveBearer = bearer
+        if (presentedStaffBearer != null) {
+            effectiveBearer = tokenCoordinator.bearerBeforeRequest(presentedStaffBearer) { refreshToken ->
+                refreshSession(refreshToken)
+            }
+        }
+
+        var response = sendRaw(
+            method = method,
+            path = path,
+            body = body,
+            bearer = effectiveBearer,
+            explicitIdempotencyKey = explicitIdempotencyKey,
+        )
+
+        // A 401 can be replayed automatically only for a GET. Mutations keep their
+        // existing idempotency/version reconciliation path and are never resent here.
+        if (
+            response.first == 401 &&
+            method.equals("GET", ignoreCase = true) &&
+            managesStaffSession &&
+            effectiveBearer != null
+        ) {
+            val refreshedBearer = tokenCoordinator.bearerAfterUnauthorized(effectiveBearer) { refreshToken ->
+                refreshSession(refreshToken)
+            }
+            response = sendRaw(
+                method = method,
+                path = path,
+                body = body,
+                bearer = refreshedBearer,
+                explicitIdempotencyKey = explicitIdempotencyKey,
+            )
+            if (response.first == 401) {
+                tokenCoordinator.invalidateAfterRejectedReplay(refreshedBearer)
+            }
+        }
+        return response
+    }
+
+    private fun refreshSession(refreshToken: String): StaffTokenSession {
+        val (code, text) = sendRaw(
+            method = "POST",
+            path = "/api/auth/token/refresh",
+            body = null,
+            bearer = refreshToken,
+            explicitIdempotencyKey = null,
+        )
+        if (code !in 200..299) {
+            throw ApiException(errorMessage(text, code), code, errorCode(text))
+        }
+        val result = parseTokenResult(JSONObject(text))
+        val access = result.accessToken?.takeIf(String::isNotBlank)
+            ?: throw ApiException("The server returned an incomplete staff session.", 401)
+        val refresh = result.refreshToken?.takeIf(String::isNotBlank)
+            ?: throw ApiException("The server returned an incomplete staff session.", 401)
+        val expiresIn = result.expiresIn?.takeIf { it > 0 }
+            ?: throw ApiException("The server returned an incomplete staff session.", 401)
+        return StaffTokenSession(
+            accessToken = access,
+            refreshToken = refresh,
+            accessExpiresAtEpochMs = System.currentTimeMillis() + expiresIn * 1_000L,
+        )
+    }
+
+    private fun sendRaw(
+        method: String,
+        path: String,
+        body: String?,
+        bearer: String?,
+        explicitIdempotencyKey: String?,
     ): Pair<Int, String> {
         val conn = (URL(baseUrl + path).openConnection() as HttpURLConnection).apply {
             requestMethod = method

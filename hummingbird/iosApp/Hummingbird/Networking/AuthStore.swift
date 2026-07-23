@@ -22,9 +22,28 @@ final class AuthStore: ObservableObject {
     /// Narrowly-scoped token (ability `password:change`) held only while the user is
     /// on the change-password screen. Exchanged for a full session by `changePassword`.
     private(set) var changeToken: String?
-    private let keychain = Keychain(service: "net.acumenus.hummingbird")
+    private let tokenCoordinator: StaffTokenCoordinator
+    private var sessionObserver: NSObjectProtocol?
 
-    init(api: APIClient) { self.api = api }
+    init(api: APIClient, tokenCoordinator: StaffTokenCoordinator? = nil) {
+        self.api = api
+        self.tokenCoordinator = tokenCoordinator ?? api.tokenCoordinator ?? .shared
+        sessionObserver = NotificationCenter.default.addObserver(
+            forName: StaffTokenCoordinator.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                await self?.synchronizeCoordinatorSession()
+            }
+        }
+    }
+
+    deinit {
+        if let sessionObserver {
+            NotificationCenter.default.removeObserver(sessionObserver)
+        }
+    }
 
     #if DEBUG
     /// Credential-free, process-memory session used only when the UI-test runner
@@ -53,17 +72,30 @@ final class AuthStore: ObservableObject {
 
     /// On launch: if we have a stored token, validate it by loading /me.
     func bootstrap() async {
-        guard let stored = keychain.get("accessToken") else {
+        guard let stored = await tokenCoordinator.restore() else {
             phase = .loggedOut
             return
         }
-        accessToken = stored
-        refreshToken = keychain.get("refreshToken")
+        accessToken = stored.accessToken
+        refreshToken = stored.refreshToken
         do {
-            me = try await api.me(bearer: stored)
+            me = try await api.me(bearer: stored.accessToken)
+            await synchronizeCoordinatorSession()
             phase = .loggedIn
+        } catch let error as APIError where error.statusCode == 401 || error.statusCode == 403 {
+            await invalidateSession()
+        } catch let error as APIError {
+            // A transport/5xx/contract failure does not prove the protected refresh
+            // credential is invalid. Keep it for a later bootstrap or fresh login, but
+            // expose no authenticated UI until /me succeeds.
+            applyClearedSession()
+            me = nil
+            errorMessage = error.message
+            phase = .loggedOut
         } catch {
-            clearTokens()
+            applyClearedSession()
+            me = nil
+            errorMessage = error.localizedDescription
             phase = .loggedOut
         }
     }
@@ -79,15 +111,14 @@ final class AuthStore: ObservableObject {
                 phase = .needsPasswordChange
                 return
             }
-            guard let access = result.accessToken else {
-                errorMessage = "Unexpected response from the server."
-                return
+            let session = try await adopt(result)
+            do {
+                me = try await api.me(bearer: session.accessToken)
+            } catch {
+                await invalidateSession()
+                throw error
             }
-            accessToken = access
-            refreshToken = result.refreshToken
-            keychain.set(access, for: "accessToken")
-            if let rt = result.refreshToken { keychain.set(rt, for: "refreshToken") }
-            me = try await api.me(bearer: access)
+            await synchronizeCoordinatorSession()
             phase = .loggedIn
         } catch let error as APIError {
             errorMessage = error.message
@@ -110,16 +141,15 @@ final class AuthStore: ObservableObject {
         do {
             let result = try await api.changePassword(currentPassword: currentPassword,
                                                       newPassword: newPassword, bearer: change)
-            guard let access = result.accessToken else {
-                errorMessage = "Unexpected response from the server."
-                return
-            }
-            accessToken = access
-            refreshToken = result.refreshToken
-            keychain.set(access, for: "accessToken")
-            if let rt = result.refreshToken { keychain.set(rt, for: "refreshToken") }
+            let session = try await adopt(result)
             changeToken = nil
-            me = try await api.me(bearer: access)
+            do {
+                me = try await api.me(bearer: session.accessToken)
+            } catch {
+                await invalidateSession()
+                throw error
+            }
+            await synchronizeCoordinatorSession()
             phase = .loggedIn
         } catch let error as APIError {
             errorMessage = error.message
@@ -136,8 +166,16 @@ final class AuthStore: ObservableObject {
     }
 
     func logout() async {
-        if let token = accessToken { await api.revoke(bearer: token) }
-        clearTokens()
+        if let session = await tokenCoordinator.snapshot() {
+            // Access and refresh tokens are separate Sanctum credentials. Revoke both
+            // best-effort before erasing the device-only protected pair.
+            await api.revoke(bearer: session.accessToken)
+            await api.revoke(bearer: session.refreshToken)
+        } else if let token = accessToken {
+            await api.revoke(bearer: token)
+        }
+        await tokenCoordinator.clear()
+        applyClearedSession()
         me = nil
         errorMessage = nil
         phase = .loggedOut
@@ -151,11 +189,54 @@ final class AuthStore: ObservableObject {
         ForYouGlanceCache.clear()
     }
 
-    private func clearTokens() {
+    private func adopt(_ result: TokenResponse) async throws -> StaffTokenSession {
+        do {
+            let session = try await tokenCoordinator.install(result)
+            accessToken = session.accessToken
+            refreshToken = session.refreshToken
+            return session
+        } catch {
+            // A server-issued pair that cannot be protected locally must not remain
+            // live. Both credentials are revoked best-effort and never copied to a
+            // less secure store.
+            if let access = result.accessToken { await api.revoke(bearer: access) }
+            if let refresh = result.refreshToken { await api.revoke(bearer: refresh) }
+            throw error
+        }
+    }
+
+    private func synchronizeCoordinatorSession() async {
+        if let session = await tokenCoordinator.snapshot() {
+            accessToken = session.accessToken
+            refreshToken = session.refreshToken
+            return
+        }
+        if phase == .loggedIn {
+            finishInvalidation()
+        } else {
+            applyClearedSession()
+        }
+    }
+
+    private func invalidateSession() async {
+        await tokenCoordinator.clear()
+        finishInvalidation()
+    }
+
+    private func finishInvalidation() {
+        applyClearedSession()
+        me = nil
+        errorMessage = nil
+        phase = .loggedOut
+        JobActivityController.endAll()
+        FlowWindowCache.clearAll()
+        HouseGlanceCache.clear()
+        ForYouGlanceCache.clear()
+    }
+
+    private func applyClearedSession() {
         accessToken = nil
         refreshToken = nil
         changeToken = nil
-        keychain.delete("accessToken")
-        keychain.delete("refreshToken")
     }
 }

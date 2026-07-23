@@ -1,6 +1,266 @@
 import Foundation
 import CryptoKit
 
+/// One complete staff credential generation. Access and refresh credentials are
+/// persisted as one Keychain value so a crash cannot leave a new access token paired
+/// with its already-rotated predecessor refresh token.
+struct StaffTokenSession: Codable, Equatable, Sendable {
+    let accessToken: String
+    let refreshToken: String
+    let accessExpiresAt: Date
+}
+
+/// Device-only protected persistence for the staff token pair. The old separate
+/// Keychain items are migrated once, with an intentionally expired access timestamp so
+/// the first authenticated request refreshes before it is sent.
+struct StaffTokenVault: @unchecked Sendable {
+    private let keychain: Keychain
+    private let sessionKey = "staffTokenSession.v2"
+
+    init(keychain: Keychain = Keychain(service: "net.acumenus.hummingbird")) {
+        self.keychain = keychain
+    }
+
+    func load() -> StaffTokenSession? {
+        if let encoded = keychain.get(sessionKey),
+           let data = encoded.data(using: .utf8),
+           let session = try? JSONDecoder().decode(StaffTokenSession.self, from: data),
+           !session.accessToken.isEmpty,
+           !session.refreshToken.isEmpty {
+            return session
+        }
+
+        guard let access = keychain.get("accessToken"), !access.isEmpty,
+              let refresh = keychain.get("refreshToken"), !refresh.isEmpty else {
+            clear()
+            return nil
+        }
+
+        let migrated = StaffTokenSession(
+            accessToken: access,
+            refreshToken: refresh,
+            accessExpiresAt: .distantPast
+        )
+        guard save(migrated) else {
+            clear()
+            return nil
+        }
+        keychain.delete("accessToken")
+        keychain.delete("refreshToken")
+        return migrated
+    }
+
+    @discardableResult
+    func save(_ session: StaffTokenSession) -> Bool {
+        guard let data = try? JSONEncoder().encode(session),
+              let encoded = String(data: data, encoding: .utf8) else {
+            return false
+        }
+        return keychain.set(encoded, for: sessionKey)
+    }
+
+    func clear() {
+        keychain.delete(sessionKey)
+        keychain.delete("accessToken")
+        keychain.delete("refreshToken")
+    }
+}
+
+/// Process-wide staff refresh coordinator. All APIClient copies share this actor, so
+/// foreground polling, pull-to-refresh, widgets, and role screens cannot rotate the same
+/// refresh token concurrently.
+actor StaffTokenCoordinator {
+    static let shared = StaffTokenCoordinator(vault: StaffTokenVault())
+    static let didChangeNotification = Notification.Name("StaffTokenCoordinator.didChange")
+
+    private static let refreshLeadTime: TimeInterval = 120
+
+    private let vault: StaffTokenVault?
+    private var session: StaffTokenSession?
+    private var refreshTask: Task<StaffTokenSession, Error>?
+
+    init(vault: StaffTokenVault? = nil) {
+        self.vault = vault
+    }
+
+    @discardableResult
+    func restore() -> StaffTokenSession? {
+        if session == nil {
+            session = vault?.load()
+        }
+        return session
+    }
+
+    func snapshot() -> StaffTokenSession? {
+        session
+    }
+
+    @discardableResult
+    func install(_ response: TokenResponse, now: Date = Date()) throws -> StaffTokenSession {
+        guard let access = response.accessToken, !access.isEmpty,
+              let refresh = response.refreshToken, !refresh.isEmpty,
+              let expiresIn = response.expiresIn, expiresIn > 0 else {
+            throw APIError(message: "The server returned an incomplete staff session.", statusCode: nil)
+        }
+        return try install(
+            StaffTokenSession(
+                accessToken: access,
+                refreshToken: refresh,
+                accessExpiresAt: now.addingTimeInterval(TimeInterval(expiresIn))
+            )
+        )
+    }
+
+    @discardableResult
+    func install(_ replacement: StaffTokenSession) throws -> StaffTokenSession {
+        guard !replacement.accessToken.isEmpty,
+              !replacement.refreshToken.isEmpty,
+              replacement.accessExpiresAt > .distantPast else {
+            throw APIError(message: "The server returned an invalid staff session.", statusCode: nil)
+        }
+        if let vault, !vault.save(replacement) {
+            clearInternal()
+            throw APIError(
+                message: "Secure credential storage is unavailable. Please sign in again.",
+                statusCode: nil
+            )
+        }
+        session = replacement
+        notifyChange()
+        return replacement
+    }
+
+    func clear() {
+        clearInternal()
+    }
+
+    /// A freshly rotated bearer that is rejected on the one permitted GET replay is
+    /// terminal for that generation. Clear it only if no concurrent request has already
+    /// installed a newer pair.
+    func invalidateAfterRejectedReplay(bearer: String) {
+        _ = restore()
+        guard session?.accessToken == bearer else { return }
+        clearInternal()
+    }
+
+    /// Returns the newest access token before a request is transmitted. A mutation may
+    /// trigger refresh here, but it is never sent until refresh has completed.
+    func bearerBeforeRequest(
+        presentedBearer: String,
+        now: Date = Date(),
+        refresh: @escaping @Sendable (String) async throws -> StaffTokenSession
+    ) async throws -> String {
+        _ = restore()
+        guard let current = session else { return presentedBearer }
+        if current.accessToken != presentedBearer {
+            return current.accessToken
+        }
+        guard current.accessExpiresAt <= now.addingTimeInterval(Self.refreshLeadTime) else {
+            return current.accessToken
+        }
+
+        do {
+            return try await refreshSingleFlight(using: refresh).accessToken
+        } catch {
+            // If the access credential has not yet expired, a transient refresh outage
+            // must not turn a still-valid session into an avoidable sign-out. Never
+            // fall back after logout, invalidation, or protected-persistence failure
+            // cleared (or replaced) this exact generation while refresh was suspended.
+            if current.accessExpiresAt > now,
+               !Self.isTerminalRefreshFailure(error),
+               session?.accessToken == current.accessToken,
+               session?.refreshToken == current.refreshToken {
+                return current.accessToken
+            }
+            throw error
+        }
+    }
+
+    /// A GET that receives 401 may refresh once and be replayed. The failed bearer is
+    /// compared after entering the actor so concurrent readers reuse the first result.
+    func bearerAfterUnauthorized(
+        failedBearer: String,
+        refresh: @escaping @Sendable (String) async throws -> StaffTokenSession
+    ) async throws -> String {
+        _ = restore()
+        guard let current = session else {
+            throw APIError(message: "Your session has expired. Please sign in again.", statusCode: 401)
+        }
+        if current.accessToken != failedBearer {
+            return current.accessToken
+        }
+        return try await refreshSingleFlight(using: refresh).accessToken
+    }
+
+    private func refreshSingleFlight(
+        using refresh: @escaping @Sendable (String) async throws -> StaffTokenSession
+    ) async throws -> StaffTokenSession {
+        guard let current = session else {
+            throw APIError(message: "Your session has expired. Please sign in again.", statusCode: 401)
+        }
+
+        let task: Task<StaffTokenSession, Error>
+        if let inFlight = refreshTask {
+            task = inFlight
+        } else {
+            task = Task { try await refresh(current.refreshToken) }
+            refreshTask = task
+        }
+
+        do {
+            let replacement = try await task.value
+            // Another waiter may resume first and complete protected persistence.
+            // Reuse that installed generation instead of writing or notifying twice.
+            if let installed = session,
+               installed.accessToken == replacement.accessToken,
+               installed.refreshToken == replacement.refreshToken {
+                refreshTask = nil
+                return installed
+            }
+            guard refreshTask != nil else {
+                throw APIError(message: "Your session has expired. Please sign in again.", statusCode: 401)
+            }
+            guard replacement.accessToken != current.accessToken,
+                  replacement.refreshToken != current.refreshToken,
+                  replacement.accessExpiresAt > Date() else {
+                refreshTask = nil
+                clearInternal()
+                throw APIError(message: "Your session has expired. Please sign in again.", statusCode: 401)
+            }
+            let installed = try install(replacement)
+            refreshTask = nil
+            return installed
+        } catch {
+            refreshTask = nil
+            if Self.isTerminalRefreshFailure(error) {
+                clearInternal()
+                throw APIError(message: "Your session has expired. Please sign in again.", statusCode: 401)
+            }
+            throw error
+        }
+    }
+
+    private func clearInternal() {
+        let shouldNotify = session != nil || refreshTask != nil
+        refreshTask?.cancel()
+        refreshTask = nil
+        session = nil
+        vault?.clear()
+        if shouldNotify {
+            notifyChange()
+        }
+    }
+
+    private func notifyChange() {
+        NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
+    }
+
+    private static func isTerminalRefreshFailure(_ error: Error) -> Bool {
+        guard let apiError = error as? APIError else { return false }
+        return apiError.statusCode == 401 || apiError.statusCode == 403
+    }
+}
+
 /// Where the BFF lives, resolved per build so the same source runs against the right host:
 /// - Simulator: the Mac's loopback (Dockerized `php artisan serve` reachable at localhost).
 /// - Debug on a physical device: the Mac's LAN IP — a device can't see the Mac's loopback,
@@ -36,10 +296,16 @@ enum AppConfig {
 struct APIClient {
     let baseURL: URL
     let session: URLSession
+    let tokenCoordinator: StaffTokenCoordinator?
 
-    init(baseURL: URL, session: URLSession = .shared) {
+    init(
+        baseURL: URL,
+        session: URLSession = .shared,
+        tokenCoordinator: StaffTokenCoordinator? = .shared
+    ) {
         self.baseURL = baseURL
         self.session = session
+        self.tokenCoordinator = tokenCoordinator
     }
 
     /// Restricted and NO_CACHE mobile surfaces use a cookie-free,
@@ -84,6 +350,36 @@ struct APIClient {
                                          "new_password_confirmation": newPassword],
                                   bearer: bearer)
         return try Self.decoder.decode(TokenResponse.self, from: data)
+    }
+
+    /// Called only by StaffTokenCoordinator. This deliberately bypasses the
+    /// authenticated-request interceptor so refresh cannot recurse into itself.
+    private func refreshSession(refreshToken: String) async throws -> StaffTokenSession {
+        let (data, response) = try await sendRaw(
+            path: "/api/auth/token/refresh",
+            method: "POST",
+            body: nil,
+            bearer: refreshToken,
+            explicitIdempotencyKey: nil,
+            noStore: true
+        )
+        guard (200..<300).contains(response.statusCode) else {
+            throw APIError(
+                message: Self.errorMessage(from: data, status: response.statusCode),
+                statusCode: response.statusCode
+            )
+        }
+        let token = try Self.decoder.decode(TokenResponse.self, from: data)
+        guard let access = token.accessToken, !access.isEmpty,
+              let refresh = token.refreshToken, !refresh.isEmpty,
+              let expiresIn = token.expiresIn, expiresIn > 0 else {
+            throw APIError(message: "The server returned an incomplete staff session.", statusCode: 401)
+        }
+        return StaffTokenSession(
+            accessToken: access,
+            refreshToken: refresh,
+            accessExpiresAt: Date().addingTimeInterval(TimeInterval(expiresIn))
+        )
     }
 
     func me(bearer: String) async throws -> MeData {
@@ -364,9 +660,6 @@ struct APIClient {
                   surface: String? = "hummingbird", pageContext: String? = nil,
                   pageComponent: String? = nil, pageData: [String: String]? = nil,
                   bearer: String) async throws -> Envelope<EddyChatReply> {
-        guard let url = URL(string: withPersona("/api/mobile/v1/eddy/chat", persona), relativeTo: baseURL) else {
-            throw APIError(message: "Bad URL", statusCode: nil)
-        }
         var payload: [String: Any] = ["message": message]
         if let conversationId { payload["conversation_id"] = conversationId }
         if let surface { payload["surface"] = surface }
@@ -374,30 +667,15 @@ struct APIClient {
         if let pageComponent { payload["page_component"] = pageComponent }
         if let pageData, !pageData.isEmpty { payload["page_data"] = pageData }
 
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Accept")
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
-        req.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        req.timeoutInterval = 60
-
-        let (data, response): (Data, URLResponse)
-        do {
-            (data, response) = try await session.data(for: req)
-        } catch {
-            throw APIError(message: "Can't reach Eddy. Is the server running at \(baseURL.absoluteString)?", statusCode: nil)
-        }
-        guard let http = response as? HTTPURLResponse else {
-            throw APIError(message: "Invalid response", statusCode: nil)
-        }
+        let data = try await send(
+            path: withPersona("/api/mobile/v1/eddy/chat", persona),
+            method: "POST",
+            body: payload,
+            bearer: bearer,
+            acceptedStatusCodes: [503],
+            timeoutInterval: 60
+        )
         // The 503 unavailable envelope still decodes (data.message is a friendly string).
-        if http.statusCode == 503, let envelope = try? Self.decoder.decode(Envelope<EddyChatReply>.self, from: data) {
-            return envelope
-        }
-        guard (200..<300).contains(http.statusCode) else {
-            throw APIError(message: Self.errorMessage(from: data, status: http.statusCode), statusCode: http.statusCode)
-        }
         return try Self.decoder.decode(Envelope<EddyChatReply>.self, from: data)
     }
 
@@ -698,8 +976,79 @@ struct APIClient {
         body: [String: Any]?,
         bearer: String?,
         explicitIdempotencyKey: UUID? = nil,
-        noStore: Bool = false
+        noStore: Bool = false,
+        acceptedStatusCodes: Set<Int> = [],
+        timeoutInterval: TimeInterval = 15
     ) async throws -> Data {
+        let managesStaffSession = bearer != nil && path.hasPrefix("/api/mobile/v1/")
+        var effectiveBearer = bearer
+
+        if managesStaffSession, let bearer, let tokenCoordinator {
+            effectiveBearer = try await tokenCoordinator.bearerBeforeRequest(
+                presentedBearer: bearer,
+                refresh: { refreshToken in
+                    try await refreshSession(refreshToken: refreshToken)
+                }
+            )
+        }
+
+        var (data, response) = try await sendRaw(
+            path: path,
+            method: method,
+            body: body,
+            bearer: effectiveBearer,
+            explicitIdempotencyKey: explicitIdempotencyKey,
+            noStore: noStore,
+            timeoutInterval: timeoutInterval
+        )
+
+        // Only an idempotent read is eligible for a single automatic replay after
+        // authorization refresh. A mutation 401 is returned untouched so its owning
+        // workflow can reconcile state using its persisted idempotency/version tuple.
+        if response.statusCode == 401,
+           method.uppercased() == "GET",
+           managesStaffSession,
+           let failedBearer = effectiveBearer,
+           let tokenCoordinator {
+            let refreshedBearer = try await tokenCoordinator.bearerAfterUnauthorized(
+                failedBearer: failedBearer,
+                refresh: { refreshToken in
+                    try await refreshSession(refreshToken: refreshToken)
+                }
+            )
+            (data, response) = try await sendRaw(
+                path: path,
+                method: method,
+                body: body,
+                bearer: refreshedBearer,
+                explicitIdempotencyKey: explicitIdempotencyKey,
+                noStore: noStore,
+                timeoutInterval: timeoutInterval
+            )
+            if response.statusCode == 401 {
+                await tokenCoordinator.invalidateAfterRejectedReplay(bearer: refreshedBearer)
+            }
+        }
+
+        guard (200..<300).contains(response.statusCode)
+                || acceptedStatusCodes.contains(response.statusCode) else {
+            throw APIError(
+                message: Self.errorMessage(from: data, status: response.statusCode),
+                statusCode: response.statusCode
+            )
+        }
+        return data
+    }
+
+    private func sendRaw(
+        path: String,
+        method: String,
+        body: [String: Any]?,
+        bearer: String?,
+        explicitIdempotencyKey: UUID?,
+        noStore: Bool,
+        timeoutInterval: TimeInterval = 15
+    ) async throws -> (Data, HTTPURLResponse) {
         guard let url = URL(string: path, relativeTo: baseURL) else {
             throw APIError(message: "Bad URL", statusCode: nil)
         }
@@ -722,7 +1071,7 @@ struct APIClient {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             req.httpBody = bodyData
         }
-        req.timeoutInterval = 15
+        req.timeoutInterval = timeoutInterval
 
         let (data, response): (Data, URLResponse)
         do {
@@ -734,10 +1083,7 @@ struct APIClient {
         guard let http = response as? HTTPURLResponse else {
             throw APIError(message: "Invalid response", statusCode: nil)
         }
-        guard (200..<300).contains(http.statusCode) else {
-            throw APIError(message: Self.errorMessage(from: data, status: http.statusCode), statusCode: http.statusCode)
-        }
-        return data
+        return (data, http)
     }
 
     internal static func mobileIdempotencyKey(method: String, path: String, bodyData: Data?) -> String? {

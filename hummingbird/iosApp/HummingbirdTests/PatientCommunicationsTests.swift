@@ -100,7 +100,8 @@ final class PatientCommunicationsAPIClientTests: XCTestCase {
         configuration.urlCache = nil
         let client = APIClient(
             baseURL: URL(string: "https://example.invalid")!,
-            session: URLSession(configuration: configuration)
+            session: URLSession(configuration: configuration),
+            tokenCoordinator: nil
         )
 
         _ = try await client.replyToPatientCommunication(
@@ -267,6 +268,330 @@ final class PatientCommunicationsViewModelTests: XCTestCase {
         )
         XCTAssertNotEqual(repository.replyCalls[0].idempotencyKey, repository.replyCalls[1].idempotencyKey)
         XCTAssertNotEqual(repository.replyCalls[0].clientMessageUUID, repository.replyCalls[1].clientMessageUUID)
+    }
+}
+
+@MainActor
+final class StaffTokenRefreshTests: XCTestCase {
+    override func tearDown() {
+        PatientCommunicationsURLProtocol.handler = nil
+        super.tearDown()
+    }
+
+    func test401GetRotatesOnceAndReplaysOnlyTheRead() async throws {
+        let coordinator = StaffTokenCoordinator()
+        try await coordinator.install(Self.session(access: "old-access", refresh: "old-refresh", expiresIn: 600))
+        var requests: [URLRequest] = []
+        PatientCommunicationsURLProtocol.handler = { request in
+            requests.append(request)
+            switch requests.count {
+            case 1:
+                return (401, Data(#"{"error":{"code":"unauthenticated","message":"Expired."}}"#.utf8))
+            case 2:
+                return (200, Data(Self.tokenResponse(access: "new-access", refresh: "new-refresh").utf8))
+            case 3:
+                return (200, Data(Self.meResponse.utf8))
+            default:
+                XCTFail("Unexpected request \(request)")
+                return (500, Data())
+            }
+        }
+        let client = Self.client(coordinator: coordinator)
+
+        let me = try await client.me(bearer: "old-access")
+
+        XCTAssertEqual(me.username, "staff-user")
+        XCTAssertEqual(requests.map(\.url?.path), [
+            "/api/mobile/v1/me",
+            "/api/auth/token/refresh",
+            "/api/mobile/v1/me",
+        ])
+        XCTAssertEqual(requests.map(\.httpMethod), ["GET", "POST", "GET"])
+        XCTAssertEqual(requests[0].value(forHTTPHeaderField: "Authorization"), "Bearer old-access")
+        XCTAssertEqual(requests[1].value(forHTTPHeaderField: "Authorization"), "Bearer old-refresh")
+        XCTAssertEqual(requests[2].value(forHTTPHeaderField: "Authorization"), "Bearer new-access")
+        let stored = await coordinator.snapshot()
+        XCTAssertEqual(stored?.refreshToken, "new-refresh")
+    }
+
+    func test401AfterTheSingleGetReplayClearsTheRejectedGeneration() async throws {
+        let coordinator = StaffTokenCoordinator()
+        try await coordinator.install(Self.session(access: "old-access", refresh: "old-refresh", expiresIn: 600))
+        var requests: [URLRequest] = []
+        PatientCommunicationsURLProtocol.handler = { request in
+            requests.append(request)
+            if requests.count == 2 {
+                return (200, Data(Self.tokenResponse(access: "new-access", refresh: "new-refresh").utf8))
+            }
+            return (401, Data(#"{"error":{"code":"unauthenticated","message":"Expired."}}"#.utf8))
+        }
+        let client = Self.client(coordinator: coordinator)
+
+        do {
+            _ = try await client.me(bearer: "old-access")
+            XCTFail("Expected the rejected replay to fail")
+        } catch let error as APIError {
+            XCTAssertEqual(error.statusCode, 401)
+        }
+
+        XCTAssertEqual(requests.map(\.url?.path), [
+            "/api/mobile/v1/me",
+            "/api/auth/token/refresh",
+            "/api/mobile/v1/me",
+        ])
+        let stored = await coordinator.snapshot()
+        XCTAssertNil(stored)
+    }
+
+    func testMutation401IsNeverRefreshedOrReplayedAutomatically() async throws {
+        let coordinator = StaffTokenCoordinator()
+        try await coordinator.install(Self.session(access: "old-access", refresh: "old-refresh", expiresIn: 600))
+        var requests: [URLRequest] = []
+        PatientCommunicationsURLProtocol.handler = { request in
+            requests.append(request)
+            return (401, Data(#"{"error":{"code":"unauthenticated","message":"Expired."}}"#.utf8))
+        }
+        let client = Self.client(coordinator: coordinator)
+
+        do {
+            try await client.resolveBarrier(id: 17, bearer: "old-access")
+            XCTFail("Expected the mutation 401")
+        } catch let error as APIError {
+            XCTAssertEqual(error.statusCode, 401)
+        }
+
+        XCTAssertEqual(requests.count, 1)
+        XCTAssertEqual(requests[0].httpMethod, "POST")
+        XCTAssertEqual(requests[0].url?.path, "/api/mobile/v1/rtdc/barriers/17/resolve")
+    }
+
+    func testNearExpiryMutationRefreshesBeforeFirstWriteIsSent() async throws {
+        let coordinator = StaffTokenCoordinator()
+        try await coordinator.install(Self.session(access: "old-access", refresh: "old-refresh", expiresIn: 30))
+        var requests: [URLRequest] = []
+        PatientCommunicationsURLProtocol.handler = { request in
+            requests.append(request)
+            if requests.count == 1 {
+                return (200, Data(Self.tokenResponse(access: "new-access", refresh: "new-refresh").utf8))
+            }
+            return (200, Data(#"{"data":{"resolved":true}}"#.utf8))
+        }
+        let client = Self.client(coordinator: coordinator)
+
+        try await client.resolveBarrier(id: 17, bearer: "old-access")
+
+        XCTAssertEqual(requests.map(\.url?.path), [
+            "/api/auth/token/refresh",
+            "/api/mobile/v1/rtdc/barriers/17/resolve",
+        ])
+        XCTAssertEqual(requests[0].value(forHTTPHeaderField: "Authorization"), "Bearer old-refresh")
+        XCTAssertEqual(requests[1].value(forHTTPHeaderField: "Authorization"), "Bearer new-access")
+    }
+
+    func testConcurrentUnauthorizedReadsShareOneRefreshTask() async throws {
+        let coordinator = StaffTokenCoordinator()
+        try await coordinator.install(Self.session(access: "old-access", refresh: "old-refresh", expiresIn: 600))
+        let counter = StaffRefreshCounter()
+
+        let results = try await withThrowingTaskGroup(of: String.self) { group in
+            for _ in 0..<8 {
+                group.addTask {
+                    try await coordinator.bearerAfterUnauthorized(failedBearer: "old-access") { token in
+                        await counter.record(token)
+                        try await Task.sleep(for: .milliseconds(50))
+                        return Self.session(access: "new-access", refresh: "new-refresh", expiresIn: 600)
+                    }
+                }
+            }
+            var values: [String] = []
+            for try await value in group { values.append(value) }
+            return values
+        }
+
+        XCTAssertEqual(results, Array(repeating: "new-access", count: 8))
+        let refreshCount = await counter.count
+        let presentedTokens = await counter.presentedTokens
+        XCTAssertEqual(refreshCount, 1)
+        XCTAssertEqual(presentedTokens, ["old-refresh"])
+    }
+
+    func testTerminalRefreshFailureClearsTheSession() async throws {
+        let coordinator = StaffTokenCoordinator()
+        try await coordinator.install(Self.session(access: "old-access", refresh: "old-refresh", expiresIn: 600))
+
+        do {
+            _ = try await coordinator.bearerAfterUnauthorized(failedBearer: "old-access") { _ in
+                throw APIError(message: "Server detail must not escape.", statusCode: 401)
+            }
+            XCTFail("Expected a terminal refresh failure")
+        } catch let error as APIError {
+            XCTAssertEqual(error.statusCode, 401)
+            XCTAssertEqual(error.message, "Your session has expired. Please sign in again.")
+        }
+
+        let stored = await coordinator.snapshot()
+        XCTAssertNil(stored)
+    }
+
+    func testTransientProactiveRefreshFailureUsesStillValidAccessToken() async throws {
+        let coordinator = StaffTokenCoordinator()
+        try await coordinator.install(Self.session(access: "old-access", refresh: "old-refresh", expiresIn: 30))
+
+        let bearer = try await coordinator.bearerBeforeRequest(
+            presentedBearer: "old-access"
+        ) { _ in
+            throw APIError(message: "Service unavailable.", statusCode: 503)
+        }
+
+        XCTAssertEqual(bearer, "old-access")
+        let stored = await coordinator.snapshot()
+        XCTAssertEqual(stored?.refreshToken, "old-refresh")
+    }
+
+    func testTransientRefreshCannotResurrectGenerationClearedWhileSuspended() async throws {
+        let coordinator = StaffTokenCoordinator()
+        try await coordinator.install(Self.session(access: "old-access", refresh: "old-refresh", expiresIn: 30))
+
+        do {
+            _ = try await coordinator.bearerBeforeRequest(
+                presentedBearer: "old-access"
+            ) { _ in
+                await coordinator.clear()
+                throw APIError(message: "Service unavailable.", statusCode: 503)
+            }
+            XCTFail("A cleared generation must never fall back to its old bearer")
+        } catch let error as APIError {
+            XCTAssertEqual(error.statusCode, 503)
+        }
+
+        let stored = await coordinator.snapshot()
+        XCTAssertNil(stored)
+    }
+
+    func testTransientBootstrapFailureRetainsProtectedPairWithoutAuthenticatedUI() async throws {
+        let coordinator = StaffTokenCoordinator()
+        try await coordinator.install(Self.session(access: "old-access", refresh: "old-refresh", expiresIn: 600))
+        PatientCommunicationsURLProtocol.handler = { _ in
+            (503, Data(#"{"error":{"code":"unavailable","message":"Try again shortly."}}"#.utf8))
+        }
+        let store = AuthStore(
+            api: Self.client(coordinator: coordinator),
+            tokenCoordinator: coordinator
+        )
+
+        await store.bootstrap()
+
+        if case .loggedOut = store.phase {
+            // Expected: no authenticated surface until /me can be verified.
+        } else {
+            XCTFail("Transient bootstrap failure must not expose authenticated UI")
+        }
+        XCTAssertNil(store.accessToken)
+        XCTAssertNil(store.refreshToken)
+        XCTAssertEqual(store.errorMessage, "Try again shortly.")
+        let protected = await coordinator.snapshot()
+        XCTAssertEqual(protected?.accessToken, "old-access")
+        XCTAssertEqual(protected?.refreshToken, "old-refresh")
+    }
+
+    func testEddyChatUsesProactiveRefreshGateAndPreserves503Envelope() async throws {
+        let coordinator = StaffTokenCoordinator()
+        try await coordinator.install(Self.session(access: "old-access", refresh: "old-refresh", expiresIn: 30))
+        var requests: [URLRequest] = []
+        PatientCommunicationsURLProtocol.handler = { request in
+            requests.append(request)
+            if requests.count == 1 {
+                return (200, Data(Self.tokenResponse(access: "new-access", refresh: "new-refresh").utf8))
+            }
+            return (
+                503,
+                Data(
+                    #"{"data":{"conversation_id":null,"message":"Eddy is temporarily unavailable."},"meta":{},"links":{}}"#.utf8
+                )
+            )
+        }
+        let client = Self.client(coordinator: coordinator)
+
+        let reply = try await client.eddyChat(
+            message: "What needs attention?",
+            conversationId: nil,
+            persona: "rtdc",
+            bearer: "old-access"
+        )
+
+        XCTAssertEqual(reply.data.message.content, "Eddy is temporarily unavailable.")
+        XCTAssertEqual(requests.map(\.url?.path), [
+            "/api/auth/token/refresh",
+            "/api/mobile/v1/eddy/chat",
+        ])
+        XCTAssertEqual(requests[0].value(forHTTPHeaderField: "Authorization"), "Bearer old-refresh")
+        XCTAssertEqual(requests[1].value(forHTTPHeaderField: "Authorization"), "Bearer new-access")
+    }
+
+    private static func client(coordinator: StaffTokenCoordinator) -> APIClient {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [PatientCommunicationsURLProtocol.self]
+        configuration.urlCache = nil
+        configuration.httpCookieStorage = nil
+        configuration.urlCredentialStorage = nil
+        return APIClient(
+            baseURL: URL(string: "https://example.invalid")!,
+            session: URLSession(configuration: configuration),
+            tokenCoordinator: coordinator
+        )
+    }
+
+    nonisolated private static func session(
+        access: String,
+        refresh: String,
+        expiresIn: TimeInterval
+    ) -> StaffTokenSession {
+        StaffTokenSession(
+            accessToken: access,
+            refreshToken: refresh,
+            accessExpiresAt: Date().addingTimeInterval(expiresIn)
+        )
+    }
+
+    nonisolated private static func tokenResponse(access: String, refresh: String) -> String {
+        """
+        {
+          "token_type":"Bearer",
+          "access_token":"\(access)",
+          "refresh_token":"\(refresh)",
+          "expires_in":1800,
+          "abilities":["mobile:read","mobile:act"]
+        }
+        """
+    }
+
+    private static let meResponse = """
+    {
+      "data":{
+        "id":7,
+        "name":"Staff User",
+        "username":"staff-user",
+        "email":null,
+        "roles":["bedside_nurse"],
+        "is_admin":false,
+        "can":{"view_patient_communications":false,"respond_patient_communications":false},
+        "workflow_preference":"rtdc",
+        "must_change_password":false,
+        "units":[]
+      },
+      "meta":{"stale":false},
+      "links":{}
+    }
+    """
+}
+
+private actor StaffRefreshCounter {
+    private(set) var count = 0
+    private(set) var presentedTokens: [String] = []
+
+    func record(_ token: String) {
+        count += 1
+        presentedTokens.append(token)
     }
 }
 

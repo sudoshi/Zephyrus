@@ -27,6 +27,7 @@ class ApiClientAuthParsingTest {
         assertEquals("scoped-change-token", result.changeToken)
         assertNull(result.accessToken)
         assertNull(result.refreshToken)
+        assertNull(result.expiresIn)
         assertTrue(result.abilities.isEmpty())
     }
 
@@ -38,6 +39,7 @@ class ApiClientAuthParsingTest {
                 {
                   "access_token": "access",
                   "refresh_token": "refresh",
+                  "expires_in": 1800,
                   "abilities": ["mobile:read", "mobile:act"],
                   "password_change_required": false
                 }
@@ -49,6 +51,7 @@ class ApiClientAuthParsingTest {
         assertNull(result.changeToken)
         assertEquals("access", result.accessToken)
         assertEquals("refresh", result.refreshToken)
+        assertEquals(1800, result.expiresIn)
         assertEquals(listOf("mobile:read", "mobile:act"), result.abilities)
     }
 }

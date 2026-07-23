@@ -4,7 +4,7 @@ import Foundation
 // .convertFromSnakeCase, so snake_case JSON maps to camelCase here.
 
 /// POST /api/auth/token — either a token pair, or a must-change-password challenge.
-struct TokenResponse: Decodable {
+struct TokenResponse: Decodable, Sendable {
     let tokenType: String?
     let accessToken: String?
     let refreshToken: String?
@@ -939,7 +939,7 @@ struct EddyContextPacket: Decodable {
 }
 
 /// An error surfaced from the API (either a Laravel `{message}` or a BFF `{error:{message}}`).
-struct APIError: Error {
+struct APIError: Error, Sendable {
     let message: String
     let statusCode: Int?
 }

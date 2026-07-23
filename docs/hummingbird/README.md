@@ -1,6 +1,6 @@
 # Hummingbird — Mobile Companion for Zephyrus
 
-> **Status:** Active implementation — verified repository snapshot 2026-07-21
+> **Status:** Active implementation — verified repository snapshot 2026-07-23
 > **Scope:** Native mobile companion to the Zephyrus hospital-operations command center.
 > **Platforms:** Android (Kotlin / Jetpack Compose) · iOS (Swift / SwiftUI). The clients
 > currently share contracts and fixtures but still duplicate domain/data logic. The
@@ -99,10 +99,11 @@ that shape this entire plan. Full detail in [research/](research/).
    **net-new backend** and are sequenced later. → [research/01-emergency-department.md](research/01-emergency-department.md)
 
 5. **Three platform-hardening gaps still gate expansion:**
-    - **Session lifecycle is incomplete.** Sanctum token issue, refresh, revoke, and
-      password-change routes exist, but neither staff native client currently completes
-      robust single-flight refresh. Android forced-password completion and fail-closed
-      protected storage are now implemented and device-verified.
+    - **Session lifecycle still has release gaps.** Both staff clients now complete
+      proactive, process-wide single-flight rotation, protected complete-pair persistence,
+      terminal invalidation, and GET-only automatic replay; Android forced-password
+      completion is also device-verified. Token-family/reuse-theft detection, user-facing
+      session management, background timeout, and high-risk reauthentication remain open.
     - **Push is not cross-platform complete.** Device registration and the iOS APNs path
       exist; Android notification channels exist, but end-to-end FCM registration and
       delivery remain open.

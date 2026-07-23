@@ -98,14 +98,30 @@ class MobileAuthTest extends TestCase
     public function test_refresh_rotates_into_a_new_token_pair(): void
     {
         $user = $this->activeUser();
-        $refresh = $this->postJson('/api/auth/token', [
+        $issued = $this->postJson('/api/auth/token', [
             'username' => $user->username,
             'password' => 'password',
-        ])->json('refresh_token');
+        ])->assertOk();
+        $refresh = (string) $issued->json('refresh_token');
 
-        $this->withToken($refresh)->postJson('/api/auth/token/refresh')
+        $rotated = $this->withToken($refresh)->postJson('/api/auth/token/refresh')
             ->assertOk()
-            ->assertJsonStructure(['access_token', 'refresh_token']);
+            ->assertJsonStructure(['access_token', 'refresh_token', 'expires_in']);
+
+        $this->assertNotSame($issued->json('access_token'), $rotated->json('access_token'));
+        $this->assertNotSame($refresh, $rotated->json('refresh_token'));
+
+        $this->app['auth']->forgetGuards();
+        $this->withToken((string) $rotated->json('access_token'))
+            ->getJson('/api/mobile/v1/me')
+            ->assertOk()
+            ->assertJsonPath('data.username', $user->username);
+
+        // A rotated predecessor is one-time material. It cannot mint another pair.
+        $this->app['auth']->forgetGuards();
+        $this->withToken($refresh)
+            ->postJson('/api/auth/token/refresh')
+            ->assertUnauthorized();
     }
 
     public function test_an_access_token_cannot_be_used_to_refresh(): void

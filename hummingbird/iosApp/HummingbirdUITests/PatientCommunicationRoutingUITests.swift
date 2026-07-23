@@ -361,7 +361,11 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
     }
 
     private func triggerDetailRefresh() {
-        app.navigationBars["Patient conversation"].tap()
+        // These scenarios schedule a deterministic seven-second authorization refresh
+        // from the detail view. Do not tap an element that the refresh is allowed to
+        // remove between accessibility lookup and event synthesis; the state-specific
+        // assertion immediately after this helper is the actual completion barrier.
+        _ = app.navigationBars["Patient conversation"].waitForExistence(timeout: 1)
     }
 
     private func elementContaining(_ text: String) -> XCUIElement {

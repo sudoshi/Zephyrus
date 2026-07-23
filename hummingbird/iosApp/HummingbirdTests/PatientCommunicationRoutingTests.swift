@@ -321,7 +321,8 @@ final class PatientCommunicationRoutingAPIClientTests: XCTestCase {
         configuration.urlCredentialStorage = nil
         return APIClient(
             baseURL: URL(string: "https://example.invalid")!,
-            session: URLSession(configuration: configuration)
+            session: URLSession(configuration: configuration),
+            tokenCoordinator: nil
         )
     }
 

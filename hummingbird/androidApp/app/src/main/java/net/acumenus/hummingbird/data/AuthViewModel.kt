@@ -8,8 +8,68 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import net.acumenus.hummingbird.widget.HouseGlanceStore
+import org.json.JSONObject
 
 enum class AuthPhase { LOADING, LOGGED_OUT, NEEDS_PASSWORD_CHANGE, LOGGED_IN }
+
+/** One encrypted SharedPreferences value owns the complete rotating credential pair. */
+class EncryptedStaffTokenStore(
+    private val prefs: android.content.SharedPreferences,
+) : StaffTokenStore {
+    override fun load(): StaffTokenSession? {
+        prefs.getString(SESSION_KEY, null)?.let { encoded ->
+            runCatching {
+                val json = JSONObject(encoded)
+                StaffTokenSession(
+                    accessToken = json.getString("access_token"),
+                    refreshToken = json.getString("refresh_token"),
+                    accessExpiresAtEpochMs = json.getLong("access_expires_at_epoch_ms"),
+                )
+            }.getOrNull()?.takeIf {
+                it.accessToken.isNotBlank() && it.refreshToken.isNotBlank()
+            }?.let { return it }
+        }
+
+        val access = prefs.getString("access", null)?.takeIf(String::isNotBlank)
+        val refresh = prefs.getString("refresh", null)?.takeIf(String::isNotBlank)
+        if (access == null || refresh == null) {
+            clear()
+            return null
+        }
+
+        val migrated = StaffTokenSession(
+            accessToken = access,
+            refreshToken = refresh,
+            accessExpiresAtEpochMs = 0L,
+        )
+        return if (save(migrated)) migrated else null
+    }
+
+    override fun save(session: StaffTokenSession): Boolean {
+        val encoded = JSONObject()
+            .put("access_token", session.accessToken)
+            .put("refresh_token", session.refreshToken)
+            .put("access_expires_at_epoch_ms", session.accessExpiresAtEpochMs)
+            .toString()
+        return prefs.edit()
+            .putString(SESSION_KEY, encoded)
+            .remove("access")
+            .remove("refresh")
+            .commit()
+    }
+
+    override fun clear() {
+        prefs.edit()
+            .remove(SESSION_KEY)
+            .remove("access")
+            .remove("refresh")
+            .commit()
+    }
+
+    private companion object {
+        const val SESSION_KEY = "staff_token_session_v2"
+    }
+}
 
 /**
  * Owns auth state + tokens. Token-based, honoring the backend's must_change_password
@@ -20,7 +80,8 @@ enum class AuthPhase { LOADING, LOGGED_OUT, NEEDS_PASSWORD_CHANGE, LOGGED_IN }
 class AuthViewModel(app: Application) : AndroidViewModel(app) {
     private val prefsResult = runCatching { SecurePrefs.get(app) }
     private val prefs = prefsResult.getOrNull()
-    private val api = ApiClient()
+    private val tokenCoordinator = StaffTokenCoordinator.shared
+    private val api = ApiClient(tokenCoordinator = tokenCoordinator)
 
     var phase by mutableStateOf(AuthPhase.LOADING); private set
     var me by mutableStateOf<MeData?>(null); private set
@@ -29,21 +90,51 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     var accessToken: String? = null; private set
     private var changeToken: String? = null
 
-    fun bootstrap() {
+    init {
         val securePrefs = prefs
         if (securePrefs == null) {
+            tokenCoordinator.clear()
+        } else {
+            tokenCoordinator.configure(EncryptedStaffTokenStore(securePrefs))
+        }
+        tokenCoordinator.setSessionListener { session ->
+            viewModelScope.launch {
+                accessToken = session?.accessToken
+            }
+        }
+    }
+
+    fun bootstrap() {
+        if (prefs == null) {
             error = SECURE_STORAGE_ERROR
             phase = AuthPhase.LOGGED_OUT
             return
         }
-        val stored = securePrefs.getString("access", null)
+        val stored = tokenCoordinator.snapshot()
         if (stored == null) { phase = AuthPhase.LOGGED_OUT; return }
-        accessToken = stored
+        accessToken = stored.accessToken
         viewModelScope.launch {
             try {
-                me = api.me(stored); phase = AuthPhase.LOGGED_IN
-            } catch (e: Exception) {
-                clearTokens(); phase = AuthPhase.LOGGED_OUT
+                me = api.me(stored.accessToken)
+                accessToken = tokenCoordinator.snapshot()?.accessToken
+                phase = AuthPhase.LOGGED_IN
+            } catch (exception: ApiException) {
+                if (exception.statusCode in setOf(401, 403)) {
+                    clearTokens()
+                } else {
+                    // A transport/5xx/contract failure does not prove the protected
+                    // refresh credential is invalid. Retain it for a later bootstrap,
+                    // but expose no authenticated UI until /me succeeds.
+                    accessToken = null
+                    me = null
+                    error = exception.message
+                }
+                phase = AuthPhase.LOGGED_OUT
+            } catch (exception: Exception) {
+                accessToken = null
+                me = null
+                error = exception.message ?: "Unable to verify this session."
+                phase = AuthPhase.LOGGED_OUT
             }
         }
     }
@@ -70,7 +161,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
                     busy = false
                     return@launch
                 }
-                acceptSession(r, securePrefs)
+                acceptSession(r)
             } catch (e: ApiException) {
                 error = e.message
             } catch (e: Exception) {
@@ -101,7 +192,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
                 // A successful server response has consumed/revoked the scoped
                 // challenge even if local secure persistence subsequently fails.
                 changeToken = null
-                if (!acceptSession(result, securePrefs)) {
+                if (!acceptSession(result)) {
                     phase = AuthPhase.LOGGED_OUT
                 }
             } catch (e: ApiException) {
@@ -124,9 +215,15 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun logout() {
-        val t = accessToken ?: changeToken
+        val session = tokenCoordinator.snapshot()
+        val scopedToken = changeToken
         viewModelScope.launch {
-            if (t != null) api.revoke(t)
+            if (session != null) {
+                api.revoke(session.accessToken)
+                api.revoke(session.refreshToken)
+            } else if (scopedToken != null) {
+                api.revoke(scopedToken)
+            }
             // Reset the widget to its placeholder once this session's data is gone.
             runCatching { HouseGlanceStore.clear(getApplication<android.app.Application>()) }
         }
@@ -134,34 +231,39 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun clearTokens() {
+        tokenCoordinator.clear()
         accessToken = null
         changeToken = null
-        prefs?.edit()?.remove("access")?.remove("refresh")?.apply()
         // Never let one user's cached flow window survive into another session.
         runCatching { FlowWindowCache(getApplication<android.app.Application>()).clearAll() }
     }
 
-    private suspend fun acceptSession(result: TokenResult, securePrefs: android.content.SharedPreferences): Boolean {
-        val access = result.accessToken?.takeIf(String::isNotBlank)
-        val refresh = result.refreshToken?.takeIf(String::isNotBlank)
-        if (access == null || refresh == null || result.passwordChangeRequired) {
+    private suspend fun acceptSession(result: TokenResult): Boolean {
+        if (result.passwordChangeRequired) {
             error = "Unexpected response from the server."
             return false
         }
 
-        if (!securePrefs.edit().putString("access", access).putString("refresh", refresh).commit()) {
-            api.revoke(access)
-            error = SECURE_STORAGE_ERROR
+        val session = try {
+            tokenCoordinator.install(result)
+        } catch (exception: Exception) {
+            result.accessToken?.let { api.revoke(it) }
+            result.refreshToken?.let { api.revoke(it) }
+            error = exception.message ?: SECURE_STORAGE_ERROR
             return false
         }
 
-        accessToken = access
+        accessToken = session.accessToken
         return try {
-            me = api.me(access)
+            me = api.me(session.accessToken)
+            accessToken = tokenCoordinator.snapshot()?.accessToken
             phase = AuthPhase.LOGGED_IN
             true
         } catch (exception: Exception) {
-            api.revoke(access)
+            tokenCoordinator.snapshot()?.let {
+                api.revoke(it.accessToken)
+                api.revoke(it.refreshToken)
+            }
             clearTokens()
             error = exception.message ?: "Unable to verify this session. Please sign in again."
             phase = AuthPhase.LOGGED_OUT

@@ -6,6 +6,7 @@ import net.acumenus.hummingbird.ui.theme.CapacityStatus
 data class TokenResult(
     val accessToken: String?,
     val refreshToken: String?,
+    val expiresIn: Int?,
     val abilities: List<String>,
     val passwordChangeRequired: Boolean,
     val changeToken: String?,

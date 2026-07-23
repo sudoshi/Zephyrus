@@ -8,7 +8,8 @@ import Security
 struct Keychain {
     let service: String
 
-    func set(_ value: String, for key: String) {
+    @discardableResult
+    func set(_ value: String, for key: String) -> Bool {
         let data = Data(value.utf8)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -21,7 +22,7 @@ struct Keychain {
         // Device-only (no iCloud sync) + only while unlocked: the strongest accessibility that
         // still lets the app read the token on foreground launch.
         attributes[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-        SecItemAdd(attributes as CFDictionary, nil)
+        return SecItemAdd(attributes as CFDictionary, nil) == errSecSuccess
     }
 
     func get(_ key: String) -> String? {

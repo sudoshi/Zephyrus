@@ -216,7 +216,8 @@ final class ForYouPatientCommunicationAPIClientTests: XCTestCase {
         configuration.urlCache = nil
         let client = APIClient(
             baseURL: URL(string: "https://example.invalid")!,
-            session: URLSession(configuration: configuration)
+            session: URLSession(configuration: configuration),
+            tokenCoordinator: nil
         )
 
         _ = try await client.forYou(bearer: "staff-token")
@@ -254,7 +255,8 @@ final class ForYouPatientCommunicationAPIClientTests: XCTestCase {
         configuration.urlCache = nil
         let client = APIClient(
             baseURL: URL(string: "https://example.invalid")!,
-            session: URLSession(configuration: configuration)
+            session: URLSession(configuration: configuration),
+            tokenCoordinator: nil
         )
         let viewModel = ForYouViewModel(api: client)
         viewModel.items = [communication]

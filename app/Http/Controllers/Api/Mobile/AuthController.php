@@ -141,10 +141,36 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Rotate: revoke the presented refresh token, then issue a fresh pair.
-        $current->delete();
+        // Serialize rotation on the presented database token. Two foreground
+        // readers may observe the same access-token expiry at once; only one request
+        // may consume this one-time refresh credential and mint a successor pair.
+        $pair = DB::transaction(function () use ($current, $user): ?array {
+            $locked = $user->tokens()
+                ->whereKey($current->getKey())
+                ->lockForUpdate()
+                ->first();
 
-        $pair = $this->issueTokenPair($user);
+            if (! $locked || ! $locked->can('token:refresh')) {
+                return null;
+            }
+
+            $locked->delete();
+
+            return $this->issueTokenPair($user);
+        });
+
+        if ($pair === null) {
+            $this->auditAuth($request, 'mobile.auth.token_refresh', 'denied', $user, [
+                'reason' => 'invalid_refresh_token',
+                'auth_method' => 'mobile_token',
+                'http_status' => 401,
+            ]);
+
+            return response()->json([
+                'error' => ['code' => 'invalid_refresh_token', 'message' => 'A valid refresh token is required.'],
+            ], 401);
+        }
+
         $this->auditAuth($request, 'mobile.auth.token_refresh', 'success', $user, [
             'auth_method' => 'mobile_token',
             'http_status' => 200,
