@@ -87,11 +87,11 @@ if [ -n "$blur" ]; then
 fi
 
 # 6) Raw Tailwind palette RATCHET: bg/text/border-(gray|red|blue|green|amber|
-#    indigo|slate)-N outside Design/Auth. The verified 2026-07-22 mainline
-#    inventory is 180 (including the independently introduced Care Pathways
-#    demo); the count may only go DOWN from that checked-in baseline. Lower the
-#    baseline as violations are fixed; a rising count fails the gate.
-RAW_PALETTE_BASELINE=180
+#    indigo|slate)-N outside Design/Auth. 2026-07-24: the Care Pathways demo
+#    was rebuilt onto healthcare-* tokens, lowering the verified inventory from
+#    180 to 76; the count may only go DOWN from that checked-in baseline. Lower
+#    the baseline as violations are fixed; a rising count fails the gate.
+RAW_PALETTE_BASELINE=76
 raw_count=$(grep -rnE '\b(bg|text|border)-(gray|red|blue|green|amber|indigo|slate)-[0-9]' resources/js --include=*.jsx --include=*.tsx 2>/dev/null \
   | grep -v "/Design/" \
   | grep -v "/Auth/" \
