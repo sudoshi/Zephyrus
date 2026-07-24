@@ -108,7 +108,7 @@ class SyntheticPatientProjectionProvisioner
                     'projection_cursor_id' => $cursor->getKey(),
                     'projection_kind' => $kind,
                     'projection_sequence' => 1,
-                    'content' => $this->content($seed, $kind),
+                    'content' => $this->contentFor($seed, $kind),
                     'content_schema_version' => 'patient-'.$kind.'.v1',
                     'source_version' => 'synthetic-v1',
                     'provenance' => [
@@ -139,8 +139,17 @@ class SyntheticPatientProjectionProvisioner
         return compact('principal', 'grant', 'policy', 'projections');
     }
 
-    /** @return array<string, mixed> */
-    private function content(string $seed, string $kind): array
+    /**
+     * Return deterministic, allowlisted patient-language reference content
+     * without persisting anything.
+     *
+     * The production reference-draft provisioner deliberately reuses this
+     * one content source, while retaining its own stricter command-owned,
+     * pending-identity, draft-only persistence boundary.
+     *
+     * @return array<string, mixed>
+     */
+    public function contentFor(string $seed, string $kind): array
     {
         return match ($kind) {
             'today' => [
