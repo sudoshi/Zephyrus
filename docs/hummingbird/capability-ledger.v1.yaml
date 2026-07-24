@@ -1207,6 +1207,31 @@ capabilities:
     offline_class: NO_CACHE
     data_classification: internal
 
+  - id: care_pathways.catalog_explorer
+    domain: care_pathways
+    title: Governed DRG catalog explorer (read-only governance examination)
+    implementation_status: complete
+    target_disposition: DESKTOP_ONLY
+    phase: care_pathways_p0
+    owners: { product: Care Pathways Product, engineering: Web Platform }
+    user_roles: ["@web_authorized"]
+    authorization_capabilities:
+      ViewCarePathwayCatalog:
+        - GET /care-pathways/catalog
+        - "GET /care-pathways/catalog/{versionUuid}"
+    verification_evidence:
+      - tests/Feature/CarePathways/CarePathwayCatalogPageTest.php
+      - tests/js/carePathways/catalogSchemas.test.ts
+      - tests/js/config/navigationConfig.test.ts
+    web_routes: [/care-pathways/catalog]
+    staff_bff_operations: []
+    patient_api_operations: []
+    ios_routes: []
+    android_routes: []
+    notification_events: []
+    offline_class: NO_CACHE
+    data_classification: internal
+
   - id: patient_communications.staff_response
     domain: patient_experience
     title: Accountable staff inbox and response lifecycle for inpatient communications

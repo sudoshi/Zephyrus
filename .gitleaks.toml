@@ -54,3 +54,18 @@ condition = "AND"
 paths = ['''^tests/Feature/Rounds/PatientRoundQuestionPromotionTest\.php$''']
 # See the preceding allowlist: match the captured deterministic fixture value.
 regexes = ['''test-rounds-question-key-v1''']
+
+[[allowlists]]
+# Care-pathway governance fixtures: captured real API envelopes whose
+# `"key"` field is the public stable pathway identifier (drgcp-<slug>-<hex12>
+# from care_pathways.definitions.pathway_key), not credential material. The
+# generic API-key rule fires on the field name. Scoped to the two committed
+# fixture files and to values with the drgcp- prefix only; digests, tokens,
+# and every other file remain subject to scanning.
+description = "Care-pathway fixture public pathway_key identifiers"
+condition = "AND"
+paths = [
+  '''^tests/js/carePathways/__fixtures__/pathways-page1\.json$''',
+  '''^tests/js/carePathways/__fixtures__/version-detail\.json$''',
+]
+regexes = ['''^drgcp-[a-z0-9-]+$''']
