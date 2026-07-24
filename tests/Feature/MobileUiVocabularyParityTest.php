@@ -14,6 +14,8 @@ class MobileUiVocabularyParityTest extends TestCase
 
     private const IOS_THEME = 'hummingbird/iosApp/Hummingbird/DesignSystem/Theme.swift';
 
+    private const IOS_STATUS = 'hummingbird/iosApp/Hummingbird/DesignSystem/CapacityStatus.swift';
+
     private const IOS_STATUS_CHIP = 'hummingbird/iosApp/Hummingbird/DesignSystem/Components/StatusChip.swift';
 
     private const IOS_MODELS = 'hummingbird/iosApp/Hummingbird/Networking/Models.swift';
@@ -160,7 +162,7 @@ class MobileUiVocabularyParityTest extends TestCase
      */
     private function swiftCapacityStatusValues(): array
     {
-        $block = $this->between(file_get_contents(base_path(self::IOS_THEME)), 'enum CapacityStatus: String {', 'init(apiValue:');
+        $block = $this->between(file_get_contents(base_path(self::IOS_STATUS)), 'enum CapacityStatus: String {', 'init(apiValue:');
         preg_match('/case\s+([^\n]+)/', $block, $matches);
         $this->assertNotEmpty($matches, 'Unable to find iOS CapacityStatus cases.');
 
@@ -187,7 +189,7 @@ class MobileUiVocabularyParityTest extends TestCase
      */
     private function swiftStatusLabels(): array
     {
-        $block = $this->between(file_get_contents(base_path(self::IOS_THEME)), 'var label: String {', 'var symbol:');
+        $block = $this->between(file_get_contents(base_path(self::IOS_STATUS)), 'var label: String {', 'var symbol:');
 
         return $this->swiftReturnMap($block);
     }
@@ -197,7 +199,7 @@ class MobileUiVocabularyParityTest extends TestCase
      */
     private function swiftStatusSymbols(): array
     {
-        $block = $this->between(file_get_contents(base_path(self::IOS_THEME)), 'var symbol: String {', '/// Severity rank');
+        $block = $this->between(file_get_contents(base_path(self::IOS_STATUS)), 'var symbol: String {', '/// Severity rank');
 
         return $this->swiftReturnMap($block);
     }
@@ -207,7 +209,7 @@ class MobileUiVocabularyParityTest extends TestCase
      */
     private function swiftStatusColorTokens(): array
     {
-        $block = $this->between(file_get_contents(base_path(self::IOS_THEME)), 'static func status(_ s: CapacityStatus) -> Color {', '/// The rationed');
+        $block = $this->between(file_get_contents(base_path(self::IOS_THEME)), 'static func status(_ s: CapacityStatus) -> Color {', '// MARK: - Hex parsing');
         preg_match_all('/case\s+\.(\w+):\s+return\s+ZephyrusColors\.(status\w+)Dark/', $block, $matches, PREG_SET_ORDER);
 
         return collect($matches)

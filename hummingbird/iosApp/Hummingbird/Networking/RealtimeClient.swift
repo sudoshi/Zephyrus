@@ -10,16 +10,23 @@ final class RealtimeClient {
     private let channel: String
     private let onEvent: () -> Void
     private let onState: (Bool) -> Void
+    private let session: URLSession
 
     private var task: URLSessionWebSocketTask?
     private var running = false
 
     init(scheme: String = "ws", host: String, port: Int, key: String, channel: String,
          onEvent: @escaping () -> Void, onState: @escaping (Bool) -> Void) {
+        precondition(
+            HummingbirdTransportSecurityPolicy(environment: .current)
+                .permitsWebSocket(scheme: scheme, host: host, port: port),
+            "Hummingbird staff realtime client rejected an unsafe transport origin."
+        )
         self.url = URL(string: "\(scheme)://\(host):\(port)/app/\(key)?protocol=7&client=hummingbird-ios&version=1.0")!
         self.channel = channel
         self.onEvent = onEvent
         self.onState = onState
+        self.session = HummingbirdURLSessionFactory.make()
     }
 
     func start() {
@@ -37,7 +44,7 @@ final class RealtimeClient {
 
     private func connect() {
         guard running else { return }
-        let t = URLSession.shared.webSocketTask(with: url)
+        let t = session.webSocketTask(with: url)
         task = t
         t.resume()
         receive()

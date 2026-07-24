@@ -60,8 +60,6 @@ targets:
           - remote-notification
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        NSAppTransportSecurity:
-          NSAllowsLocalNetworking: true
         # Live Activities (locally driven: trips + bed turns update per lifecycle tap).
         NSSupportsLiveActivities: true
 

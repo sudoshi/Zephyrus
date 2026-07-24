@@ -205,9 +205,21 @@ enum class PatientHttpMethod { GET, POST, PUT, DELETE }
 
 data class PatientApiOperation(val method: PatientHttpMethod, val path: String)
 
+enum class PatientTransportEnvironment {
+    DEVELOPMENT,
+    PRODUCTION;
+
+    companion object {
+        fun fromBuild(): PatientTransportEnvironment =
+            if (BuildConfig.DEBUG) DEVELOPMENT else PRODUCTION
+    }
+}
+
 data class PatientApiConfiguration(
     val enabled: Boolean,
     val baseUrl: String,
+    val transportEnvironment: PatientTransportEnvironment =
+        PatientTransportEnvironment.fromBuild(),
 ) {
     init {
         val uri = URI(baseUrl)
@@ -220,12 +232,26 @@ data class PatientApiConfiguration(
         require(uri.rawPath.isNullOrEmpty() || uri.rawPath == "/") {
             "Patient API base URL must not contain a path."
         }
+        require(uri.port == -1 || uri.port in 1..65_535) {
+            "Patient API port is invalid."
+        }
+        if (transportEnvironment == PatientTransportEnvironment.PRODUCTION) {
+            require(uri.host.equals(PRODUCTION_HOST, ignoreCase = true)) {
+                "Patient production API host is not approved."
+            }
+            require(uri.port == -1 || uri.port == 443) {
+                "Patient production API must use the standard HTTPS port."
+            }
+        }
     }
 
     companion object {
+        const val PRODUCTION_HOST = "zephyrus.acumenus.net"
+
         fun fromBuild(): PatientApiConfiguration = PatientApiConfiguration(
             enabled = BuildConfig.PATIENT_API_ENABLED,
             baseUrl = BuildConfig.PATIENT_API_BASE_URL,
+            transportEnvironment = PatientTransportEnvironment.fromBuild(),
         )
     }
 }
@@ -334,8 +360,12 @@ class PatientApiClient(
     private val configuration: PatientApiConfiguration = PatientApiConfiguration.fromBuild(),
     private val client: OkHttpClient = OkHttpClient(),
 ) : PatientApiGateway {
-    /** Explicitly disables OkHttp disk caching at the patient boundary. */
-    private val cachelessClient = client.newBuilder().cache(null).build()
+    /** Disables redirects and disk caching at the patient credential boundary. */
+    internal val cachelessClient = client.newBuilder()
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .cache(null)
+        .build()
 
     override fun exchangePassword(
         email: String,

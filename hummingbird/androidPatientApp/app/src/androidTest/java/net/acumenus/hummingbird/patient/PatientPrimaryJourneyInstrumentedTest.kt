@@ -304,7 +304,7 @@ class PatientPrimaryJourneyInstrumentedTest {
                 assertEquals(false, activity.isPrivacyCoverActive)
             }
 
-            scenario.moveToState(Lifecycle.State.CREATED)
+            scenario.moveToState(Lifecycle.State.STARTED)
             scenario.onActivity { activity ->
                 assertEquals(true, activity.isPrivacyCoverActive)
             }

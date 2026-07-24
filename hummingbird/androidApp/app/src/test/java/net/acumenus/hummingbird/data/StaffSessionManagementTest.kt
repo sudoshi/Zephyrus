@@ -29,6 +29,7 @@ class StaffSessionManagementTest {
         val api = ApiClient(
             baseUrl = "https://example.invalid",
             tokenCoordinator = StaffTokenCoordinator(),
+            transportEnvironment = StaffTransportEnvironment.DEVELOPMENT,
         )
 
         val body = api.staffTokenBody("clinician", "not-logged", device)
@@ -126,6 +127,7 @@ class StaffSessionManagementTest {
             val api = ApiClient(
                 baseUrl = server.url("/").toString().removeSuffix("/"),
                 tokenCoordinator = StaffTokenCoordinator(),
+                transportEnvironment = StaffTransportEnvironment.DEVELOPMENT,
             )
 
             val sessions = api.staffSessions("access")
@@ -163,6 +165,7 @@ class StaffSessionManagementTest {
         val api = ApiClient(
             baseUrl = "https://example.invalid",
             tokenCoordinator = StaffTokenCoordinator(),
+            transportEnvironment = StaffTransportEnvironment.DEVELOPMENT,
         )
         val source = JSONObject(
             """
@@ -243,6 +246,7 @@ class StaffSessionManagementTest {
         val api = ApiClient(
             baseUrl = "https://example.invalid",
             tokenCoordinator = StaffTokenCoordinator(),
+            transportEnvironment = StaffTransportEnvironment.DEVELOPMENT,
         )
         assertThrows(org.json.JSONException::class.java) {
             api.parseStaffSessions(JSONObject())
@@ -298,6 +302,7 @@ class StaffSessionManagementTest {
         val api = ApiClient(
             baseUrl = "https://example.invalid",
             tokenCoordinator = StaffTokenCoordinator(),
+            transportEnvironment = StaffTransportEnvironment.DEVELOPMENT,
         )
         for (path in listOf(
             "/api/mobile/v1/me/sessions",
@@ -315,6 +320,7 @@ class StaffSessionManagementTest {
         val api = ApiClient(
             baseUrl = "https://example.invalid",
             tokenCoordinator = StaffTokenCoordinator(),
+            transportEnvironment = StaffTransportEnvironment.DEVELOPMENT,
         )
         assertEquals(
             device.installationUuid,

@@ -97,6 +97,7 @@ jobs:
           php scripts/verify-hummingbird-patient-accessibility-matrix.php
           php scripts/verify-hummingbird-patient-contract.php
           php scripts/verify-hummingbird-contract-baseline.php
+          php scripts/verify-hummingbird-transport-security.php
           php scripts/generate-hummingbird-route-inventory.php --check
           bash scripts/check-no-tracking-technologies.sh
 
@@ -534,6 +535,217 @@ jobs:
           retention-days: 30
 
   # ---------------------------------------------------------------------------
+  # Hummingbird staff apps — release boundaries, contracts, and native tests
+  # ---------------------------------------------------------------------------
+  hummingbird-staff-android:
+    name: Hummingbird staff (Android)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: hummingbird/androidApp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable KVM acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: "12266719"
+          packages: >-
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          validate-wrappers: true
+
+      - name: Run Debug and Release unit tests
+        run: ./gradlew --no-daemon --stacktrace testDebugUnitTest testReleaseUnitTest
+
+      - name: Run Debug and Release lint
+        run: ./gradlew --no-daemon --stacktrace lintDebug lintRelease
+
+      - name: Assemble Debug and Release apps
+        run: ./gradlew --no-daemon --stacktrace assembleDebug assembleRelease
+
+      - name: Verify staff Release APK transport boundary
+        run: |
+          mapfile -t release_apks < <(find app/build/outputs/apk/release -maxdepth 1 -type f -name "*.apk" -print | sort)
+          [[ "${#release_apks[@]}" -eq 1 ]] || {
+            echo "Expected exactly one staff Release APK; found ${#release_apks[@]}" >&2
+            exit 1
+          }
+          bash ../../scripts/ci/verify-hummingbird-android-release-transport.sh "${release_apks[0]}"
+
+      - name: Run Debug instrumented tests on Android 35
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          working-directory: hummingbird/androidApp
+          script: ./gradlew --no-daemon --stacktrace connectedDebugAndroidTest
+
+      - name: Upload Android staff verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hummingbird-staff-android-verification
+          path: |
+            hummingbird/androidApp/app/build/reports
+            hummingbird/androidApp/app/build/test-results
+            hummingbird/androidApp/app/build/outputs/androidTest-results
+            hummingbird/androidApp/app/build/outputs/apk/debug/app-debug.apk
+            hummingbird/androidApp/app/build/outputs/apk/release/*.apk
+          if-no-files-found: warn
+          retention-days: 14
+
+  hummingbird-staff-ios:
+    name: Hummingbird staff (iOS)
+    # Staff UI uses the iOS 26 liquid-glass SDK. macos-15 currently defaults
+    # to Xcode 16.4, whose SDK cannot even parse those guarded symbols.
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      IOS_STAFF_ROOT: hummingbird/iosApp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned XcodeGen
+        env:
+          XCODEGEN_VERSION: 2.46.0
+          XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
+        run: |
+          curl --fail --show-error --silent --location \
+            --output "$RUNNER_TEMP/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+          echo "${XCODEGEN_SHA256}  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/xcodegen/bin/xcodegen" --version
+
+      - name: Verify generated Xcode project
+        run: |
+          bash scripts/ci/verify-hummingbird-staff-xcode-project.sh "$IOS_STAFF_ROOT"
+          xcodebuild -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" -list
+
+      - name: Decode shared DTO fixtures with Swift
+        run: |
+          swiftc \
+            "$IOS_STAFF_ROOT/Hummingbird/DesignSystem/CapacityStatus.swift" \
+            "$IOS_STAFF_ROOT/Hummingbird/Networking/ISO8601DateFormatter+Flexible.swift" \
+            "$IOS_STAFF_ROOT/Hummingbird/Networking/Models.swift" \
+            "$IOS_STAFF_ROOT/Hummingbird/Features/Flow/FlowModels.swift" \
+            "$IOS_STAFF_ROOT/scripts/decode-shared-fixtures.swift" \
+            -o "$RUNNER_TEMP/hummingbird-fixture-decoder"
+          "$RUNNER_TEMP/hummingbird-fixture-decoder" "$GITHUB_WORKSPACE"
+
+      - name: Build Debug for iPhone Simulator
+        run: |
+          xcodebuild \
+            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
+            -scheme Hummingbird \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-debug" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Build Release for iPhone Simulator
+        run: |
+          xcodebuild \
+            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
+            -scheme Hummingbird \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-release" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Verify staff Release app transport boundary
+        run: |
+          release_app="$RUNNER_TEMP/hummingbird-staff-ios-release/Build/Products/Release-iphonesimulator/Hummingbird.app"
+          bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" staff
+
+      - name: Select and boot an available iPhone Simulator
+        id: simulator
+        run: |
+          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
+          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
+          xcrun simctl bootstatus "$simulator_udid" -b
+
+      - name: Run XCTest unit suite
+        run: |
+          xcodebuild \
+            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
+            -scheme Hummingbird \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
+            -resultBundlePath "$RUNNER_TEMP/HummingbirdStaffUnitTests.xcresult" \
+            -only-testing:HummingbirdTests \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test
+
+      - name: Run XCUITest reference journeys
+        run: |
+          xcodebuild \
+            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
+            -scheme Hummingbird \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
+            -resultBundlePath "$RUNNER_TEMP/HummingbirdStaffUITests.xcresult" \
+            -only-testing:HummingbirdUITests \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test
+
+      - name: Shut down test simulator
+        if: always() && steps.simulator.outputs.udid != ''
+        run: xcrun simctl shutdown "${{ steps.simulator.outputs.udid }}" 2>/dev/null || true
+
+      - name: Upload iOS staff verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hummingbird-staff-ios-verification
+          path: |
+            ${{ runner.temp }}/HummingbirdStaffUnitTests.xcresult
+            ${{ runner.temp }}/HummingbirdStaffUITests.xcresult
+            ${{ runner.temp }}/hummingbird-staff-ios-release/Build/Products/Release-iphonesimulator/Hummingbird.app
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
   # Hummingbird patient apps — independent product boundaries and native tests
   # ---------------------------------------------------------------------------
   hummingbird-patient-android:
@@ -599,6 +811,7 @@ jobs:
             exit 1
           }
           bash ../../scripts/ci/verify-hummingbird-patient-boundary.sh artifact "${release_apks[0]}"
+          bash ../../scripts/ci/verify-hummingbird-android-release-transport.sh "${release_apks[0]}"
 
       - name: Run Debug instrumented tests on Android 35
         uses: reactivecircus/android-emulator-runner@v2
@@ -685,6 +898,7 @@ jobs:
         run: |
           release_app="$RUNNER_TEMP/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/HummingbirdPatient.app"
           bash scripts/ci/verify-hummingbird-patient-boundary.sh artifact "$release_app"
+          bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" patient
 
       - name: Select and boot an available iPhone Simulator
         id: simulator

@@ -21,8 +21,26 @@ class RealtimeClient(
     private val channel: String,
     private val onEvent: () -> Unit,
     private val onState: (Boolean) -> Unit,
+    private val transportEnvironment: StaffTransportEnvironment =
+        StaffTransportEnvironment.fromBuild(),
 ) {
-    private val client = OkHttpClient()
+    init {
+        require(
+            StaffTransportSecurityPolicy.permitsWebSocket(
+                scheme = scheme,
+                host = host,
+                port = port,
+                environment = transportEnvironment,
+            ),
+        ) {
+            "Hummingbird staff realtime client rejected an unsafe transport origin."
+        }
+    }
+
+    private val client = OkHttpClient.Builder()
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .build()
     private var ws: WebSocket? = null
     @Volatile private var running = false
 

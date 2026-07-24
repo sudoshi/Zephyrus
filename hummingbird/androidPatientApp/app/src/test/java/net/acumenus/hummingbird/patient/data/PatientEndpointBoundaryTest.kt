@@ -3,6 +3,7 @@ package net.acumenus.hummingbird.patient.data
 import net.acumenus.hummingbird.patient.BuildConfig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import okhttp3.OkHttpClient
@@ -110,7 +111,11 @@ class PatientEndpointBoundaryTest {
             }
             .build()
         val api = PatientApiClient(
-            configuration = PatientApiConfiguration(true, "https://example.test"),
+            configuration = PatientApiConfiguration(
+                true,
+                "https://example.test",
+                PatientTransportEnvironment.DEVELOPMENT,
+            ),
             client = client,
         )
 
@@ -159,7 +164,11 @@ class PatientEndpointBoundaryTest {
             }
             .build()
         val api = PatientApiClient(
-            configuration = PatientApiConfiguration(true, "https://example.test"),
+            configuration = PatientApiConfiguration(
+                true,
+                "https://example.test",
+                PatientTransportEnvironment.DEVELOPMENT,
+            ),
             client = client,
         )
 
@@ -286,7 +295,11 @@ class PatientEndpointBoundaryTest {
             }
             .build()
         val api = PatientApiClient(
-            PatientApiConfiguration(true, "https://example.test"),
+            PatientApiConfiguration(
+                true,
+                "https://example.test",
+                PatientTransportEnvironment.DEVELOPMENT,
+            ),
             client,
         )
 
@@ -343,7 +356,11 @@ class PatientEndpointBoundaryTest {
             }
             .build()
         val api = PatientApiClient(
-            PatientApiConfiguration(true, "https://example.test"),
+            PatientApiConfiguration(
+                true,
+                "https://example.test",
+                PatientTransportEnvironment.DEVELOPMENT,
+            ),
             client,
         )
         val request = PatientCreateThreadRequest(
@@ -406,6 +423,7 @@ class PatientEndpointBoundaryTest {
             configuration = PatientApiConfiguration(
                 enabled = false,
                 baseUrl = "https://example.test",
+                transportEnvironment = PatientTransportEnvironment.DEVELOPMENT,
             ),
         ).profile(charArrayOf('x'))
     }
@@ -414,26 +432,96 @@ class PatientEndpointBoundaryTest {
     fun configurationRequiresCredentialFreeHttpsBaseUrl() {
         assertTrue(
             runCatching {
-                PatientApiConfiguration(enabled = true, baseUrl = "http://example.test")
+                PatientApiConfiguration(
+                    enabled = true,
+                    baseUrl = "http://example.test",
+                    transportEnvironment = PatientTransportEnvironment.DEVELOPMENT,
+                )
             }.isFailure,
         )
         assertTrue(
             runCatching {
-                PatientApiConfiguration(enabled = true, baseUrl = "https://name:value@example.test")
+                PatientApiConfiguration(
+                    enabled = true,
+                    baseUrl = "https://example.test:65536",
+                    transportEnvironment = PatientTransportEnvironment.DEVELOPMENT,
+                )
             }.isFailure,
         )
         assertTrue(
             runCatching {
-                PatientApiConfiguration(enabled = true, baseUrl = "https://example.test?unsafe=true")
+                PatientApiConfiguration(
+                    enabled = true,
+                    baseUrl = "https://name:value@example.test",
+                    transportEnvironment = PatientTransportEnvironment.DEVELOPMENT,
+                )
             }.isFailure,
         )
         assertTrue(
             runCatching {
-                PatientApiConfiguration(enabled = true, baseUrl = "https://example.test/unexpected-prefix")
+                PatientApiConfiguration(
+                    enabled = true,
+                    baseUrl = "https://example.test?unsafe=true",
+                    transportEnvironment = PatientTransportEnvironment.DEVELOPMENT,
+                )
             }.isFailure,
+        )
+        assertTrue(
+            runCatching {
+                PatientApiConfiguration(
+                    enabled = true,
+                    baseUrl = "https://example.test/unexpected-prefix",
+                    transportEnvironment = PatientTransportEnvironment.DEVELOPMENT,
+                )
+            }.isFailure,
+        )
+        assertTrue(
+            runCatching {
+                PatientApiConfiguration(
+                    enabled = true,
+                    baseUrl = "https://example.test",
+                    transportEnvironment = PatientTransportEnvironment.PRODUCTION,
+                )
+            }.isFailure,
+        )
+        assertTrue(
+            runCatching {
+                PatientApiConfiguration(
+                    enabled = true,
+                    baseUrl = "https://zephyrus.acumenus.net:8443",
+                    transportEnvironment = PatientTransportEnvironment.PRODUCTION,
+                )
+            }.isFailure,
+        )
+        assertTrue(
+            runCatching {
+                PatientApiConfiguration(
+                    enabled = true,
+                    baseUrl = "https://zephyrus.acumenus.net",
+                    transportEnvironment = PatientTransportEnvironment.PRODUCTION,
+                )
+            }.isSuccess,
         )
     }
 
+    @Test
+    fun governedPatientClientDisablesRedirectsAndDiskCache() {
+        val api = PatientApiClient(
+            configuration = PatientApiConfiguration(
+                enabled = true,
+                baseUrl = "https://example.test",
+                transportEnvironment = PatientTransportEnvironment.DEVELOPMENT,
+            ),
+            client = OkHttpClient.Builder()
+                .followRedirects(true)
+                .followSslRedirects(true)
+                .build(),
+        )
+
+        assertFalse(api.cachelessClient.followRedirects)
+        assertFalse(api.cachelessClient.followSslRedirects)
+        assertNull(api.cachelessClient.cache)
+    }
 
     private fun profileEnvelope(): String =
         """

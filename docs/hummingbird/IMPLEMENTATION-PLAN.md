@@ -1,7 +1,14 @@
 # Hummingbird — Consolidated Implementation Plan
 
+> **Historical planning baseline:** This 2026-06-26 plan is retained for design
+> lineage and is no longer authoritative for architecture or execution status. The
+> current execution authority is
+> [ZEPHYRUS-HUMMINGBIRD-FUNCTIONAL-PARITY-AND-PATIENT-EXPERIENCE-PLAN-2026-07-19.md](ZEPHYRUS-HUMMINGBIRD-FUNCTIONAL-PARITY-AND-PATIENT-EXPERIENCE-PLAN-2026-07-19.md);
+> [ADR-2026-07-19-generated-native-contracts.md](ADR-2026-07-19-generated-native-contracts.md)
+> supersedes this document's KMP-runtime recommendation.
+>
 > **Native mobile companion to Zephyrus** (Android: Kotlin/Jetpack Compose · iOS:
-> Swift/SwiftUI · shared Kotlin Multiplatform core). This is the single authoritative plan.
+> Swift/SwiftUI · originally proposed Kotlin Multiplatform core).
 > It states the cross-cutting **invariants** once (Part II), then sequences the work as six
 > self-contained **phases** (Part III), backed by a full parity matrix and reference
 > appendices (Part IV). Deep-dive docs ([00–07](#document-map)) and the seven-stream code

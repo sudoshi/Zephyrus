@@ -16,6 +16,32 @@ struct PatientCommunicationDetailView: View {
     @State private var mutationTask: Task<Void, Never>?
     @FocusState private var composerFocused: Bool
 
+    init(
+        viewModel: PatientCommunicationsViewModel,
+        workItemUUID: String,
+        canRespond: Bool
+    ) {
+        self.viewModel = viewModel
+        self.workItemUUID = workItemUUID
+        self.canRespond = canRespond
+
+        #if DEBUG
+        // Authorization-loss UI tests must begin with a draft already present.
+        // Injecting text through XCUITest can outlive the deliberately short
+        // polling interval on a loaded runner, allowing the secure purge to
+        // remove the editor while the automation framework is still typing.
+        // This hook is compiled only into Debug and remains gated by the
+        // explicit in-memory UI-test launch mode.
+        if StaffCommunicationsUITestMode.isEnabled {
+            _draft = State(
+                initialValue: ProcessInfo.processInfo.environment[
+                    "HB_STAFF_COMM_UI_SEEDED_DRAFT"
+                ] ?? ""
+            )
+        }
+        #endif
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: Z.s3) {

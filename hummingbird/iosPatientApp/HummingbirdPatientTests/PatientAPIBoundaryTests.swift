@@ -124,8 +124,51 @@ final class PatientAPIBoundaryTests: XCTestCase {
         XCTAssertNil(PatientAPIBoundary.validatedBaseURL("http://patient.example.test"))
         XCTAssertNil(PatientAPIBoundary.validatedBaseURL("https://user:secret@patient.example.test"))
         XCTAssertNil(PatientAPIBoundary.validatedBaseURL("https://patient.example.test/another-root"))
+        XCTAssertNil(PatientAPIBoundary.validatedBaseURL("https://patient.example.test:0"))
+        XCTAssertNil(PatientAPIBoundary.validatedBaseURL("https://patient.example.test:65536"))
         XCTAssertNotNil(PatientAPIBoundary.validatedBaseURL("https://patient.example.test"))
-        XCTAssertNotNil(PatientAPIBoundary.validatedBaseURL("http://localhost:8001"))
+        XCTAssertNil(PatientAPIBoundary.validatedBaseURL("http://localhost:8001"))
+        XCTAssertNotNil(PatientAPIBoundary.validatedBaseURL(
+            "https://zephyrus.acumenus.net",
+            environment: .production
+        ))
+        XCTAssertNil(PatientAPIBoundary.validatedBaseURL(
+            "https://patient.example.test",
+            environment: .production
+        ))
+        XCTAssertNil(PatientAPIBoundary.validatedBaseURL(
+            "https://zephyrus.acumenus.net:8443",
+            environment: .production
+        ))
+    }
+
+    func testGovernedPatientSessionRefusesRedirects() throws {
+        let delegate = PatientNoRedirectDelegate()
+        let session = PatientURLSessionFactory.ephemeral()
+        let original = try XCTUnwrap(URL(
+            string: "https://zephyrus.acumenus.net/api/patient/v1/me"
+        ))
+        let redirected = try XCTUnwrap(URL(
+            string: "https://redirected.example.test/credential-target"
+        ))
+        let task = session.dataTask(with: original)
+        let response = try XCTUnwrap(HTTPURLResponse(
+            url: original,
+            statusCode: 302,
+            httpVersion: "HTTP/1.1",
+            headerFields: ["Location": redirected.absoluteString]
+        ))
+        var proposedRequest: URLRequest? = URLRequest(url: redirected)
+
+        delegate.urlSession(
+            session,
+            task: task,
+            willPerformHTTPRedirection: response,
+            newRequest: URLRequest(url: redirected)
+        ) { proposedRequest = $0 }
+
+        XCTAssertNil(proposedRequest)
+        XCTAssertTrue(session.delegate is PatientNoRedirectDelegate)
     }
 
     func testPatientStorageUsesDedicatedNamespaces() {

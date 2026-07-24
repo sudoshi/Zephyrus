@@ -9,7 +9,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ForYouPatientCommunicationTest {
-    private val api = ApiClient("https://zephyrus.example.test")
+    private val api = ApiClient(
+        baseUrl = "https://zephyrus.example.test",
+        transportEnvironment = StaffTransportEnvironment.DEVELOPMENT,
+    )
     private val workItemUuid = "019f7cb6-4d44-73e1-b28c-82bea62c4192"
 
     @Test

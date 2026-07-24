@@ -126,7 +126,9 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         app = XCUIApplication()
         app.launchEnvironment["HBP_SYNTHETIC_REFERENCE"] = "0"
         app.launchEnvironment["HBP_PATIENT_API_ENABLED"] = "1"
-        app.launchEnvironment["HBP_PATIENT_API_BASE_URL"] = "http://localhost:9"
+        // Explicit IPv4 loopback and the reserved unusable port avoid the dual-stack
+        // localhost fallback delay while preserving the HTTPS-only transport boundary.
+        app.launchEnvironment["HBP_PATIENT_API_BASE_URL"] = "https://127.0.0.1:1"
         app.launch()
 
         let email = app.textFields["Email"]

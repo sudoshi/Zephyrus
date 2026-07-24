@@ -8,7 +8,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ApiClientAuthParsingTest {
-    private val api = ApiClient("https://zephyrus.example.test")
+    private val api = ApiClient(
+        baseUrl = "https://zephyrus.example.test",
+        transportEnvironment = StaffTransportEnvironment.DEVELOPMENT,
+    )
 
     @Test
     fun `forced password response retains only scoped change token`() {

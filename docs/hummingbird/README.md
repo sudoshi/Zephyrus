@@ -157,7 +157,7 @@ that shape this entire plan. Full detail in [research/](research/).
 1. [00 — Vision, Scope & Personas](reference/00-vision-scope-personas.md) — who, what, and the boundaries of v1.
 2. [01 — Feature Parity Matrix](reference/01-feature-parity-matrix.md) — **every** web data element & function mapped to a mobile treatment. _(the "maps to all data elements" requirement)_
 3. [02 — Core Functionality by Role](reference/02-core-functionality-by-role.md) — the shared core + role-specific home screens and journeys. _(the "available to all healthcare workers at various levels" requirement)_
-4. [03 — Technical Architecture](reference/03-architecture.md) — KMP + native, offline-aware sync, real-time, modules, project structure.
+4. [03 — Technical Architecture](reference/03-architecture.md) — historical KMP recommendation and native/offline/realtime research; the generated-native ADR supersedes its shared-runtime choice.
 5. [04 — Backend Requirements & Mobile API Contract](reference/04-backend-requirements.md) — the BFF, token auth, push service, broadcast triggers, RBAC.
 6. [05 — Notifications & Earned Urgency](reference/05-notifications-earned-urgency.md) — the tiered notification taxonomy and escalation contract.
 7. [06 — Security, HIPAA & PHI](reference/06-security-hipaa.md) — the compliance checklist and acceptance criteria.

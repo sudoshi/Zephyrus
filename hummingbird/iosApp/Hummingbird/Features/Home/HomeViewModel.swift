@@ -110,11 +110,3 @@ struct CensusRollup {
         pressured = units.filter { $0.capacity == .warning || $0.capacity == .critical }.count
     }
 }
-
-extension ISO8601DateFormatter {
-    static let flexible: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
-    }()
-}

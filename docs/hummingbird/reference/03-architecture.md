@@ -1,5 +1,11 @@
 # 03 — Technical Architecture
 
+> **Historical recommendation:** The KMP-runtime decision in this research-era
+> reference is superseded by
+> [ADR-2026-07-19-generated-native-contracts.md](../ADR-2026-07-19-generated-native-contracts.md).
+> Retain the remaining native UI, transport, offline, and modularity analysis as
+> input, but do not use the KMP diagrams below as the current implementation target.
+
 Grounded in [research/07-mobile-best-practices.md](../research/07-mobile-best-practices.md) and
 the platform reality in [research/05-platform-auth-realtime-design.md](../research/05-platform-auth-realtime-design.md).
 
@@ -7,15 +13,15 @@ the platform reality in [research/05-platform-auth-realtime-design.md](../resear
 
 ## 1. Guiding decisions
 
-| # | Decision | Choice | Why |
-|---|----------|--------|-----|
-| D1 | UI | **Native per platform** — Jetpack Compose (Android), SwiftUI (iOS) | Glanceability and platform feel are the product; we want native widgets, Live Activities, Critical Alerts, Watch/Wear |
-| D2 | Shared code | **Kotlin Multiplatform (KMP)** domain + data layer, bridged to Swift with **SKIE** | Clinical/status/sync logic is "defensible" — it must not drift between two codebases |
-| D3 | Backend access | **Mobile BFF** (`/api/mobile/v1/*`) | The web `/api` is chatty, inconsistently authed, PHI-rich; mobile needs aggregated, shaped, role-scoped responses |
-| D4 | Auth | **OAuth2 + PKCE / Sanctum tokens**, additive | Move off session cookies without touching the locked auth flow |
-| D5 | Real-time | **Push-first; Reverb WS when foregrounded; poll fallback** | Battery + correctness; never hold a background socket |
-| D6 | Offline | **Offline-aware**, not full offline-first | Read caches + queued non-critical writes; block safety-critical writes offline |
-| D7 | Design | **One DTCG token source → Compose + SwiftUI + CSS** | Zero drift across three platforms |
+| #   | Decision       | Choice                                                                             | Why                                                                                                                   |
+| --- | -------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| D1  | UI             | **Native per platform** — Jetpack Compose (Android), SwiftUI (iOS)                 | Glanceability and platform feel are the product; we want native widgets, Live Activities, Critical Alerts, Watch/Wear |
+| D2  | Shared code    | **Kotlin Multiplatform (KMP)** domain + data layer, bridged to Swift with **SKIE** | Clinical/status/sync logic is "defensible" — it must not drift between two codebases                                  |
+| D3  | Backend access | **Mobile BFF** (`/api/mobile/v1/*`)                                                | The web `/api` is chatty, inconsistently authed, PHI-rich; mobile needs aggregated, shaped, role-scoped responses     |
+| D4  | Auth           | **OAuth2 + PKCE / Sanctum tokens**, additive                                       | Move off session cookies without touching the locked auth flow                                                        |
+| D5  | Real-time      | **Push-first; Reverb WS when foregrounded; poll fallback**                         | Battery + correctness; never hold a background socket                                                                 |
+| D6  | Offline        | **Offline-aware**, not full offline-first                                          | Read caches + queued non-critical writes; block safety-critical writes offline                                        |
+| D7  | Design         | **One DTCG token source → Compose + SwiftUI + CSS**                                | Zero drift across three platforms                                                                                     |
 
 > **The KMP boundary is the single most important architectural decision.** Committing to a
 > shared Kotlin domain core (with KMMBridge + SKIE) puts Kotlin/Native in the iOS build but
@@ -57,6 +63,7 @@ the platform reality in [research/05-platform-auth-realtime-design.md](../resear
 ```
 
 ### Android stack
+
 - **UI:** Jetpack Compose, Material3 themed to Zephyrus tokens (not default Material).
   Navigation-Compose. MVVM with unidirectional data flow; MVI for the dense boards.
 - **DI:** Hilt. **Async:** Coroutines/Flow. **HTTP:** Ktor (shared) over OkHttp engine with
@@ -65,6 +72,7 @@ the platform reality in [research/05-platform-auth-realtime-design.md](../resear
 - **At-a-glance:** Glance app widgets; Wear OS tiles/complications (phased).
 
 ### iOS stack
+
 - **UI:** SwiftUI, `@Observable` (Observation) view models; **The Composable Architecture
   (TCA)** only where a screen is a genuine state machine (e.g., the transport trip runner).
 - **Async:** Swift Concurrency (async/await, actors). **HTTP:** Ktor client via shared module
@@ -76,6 +84,7 @@ the platform reality in [research/05-platform-auth-realtime-design.md](../resear
   complications (phased).
 
 ### SKIE
+
 Generates idiomatic Swift APIs over the KMP module (sealed classes → Swift enums, suspend →
 async/await, Flow → AsyncSequence) so the iOS team consumes the shared core naturally.
 
@@ -84,12 +93,14 @@ async/await, Flow → AsyncSequence) so the iOS team consumes the shared core na
 ## 3. Data flow & sync (offline-aware)
 
 ### Reads — cache-then-network
+
 1. UI observes a repository `Flow`/`AsyncSequence`.
 2. Repository emits **cached** (SQLDelight) immediately, tagged with an **as-of timestamp**.
 3. Repository fetches the BFF; on success updates cache → re-emits fresh.
 4. On failure, UI keeps cached data and shows a **stale badge** (never a blank screen).
 
 ### Writes — outbox with explicit criticality
+
 - **Non-critical writes** (acknowledge, claim a routine job, advance a routine status) →
   **optimistic** local apply + enqueue in the **outbox**; WorkManager/BGTask flushes when
   connectivity returns; reconcile on server response.
@@ -102,15 +113,16 @@ async/await, Flow → AsyncSequence) so the iOS team consumes the shared core na
   No CRDTs (overkill for this domain).
 
 ### Real-time — the three-mode model
+
 The web uses **Laravel Reverb** websockets (`CensusUpdated`, `HuddleUpdated`,
 `BedMeetingUpdated`) on **public, PHI-free** channels. Reverb does **not replay** missed
 frames, so the web re-snapshots on reconnect. Mobile mirrors and extends this:
 
-| App state | Transport | Behavior |
-|-----------|-----------|----------|
-| **Foreground, screen on** | **Reverb WS** (native Pusher protocol client) | Live tiles; **re-snapshot all visible queries on (re)connect** (no replay) |
-| **Background / locked** | **Push (APNs/FCM)** | Silent (`content-available`) push → WorkManager/BGTask **delta sync**; user-facing push for NOTIFY-tier events |
-| **No connectivity** | **Poll on resume** + cached | Show stale badge; reconcile outbox |
+| App state                 | Transport                                     | Behavior                                                                                                       |
+| ------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Foreground, screen on** | **Reverb WS** (native Pusher protocol client) | Live tiles; **re-snapshot all visible queries on (re)connect** (no replay)                                     |
+| **Background / locked**   | **Push (APNs/FCM)**                           | Silent (`content-available`) push → WorkManager/BGTask **delta sync**; user-facing push for NOTIFY-tier events |
+| **No connectivity**       | **Poll on resume** + cached                   | Show stale badge; reconcile outbox                                                                             |
 
 We **never hold a websocket in the background** (battery, OS suspension). Public WS channels
 need no auth today; any future PHI-on-wire requires `PrivateChannel` + token channel auth,
@@ -176,21 +188,21 @@ these tokens to match the web signatures.
 
 ## 6. Cross-cutting concerns
 
-| Concern | Approach |
-|---------|----------|
-| **Auth/session** | Tokens in Keychain/Keystore, gated by biometrics; short-lived access + rotating refresh; idle auto-lock; AppAuth + system browser for OIDC. → [04](04-backend-requirements.md), [06](06-security-hipaa.md) |
-| **Error/empty/stale states** | Every screen has explicit loading / empty / error / **stale** states; never a silent blank. Staleness is first-class (the "defensible" principle). |
-| **Accessibility** | Dynamic Type / font scaling, VoiceOver/TalkBack labels on every status, 44pt targets, status-never-by-color, `prefers-reduced-motion` honored. WCAG 2.2 AA pragmatic. |
-| **Observability** | Crash + non-PHI analytics (a BAA-covered SDK only); structured client logs with a **hard PHI filter**; feature flags for staged rollout. |
-| **Theming** | Dark default; light fully supported; both from the same tokens. |
-| **Testing** | Shared: unit tests for status rules + sync + urgency scoring (the conformance spec). Native: UI/snapshot tests for token-themed components; instrumented flows for the critical journeys (claim trip, approve action, place bed). |
-| **CI/CD** | build-logic convention plugins; Gradle + Fastlane; KMMBridge publishes the shared XCFramework; per-platform store pipelines; contract tests against the BFF OpenAPI. |
+| Concern                      | Approach                                                                                                                                                                                                                          |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Auth/session**             | Tokens in Keychain/Keystore, gated by biometrics; short-lived access + rotating refresh; idle auto-lock; AppAuth + system browser for OIDC. → [04](04-backend-requirements.md), [06](06-security-hipaa.md)                        |
+| **Error/empty/stale states** | Every screen has explicit loading / empty / error / **stale** states; never a silent blank. Staleness is first-class (the "defensible" principle).                                                                                |
+| **Accessibility**            | Dynamic Type / font scaling, VoiceOver/TalkBack labels on every status, 44pt targets, status-never-by-color, `prefers-reduced-motion` honored. WCAG 2.2 AA pragmatic.                                                             |
+| **Observability**            | Crash + non-PHI analytics (a BAA-covered SDK only); structured client logs with a **hard PHI filter**; feature flags for staged rollout.                                                                                          |
+| **Theming**                  | Dark default; light fully supported; both from the same tokens.                                                                                                                                                                   |
+| **Testing**                  | Shared: unit tests for status rules + sync + urgency scoring (the conformance spec). Native: UI/snapshot tests for token-themed components; instrumented flows for the critical journeys (claim trip, approve action, place bed). |
+| **CI/CD**                    | build-logic convention plugins; Gradle + Fastlane; KMMBridge publishes the shared XCFramework; per-platform store pipelines; contract tests against the BFF OpenAPI.                                                              |
 
 ---
 
 ## 7. What this architecture deliberately avoids
 
-- **No shrunk-desktop port.** Feature modules implement the *glance-and-act* slices only;
+- **No shrunk-desktop port.** Feature modules implement the _glance-and-act_ slices only;
   analytics deep-link out.
 - **No background websocket** (battery/OS suspension) — push-triggered delta sync instead.
 - **No PHI on public WS channels or in notifications** — mirrors the web's PHI-free broadcast

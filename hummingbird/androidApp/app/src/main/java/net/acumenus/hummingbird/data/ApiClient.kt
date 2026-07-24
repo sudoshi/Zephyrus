@@ -232,12 +232,25 @@ class StaffTokenCoordinator(
 /**
  * Thin coroutine API client for the Hummingbird BFF. The Android emulator reaches the Mac
  * host via 10.0.2.2, so the Dockerized `php artisan serve` on :8001 is at 10.0.2.2:8001.
- * This is the seam the KMP shared `data` module (Ktor) will replace later.
+ * Generated native contract artifacts will replace this manually maintained
+ * DTO boundary incrementally.
  */
 class ApiClient(
     private val baseUrl: String = BASE_URL,
     private val tokenCoordinator: StaffTokenCoordinator = StaffTokenCoordinator.shared,
+    private val transportEnvironment: StaffTransportEnvironment =
+        StaffTransportEnvironment.fromBuild(),
 ) {
+    init {
+        require(
+            StaffTransportSecurityPolicy.permitsHttpBaseUrl(
+                rawUrl = baseUrl,
+                environment = transportEnvironment,
+            ),
+        ) {
+            "Hummingbird staff API client rejected an unsafe transport origin."
+        }
+    }
 
     companion object {
         val BASE_URL: String = BuildConfig.ZEPHYRUS_BASE_URL
@@ -1009,6 +1022,7 @@ class ApiClient(
     ): Pair<Int, String> {
         val conn = (URL(baseUrl + path).openConnection() as HttpURLConnection).apply {
             requestMethod = method
+            instanceFollowRedirects = false
             connectTimeout = 15000
             readTimeout = 15000
             setRequestProperty("Accept", "application/json")

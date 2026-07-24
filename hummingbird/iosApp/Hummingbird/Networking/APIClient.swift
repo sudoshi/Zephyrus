@@ -261,38 +261,74 @@ actor StaffTokenCoordinator {
     }
 }
 
-/// Where the BFF lives, resolved per build so the same source runs against the right host:
-/// - Simulator: the Mac's loopback (Dockerized `php artisan serve` reachable at localhost).
-/// - Debug on a physical device: the Mac's LAN IP — a device can't see the Mac's loopback,
-///   so both the phone and Mac must be on the same Wi-Fi. Override at launch with an
-///   `HB_HOST` environment variable in the Xcode scheme when the Mac's IP changes.
-/// - Release (TestFlight / App Store): the public BFF over HTTPS/WSS. ATS forbids cleartext
-///   to a public host, so set `publicHost` to a real TLS-terminated domain before archiving.
+/// Where the BFF lives, resolved per build and checked by one fail-closed policy:
+/// - Debug simulator: the Mac's loopback for the local Laravel/Reverb processes.
+/// - Debug physical device: production by default; a system-trusted HTTPS/WSS test
+///   origin may be supplied with `HB_BASE_URL` and `HB_REVERB_URL`.
+/// - Release (device or simulator): the exact public HTTPS/WSS origin.
+///
+/// The DEBUG check intentionally precedes the simulator check. A Release simulator
+/// must exercise the production transport boundary rather than silently using HTTP.
 enum AppConfig {
-#if targetEnvironment(simulator)
-    static let baseURL = "http://localhost:8001"
-    static let reverbScheme = "ws"
-    static let reverbHost = "localhost"
-    static let reverbPort = 8080
+#if DEBUG && targetEnvironment(simulator)
+    private static let configuredBaseURL = "http://localhost:8001"
+    private static let configuredReverbURL = "ws://localhost:8080"
 #elseif DEBUG
-    static let devHost = ProcessInfo.processInfo.environment["HB_HOST"] ?? "192.168.1.35"
-    static let baseURL = "http://\(devHost):8001"
-    static let reverbScheme = "ws"
-    static let reverbHost = devHost
-    static let reverbPort = 8080
+    private static let configuredBaseURL =
+        ProcessInfo.processInfo.environment["HB_BASE_URL"]
+        ?? "https://\(HummingbirdTransportSecurityPolicy.productionHost)"
+    private static let configuredReverbURL =
+        ProcessInfo.processInfo.environment["HB_REVERB_URL"]
+        ?? "wss://\(HummingbirdTransportSecurityPolicy.productionHost):443"
 #else
-    // Production BFF — globally reachable, valid TLS, serves the mobile routes (verified 2026-06-28).
-    static let publicHost = "zephyrus.acumenus.net"
-    static let baseURL = "https://\(publicHost)"
-    static let reverbScheme = "wss"
-    static let reverbHost = publicHost
-    static let reverbPort = 443
+    private static let configuredBaseURL =
+        "https://\(HummingbirdTransportSecurityPolicy.productionHost)"
+    private static let configuredReverbURL =
+        "wss://\(HummingbirdTransportSecurityPolicy.productionHost):443"
 #endif
+
+    private static let policy = HummingbirdTransportSecurityPolicy(
+        environment: .current
+    )
+
+    static let baseURL: String = {
+        guard let url = URL(string: configuredBaseURL),
+              policy.permitsHTTPBaseURL(url)
+        else {
+            preconditionFailure("Hummingbird staff API transport configuration is unsafe.")
+        }
+        return configuredBaseURL
+    }()
+
+    private static let reverbEndpoint: (scheme: String, host: String, port: Int) = {
+        guard let components = URLComponents(string: configuredReverbURL),
+              let scheme = components.scheme,
+              let host = components.host,
+              components.user == nil,
+              components.password == nil,
+              components.query == nil,
+              components.fragment == nil,
+              components.path.isEmpty || components.path == "/"
+        else {
+            preconditionFailure("Hummingbird staff realtime transport configuration is malformed.")
+        }
+        let port = components.port ?? (scheme.lowercased() == "wss" ? 443 : 80)
+        precondition(
+            policy.permitsWebSocket(scheme: scheme, host: host, port: port),
+            "Hummingbird staff realtime transport configuration is unsafe."
+        )
+        return (scheme.lowercased(), host.lowercased(), port)
+    }()
+
+    static let reverbScheme = reverbEndpoint.scheme
+    static let reverbHost = reverbEndpoint.host
+    static let reverbPort = reverbEndpoint.port
     static let reverbKey = "zephyrus-key"
 }
 
-/// Thin async URLSession client for the Hummingbird BFF. This is the seam the KMP shared
-/// `data` module will replace later — keep the surface small and DTO-driven.
+/// Thin async URLSession client for the Hummingbird BFF. Generated native
+/// contract artifacts will replace its manually maintained DTO boundary
+/// incrementally, so the surface stays small and contract-driven.
 struct APIClient {
     let baseURL: URL
     let session: URLSession
@@ -300,9 +336,41 @@ struct APIClient {
 
     init(
         baseURL: URL,
-        session: URLSession = .shared,
         tokenCoordinator: StaffTokenCoordinator? = .shared
     ) {
+        self.init(
+            validatedBaseURL: baseURL,
+            session: HummingbirdURLSessionFactory.make(),
+            tokenCoordinator: tokenCoordinator
+        )
+    }
+
+#if DEBUG
+    /// Debug-only injection seam for deterministic protocol tests. Release app
+    /// code cannot replace the governed no-redirect URLSession.
+    init(
+        baseURL: URL,
+        session: URLSession,
+        tokenCoordinator: StaffTokenCoordinator? = .shared
+    ) {
+        self.init(
+            validatedBaseURL: baseURL,
+            session: session,
+            tokenCoordinator: tokenCoordinator
+        )
+    }
+#endif
+
+    private init(
+        validatedBaseURL baseURL: URL,
+        session: URLSession,
+        tokenCoordinator: StaffTokenCoordinator?
+    ) {
+        precondition(
+            HummingbirdTransportSecurityPolicy(environment: .current)
+                .permitsHTTPBaseURL(baseURL),
+            "Hummingbird staff API client rejected an unsafe transport origin."
+        )
         self.baseURL = baseURL
         self.session = session
         self.tokenCoordinator = tokenCoordinator
@@ -319,7 +387,11 @@ struct APIClient {
         configuration.httpShouldSetCookies = false
         configuration.urlCredentialStorage = nil
 
-        return APIClient(baseURL: baseURL, session: URLSession(configuration: configuration))
+        return APIClient(
+            validatedBaseURL: baseURL,
+            session: HummingbirdURLSessionFactory.make(configuration: configuration),
+            tokenCoordinator: .shared
+        )
     }
 
     static func patientCommunications(baseURL: URL) -> APIClient {
