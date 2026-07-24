@@ -123,10 +123,10 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
     }
 
     func testInboxPolling401PurgesOpenDraftAndRequiresSignIn() {
-        launchScenario("inbox_401_detail")
-        openDetail()
         let secret = "SESSION LOSS DRAFT 7391"
-        enterDraft(secret)
+        launchScenario("inbox_401_detail", seededDraft: secret)
+        openDetail()
+        assertSeededDraft(secret)
 
         XCTAssertTrue(app.buttons["Sign in"].waitForExistence(timeout: 20))
         XCTAssertFalse(app.textViews["patientCommunications.replyEditor"].exists)
@@ -140,13 +140,13 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
             ("inbox_403_detail", "INBOX FORBIDDEN DRAFT 2648"),
             ("inbox_404_detail", "INBOX NOT FOUND DRAFT 7315"),
         ] {
-            launchScenario(scenario)
+            launchScenario(scenario, seededDraft: secret)
             openDetail()
             XCTAssertTrue(
                 app.buttons["patientCommunications.routing.rerouteButton"].waitForExistence(timeout: 5),
                 scenario
             )
-            enterDraft(secret)
+            assertSeededDraft(secret)
 
             let unavailable = app.descendants(matching: .any)["patientCommunications.threadUnavailable"]
             XCTAssertTrue(unavailable.waitForExistence(timeout: 20), scenario)
@@ -161,11 +161,11 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
     }
 
     func testInboxPolling200OmissionPurgesOpenDraftThreadAndCommands() {
-        launchScenario("inbox_200_empty_detail")
+        let secret = "INBOX OMITTED DRAFT 6184"
+        launchScenario("inbox_200_empty_detail", seededDraft: secret)
         openDetail()
         XCTAssertTrue(app.buttons["patientCommunications.routing.rerouteButton"].waitForExistence(timeout: 5))
-        let secret = "INBOX OMITTED DRAFT 6184"
-        enterDraft(secret)
+        assertSeededDraft(secret)
 
         let unavailable = app.descendants(matching: .any)["patientCommunications.threadUnavailable"]
         XCTAssertTrue(unavailable.waitForExistence(timeout: 20))
@@ -178,11 +178,11 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
     }
 
     func testCandidate401RefreshPurgesDraftAndRequiresSignIn() {
-        launchScenario("candidate_401_refresh")
+        let secret = "CANDIDATE AUTH DRAFT 4826"
+        launchScenario("candidate_401_refresh", seededDraft: secret)
         openDetail()
         XCTAssertTrue(app.buttons["patientCommunications.routing.rerouteButton"].waitForExistence(timeout: 5))
-        let secret = "CANDIDATE AUTH DRAFT 4826"
-        enterDraft(secret)
+        assertSeededDraft(secret)
         triggerDetailRefresh()
 
         XCTAssertTrue(app.buttons["Sign in"].waitForExistence(timeout: 12))
@@ -192,11 +192,11 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
     }
 
     func testCandidate404RefreshPurgesDraftThreadAndCommands() {
-        launchScenario("candidate_404_refresh")
+        let secret = "CANDIDATE DENIAL DRAFT 1564"
+        launchScenario("candidate_404_refresh", seededDraft: secret)
         openDetail()
         XCTAssertTrue(app.buttons["patientCommunications.routing.rerouteButton"].waitForExistence(timeout: 5))
-        let secret = "CANDIDATE DENIAL DRAFT 1564"
-        enterDraft(secret)
+        assertSeededDraft(secret)
         triggerDetailRefresh()
 
         let unavailable = app.descendants(matching: .any)["patientCommunications.threadUnavailable"]
@@ -213,9 +213,9 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
             ("thread_403_refresh", "DETAIL FORBIDDEN DRAFT 8327"),
             ("thread_404_refresh", "DETAIL NOT FOUND DRAFT 9053"),
         ] {
-            launchScenario(scenario)
+            launchScenario(scenario, seededDraft: secret)
             openDetail()
-            enterDraft(secret)
+            assertSeededDraft(secret)
             triggerDetailRefresh()
 
             let unavailable = app.descendants(matching: .any)["patientCommunications.threadUnavailable"]
@@ -341,7 +341,7 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
         row.tap()
     }
 
-    private func launchScenario(_ scenario: String) {
+    private func launchScenario(_ scenario: String, seededDraft: String? = nil) {
         if app.state != .notRunning { app.terminate() }
         app = XCUIApplication()
         app.launchArguments = ["-HBStaffCommunicationsUITest"]
@@ -349,6 +349,9 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
             "HB_STAFF_COMM_UI_TEST": "1",
             "HB_STAFF_COMM_UI_SCENARIO": scenario,
         ]
+        if let seededDraft {
+            app.launchEnvironment["HB_STAFF_COMM_UI_SEEDED_DRAFT"] = seededDraft
+        }
         app.launch()
     }
 
@@ -357,6 +360,12 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
         XCTAssertTrue(editor.waitForExistence(timeout: 5))
         editor.tap()
         editor.typeText(text)
+        XCTAssertTrue((editor.value as? String)?.contains(text) == true)
+    }
+
+    private func assertSeededDraft(_ text: String) {
+        let editor = app.textViews["patientCommunications.replyEditor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
         XCTAssertTrue((editor.value as? String)?.contains(text) == true)
     }
 
