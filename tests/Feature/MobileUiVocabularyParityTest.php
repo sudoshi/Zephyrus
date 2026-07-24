@@ -209,7 +209,7 @@ class MobileUiVocabularyParityTest extends TestCase
      */
     private function swiftStatusColorTokens(): array
     {
-        $block = $this->between(file_get_contents(base_path(self::IOS_THEME)), 'static func status(_ s: CapacityStatus) -> Color {', '/// The rationed');
+        $block = $this->between(file_get_contents(base_path(self::IOS_THEME)), 'static func status(_ s: CapacityStatus) -> Color {', '// MARK: - Hex parsing');
         preg_match_all('/case\s+\.(\w+):\s+return\s+ZephyrusColors\.(status\w+)Dark/', $block, $matches, PREG_SET_ORDER);
 
         return collect($matches)
