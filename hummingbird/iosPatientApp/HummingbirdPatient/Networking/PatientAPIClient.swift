@@ -263,12 +263,31 @@ final class PatientAPIClient: PatientAPIService, @unchecked Sendable {
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
 
-    init(baseURL: URL, session: URLSession? = nil) {
+    init(baseURL: URL) {
+        precondition(
+            PatientAPIBoundary.validatedBaseURL(baseURL.absoluteString) != nil,
+            "Hummingbird Patient rejected an unsafe API origin."
+        )
         self.baseURL = baseURL
-        self.session = session ?? PatientURLSessionFactory.ephemeral()
+        self.session = PatientURLSessionFactory.ephemeral()
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
     }
+
+#if DEBUG
+    /// Debug-only injection seam for deterministic protocol tests. Release app
+    /// code cannot replace the governed no-redirect URLSession.
+    init(baseURL: URL, session: URLSession) {
+        precondition(
+            PatientAPIBoundary.validatedBaseURL(baseURL.absoluteString) != nil,
+            "Hummingbird Patient rejected an unsafe API origin."
+        )
+        self.baseURL = baseURL
+        self.session = session
+        self.encoder = JSONEncoder()
+        self.decoder = JSONDecoder()
+    }
+#endif
 
     func signIn(
         email: String,
@@ -634,7 +653,25 @@ enum PatientURLSessionFactory {
         configuration.urlCredentialStorage = nil
         configuration.httpCookieStorage = nil
         configuration.httpShouldSetCookies = false
-        return URLSession(configuration: configuration)
+        return URLSession(
+            configuration: configuration,
+            delegate: PatientNoRedirectDelegate(),
+            delegateQueue: nil
+        )
+    }
+}
+
+/// Patient credentials and identifiers must never be replayed at a redirect
+/// target, even when that target shares the configured origin.
+final class PatientNoRedirectDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        completionHandler(nil)
     }
 }
 

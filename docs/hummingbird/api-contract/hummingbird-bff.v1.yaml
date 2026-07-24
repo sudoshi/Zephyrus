@@ -7,8 +7,8 @@ info:
     apps consume. Aggregates and reshapes the existing Zephyrus services for mobile:
     one screen → one call, uniform envelope, role-scoped, PHI-minimized, token-authed.
     Mutations DELEGATE to existing lifecycle services (no business logic re-implemented).
-    This is a v1 DRAFT sketch covering the highest-value endpoints; it generates the
-    Ktor client (shared KMP) and serves as the contract for the conformance test spec.
+    This is a v1 DRAFT sketch covering the highest-value endpoints; it is the input
+    for generated platform-native Swift/Kotlin contracts and the conformance test spec.
 servers:
   - url: https://{host}/api/mobile/v1
     variables: { host: { default: zephyrus.example.org } }

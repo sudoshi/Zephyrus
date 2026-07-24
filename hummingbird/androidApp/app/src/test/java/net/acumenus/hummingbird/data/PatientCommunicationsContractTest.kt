@@ -10,7 +10,10 @@ import org.junit.Test
 import java.util.UUID
 
 class PatientCommunicationsContractTest {
-    private val api = ApiClient("https://zephyrus.example.test")
+    private val api = ApiClient(
+        baseUrl = "https://zephyrus.example.test",
+        transportEnvironment = StaffTransportEnvironment.DEVELOPMENT,
+    )
 
     @Test
     fun `work item decoder follows restricted OpenAPI shape without internal routing fields`() {

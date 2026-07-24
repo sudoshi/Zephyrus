@@ -52,10 +52,27 @@ struct PatientAppConfiguration: Equatable {
     }
 }
 
+enum PatientTransportEnvironment: Equatable {
+    case development
+    case production
+
+    static var current: PatientTransportEnvironment {
+#if DEBUG
+        .development
+#else
+        .production
+#endif
+    }
+}
+
 enum PatientAPIBoundary {
     static let path = "/api/patient/v1"
+    static let productionHost = "zephyrus.acumenus.net"
 
-    static func validatedBaseURL(_ raw: String?) -> URL? {
+    static func validatedBaseURL(
+        _ raw: String?,
+        environment: PatientTransportEnvironment = .current
+    ) -> URL? {
         guard let raw,
               !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               let components = URLComponents(string: raw),
@@ -68,8 +85,15 @@ enum PatientAPIBoundary {
               components.path.isEmpty || components.path == "/"
         else { return nil }
 
-        let isLoopback = ["localhost", "127.0.0.1", "::1"].contains(host.lowercased())
-        guard scheme == "https" || (scheme == "http" && isLoopback) else { return nil }
+        guard scheme == "https" else { return nil }
+        if let port = components.port, !(1...65_535).contains(port) {
+            return nil
+        }
+        if environment == .production {
+            guard host.lowercased() == productionHost,
+                  components.port == nil || components.port == 443
+            else { return nil }
+        }
 
         return components.url
     }

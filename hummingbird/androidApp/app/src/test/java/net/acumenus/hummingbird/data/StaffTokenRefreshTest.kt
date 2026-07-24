@@ -26,7 +26,11 @@ class StaffTokenRefreshTest {
         server.start()
         store = RecordingTokenStore()
         coordinator = StaffTokenCoordinator(store)
-        api = ApiClient(server.url("/").toString().removeSuffix("/"), coordinator)
+        api = ApiClient(
+            baseUrl = server.url("/").toString().removeSuffix("/"),
+            tokenCoordinator = coordinator,
+            transportEnvironment = StaffTransportEnvironment.DEVELOPMENT,
+        )
     }
 
     @After

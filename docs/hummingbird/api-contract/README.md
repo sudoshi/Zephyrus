@@ -34,22 +34,21 @@ Crucially, **mutations delegate** to the existing lifecycle services
 
 ```
 hummingbird-bff.v1.yaml
-   ├── generates → shared/data Ktor client (KMP)  [openapi-generator / Ktor]
-   ├── generates → Laravel route/Resource stubs + request validation
+   ├── will generate → platform-native Swift and Kotlin contract artifacts
+   ├── is checked against → Laravel routes, Resources, and request behavior
    ├── drives    → the conformance test spec (status rules, envelope, error/409 handling)
    ├── fixtures  → shared DTO decode fixtures for Swift and Kotlin clients
    └── documents → the deep-link `links.web` targets for every WEB-deferred surface
 ```
 
-Current P1.4 decision: use **interim manually maintained DTOs with shared fixture decode
-tests and drift tests** while the OpenAPI/KMP generation path remains the target architecture.
-The shared fixtures live in [`fixtures/`](fixtures/) and cover the first DTO wave:
-`MobileAltitudeHome`, `ForYouItem`, `ActivityEvent`, and `PatientOperationalContext`.
-
-If the org rejects the shared-KMP approach, **this contract + the conformance spec becomes
-the binding agreement** that keeps two fully-separate native apps behaving identically. Either
-way, it is the anti-drift mechanism for behavior, exactly as the
-[design tokens](../design-tokens/) are for appearance.
+The accepted P1.4 decision is
+[generated platform-native contracts](../ADR-2026-07-19-generated-native-contracts.md), not
+a KMP runtime. Native DTOs are still manually maintained today; that is tracked debt, not
+the target architecture. The eight shared fixtures in [`fixtures/`](fixtures/) cover
+Altitude home, For You, activity, staff patient operational context, house Flow Window, EVS
+Flow Window, Flow floor geometry, and the governed Transport queue. PHP, Swift, and Kotlin
+decode gates run in CI so the current manual implementations cannot drift silently while
+the generated-client migration is completed.
 
 ## Conventions baked in
 
@@ -80,8 +79,8 @@ way, it is the anti-drift mechanism for behavior, exactly as the
 npx @redocly/cli lint hummingbird-bff.v1.yaml
 # preview docs
 npx @redocly/cli preview-docs hummingbird-bff.v1.yaml
-# generate the KMP client (example)
-openapi-generator-cli generate -i hummingbird-bff.v1.yaml -g kotlin -o ../../../../hummingbird/shared/data/generated
+# Generated-native toolchain command will be pinned here when the first
+# generated-client tranche lands. Do not run an unpinned generator ad hoc.
 ```
 
 ## Status / TODO
