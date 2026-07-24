@@ -54,3 +54,17 @@ condition = "AND"
 paths = ['''^tests/Feature/Rounds/PatientRoundQuestionPromotionTest\.php$''']
 # See the preceding allowlist: match the captured deterministic fixture value.
 regexes = ['''test-rounds-question-key-v1''']
+
+[[allowlists]]
+# Deterministic public care-pathway catalog identifiers captured from the
+# governed catalog response, not API keys or bearer material. The generic
+# API-key rule recognizes the adjacent JSON field name "key". Keep the
+# exception AND-scoped to the two exact regression fixtures and the bounded
+# drgcp namespace; every other value in those files remains scanned.
+description = "Care-pathway catalog fixture public pathway keys"
+condition = "AND"
+paths = [
+  '''^tests/js/carePathways/__fixtures__/pathways-page1\.json$''',
+  '''^tests/js/carePathways/__fixtures__/version-detail\.json$''',
+]
+regexes = ['''^drgcp-[a-z0-9-]{26,65}$''']
