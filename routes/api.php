@@ -826,6 +826,7 @@ Route::prefix('auth')->group(function () {
 Route::middleware([
     'auth:sanctum',
     'staff.realm',
+    \App\Http\Middleware\EnsureActiveStaffAccount::class,
     CheckForAnyAbility::class.':mobile:read',
     \App\Http\Middleware\TouchMobileTokenSession::class,
     'throttle:mobile-api',

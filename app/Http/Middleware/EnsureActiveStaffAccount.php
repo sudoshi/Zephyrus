@@ -8,12 +8,19 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/** Prevent non-staff Sanctum tokenable models from entering the staff BFF. */
-class EnsureStaffRealm
+/**
+ * Independently fail closed when a stale or concurrently authenticated access
+ * token outlives staff-account deactivation. The auth refresh route deliberately
+ * does not use this middleware because its controller must revoke the complete
+ * token family and record the account_inactive lifecycle reason.
+ */
+class EnsureActiveStaffAccount
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user() instanceof User) {
+        $user = $request->user();
+
+        if (! $user instanceof User || ! (bool) $user->is_active) {
             return $this->denied();
         }
 
@@ -24,7 +31,7 @@ class EnsureStaffRealm
     {
         return response()->json([
             'error' => [
-                'code' => 'staff_realm_required',
+                'code' => 'staff_access_unavailable',
                 'message' => 'A valid staff credential is required.',
             ],
         ], 403);

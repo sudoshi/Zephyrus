@@ -707,6 +707,7 @@ class MobileBffTest extends TestCase
     private function readEndpointsWithoutWebHandoff(): array
     {
         return [
+            '/me/sessions',
             '/realtime/config',
         ];
     }
