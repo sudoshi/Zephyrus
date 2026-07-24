@@ -5,7 +5,7 @@
 **Branch:** `main`  
 **Catalog commit:** `7dd1f4b345dcd51d365683802bd62011ac8f8e61` (`Add governed care pathway catalog`)  
 **Demo commit:** `930ced8b24c283a73cc7a662e57692f26e5155fb` (`Add governed care pathway journey demo`)  
-**Production commit marker:** `930ced8b24c283a73cc7a662e57692f26e5155fb`  
+**Production commit marker (as of the 2026-07-22 deployment):** `930ced8b24c283a73cc7a662e57692f26e5155fb` — production has since been redeployed with later `main` commits; the deployment evidence below is a point-in-time snapshot of that feature deployment, not a claim about the current production tip.  
 **Canonical release:** `drg-care-pathways-verification-package-v43.1-20260721`  
 **Canonical release ID:** `2`  
 **Production catalog state:** `inactive`  
@@ -66,7 +66,7 @@ Commit `7dd1f4b3` added 55 files and 9,184 lines. Its principal deliverables are
 - source reconciliation and canonical adoption services;
 - an accountable Artisan adoption command;
 - eight additive PostgreSQL migrations;
-- 25-plus Eloquent models for catalog and provenance authorities;
+- 25 Eloquent models for catalog and provenance authorities;
 - an approved-content read boundary;
 - a staff-only governance read service and ten GET endpoints;
 - eight separate care-pathway capabilities and dedicated role profiles;
@@ -116,20 +116,29 @@ The adoption process does not trust a workbook summary merely because it exists.
 
 ### Post-deployment workspace digest caveat
 
-At the time this devlog was written, the untracked workbook currently present at `DRG_Care_Pathways_250_Verification_Package_v43_1.xlsx` hashed to:
+Neither the workbook nor the CSV currently present in the shared worktree is byte-identical to the artifacts production release `2` adopted. Both files are now git-tracked (committed in `c90a4aba`, "Preserve care pathway and planning artifacts") and both were regenerated after adoption — most likely by the UMLS 2026AA terminology-expansion pass, which also produced the separate `*_Terminology_Expanded` variants.
+
+The workbook now present at `DRG_Care_Pathways_250_Verification_Package_v43_1.xlsx` hashes to:
 
 ```text
 6617bda522a55bfa3e6971b00bb3d1862d6f6567a1119f07f2682e468e5c293e
 ```
 
-That does **not** match the immutable workbook digest recorded by production release `2`. A different XLSX byte digest can result from either substantive workbook changes or ZIP/package reserialization; semantic equivalence has not been established. Consequently:
+The CSV now present at `DRG_Care_Pathways_250_PATHWAYS_99PCT_v43_1.csv` hashes to:
 
-- this devlog describes the package actually adopted by production, whose digest is `42cad...`;
-- the current shared-worktree copy must not be represented as byte-identical to that release;
+```text
+fcd6986ce3a4a0ee69e3120f18353a2d371d456ad397304f7e0eea387a80f5f0
+```
+
+Neither matches the immutable digest recorded by production release `2` (`42cad...` for the workbook, `2e3ac282...` for the CSV). A different XLSX byte digest can result from either substantive workbook changes or ZIP/package reserialization; the CSV retains the original 49-column, 250-row shape but its bytes have changed. Semantic equivalence has not been established for either file. Consequently:
+
+- this devlog describes the package actually adopted by production, whose digests are `42cad...` (workbook) and `2e3ac282...` (CSV);
+- the current shared-worktree copies must not be represented as byte-identical to that release;
+- the originally adopted CSV (`2e3ac282...`) is not recoverable from this machine — it does not appear in the working tree, anywhere in git history, or in the production deployment tree at `/var/www/Zephyrus` — so any CSV reconciliation must be semantic rather than a byte diff;
 - no reimport was performed as part of this documentation-only task; and
-- any future adoption of the current file must first run full reconciliation and, if it is truly a new artifact, use a new immutable release identity rather than mutating release `2`.
+- because **both** artifacts have diverged, any future adoption of the current files must first run full reconciliation and use a new immutable release identity rather than mutating release `2`.
 
-The local CSV still matches the production-pinned CSV digest.
+> **Correction (2026-07-24):** An earlier revision of this section described the workbook as "untracked" and stated that "the local CSV still matches the production-pinned CSV digest." Both statements were inaccurate: the files are tracked, and the CSV had already diverged to `fcd6986c...` at the time of writing. Corrected after a verification audit that searched the working tree, full git history, and the production deployment tree for the pinned `2e3ac282...` CSV and found no match.
 
 ## Reconciled inventory
 
@@ -303,7 +312,7 @@ The additive `care_pathways` schema separates authorities by responsibility.
 | Immutable content versions     | `versions`                                                                                   |
 | DRG authority                  | `drg_codebook_entries`, `drg_mappings`                                                       |
 | Narrative and approved content | `sections`, `section_sources`                                                                |
-| Future workflow authoring      | `milestone_definitions`, `activity_definitions`, `goal_definitions`, `education_definitions` |
+| Future workflow authoring      | `stage_definitions`, `milestone_definitions`, `activity_definitions`, `goal_definitions`, `education_definitions` |
 | Evidence                       | `sources`, `source_status_events`, `evidence_claims`, `claim_sources`, `source_changes`      |
 | Data remediation               | `source_enrichments`, `completeness_resolutions` and their current views                     |
 | Institutional taxonomy         | `service_line_mappings`                                                                      |
@@ -486,6 +495,7 @@ Production currently has:
 - 250 versions with `activation_status=inactive`;
 - 7,000 `source_candidate` sections for `staff_reference`;
 - zero approved staff sections;
+- zero stage definitions;
 - zero milestone definitions;
 - zero activity definitions;
 - zero goal definitions;
@@ -493,7 +503,7 @@ Production currently has:
 - zero reviews; and
 - zero approvals.
 
-The four workflow-authoring tables are intentionally empty. The source contains researched prose and evidence; it does not yet contain institutionally approved, executable milestone, activity, goal, or patient-education definitions. Creating those rows by parsing narrative heuristically would convert research language into clinical behavior without review.
+The five workflow-authoring tables are intentionally empty. The source contains researched prose and evidence; it does not yet contain institutionally approved, executable milestone, activity, goal, or patient-education definitions. Creating those rows by parsing narrative heuristically would convert research language into clinical behavior without review.
 
 Before any real version can activate, a local institution must establish at least:
 
@@ -931,9 +941,9 @@ This table is the safest short answer to “Why is it all inactive?” The data 
 
 ### Immediate release-hygiene work
 
-1. Reconcile the current workbook’s `6617...` digest against the production-adopted `42cad...` package.
-2. Determine whether the difference is semantic or package-only.
-3. If semantic, create a new dataset key, new immutable manifest, and new canonical release; do not mutate release `2`.
+1. Reconcile both regenerated artifacts against the production-adopted release: the workbook’s `6617...` digest against `42cad...`, and the CSV’s `fcd6986c...` digest against `2e3ac282...`. The pinned CSV bytes are not recoverable locally, so treat this as semantic reconciliation, not a byte diff.
+2. Determine for each artifact whether the difference is semantic (e.g., terminology expansion) or package-only reserialization.
+3. If either is semantic, create a new dataset key, new immutable manifest, and new canonical release; do not mutate release `2`.
 4. Finish a reproducible fresh-database raw loader or normalized release-bundle process.
 5. Add minimized, non-PHI fixtures so CI does not depend on absolute local paths.
 

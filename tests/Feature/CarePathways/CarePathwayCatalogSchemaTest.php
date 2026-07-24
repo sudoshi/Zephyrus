@@ -74,6 +74,7 @@ class CarePathwayCatalogSchemaTest extends TestCase
             'care_pathway_release_source_controls_immutable',
             'care_pathway_release_activation_gate',
             'care_pathway_version_content_immutable',
+            'care_pathway_active_version_non_overlap',
             'care_pathway_section_source_content_immutable',
             'care_pathway_stage_definition_content_immutable',
             'care_pathway_release_controls_append_only',
