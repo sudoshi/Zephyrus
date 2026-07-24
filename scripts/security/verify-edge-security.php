@@ -26,10 +26,16 @@ $assert(is_string($policyJson), 'The edge policy is missing or unreadable.');
 $policy = is_string($policyJson) ? json_decode($policyJson, true) : null;
 $assert(is_array($policy), 'The edge policy is not valid JSON.');
 
+$expectedAllowedMethods = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+
 if (is_array($policy)) {
     $assert(($policy['policy_version'] ?? null) === '1.0.0', 'The edge policy version is not recognized.');
     $assert(($policy['waf']['mode'] ?? null) === 'blocking', 'The WAF policy must operate in blocking mode.');
     $assert(($policy['waf']['ruleset'] ?? null) === 'OWASP Core Rule Set', 'OWASP CRS must be the declared WAF ruleset.');
+    $assert(
+        ($policy['waf']['allowed_methods'] ?? null) === $expectedAllowedMethods,
+        'The WAF method policy must exactly match the Zephyrus REST method contract.',
+    );
     $assert(($policy['release_rules']['critical_or_high_findings_allowed'] ?? true) === false, 'Critical/high findings must block release.');
     $assert(($policy['release_rules']['production_phi_allowed_without_live_edge_verification'] ?? true) === false, 'PHI must require live edge verification.');
     $assert(count($policy['machine_ingress'] ?? []) >= 2, 'Every machine-ingress class must have an edge trust contract.');
@@ -41,6 +47,10 @@ if (is_string($apache)) {
     foreach (['SecRuleEngine On', 'SecRequestBodyAccess On', 'SecRequestBodyLimitAction Reject', 'TraceEnable Off', 'OWASP CRS'] as $directive) {
         $assert(str_contains($apache, $directive), "Apache edge policy is missing: {$directive}");
     }
+    $assert(
+        str_contains($apache, 'tx.allowed_methods='.implode(' ', $expectedAllowedMethods)),
+        'Apache does not align OWASP CRS with the Zephyrus REST method contract.',
+    );
     $assert(! str_contains($apache, '<IfModule'), 'The WAF policy must fail closed, not disappear behind IfModule.');
 }
 
@@ -83,10 +93,15 @@ foreach ($arguments as $argument) {
         continue;
     }
 
-    $request = static function (string $url, string $method = 'GET'): array {
+    $request = static function (string $url, string $method = 'GET', array $headers = []): array {
+        $headerArguments = implode(' ', array_map(
+            static fn (string $header): string => '--header '.escapeshellarg($header),
+            $headers,
+        ));
         $command = sprintf(
-            'curl --silent --show-error --output /dev/null --dump-header - --request %s --max-time 20 %s',
+            'curl --silent --show-error --output /dev/null --dump-header - --request %s --max-time 20 %s %s',
             escapeshellarg($method),
+            $headerArguments,
             escapeshellarg($url),
         );
         exec($command, $lines, $status);
@@ -109,6 +124,21 @@ foreach ($arguments as $argument) {
     [$traceStatus, $traceHeaders] = $request($origin.'/', 'TRACE');
     $assert($traceStatus === 0, 'TRACE probe failed.');
     $assert(preg_match('/^HTTP\/\S+ (?:403|405|501)\b/m', $traceHeaders) === 1, 'TRACE was not rejected.');
+
+    [$deleteStatus, $deleteHeaders] = $request(
+        $origin.'/api/mobile/v1/me/sessions/00000000-0000-4000-8000-000000000000',
+        'DELETE',
+        ['Accept: application/json'],
+    );
+    $assert($deleteStatus === 0, 'Mobile session DELETE boundary was unreachable.');
+    $assert(
+        preg_match('/^HTTP\/\S+ 401\b/m', $deleteHeaders) === 1,
+        'Mobile session DELETE did not reach Laravel authentication.',
+    );
+    $assert(
+        preg_match('/^Cache-Control:.*\bno-store\b/im', $deleteHeaders) === 1,
+        'Mobile session DELETE did not retain the no-store boundary.',
+    );
 }
 
 if ($failures !== []) {

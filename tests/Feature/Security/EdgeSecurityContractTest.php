@@ -16,6 +16,10 @@ final class EdgeSecurityContractTest extends TestCase
 
         $this->assertSame('blocking', $policy['waf']['mode']);
         $this->assertSame('OWASP Core Rule Set', $policy['waf']['ruleset']);
+        $this->assertSame(
+            ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+            $policy['waf']['allowed_methods'],
+        );
         $this->assertContains('security2_module', $policy['required_modules']);
         $this->assertFalse($policy['release_rules']['critical_or_high_findings_allowed']);
         $this->assertFalse($policy['release_rules']['production_phi_allowed_without_live_edge_verification']);
@@ -30,6 +34,10 @@ final class EdgeSecurityContractTest extends TestCase
         $this->assertStringContainsString('SecRequestBodyLimitAction Reject', $policy);
         $this->assertStringContainsString('TraceEnable Off', $policy);
         $this->assertStringContainsString('OWASP CRS', $policy);
+        $this->assertStringContainsString(
+            'tx.allowed_methods=GET HEAD POST PUT PATCH DELETE OPTIONS',
+            $policy,
+        );
         $this->assertStringContainsString('@gt 1048576', $policy);
         $this->assertStringNotContainsString('<IfModule', $policy);
     }
