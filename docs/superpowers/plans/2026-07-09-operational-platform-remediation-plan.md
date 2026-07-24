@@ -100,7 +100,7 @@ This section is the immutable 2026-07-09 pre-release audit snapshot. Statements 
 
 ### 3.1 Repository and deployment position
 
-- The checkout already had an unrelated user modification in `docs/ZEPHYRUS-2.0-PLAN.md`; this plan does not alter it.
+- The checkout already had an unrelated user modification in `docs/product/ZEPHYRUS-2.0-PLAN.md`; this plan does not alter it.
 - The canonical application deploy path is `./deploy.sh`.
 - `deploy.sh` does not run Laravel migrations.
 - Production intentionally left `2026_07_04_000110` through `2026_07_04_000170` pending.

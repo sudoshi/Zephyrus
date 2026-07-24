@@ -1,6 +1,6 @@
 /**
  * Shared helpers for the 4D Navigator field-verification scripts
- * (HFE closure H4 — docs/FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md).
+ * (HFE closure H4 — docs/plans/FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md).
  *
  * Credentials come ONLY from the environment — never hardcode them:
  *   FLOW4D_BASE_URL   target origin (default https://zephyrus.acumenus.net)

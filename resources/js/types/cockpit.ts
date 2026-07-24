@@ -2,7 +2,7 @@
 //
 // Zephyrus 2.0 cockpit contract additions. These EXTEND types/commandCenter.ts
 // (the frozen Command Center Zod contract) — they never replace it. See
-// docs/ZEPHYRUS-2.0-PLAN.md Part IV (status vocabulary) and Part V §3 (Cell
+// docs/product/ZEPHYRUS-2.0-PLAN.md Part IV (status vocabulary) and Part V §3 (Cell
 // grammar). Per decision D7 the ISA-101 logical vocabulary is an alias layer
 // over the existing StatusLevel enum — no physical rename anywhere.
 import { z } from 'zod';

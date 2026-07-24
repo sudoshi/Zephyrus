@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  * widened governance action_type CHECK. No existing enterprise table is mutated,
  * weakened, or dropped; the tenant/facility compatibility keys are left in place.
  *
- * Plan: docs/ADMIN-INTEROPERABILITY-CONTROL-PLANE-PLAN-2026-07-12.md (ENT-REG)
+ * Plan: docs/plans/ADMIN-INTEROPERABILITY-CONTROL-PLANE-PLAN-2026-07-12.md (ENT-REG)
  */
 return new class extends Migration
 {

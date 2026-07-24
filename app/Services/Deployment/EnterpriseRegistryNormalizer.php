@@ -14,7 +14,7 @@ use RuntimeException;
  * operation. Only the entity kinds Zephyrus recognizes are accepted; anything
  * else in the payload is ignored so the hash stays stable across payload noise.
  *
- * Plan: docs/ADMIN-INTEROPERABILITY-CONTROL-PLANE-PLAN-2026-07-12.md (ENT-REG)
+ * Plan: docs/plans/ADMIN-INTEROPERABILITY-CONTROL-PLANE-PLAN-2026-07-12.md (ENT-REG)
  */
 final class EnterpriseRegistryNormalizer
 {

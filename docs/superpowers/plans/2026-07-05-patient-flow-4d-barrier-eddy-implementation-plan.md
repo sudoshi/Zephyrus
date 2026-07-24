@@ -10,7 +10,7 @@ Related docs:
 - `docs/superpowers/plans/2026-06-25-patient-flow-4d-navigator-integration.md`
 - `docs/superpowers/plans/2026-06-25-patient-flow-4d-navigator-todo.md`
 - `docs/hummingbird/FLOW-WINDOW-PLAN.md`
-- `docs/EDDY-AI-AGENT-PLAN.md`
+- `docs/plans/EDDY-AI-AGENT-PLAN.md`
 
 ## 1. Objective
 

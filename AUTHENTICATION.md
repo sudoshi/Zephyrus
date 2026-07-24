@@ -175,7 +175,7 @@ For API endpoints, consider implementing:
 ## Support
 
 For issues or questions:
-- Check the DEVLOG.md for technical details
+- Check [docs/README.md](docs/README.md) for the documentation map (the pre-2.0 platform snapshot is archived at [docs/archive/PLATFORM-TECHNICAL-REFERENCE-2026-02-28.md](docs/archive/PLATFORM-TECHNICAL-REFERENCE-2026-02-28.md))
 - Review Laravel Breeze documentation
 - Consult the Inertia.js authentication guide
 

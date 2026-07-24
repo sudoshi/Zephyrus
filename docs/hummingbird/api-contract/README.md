@@ -6,8 +6,8 @@ apps talk to after token exchange. It is a **v1 draft** covering the highest-val
 implemented endpoints (auth, me, devices, For You, RTDC census/house/placements, Altitude
 A0/A1/A2/A2P, activity, Ops approvals, OR board, Command Center, Transport, EVS, Staffing,
 Improvement, realtime config, and Eddy context/chat/approvals). It expands per the
-[feature-parity matrix](../01-feature-parity-matrix.md) and
-[backend requirements](../04-backend-requirements.md).
+[feature-parity matrix](../reference/01-feature-parity-matrix.md) and
+[backend requirements](../reference/04-backend-requirements.md).
 
 [`mobile-route-contract-inventory.md`](mobile-route-contract-inventory.md) records the
 2026-07-02 Laravel-vs-OpenAPI reconciliation and the current iOS/Android client coverage

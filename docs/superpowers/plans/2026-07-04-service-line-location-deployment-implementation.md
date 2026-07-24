@@ -2,9 +2,9 @@
 
 **Date:** 2026-07-04
 **Status:** Proposed implementation plan
-**Scope:** Turn the research baseline in `docs/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md` into a shippable, phased Zephyrus build: a normalized service-line registry, an IDN-geography + facility-service capability matrix, many-to-many service-line usage of physical spaces, room/bed capability tags, first-class interfacility transfer edges, per-facility manifest generation, a deployment console, a deployment-readiness scorecard, and a meticulous admin-level **Staffing Alignment Wizard** that integrates external staffing systems (HRIS / scheduling / credentialing / identity) to resolve which users belong to which service lines, roles, facilities, and units — with human-in-the-loop review, evidence, and governance.
-**Source of truth (research):** `docs/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md`
-**Companion:** `docs/HOSPITAL-1-SUMMIT-REGIONAL-PLAN.md`, `docs/superpowers/plans/2026-06-25-hospital-blueprint-ingestion-digital-twin.md`, `docs/superpowers/plans/2026-06-25-patient-flow-4d-navigator-integration.md`
+**Scope:** Turn the research baseline in `docs/architecture/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md` into a shippable, phased Zephyrus build: a normalized service-line registry, an IDN-geography + facility-service capability matrix, many-to-many service-line usage of physical spaces, room/bed capability tags, first-class interfacility transfer edges, per-facility manifest generation, a deployment console, a deployment-readiness scorecard, and a meticulous admin-level **Staffing Alignment Wizard** that integrates external staffing systems (HRIS / scheduling / credentialing / identity) to resolve which users belong to which service lines, roles, facilities, and units — with human-in-the-loop review, evidence, and governance.
+**Source of truth (research):** `docs/architecture/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md`
+**Companion:** `docs/plans/HOSPITAL-1-SUMMIT-REGIONAL-PLAN.md`, `docs/superpowers/plans/2026-06-25-hospital-blueprint-ingestion-digital-twin.md`, `docs/superpowers/plans/2026-06-25-patient-flow-4d-navigator-integration.md`
 
 ---
 
@@ -950,8 +950,8 @@ The scorecard returns per-criterion `{status, count, failures[]}` and an overall
 
 ## References
 
-- `docs/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md` (research baseline)
-- `docs/HOSPITAL-1-SUMMIT-REGIONAL-PLAN.md`
+- `docs/architecture/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md` (research baseline)
+- `docs/plans/HOSPITAL-1-SUMMIT-REGIONAL-PLAN.md`
 - `docs/superpowers/plans/2026-06-25-hospital-blueprint-ingestion-digital-twin.md`
 - `docs/superpowers/plans/2026-06-25-patient-flow-4d-navigator-integration.md`
 - `database/migrations/2026_06_25_000010_create_facility_blueprint_model_tables.php`

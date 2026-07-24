@@ -2,7 +2,7 @@
 
 **Status:** Directional execution plan
 **Date:** 2026-07-01
-**Scope:** Hummingbird mobile companion aligned to `docs/ZEPHYRUS-2.0-PLAN.md`
+**Scope:** Hummingbird mobile companion aligned to `docs/product/ZEPHYRUS-2.0-PLAN.md`
 
 ## 1. Executive Decision
 

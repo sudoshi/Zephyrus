@@ -27,7 +27,7 @@ return [
     // (synthetic MIMIC-IV / atlantic_health provenance). Read by App\Services\Demo\DistributionProfile.
     // Before this key existed the JSON was documentation only — cited in a code comment but never
     // loaded at runtime, so the operational seeders used hand-tuned constants instead of these
-    // source-derived shapes. See docs/DEMO-DATA-COHERENCE-FEEDBACK-AND-PLAN-2026-07-10.md §3.5.
+    // source-derived shapes. See docs/plans/DEMO-DATA-COHERENCE-FEEDBACK-AND-PLAN-2026-07-10.md §3.5.
     'distributions' => [
         'SUMMIT_REGIONAL' => 'config/hospital/hospital-1-distributions.json',
     ],
