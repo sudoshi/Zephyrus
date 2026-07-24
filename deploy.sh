@@ -131,7 +131,9 @@ validate_migration_paths() {
     local repository_root="$1"
     local migration_path
 
-    for migration_path in "${MIGRATION_PATHS[@]}"; do
+    # The ${array[@]+...} form is required for macOS Bash 3.2 with set -u:
+    # expanding an initialized-but-empty array directly is treated as unbound.
+    for migration_path in "${MIGRATION_PATHS[@]+"${MIGRATION_PATHS[@]}"}"; do
         if [[ ! "$migration_path" =~ ^database/migrations/[A-Za-z0-9._-]+\.php$ ]]; then
             fail "migration path is not a direct database/migrations/*.php file: $migration_path"
         fi
@@ -216,7 +218,8 @@ run_remote_release() {
     local commit="$1"
 
     ssh -o BatchMode=yes "$PRODUCTION_SSH_TARGET" \
-        bash -s -- "$commit" "$DEPLOY_ACTION" "$FRONTEND_LABEL" "${MIGRATION_PATHS[@]}" <<'REMOTE_RELEASE'
+        bash -s -- "$commit" "$DEPLOY_ACTION" "$FRONTEND_LABEL" \
+        "${MIGRATION_PATHS[@]+"${MIGRATION_PATHS[@]}"}" <<'REMOTE_RELEASE'
 set -Eeuo pipefail
 EXPECTED_COMMIT="$1"
 DEPLOY_ACTION="$2"
@@ -264,7 +267,7 @@ git merge --ff-only "$EXPECTED_COMMIT"
 DEPLOY_ARGS=(--host-only --expected-commit "$EXPECTED_COMMIT")
 if [[ "$DEPLOY_ACTION" == "migration" ]]; then
     DEPLOY_ARGS+=(--migrate)
-    for migration_path in "${MIGRATION_PATHS[@]}"; do
+    for migration_path in "${MIGRATION_PATHS[@]+"${MIGRATION_PATHS[@]}"}"; do
         DEPLOY_ARGS+=(--path "$migration_path")
     done
 elif [[ "$FRONTEND_LABEL" == "1" ]]; then
@@ -323,7 +326,7 @@ run_path_scoped_migrations() {
         || fail "production database is not the expected host-local PostgreSQL service"
     [[ "$database" =~ ^[A-Za-z0-9_.-]+$ ]] || fail "production database name is invalid"
 
-    for migration_path in "${MIGRATION_PATHS[@]}"; do
+    for migration_path in "${MIGRATION_PATHS[@]+"${MIGRATION_PATHS[@]}"}"; do
         migration_arguments+=(--path "$migration_path")
     done
 
