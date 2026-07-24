@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Laravel\Sanctum\PersonalAccessToken;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
@@ -339,7 +340,7 @@ final class HummingbirdPatientReferenceProjectionDraftProvisioner
             || $policy->effective_to !== null
             || $policy->disclosure_matrix_version !== 'patient-disclosure-matrix.v1'
             || $policy->content_contract_version !== 'patient-projection.v1'
-            || (array) $policy->rules != $this->policyRules()) {
+            || ! $this->jsonValuesIdentical((array) $policy->rules, $this->policyRules())) {
             throw new RuntimeException('reference_patient_projection_policy_not_safe_draft');
         }
 
@@ -431,11 +432,28 @@ final class HummingbirdPatientReferenceProjectionDraftProvisioner
                 'producer_version' => self::PRODUCER_VERSION,
                 'trace_digest' => $expectedTraceDigest,
             ];
+            try {
+                $this->contentGuard->assertSafe(
+                    $kind,
+                    (array) $projection->content,
+                    (array) $projection->provenance,
+                    (array) $projection->uncertainty,
+                    array_values((array) $projection->permitted_relationships),
+                );
+            } catch (InvalidArgumentException $exception) {
+                throw new RuntimeException(
+                    'reference_patient_projection_existing_payload_not_safe',
+                    previous: $exception,
+                );
+            }
             if (! hash_equals($expectedDigest, (string) $projection->content_digest)
                 || ! hash_equals($expectedDigest, $storedContentDigest)) {
                 throw new RuntimeException('reference_patient_projection_existing_content_changed');
             }
-            if ((array) $projection->provenance != $expectedProvenance) {
+            if (! $this->jsonValuesIdentical(
+                (array) $projection->provenance,
+                $expectedProvenance,
+            )) {
                 throw new RuntimeException('reference_patient_projection_existing_provenance_changed');
             }
             if (! $this->uncertaintyMatches($projection)) {
@@ -460,7 +478,10 @@ final class HummingbirdPatientReferenceProjectionDraftProvisioner
                 || $cursor->source_version !== self::PRODUCER_VERSION
                 || $cursor->status !== 'projected'
                 || ! hash_equals($expectedCursorDigest, (string) $cursor->cursor_digest)
-                || (array) $cursor->metadata != $expectedCursorMetadata
+                || ! $this->jsonValuesIdentical(
+                    (array) $cursor->metadata,
+                    $expectedCursorMetadata,
+                )
                 || ! $cursor->source_observed_at?->equalTo($sourceObservedAt)
                 || ! $cursor->projected_at?->equalTo($projection->generated_at)) {
                 throw new RuntimeException('reference_patient_projection_existing_cursor_not_safe');
@@ -542,6 +563,38 @@ final class HummingbirdPatientReferenceProjectionDraftProvisioner
             self::SCHEMA_VERSIONS[$kind],
             $content,
         );
+        $provenance = [
+            'projection_method' => 'command_owned_synthetic_reference_draft',
+            'source_class' => 'synthetic_reference_fixture',
+            'input_classes' => ['synthetic_command_owned_encounter'],
+            'review_state' => 'draft_synthetic_not_approved',
+            'producer_version' => self::PRODUCER_VERSION,
+            'trace_digest' => $this->hmac->digest(
+                'reference-patient-projection-draft-trace-v1',
+                (string) $grant->grant_uuid.'|'.$kind.'|'.$contentDigest,
+            ),
+        ];
+        $uncertainty = [
+            'level' => 'unknown',
+            'explanation' => 'This is synthetic demonstration content and is not clinical information.',
+            'can_change' => true,
+            'reviewed_at' => $generatedAt->toISOString(),
+        ];
+        $relationships = ['self'];
+        try {
+            $this->contentGuard->assertSafe(
+                $kind,
+                $content,
+                $provenance,
+                $uncertainty,
+                $relationships,
+            );
+        } catch (InvalidArgumentException $exception) {
+            throw new RuntimeException(
+                'reference_patient_projection_payload_not_safe',
+                previous: $exception,
+            );
+        }
         $cursor = PatientProjectionCursor::query()->create([
             'cursor_uuid' => $this->uuid('cursor/'.$kind),
             'source_system_key' => self::SOURCE_SYSTEM_KEY,
@@ -573,28 +626,13 @@ final class HummingbirdPatientReferenceProjectionDraftProvisioner
             'content_schema_version' => self::SCHEMA_VERSIONS[$kind],
             'content_digest' => $contentDigest,
             'source_version' => self::PRODUCER_VERSION,
-            'provenance' => [
-                'projection_method' => 'command_owned_synthetic_reference_draft',
-                'source_class' => 'synthetic_reference_fixture',
-                'input_classes' => ['synthetic_command_owned_encounter'],
-                'review_state' => 'draft_synthetic_not_approved',
-                'producer_version' => self::PRODUCER_VERSION,
-                'trace_digest' => $this->hmac->digest(
-                    'reference-patient-projection-draft-trace-v1',
-                    (string) $grant->grant_uuid.'|'.$kind.'|'.$contentDigest,
-                ),
-            ],
+            'provenance' => $provenance,
             'source_observed_at' => $sourceObservedAt,
             'generated_at' => $generatedAt,
             'freshness_class' => 'unknown',
-            'uncertainty' => [
-                'level' => 'unknown',
-                'explanation' => 'This is synthetic demonstration content and is not clinical information.',
-                'can_change' => true,
-                'reviewed_at' => $generatedAt->toISOString(),
-            ],
+            'uncertainty' => $uncertainty,
             'required_scope' => PatientProjectionDisclosureService::REQUIRED_SCOPES[$kind],
-            'permitted_relationships' => ['self'],
+            'permitted_relationships' => $relationships,
             'release_state' => 'draft',
         ]);
     }
@@ -630,6 +668,29 @@ final class HummingbirdPatientReferenceProjectionDraftProvisioner
             Uuid::NAMESPACE_URL,
             'https://zephyrus.acumenus.net/reference-patient-draft/'.$name,
         )->toString();
+    }
+
+    private function jsonValuesIdentical(mixed $actual, mixed $expected): bool
+    {
+        return $this->canonicalizeJsonValue($actual)
+            === $this->canonicalizeJsonValue($expected);
+    }
+
+    private function canonicalizeJsonValue(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        $canonical = [];
+        foreach ($value as $key => $child) {
+            $canonical[$key] = $this->canonicalizeJsonValue($child);
+        }
+        if (! array_is_list($canonical)) {
+            ksort($canonical, SORT_STRING);
+        }
+
+        return $canonical;
     }
 
     /**

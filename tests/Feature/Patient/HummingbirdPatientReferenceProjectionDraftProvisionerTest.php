@@ -14,7 +14,9 @@ use App\Models\Unit;
 use App\Services\Mobile\Demo\HummingbirdReferencePatientProvisioner;
 use App\Services\Patient\Demo\HummingbirdPatientReferenceIdentityProvisioner;
 use App\Services\Patient\Demo\HummingbirdPatientReferenceProjectionDraftProvisioner;
+use App\Services\Patient\PatientHmac;
 use App\Services\Patient\Projection\PatientProjectionDisclosureService;
+use App\Services\Patient\Projection\SyntheticPatientProjectionProvisioner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -229,6 +231,80 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
         }
 
         $this->assertDatabaseCount('patient_experience.release_policy_versions', 0);
+        $this->assertDatabaseCount('patient_experience.encounter_projections', 0);
+    }
+
+    public function test_provisioner_revalidates_shared_content_before_production_persistence(): void
+    {
+        $encounter = $this->foundation();
+        $this->app->instance(
+            SyntheticPatientProjectionProvisioner::class,
+            new class($this->app->make(PatientHmac::class)) extends SyntheticPatientProjectionProvisioner
+            {
+                /** @return array<string, mixed> */
+                public function contentFor(string $seed, string $kind): array
+                {
+                    $content = parent::contentFor($seed, $kind);
+                    $content['raw_fhir'] = ['forbidden' => true];
+
+                    return $content;
+                }
+            },
+        );
+
+        try {
+            $this->app->make(HummingbirdPatientReferenceProjectionDraftProvisioner::class)
+                ->provision(
+                    HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
+                    (int) $encounter->getKey(),
+                );
+            $this->fail('Expected shared content to be revalidated before persistence.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame(
+                'reference_patient_projection_payload_not_safe',
+                $exception->getMessage(),
+            );
+        }
+
+        $this->assertDatabaseCount('patient_experience.release_policy_versions', 0);
+        $this->assertDatabaseCount('patient_experience.source_projection_cursors', 0);
+        $this->assertDatabaseCount('patient_experience.encounter_projections', 0);
+    }
+
+    public function test_provisioner_rejects_loose_json_type_equivalence_in_draft_policy(): void
+    {
+        $encounter = $this->foundation();
+        PatientReleasePolicyVersion::query()->create([
+            'policy_uuid' => (string) Str::uuid(),
+            'version' => HummingbirdPatientReferenceProjectionDraftProvisioner::POLICY_VERSION,
+            'status' => 'draft',
+            'disclosure_matrix_version' => 'patient-disclosure-matrix.v1',
+            'content_contract_version' => 'patient-projection.v1',
+            'rules' => [
+                'owner' => HummingbirdPatientReferenceProjectionDraftProvisioner::OWNER,
+                'synthetic' => 1,
+                'draft_only' => 1,
+                'patient_visible' => 0,
+                'clinical_use' => 0,
+            ],
+        ]);
+
+        try {
+            $this->app->make(HummingbirdPatientReferenceProjectionDraftProvisioner::class)
+                ->provision(
+                    HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
+                    (int) $encounter->getKey(),
+                );
+            $this->fail('Expected numeric lookalikes for boolean policy values to be rejected.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame(
+                'reference_patient_projection_policy_not_safe_draft',
+                $exception->getMessage(),
+            );
+        }
+
+        $this->assertDatabaseCount('patient_experience.release_policy_versions', 1);
+        $this->assertDatabaseCount('patient_experience.source_projection_cursors', 0);
         $this->assertDatabaseCount('patient_experience.encounter_projections', 0);
     }
 
