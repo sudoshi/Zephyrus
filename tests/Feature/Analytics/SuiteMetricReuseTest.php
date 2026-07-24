@@ -25,7 +25,23 @@ final class SuiteMetricReuseTest extends TestCase
         $this->seed([RtdcSeeder::class, CaseManagementSeeder::class, StaffingReferenceSeeder::class, CommandCenterDemoSeeder::class]);
         $calculator = app(SuiteMetricCalculator::class);
 
-        $perioperative = app(PerioperativeMetricsService::class)->build();
+        $perioperativeService = app(PerioperativeMetricsService::class);
+        $perioperative = $perioperativeService->build();
+        $headlineQueries = [];
+        DB::listen(static function ($query) use (&$headlineQueries): void {
+            $headlineQueries[] = strtolower($query->sql);
+        });
+        $headlinePrimeTime = $perioperativeService->headlinePrimeTimeUtilizationPct();
+        $this->assertSame(
+            (float) $perioperative['lastMonth']['primetimeUtilization']['staffed'],
+            $headlinePrimeTime,
+        );
+        $this->assertGreaterThanOrEqual(2, count($headlineQueries));
+        $this->assertLessThanOrEqual(4, count($headlineQueries));
+        $this->assertFalse(collect($headlineQueries)->contains(
+            fn (string $sql): bool => str_contains($sql, 'prod.or_logs')
+                || str_contains($sql, 'prod.case_metrics'),
+        ));
         $firstCases = DB::select(<<<'SQL'
             SELECT first_start, sched
             FROM (

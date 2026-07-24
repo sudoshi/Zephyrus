@@ -6,6 +6,7 @@ use App\Models\Staffing\StaffingPlan;
 use App\Models\Staffing\StaffingRequest;
 use App\Models\User;
 use App\Services\Demo\OperationalDemoDataService;
+use App\Services\Staffing\StaffingOperationsService;
 use Database\Seeders\RtdcSeeder;
 use Database\Seeders\StaffingReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -88,6 +89,12 @@ class StaffingApiTest extends TestCase
             ->assertJsonPath('data.metrics.at_risk_units', 2)
             ->assertJsonPath('data.metrics.total_gap_headcount', 3)
             ->assertJsonPath('data.coverage.coverage_pct', 77); // 10 available / 13 required
+
+        $staffing = app(StaffingOperationsService::class);
+        $overview = $staffing->overview();
+        $cockpit = $staffing->cockpitSummary();
+        $this->assertSame($overview['metrics']['unfilled_requests'], $cockpit['metrics']['unfilled_requests']);
+        $this->assertSame($overview['coverage'], $cockpit['coverage']);
     }
 
     public function test_sla_preserves_whole_second_precision(): void

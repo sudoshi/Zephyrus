@@ -110,6 +110,32 @@ class StaffingOperationsService
         ];
     }
 
+    /**
+     * Return only the values consumed by the cockpit staffing provider.
+     *
+     * The full overview intentionally includes the canonical workforce
+     * directory summary, at-risk unit detail, request queue serialization, and
+     * resource options. SnapshotBuilder consumes none of those structures, so
+     * loading them on every cockpit refresh needlessly scales with the entire
+     * staff-assignment population.
+     *
+     * @return array{metrics:array{unfilled_requests:int},coverage:array<string,mixed>}
+     */
+    public function cockpitSummary(): array
+    {
+        $plans = $this->todaysPlans();
+
+        return [
+            'metrics' => [
+                'unfilled_requests' => StaffingRequest::query()
+                    ->where('is_deleted', false)
+                    ->where('status', 'unfilled')
+                    ->count(),
+            ],
+            'coverage' => $this->coverageSummary($plans),
+        ];
+    }
+
     public function create(array $data, ?int $actorUserId): StaffingRequest
     {
         return DB::transaction(function () use ($data, $actorUserId): StaffingRequest {

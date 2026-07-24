@@ -60,6 +60,23 @@ class PerioperativeMetricsService
         ];
     }
 
+    /**
+     * Return the cockpit headline without building the full OR dashboard.
+     *
+     * SnapshotBuilder needs only this scalar. Routing that call through
+     * build() also executes the first-case, case-length, turnover, block,
+     * volume, cancellation, trend, and workbench queries even though their
+     * results are discarded. Keep the exact dashboard window and the shared
+     * PrimetimeUtilizationService authority while avoiding that amplification.
+     */
+    public function headlinePrimeTimeUtilizationPct(): float
+    {
+        $window = $this->dataWindow();
+        [$current] = $this->primeTimeUtilizationSplit($window);
+
+        return (float) round($current);
+    }
+
     // -----------------------------------------------------------------------
     // Working window
     //
@@ -165,11 +182,7 @@ class PerioperativeMetricsService
         );
 
         // Primetime utilization (staffed/unstaffed %), recent vs prior.
-        [$staffedNow, $staffedPrev] = $this->splitMetric(
-            $w,
-            fn (?string $from, ?string $to): float => $this->primetimeUtilizationPct($from, $to),
-            84.0
-        );
+        [$staffedNow, $staffedPrev] = $this->primeTimeUtilizationSplit($w);
         $unstaffedNow = $staffedNow > 0 ? max(0, (int) round($staffedNow - 1)) : 0;
 
         return [
@@ -238,6 +251,19 @@ class PerioperativeMetricsService
         }
 
         return [$current, $previous];
+    }
+
+    /**
+     * @param  array{anchor:?string,start:?string,split:?string,prevStart:?string,label:string,prevLabel:string,hasData:bool}  $window
+     * @return array{0:float,1:float}
+     */
+    private function primeTimeUtilizationSplit(array $window): array
+    {
+        return $this->splitMetric(
+            $window,
+            fn (?string $from, ?string $to): float => $this->primetimeUtilizationPct($from, $to),
+            84.0,
+        );
     }
 
     // -----------------------------------------------------------------------

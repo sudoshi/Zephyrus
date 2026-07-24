@@ -14,8 +14,10 @@ use Illuminate\Support\Facades\Schema;
  * Perioperative / OR (spec §2.4). LIVE.
  *
  * FCOTS / turnover / block util / cancellations come from the legacy payload
- * (same OR-day window as /dashboard). Prime-time utilization wraps
- * PerioperativeMetricsService; cases-today is one count; PACU holds mirrors
+ * (same OR-day window as /dashboard). Prime-time utilization uses the
+ * PerioperativeMetricsService headline-only path, which preserves the same
+ * window and denominator without rebuilding the full OR dashboard;
+ * cases-today is one count; PACU holds mirrors
  * InterventionAttributionService::pacuHoldsAt()'s convention (in PACU ≥75min
  * with no pacu_out_time — that helper is private, the semantics are shared).
  */
@@ -57,7 +59,7 @@ class PeriopMetrics extends BaseMetrics
     private function primeTimeUtilization(): ?float
     {
         try {
-            $staffed = $this->periop->build()['lastMonth']['primetimeUtilization']['staffed'] ?? null;
+            $staffed = $this->periop->headlinePrimeTimeUtilizationPct();
 
             return is_numeric($staffed) ? (float) $staffed : null;
         } catch (\Throwable) {
