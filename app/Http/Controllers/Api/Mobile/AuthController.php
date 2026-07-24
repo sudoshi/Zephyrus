@@ -41,7 +41,12 @@ class AuthController extends Controller
         $validated = $request->validate([
             'username' => ['required', 'string'],
             'password' => ['required', 'string'],
-            'device' => ['sometimes', 'array'],
+            'device' => ['sometimes', 'array:installation_uuid,platform,name,app_version,os_version'],
+            'device.installation_uuid' => ['required_with:device', 'string', 'uuid', 'lowercase'],
+            'device.platform' => ['required_with:device', 'string', 'in:ios,android'],
+            'device.name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'device.app_version' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'device.os_version' => ['sometimes', 'nullable', 'string', 'max:80'],
         ]);
 
         $user = User::query()
@@ -100,7 +105,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $pair = $this->mobileTokenSessions->issueNewFamily($user);
+        $pair = $this->mobileTokenSessions->issueNewFamily($user, $validated['device'] ?? []);
         $this->auditAuth($request, 'mobile.auth.token_exchange', 'success', $user, [
             'auth_method' => 'password',
             'http_status' => 200,
@@ -196,6 +201,12 @@ class AuthController extends Controller
             $request->validate([
                 'current_password' => ['required', 'string'],
                 'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+                'device' => ['sometimes', 'array:installation_uuid,platform,name,app_version,os_version'],
+                'device.installation_uuid' => ['required_with:device', 'string', 'uuid', 'lowercase'],
+                'device.platform' => ['required_with:device', 'string', 'in:ios,android'],
+                'device.name' => ['sometimes', 'nullable', 'string', 'max:120'],
+                'device.app_version' => ['sometimes', 'nullable', 'string', 'max:80'],
+                'device.os_version' => ['sometimes', 'nullable', 'string', 'max:80'],
             ]);
         } catch (ValidationException $exception) {
             $this->auditAuth($request, 'mobile.auth.password_change', 'failure', $request->user(), [
@@ -257,7 +268,10 @@ class AuthController extends Controller
             // Revoke every pre-change web/mobile credential, then issue one new pair.
             $this->sessions->revoke($user, $request, 'password_changed');
 
-            return $this->mobileTokenSessions->issueNewFamily($user);
+            return $this->mobileTokenSessions->issueNewFamily(
+                $user,
+                (array) $request->input('device', []),
+            );
         });
         $this->auditAuth($request, 'mobile.auth.password_change', 'success', $user, [
             'auth_method' => 'mobile_token',

@@ -43,6 +43,7 @@ class UserAuditRecorder
         'ancillary_barrier',
         'patient_message_thread',
         'mobile_patient_context',
+        'mobile_token_session',
     ];
 
     private const CHANGE_KEYS = [
@@ -68,6 +69,7 @@ class UserAuditRecorder
         'capability', 'scope_id', 'member_count', 'eligible_count', 'blocked_count',
         'valid_from', 'valid_until',
         'work_item_uuid', 'pool_uuid', 'event_type', 'replayed',
+        'active_session_count', 'already_revoked', 'current_session',
     ];
 
     private const FORBIDDEN_KEY_FRAGMENTS = [

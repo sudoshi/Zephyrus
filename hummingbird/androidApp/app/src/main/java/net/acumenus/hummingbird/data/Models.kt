@@ -12,6 +12,32 @@ data class TokenResult(
     val changeToken: String?,
 )
 
+/** Privacy-minimized projection of one active staff token family. */
+data class StaffSession(
+    val sessionUuid: String,
+    val current: Boolean,
+    val status: String,
+    val device: StaffSessionDevice,
+    val environment: String,
+    val lastSeenAt: String,
+    val expiresAt: String,
+    val createdAt: String,
+)
+
+data class StaffSessionDevice(
+    val platform: String?,
+    val name: String?,
+    val appVersion: String?,
+    val osVersion: String?,
+)
+
+data class StaffSessionRevocation(
+    val sessionUuid: String,
+    val revoked: Boolean,
+    val alreadyRevoked: Boolean,
+    val current: Boolean,
+)
+
 data class MeData(
     val id: Int,
     val name: String,

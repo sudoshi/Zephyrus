@@ -51,6 +51,7 @@ use App\Http\Controllers\Api\Mobile\PatientCommunicationController as MobilePati
 use App\Http\Controllers\Api\Mobile\PatientContextController as MobilePatientContextController;
 use App\Http\Controllers\Api\Mobile\RealtimeConfigController as MobileRealtimeConfigController;
 use App\Http\Controllers\Api\Mobile\RtdcController as MobileRtdcController;
+use App\Http\Controllers\Api\Mobile\SessionController as MobileSessionController;
 use App\Http\Controllers\Api\Mobile\StaffingController as MobileStaffingController;
 use App\Http\Controllers\Api\Mobile\TransportController as MobileTransportController;
 use App\Http\Controllers\Api\Ops\AgentController;
@@ -822,9 +823,19 @@ Route::prefix('auth')->group(function () {
 // `CheckForAnyAbility:mobile:read` rejects narrowly-scoped tokens (e.g. the
 // must_change_password challenge token) while admin `*` tokens pass. Write-vs-read
 // ability splitting (mobile:act) + per-resource Policies land with the P1 writes.
-Route::middleware(['auth:sanctum', 'staff.realm', CheckForAnyAbility::class.':mobile:read', 'throttle:mobile-api'])->prefix('mobile/v1')->group(function () {
+Route::middleware([
+    'auth:sanctum',
+    'staff.realm',
+    CheckForAnyAbility::class.':mobile:read',
+    \App\Http\Middleware\TouchMobileTokenSession::class,
+    'throttle:mobile-api',
+])->prefix('mobile/v1')->group(function () {
     Route::get('/me', [MobileMeController::class, 'show']);
     Route::put('/me/preferences', [MobileMeController::class, 'updatePreferences']);
+    Route::get('/me/sessions', [MobileSessionController::class, 'index'])
+        ->middleware(\App\Http\Middleware\ProtectMobileSessionResponse::class);
+    Route::delete('/me/sessions/{sessionUuid}', [MobileSessionController::class, 'destroy'])
+        ->middleware(\App\Http\Middleware\ProtectMobileSessionResponse::class);
 
     Route::post('/devices', [MobileDeviceController::class, 'store']);
     Route::delete('/devices/{device}', [MobileDeviceController::class, 'destroy']);

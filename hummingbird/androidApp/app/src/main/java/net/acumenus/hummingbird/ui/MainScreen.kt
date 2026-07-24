@@ -135,6 +135,7 @@ private sealed interface AltitudeDetail {
     data class Unit(val unit: CensusUnit, val webLink: String?) : AltitudeDetail
     data class PatientCommunication(val workItemUuid: String) : AltitudeDetail
     data object Profile : AltitudeDetail
+    data object StaffSessions : AltitudeDetail
     data object ProfileConfirmation : AltitudeDetail
     data object DebugExplorer : AltitudeDetail
 }
@@ -482,9 +483,14 @@ fun MainScreen(
                         auth = auth,
                         vm = vm,
                         onBack = { detail = null },
+                        onOpenStaffSessions = { detail = AltitudeDetail.StaffSessions },
                         onOpenProfileConfirmation = { detail = AltitudeDetail.ProfileConfirmation },
                         onOpenDebugExplorer = { detail = AltitudeDetail.DebugExplorer },
                         onSignOut = auth::logout,
+                    )
+                    AltitudeDetail.StaffSessions -> StaffSessionsScreen(
+                        auth = auth,
+                        onBack = { detail = AltitudeDetail.Profile },
                     )
                     AltitudeDetail.ProfileConfirmation -> ProfileConfirmationScreen(
                         auth = auth,
@@ -544,6 +550,7 @@ private fun ProfileSettingsScreen(
     auth: AuthViewModel,
     vm: AltitudeViewModel,
     onBack: () -> Unit,
+    onOpenStaffSessions: () -> Unit,
     onOpenProfileConfirmation: () -> Unit,
     onOpenDebugExplorer: () -> Unit,
     onSignOut: () -> Unit,
@@ -642,6 +649,15 @@ private fun ProfileSettingsScreen(
             }
             item {
                 ProfileSection("Account") {
+                    OutlinedButton(
+                        onClick = onOpenStaffSessions,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp),
+                    ) {
+                        Text("Signed-in devices", fontWeight = FontWeight.SemiBold)
+                    }
+                    HorizontalDivider(color = Z.border)
                     Button(
                         onClick = onSignOut,
                         colors = ButtonDefaults.buttonColors(

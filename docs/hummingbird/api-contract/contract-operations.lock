@@ -7,6 +7,7 @@
 # fails CI when a baselined operation disappears from the specs without one, or
 # when a spec operation is missing here (append new operations, keep sorted).
 DELETE /api/mobile/v1/devices/{device}
+DELETE /api/mobile/v1/me/sessions/{sessionUuid} revokeStaffSessionById
 DELETE /api/patient/v1/me/notification-devices/{deviceUuid} revokePatientNotificationDevice
 DELETE /api/patient/v1/me/sessions/{sessionUuid} revokePatientSessionById
 GET /api/mobile/v1/activity
@@ -29,6 +30,7 @@ GET /api/mobile/v1/for-you
 GET /api/mobile/v1/improvement/opportunities
 GET /api/mobile/v1/improvement/pdsa
 GET /api/mobile/v1/me
+GET /api/mobile/v1/me/sessions listStaffSessions
 GET /api/mobile/v1/ops/inbox
 GET /api/mobile/v1/or/board
 GET /api/mobile/v1/patient-communications/inbox

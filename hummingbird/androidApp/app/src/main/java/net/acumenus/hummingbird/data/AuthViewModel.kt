@@ -80,6 +80,9 @@ class EncryptedStaffTokenStore(
 class AuthViewModel(app: Application) : AndroidViewModel(app) {
     private val prefsResult = runCatching { SecurePrefs.get(app) }
     private val prefs = prefsResult.getOrNull()
+    private val staffDeviceResult = prefs?.let { securePrefs ->
+        runCatching { StaffDeviceIdentity.current(securePrefs) }
+    }
     private val tokenCoordinator = StaffTokenCoordinator.shared
     private val api = ApiClient(tokenCoordinator = tokenCoordinator)
 
@@ -146,10 +149,16 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             phase = AuthPhase.LOGGED_OUT
             return
         }
+        val staffDevice = staffDeviceResult?.getOrNull()
+        if (staffDevice == null) {
+            error = DEVICE_IDENTITY_ERROR
+            phase = AuthPhase.LOGGED_OUT
+            return
+        }
         busy = true; error = null
         viewModelScope.launch {
             try {
-                val r = api.token(username, password)
+                val r = api.token(username, password, staffDevice)
                 if (r.passwordChangeRequired) {
                     val scopedToken = r.changeToken?.takeIf(String::isNotBlank)
                     if (scopedToken == null) {
@@ -184,11 +193,22 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             phase = AuthPhase.LOGGED_OUT
             return
         }
+        val staffDevice = staffDeviceResult?.getOrNull()
+        if (staffDevice == null) {
+            error = DEVICE_IDENTITY_ERROR
+            phase = AuthPhase.LOGGED_OUT
+            return
+        }
 
         busy = true; error = null
         viewModelScope.launch {
             try {
-                val result = api.changePassword(currentPassword, newPassword, scopedToken)
+                val result = api.changePassword(
+                    currentPassword,
+                    newPassword,
+                    scopedToken,
+                    staffDevice,
+                )
                 // A successful server response has consumed/revoked the scoped
                 // challenge even if local secure persistence subsequently fails.
                 changeToken = null
@@ -228,6 +248,21 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
             runCatching { HouseGlanceStore.clear(getApplication<android.app.Application>()) }
         }
         clearTokens(); me = null; error = null; phase = AuthPhase.LOGGED_OUT
+    }
+
+    /**
+     * The server has already revoked the token family represented by this device.
+     * Erase protected credentials and user-scoped caches without reusing the
+     * consumed bearer or affecting any other device family.
+     */
+    fun completeCurrentSessionRevocation() {
+        clearTokens()
+        me = null
+        error = null
+        phase = AuthPhase.LOGGED_OUT
+        viewModelScope.launch {
+            runCatching { HouseGlanceStore.clear(getApplication<android.app.Application>()) }
+        }
     }
 
     private fun clearTokens() {
@@ -274,5 +309,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     private companion object {
         const val SECURE_STORAGE_ERROR =
             "Secure credential storage is unavailable on this device. Sign-in has been disabled."
+        const val DEVICE_IDENTITY_ERROR =
+            "Hummingbird could not establish this app installation's identity. Sign-in has been disabled."
     }
 }

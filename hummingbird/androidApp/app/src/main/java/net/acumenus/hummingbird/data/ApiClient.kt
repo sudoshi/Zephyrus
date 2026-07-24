@@ -248,12 +248,25 @@ class ApiClient(
     }
 
 
-    suspend fun token(username: String, password: String): TokenResult = withContext(Dispatchers.IO) {
-        val body = JSONObject().put("username", username).put("password", password)
+    suspend fun token(
+        username: String,
+        password: String,
+        device: StaffAuthDevice? = null,
+    ): TokenResult = withContext(Dispatchers.IO) {
+        val body = staffTokenBody(username, password, device)
         val (code, text) = send("POST", "/api/auth/token", body.toString(), null)
         if (code !in 200..299) throw ApiException(errorMessage(text, code), code)
         parseTokenResult(JSONObject(text))
     }
+
+    internal fun staffTokenBody(
+        username: String,
+        password: String,
+        device: StaffAuthDevice?,
+    ): JSONObject = JSONObject()
+        .put("username", username)
+        .put("password", password)
+        .apply { device?.let { put("device", it.toJson()) } }
 
     internal fun parseTokenResult(json: JSONObject): TokenResult =
         TokenResult(
@@ -269,11 +282,13 @@ class ApiClient(
         currentPassword: String,
         newPassword: String,
         bearer: String,
+        device: StaffAuthDevice? = null,
     ): TokenResult = withContext(Dispatchers.IO) {
         val body = JSONObject()
             .put("current_password", currentPassword)
             .put("new_password", newPassword)
             .put("new_password_confirmation", newPassword)
+            .apply { device?.let { put("device", it.toJson()) } }
         val (code, text) = send("POST", "/api/auth/change-password", body.toString(), bearer)
         if (code !in 200..299) throw ApiException(errorMessage(text, code), code, errorCode(text))
         parseTokenResult(JSONObject(text))
@@ -281,6 +296,151 @@ class ApiClient(
 
     suspend fun me(bearer: String): MeData = withContext(Dispatchers.IO) {
         parseMeData(getData("/api/mobile/v1/me", bearer))
+    }
+
+    suspend fun staffSessions(bearer: String): List<StaffSession> = withContext(Dispatchers.IO) {
+        parseStaffSessions(getData("/api/mobile/v1/me/sessions", bearer))
+    }
+
+    internal fun parseStaffSessions(data: JSONObject): List<StaffSession> {
+        val sessions = data.getJSONArray("sessions")
+        if (sessions.length() !in 1..100) {
+            throw org.json.JSONException("Staff session inventory size is invalid.")
+        }
+        val parsed = List(sessions.length()) { index ->
+            parseStaffSession(sessions.getJSONObject(index))
+        }
+        if (
+            parsed.map(StaffSession::sessionUuid).toSet().size != parsed.size ||
+            parsed.count(StaffSession::current) != 1
+        ) {
+            throw org.json.JSONException("Staff session inventory invariants are invalid.")
+        }
+        return parsed
+    }
+
+    suspend fun revokeStaffSession(
+        bearer: String,
+        sessionUuid: String,
+    ): StaffSessionRevocation = withContext(Dispatchers.IO) {
+        val canonicalUuid = canonicalStaffSessionUuid(sessionUuid)
+
+        val (code, text) = send(
+            "DELETE",
+            "/api/mobile/v1/me/sessions/${urlPart(canonicalUuid)}",
+            null,
+            bearer,
+        )
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code, errorCode(text))
+        parseStaffSessionRevocation(
+            JSONObject(text).getJSONObject("data"),
+            expectedSessionUuid = canonicalUuid,
+        )
+    }
+
+    internal fun canonicalStaffSessionUuid(value: String): String {
+        if (!isCanonicalStaffSessionUuid(value)) {
+            throw ApiException("The selected session identifier is invalid.")
+        }
+        return value
+    }
+
+    internal fun isCanonicalStaffSessionUuid(value: String): Boolean {
+        val pattern =
+            Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+        val canonical = runCatching { java.util.UUID.fromString(value).toString().lowercase() }
+            .getOrNull()
+        return pattern.matches(value) && canonical == value
+    }
+
+    internal fun parseStaffSession(data: JSONObject): StaffSession {
+        val device = data.getJSONObject("device")
+        for (required in listOf("platform", "name", "app_version", "os_version")) {
+            if (!device.has(required)) {
+                throw org.json.JSONException("Required staff device metadata key is absent.")
+            }
+        }
+        val sessionUuid = data.getString("session_uuid")
+        if (!isCanonicalStaffSessionUuid(sessionUuid)) {
+            throw org.json.JSONException("Staff session UUID is not canonical.")
+        }
+        val status = data.getString("status")
+        if (status != "active") {
+            throw org.json.JSONException("Only active staff sessions may be projected.")
+        }
+        val platform = device.optStringOrNull("platform")
+        if (platform != null && platform !in setOf("ios", "android")) {
+            throw org.json.JSONException("Staff session platform is invalid.")
+        }
+        val name = device.optStringOrNull("name")
+        val appVersion = device.optStringOrNull("app_version")
+        val osVersion = device.optStringOrNull("os_version")
+        for ((value, maximum) in listOf(
+            name to 120,
+            appVersion to 80,
+            osVersion to 80,
+        )) {
+            if (value != null && value.codePointCount(0, value.length) > maximum) {
+                throw org.json.JSONException("Staff session device metadata exceeds its contract bound.")
+            }
+        }
+        val environment = data.getString("environment")
+        if (
+            environment.isEmpty() ||
+            environment.codePointCount(0, environment.length) > 40
+        ) {
+            throw org.json.JSONException("Staff session environment is invalid.")
+        }
+        val lastSeenAt = data.getString("last_seen_at")
+        val expiresAt = data.getString("expires_at")
+        val createdAt = data.getString("created_at")
+        for (timestamp in listOf(lastSeenAt, expiresAt, createdAt)) {
+            if (!timestamp.endsWith("Z")) {
+                throw org.json.JSONException("Staff session timestamp is invalid.")
+            }
+            runCatching { java.time.OffsetDateTime.parse(timestamp) }
+                .getOrElse {
+                    throw org.json.JSONException("Staff session timestamp is invalid.")
+                }
+        }
+        return StaffSession(
+            sessionUuid = sessionUuid,
+            current = data.getBoolean("current"),
+            status = status,
+            device = StaffSessionDevice(
+                platform = platform,
+                name = name,
+                appVersion = appVersion,
+                osVersion = osVersion,
+            ),
+            environment = environment,
+            lastSeenAt = lastSeenAt,
+            expiresAt = expiresAt,
+            createdAt = createdAt,
+        )
+    }
+
+    internal fun parseStaffSessionRevocation(
+        data: JSONObject,
+        expectedSessionUuid: String,
+    ): StaffSessionRevocation {
+        val sessionUuid = data.getString("session_uuid")
+        if (
+            !isCanonicalStaffSessionUuid(sessionUuid) ||
+            sessionUuid != expectedSessionUuid
+        ) {
+            throw org.json.JSONException("Revoked staff session does not match the requested resource.")
+        }
+        val revoked = data.getBoolean("revoked")
+        if (!revoked) {
+            throw org.json.JSONException("Staff session revocation was not confirmed.")
+        }
+        return StaffSessionRevocation(
+            sessionUuid = sessionUuid,
+            revoked = true,
+            alreadyRevoked = data.getBoolean("already_revoked"),
+            current = data.getBoolean("current"),
+        )
     }
 
     internal fun parseMeData(data: JSONObject): MeData {
@@ -852,7 +1012,7 @@ class ApiClient(
             connectTimeout = 15000
             readTimeout = 15000
             setRequestProperty("Accept", "application/json")
-            patientCommunicationNoStoreHeaders(path).forEach { (name, value) ->
+            sensitiveNoStoreHeaders(path).forEach { (name, value) ->
                 setRequestProperty(name, value)
             }
             if (shouldDisableHttpCaches(path)) useCaches = false
@@ -888,15 +1048,30 @@ class ApiClient(
 
     internal fun patientCommunicationNoStoreHeaders(path: String): Map<String, String> =
         if (isPatientCommunicationPath(path)) {
-            mapOf(
-                "Cache-Control" to "no-store",
-                "Pragma" to "no-cache",
-            )
+            noStoreHeaders()
         } else {
             emptyMap()
         }
 
-    internal fun shouldDisableHttpCaches(path: String): Boolean = isPatientCommunicationPath(path)
+    internal fun sensitiveNoStoreHeaders(path: String): Map<String, String> =
+        if (isSensitiveNoStorePath(path)) {
+            noStoreHeaders()
+        } else {
+            emptyMap()
+        }
+
+    private fun noStoreHeaders(): Map<String, String> =
+            mapOf(
+                "Cache-Control" to "no-store",
+                "Pragma" to "no-cache",
+            )
+
+    internal fun shouldDisableHttpCaches(path: String): Boolean = isSensitiveNoStorePath(path)
+
+    private fun isSensitiveNoStorePath(path: String): Boolean =
+        isPatientCommunicationPath(path) ||
+            path.substringBefore('?') == "/api/mobile/v1/me/sessions" ||
+            path.substringBefore('?').startsWith("/api/mobile/v1/me/sessions/")
 
     private fun isPatientCommunicationPath(path: String): Boolean =
         path.startsWith("/api/mobile/v1/patient-communications/") ||

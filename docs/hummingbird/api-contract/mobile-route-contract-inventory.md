@@ -20,11 +20,12 @@ php artisan test --filter=MobileBffTest
 php scripts/verify-hummingbird-staff-contract.php
 ```
 
-## Live routes (54)
+## Live routes (56)
 
 | Method | Path |
 | ------ | ---- |
 | DELETE | `/api/mobile/v1/devices/{device}` |
+| DELETE | `/api/mobile/v1/me/sessions/{sessionUuid}` |
 | GET | `/api/mobile/v1/activity` |
 | GET | `/api/mobile/v1/altitude/home` |
 | GET | `/api/mobile/v1/altitude/workspace/{domain}` |
@@ -45,6 +46,7 @@ php scripts/verify-hummingbird-staff-contract.php
 | GET | `/api/mobile/v1/improvement/opportunities` |
 | GET | `/api/mobile/v1/improvement/pdsa` |
 | GET | `/api/mobile/v1/me` |
+| GET | `/api/mobile/v1/me/sessions` |
 | GET | `/api/mobile/v1/ops/inbox` |
 | GET | `/api/mobile/v1/or/board` |
 | GET | `/api/mobile/v1/patient-communications/inbox` |

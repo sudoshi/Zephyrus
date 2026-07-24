@@ -334,21 +334,46 @@ struct APIClient {
 
     // MARK: Endpoints
 
-    func token(username: String, password: String) async throws -> TokenResponse {
-        let data = try await send(path: "/api/auth/token", method: "POST",
-                                  body: ["username": username, "password": password], bearer: nil)
+    func token(
+        username: String,
+        password: String,
+        device: StaffAuthDevice? = nil
+    ) async throws -> TokenResponse {
+        let device = try device ?? StaffAuthDevice.current()
+        let data = try await send(
+            path: "/api/auth/token",
+            method: "POST",
+            body: [
+                "username": username,
+                "password": password,
+                "device": device.requestBody,
+            ],
+            bearer: nil
+        )
         return try Self.decoder.decode(TokenResponse.self, from: data)
     }
 
     /// POST /api/auth/change-password — exchange a scoped change token + temp password
     /// for a new password and a full session token pair. The caller guarantees the
     /// new password is confirmed client-side, so confirmation mirrors `newPassword`.
-    func changePassword(currentPassword: String, newPassword: String, bearer: String) async throws -> TokenResponse {
-        let data = try await send(path: "/api/auth/change-password", method: "POST",
-                                  body: ["current_password": currentPassword,
-                                         "new_password": newPassword,
-                                         "new_password_confirmation": newPassword],
-                                  bearer: bearer)
+    func changePassword(
+        currentPassword: String,
+        newPassword: String,
+        bearer: String,
+        device: StaffAuthDevice? = nil
+    ) async throws -> TokenResponse {
+        let device = try device ?? StaffAuthDevice.current()
+        let data = try await send(
+            path: "/api/auth/change-password",
+            method: "POST",
+            body: [
+                "current_password": currentPassword,
+                "new_password": newPassword,
+                "new_password_confirmation": newPassword,
+                "device": device.requestBody,
+            ],
+            bearer: bearer
+        )
         return try Self.decoder.decode(TokenResponse.self, from: data)
     }
 
@@ -384,6 +409,38 @@ struct APIClient {
 
     func me(bearer: String) async throws -> MeData {
         try await getEnvelope(path: "/api/mobile/v1/me", bearer: bearer, as: MeData.self).data
+    }
+
+    func staffSessions(bearer: String) async throws -> [StaffSession] {
+        try await getEnvelope(
+            path: "/api/mobile/v1/me/sessions",
+            bearer: bearer,
+            as: StaffSessionListData.self,
+            noStore: true
+        ).data.sessions
+    }
+
+    func revokeStaffSession(sessionUUID: String, bearer: String) async throws -> StaffSessionRevocation {
+        let canonicalUUID = try Self.canonicalSessionUUID(sessionUUID)
+        let encodedUUID = Self.pathComponent(canonicalUUID)
+        let data = try await send(
+            path: "/api/mobile/v1/me/sessions/\(encodedUUID)",
+            method: "DELETE",
+            body: nil,
+            bearer: bearer,
+            noStore: true
+        )
+        let result = try Self.decoder.decode(
+            Envelope<StaffSessionRevocation>.self,
+            from: data
+        ).data
+        guard result.sessionUuid == canonicalUUID else {
+            throw APIError(
+                message: "The server returned a different staff session.",
+                statusCode: nil
+            )
+        }
+        return result
     }
 
     func census(bearer: String) async throws -> Envelope<[CensusUnit]> {
@@ -942,6 +999,13 @@ struct APIClient {
               let uuid = UUID(uuidString: raw),
               raw == uuid.uuidString.lowercased() else {
             throw APIError(message: "The routing identifier is invalid.", statusCode: nil)
+        }
+        return raw
+    }
+
+    private static func canonicalSessionUUID(_ raw: String) throws -> String {
+        guard StaffSessionContract.isCanonicalUUID(raw) else {
+            throw APIError(message: "The selected session identifier is invalid.", statusCode: nil)
         }
         return raw
     }
