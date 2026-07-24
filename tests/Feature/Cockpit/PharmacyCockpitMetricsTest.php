@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\Cockpit\MetricValueWriter;
 use App\Services\Cockpit\SnapshotBuilder;
 use App\Services\Cockpit\StatusEngine;
+use App\Services\CommandCenterDataService;
 use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
 use App\Services\Demo\DemoClock;
 use App\Services\Pharmacy\PharmacyCockpitHealthService;
@@ -21,6 +22,7 @@ use Database\Seeders\StaffingReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 final class PharmacyCockpitMetricsTest extends TestCase
@@ -57,6 +59,12 @@ final class PharmacyCockpitMetricsTest extends TestCase
             AncillaryReferenceSeeder::class,
         ]);
         app(AncillaryDemoScenarioService::class)->refresh(new DemoClock($this->anchor));
+        $this->mock(CommandCenterDataService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('build')->andReturn([
+                'generatedAtIso' => $this->anchor->toIso8601String(),
+                'strain' => [],
+            ]);
+        });
     }
 
     protected function tearDown(): void

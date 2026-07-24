@@ -10,10 +10,12 @@ use App\Support\Cockpit\MetricValue;
 
 /**
  * Staffing & workforce (spec §2.5). LIVE as of P7: open shifts from
- * StaffingOperationsService::overview(); OT% / agency RNs / callouts /
+ * StaffingOperationsService::cockpitSummary(); OT% / agency RNs / callouts /
  * sitters / productivity from today's prod.workforce_actuals rows via
- * WorkforceActualsService. A cost center that reported no hours today yields
- * a null tile (skipped) rather than a fabricated number.
+ * WorkforceActualsService. The cockpit projection intentionally excludes the
+ * workforce directory and request queue because it consumes neither. A cost
+ * center that reported no hours today yields a null tile (skipped) rather than
+ * a fabricated number.
  */
 class StaffingMetrics extends BaseMetrics
 {
@@ -55,7 +57,7 @@ class StaffingMetrics extends BaseMetrics
     private function overview(): array
     {
         try {
-            return $this->staffing->overview();
+            return $this->staffing->cockpitSummary();
         } catch (\Throwable) {
             return [];
         }

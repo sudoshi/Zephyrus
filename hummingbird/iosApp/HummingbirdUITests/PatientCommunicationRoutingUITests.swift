@@ -279,7 +279,7 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
     func testLostCommittedReplyRequiresExplicitExactReplayAndDoesNotDuplicateMessage() {
         launchScenario("ambiguous_reply")
         openDetail()
-        let replyBody = "I will review the discharge steps with you this afternoon."
+        let replyBody = "Replay-safe reply 7391."
         enterDraft(replyBody)
 
         let send = app.buttons["patientCommunications.sendButton"]
@@ -360,7 +360,15 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
         XCTAssertTrue(editor.waitForExistence(timeout: 5))
         editor.tap()
         editor.typeText(text)
-        XCTAssertTrue((editor.value as? String)?.contains(text) == true)
+        let typedValue = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value CONTAINS %@", text),
+            object: editor
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [typedValue], timeout: 2),
+            .completed,
+            "Expected the reply editor to contain the exact test body; actual value: \(String(describing: editor.value))"
+        )
     }
 
     private func assertSeededDraft(_ text: String) {
