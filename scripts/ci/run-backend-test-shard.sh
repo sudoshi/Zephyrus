@@ -5,8 +5,14 @@ set -Eeuo pipefail
 readonly SHARD="${1:-}"
 readonly FEATURE_SHARD_COUNT=8
 
+phpunit_evidence_args=()
+if [[ -n "${RELEASE_EVIDENCE_DIR:-}" ]]; then
+    mkdir -p "$RELEASE_EVIDENCE_DIR"
+    phpunit_evidence_args+=("--log-junit=$RELEASE_EVIDENCE_DIR/phpunit-$SHARD.xml")
+fi
+
 if [[ "$SHARD" == "unit" ]]; then
-    exec php artisan test --testsuite=Unit --no-ansi
+    exec php artisan test --testsuite=Unit --no-ansi "${phpunit_evidence_args[@]}"
 fi
 
 if [[ ! "$SHARD" =~ ^feature-([0-7])$ ]]; then
@@ -44,4 +50,4 @@ fi
 echo "Running ${#feature_tests[@]} feature test files in $SHARD:"
 printf '  %s\n' "${feature_tests[@]}"
 
-exec php artisan test --no-ansi "${feature_tests[@]}"
+exec php artisan test --no-ansi "${phpunit_evidence_args[@]}" "${feature_tests[@]}"
