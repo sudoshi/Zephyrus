@@ -84,4 +84,4 @@ rm $COOKIE_JAR
 
 echo "Testing completed."
 echo "For more thorough testing, please manually test the application in a browser."
-echo "Check the docs/session-auth.md file for troubleshooting tips if you encounter issues."
+echo "Check the docs/archive/auth-legacy/session-auth.md file for troubleshooting tips if you encounter issues."

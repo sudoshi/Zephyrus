@@ -7,7 +7,7 @@
  * `deployment:seed-registry` (App\Services\Deployment\ServiceLineRegistrar).
  *
  * Plan: docs/superpowers/plans/2026-07-04-service-line-location-deployment-implementation.md (§5)
- * Report: docs/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md (§§1-23)
+ * Report: docs/architecture/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md (§§1-23)
  *
  * Per-program schema (maps 1:1 to hosp_ref.programs columns):
  *   service_line  -> service_line_code (FK)

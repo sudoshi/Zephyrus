@@ -1,7 +1,7 @@
 # Patient-Flow Arena — OCPM sidecar (Part X, X1)
 
 The stateless, read-only object-centric process-mining engine for
-[Part X](../docs/ZEPHYRUS-2.0-PART-X.md). It reads a **de-identified OCEL 2.0
+[Part X](../docs/product/ZEPHYRUS-2.0-PART-X.md). It reads a **de-identified OCEL 2.0
 export** (produced by `php artisan ocel:export`) and returns canon-shaped
 discovery JSON. The Laravel app orchestrates + caches; this service only mines.
 

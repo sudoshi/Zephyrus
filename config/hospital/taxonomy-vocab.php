@@ -11,7 +11,7 @@
  * fixed report enums and are not expected to change per deployment.
  *
  * Plan: docs/superpowers/plans/2026-07-04-service-line-location-deployment-implementation.md (§4.1, §5)
- * Report: docs/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md
+ * Report: docs/architecture/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md
  *   ("Capability Level", "Location Role", "IDN Geography Role", §6 evidence classes)
  */
 

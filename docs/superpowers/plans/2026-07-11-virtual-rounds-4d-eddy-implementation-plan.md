@@ -7,7 +7,7 @@
 **Scope:** Add asynchronous and hybrid multidisciplinary rounds to Zephyrus at patient, unit, department, and service-line scope; embed the workflow in the Patient Flow 4D Navigator; and let Eddy conduct a governed, resumable virtual walkthrough of authorized patients.
 
 **Primary product reference:** [Q-Rounds features](https://www.q-rounds.com/product/features), [integrations](https://www.q-rounds.com/product/integrations), and [technology](https://www.q-rounds.com/product/technology).
-**Zephyrus companions:** [Patient Flow 4D integration](./2026-06-25-patient-flow-4d-navigator-integration.md), [service-line/location deployment](./2026-07-04-service-line-location-deployment-implementation.md), and [Patient Flow devlog](../../DEVLOG-patient-flow-4d-navigator-2026-06-25.md).
+**Zephyrus companions:** [Patient Flow 4D integration](./2026-06-25-patient-flow-4d-navigator-integration.md), [service-line/location deployment](./2026-07-04-service-line-location-deployment-implementation.md), and [Patient Flow devlog](../../devlog/DEVLOG-patient-flow-4d-navigator-2026-06-25.md).
 
 ---
 

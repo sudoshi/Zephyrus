@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\DB;
  * api/admin/integrations admin-scope boundary inventory: enterprise topology is
  * cross-tenant and governed by capability, not per-source admin scope.
  *
- * Plan: docs/ADMIN-INTEROPERABILITY-CONTROL-PLANE-PLAN-2026-07-12.md (ENT-REG)
+ * Plan: docs/plans/ADMIN-INTEROPERABILITY-CONTROL-PLANE-PLAN-2026-07-12.md (ENT-REG)
  */
 class EnterpriseRegistryController extends Controller
 {

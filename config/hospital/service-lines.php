@@ -7,7 +7,7 @@
  * (App\Services\Deployment\ServiceLineRegistrar) — config authors, DB projects.
  *
  * Plan: docs/superpowers/plans/2026-07-04-service-line-location-deployment-implementation.md (§5, Phase 0)
- * Report: docs/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md ("Summary Matrix")
+ * Report: docs/architecture/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md ("Summary Matrix")
  *
  * Per-line schema (maps 1:1 to hosp_ref.service_lines columns):
  *   name            -> display_name

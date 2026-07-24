@@ -1,6 +1,6 @@
 /**
  * 24-hour soak of the Patient Flow 4D Navigator (HFE closure H4.1 —
- * docs/FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md).
+ * docs/plans/FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md).
  *
  * Loads the navigator once, never reloads, and samples every N minutes:
  * JS heap, renderer info, now-marker drift, rounds HUD run, screenshot.

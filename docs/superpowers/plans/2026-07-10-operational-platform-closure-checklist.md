@@ -4,7 +4,7 @@
 
 **Opened:** 2026-07-10
 
-**Authority:** This checklist tracks the bounded release/security/operations closure tranches requested after the 2026-07-09 remediation review. Product scope and acceptance intent remain governed by `docs/ZEPHYRUS-2.0-BETA-PRD.md` and `docs/ZEPHYRUS-2.0-PLAN.md`.
+**Authority:** This checklist tracks the bounded release/security/operations closure tranches requested after the 2026-07-09 remediation review. Product scope and acceptance intent remain governed by `docs/product/ZEPHYRUS-2.0-BETA-PRD.md` and `docs/product/ZEPHYRUS-2.0-PLAN.md`.
 
 ## Release order and branch discipline
 
@@ -206,7 +206,7 @@ Production release evidence:
 - [x] D1.2 Reconcile `docs/superpowers/plans/2026-07-09-operational-platform-remediation-plan.md` so deployed work is marked shipped rather than gated.
 - [x] D1.3 Link each remaining gate to this checklist's evidence, owner, future bounded PR, acceptance test, migration, and deployment result.
 - [x] D1.4 Remove contradictory status language while preserving the dated 2026-07-09 audit/checkpoint as historical evidence.
-- [x] D1.5 Update the remediation authority only after verifying the corresponding production tranches. The separately modified `docs/ZEPHYRUS-2.0-PLAN.md` remains untouched by this branch.
+- [x] D1.5 Update the remediation authority only after verifying the corresponding production tranches. The separately modified `docs/product/ZEPHYRUS-2.0-PLAN.md` remains untouched by this branch.
 
 GitHub reports PR [#13](https://github.com/sudoshi/Zephyrus/pull/13) closed without merge on 2026-07-11 at 17:26 EDT. Its stale feature head was not merged wholesale, so it is no longer an open release gate; the later bounded Patient Flow tranches recorded above remain authoritative.
 

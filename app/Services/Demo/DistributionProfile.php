@@ -17,7 +17,7 @@ use RuntimeException;
  * seeders fell back to hand-tuned constants and the data came out coherent but
  * not distribution-true (flat per-unit occupancy, an over-acute ESI mix, a
  * fantasy discharge-before-noon rate). See
- * docs/DEMO-DATA-COHERENCE-FEEDBACK-AND-PLAN-2026-07-10.md §3.5 / §4.
+ * docs/plans/DEMO-DATA-COHERENCE-FEEDBACK-AND-PLAN-2026-07-10.md §3.5 / §4.
  *
  * Two kinds of data are exposed:
  *   1. SOURCE-DERIVED shapes read straight from the JSON (losByUnitType, esi

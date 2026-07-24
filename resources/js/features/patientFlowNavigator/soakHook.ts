@@ -1,6 +1,6 @@
 /**
  * Read-only field-diagnostics hook consumed by scripts/soak-flow4d.mjs
- * (HFE closure H4.1 — docs/FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md).
+ * (HFE closure H4.1 — docs/plans/FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md).
  *
  * Exposes renderer memory/draw counters, now-marker wall-clock delta, and the
  * active rounds run (opaque uuid + status only — identity never crosses this

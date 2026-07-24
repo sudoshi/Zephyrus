@@ -661,7 +661,7 @@ strategy doc; follow the code truth.
   Laravel :8001 / Vite :5176) and observe real behavior — not just green tests. Confirm the one-instrument
   story renders: from the cockpit/huddle you can see home-eligible boarders and free home slots together.
 - **Per-PR:** small, reviewable PRs per phase-slice; DEVLOG entry under `docs/` (e.g.
-  `docs/DEVLOG-home-hospital-YYYY-MM-DD.md`) following the existing DEVLOG convention; note any new
+  `docs/devlog/DEVLOG-home-hospital-YYYY-MM-DD.md`) following the existing DEVLOG convention; note any new
   convention (esp. partitioning) for review. Never deploy to production — that is manual-only.
 
 ---

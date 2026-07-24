@@ -1,6 +1,6 @@
 # Patient Flow 4D Navigator — Independent HFE Audit (Codex), 2026-07-19
 
-**Program:** HFE closure plan H2 ([FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md](../FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md))
+**Program:** HFE closure plan H2 ([FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md](../plans/FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md))
 **Auditor:** OpenAI Codex CLI 0.144.6, read-only sandbox over the repository at main `63b874a` (+ PR #42 intro tour sources), zero involvement in the audited implementation.
 **Priming:** PRODUCT.md personas/anti-references, DESIGN.md doctrines (Two-System, earned urgency, never-color-alone), advancement plan §10 guardrails + §12 register, and seven explicit lenses: wrong-toggle, alarm fatigue, mode confusion, interruption recovery, mixed-persona wall display, perception/AT, long-session correctness.
 **Verification:** every finding's file:line evidence was independently spot-checked before triage (see dispositions). All 12 findings verified factually accurate.
@@ -140,7 +140,7 @@ The Navigator is not yet safe to treat as an unambiguous, unattended shared-wall
 **Severity:** Medium  
 **Lens:** 6 — Perception and accessibility
 
-**Evidence:** The HFE register claims all toolbar controls are at least 24×24 at `docs/FLOW-4D-NAVIGATOR-ADVANCEMENT-PLAN-2026-07-18.md:306`. Chronobar ticks meet that requirement at `resources/js/Components/PatientFlowNavigator/PatientFlowNavigator.css:215-227`, but Now has approximately 19px intrinsic height at `:138-147`, layer switches are 20px high at `:537-545`, and floor buttons have approximately 21px intrinsic height with no minimum at `:1051-1061`. The main four headline metrics omit `font-variant-numeric: tabular-nums` at `:584-603`, although the doctrine requires it for all metrics.
+**Evidence:** The HFE register claims all toolbar controls are at least 24×24 at `docs/plans/FLOW-4D-NAVIGATOR-ADVANCEMENT-PLAN-2026-07-18.md:306`. Chronobar ticks meet that requirement at `resources/js/Components/PatientFlowNavigator/PatientFlowNavigator.css:215-227`, but Now has approximately 19px intrinsic height at `:138-147`, layer switches are 20px high at `:537-545`, and floor buttons have approximately 21px intrinsic height with no minimum at `:1051-1061`. The main four headline metrics omit `font-variant-numeric: tabular-nums` at `:584-603`, although the doctrine requires it for all metrics.
 
 **Risk:** Touch use on a wall display is unnecessarily error-prone, particularly for Now and the dense floor rail. Changing metric widths can visually jitter during live updates and weaken across-room readability.
 
@@ -162,7 +162,7 @@ The Navigator is not yet safe to treat as an unambiguous, unattended shared-wall
 **Severity:** Observation  
 **Lens:** 6 — Perception and accessibility; 7 — Long-session correctness
 
-**Evidence:** The register says each named guard “breaks in CI” at `docs/FLOW-4D-NAVIGATOR-ADVANCEMENT-PLAN-2026-07-18.md:291-307`. CI does execute the entire Vitest suite and Vite build at `.github/workflows/ci.yml:242-249`, and all feature tests are sharded through `scripts/ci/run-backend-test-shard.sh:19-47`. However, `scripts/check-ui-canon.sh:1-8` still says “Wire into CI,” and the frontend workflow does not invoke it. Browser CI exists at `.github/workflows/ci.yml:348-429`, but the only Patient Flow references in `tests/e2e` verify a navigation link at `tests/e2e/navigation.spec.ts:46-51` and `:186-195`; no rendered scene or selection-reapply behavior is exercised.
+**Evidence:** The register says each named guard “breaks in CI” at `docs/plans/FLOW-4D-NAVIGATOR-ADVANCEMENT-PLAN-2026-07-18.md:291-307`. CI does execute the entire Vitest suite and Vite build at `.github/workflows/ci.yml:242-249`, and all feature tests are sharded through `scripts/ci/run-backend-test-shard.sh:19-47`. However, `scripts/check-ui-canon.sh:1-8` still says “Wire into CI,” and the frontend workflow does not invoke it. Browser CI exists at `.github/workflows/ci.yml:348-429`, but the only Patient Flow references in `tests/e2e` verify a navigation link at `tests/e2e/navigation.spec.ts:46-51` and `:186-195`; no rendered scene or selection-reapply behavior is exercised.
 
 **Risk:** Maintainers may accept changes believing theme/canon and rendered-scene invariants are protected when they are not.
 
@@ -188,5 +188,5 @@ The Navigator is not yet safe to treat as an unambiguous, unattended shared-wall
 - Server-side `EnforceFlowLens` genuinely applies lens, scope, depth, and unit/task grants at `app/Http/Middleware/EnforceFlowLens.php:35-80`; F-1 concerns inconsistent client propagation, not absence of server enforcement.
 - The wrong-toggle, CVD triangle, identity-hue, hover sentinel, and rounds coral-ban tests are genuinely included in CI through the full Vitest run; the rounds projection contract is included through the sharded PHPUnit workflow.
 - Poll timers and visibility listeners generally have clean teardown, and rounds polling intentionally tolerates transient failures before blanking the layer.
-- The closure plan correctly states that representative-user sessions and the 24-hour field runs remain pending at `docs/FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md:76-105`; the code should not be treated as human-factors validated until those runs are completed.
+- The closure plan correctly states that representative-user sessions and the 24-hour field runs remain pending at `docs/plans/FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md:76-105`; the code should not be treated as human-factors validated until those runs are completed.
 

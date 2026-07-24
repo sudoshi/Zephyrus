@@ -4,7 +4,7 @@ namespace App\Enums;
 
 /**
  * The five ISA-101 logical status states of the Zephyrus 2.0 cockpit
- * (docs/ZEPHYRUS-2.0-PLAN.md Part IV §1). The backend emits these LOGICAL
+ * (docs/product/ZEPHYRUS-2.0-PLAN.md Part IV §1). The backend emits these LOGICAL
  * names; the React layer (Components/cockpit/statusStyle.ts) owns the token
  * bridge onto the 4-color+grey canon. canon() exists for legacy 3-state
  * callers during the transition — never for new cockpit surfaces.

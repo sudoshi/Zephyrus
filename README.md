@@ -157,7 +157,7 @@ drawer, command palette, and active-route ownership.
 
 > Deeper engineering conventions live in **[AGENTS.md](AGENTS.md)**; design context in
 > **[PRODUCT.md](PRODUCT.md)** and **[DESIGN.md](DESIGN.md)**; the full evolution plan in
-> **[docs/ZEPHYRUS-2.0-PLAN.md](docs/ZEPHYRUS-2.0-PLAN.md)**.
+> **[docs/product/ZEPHYRUS-2.0-PLAN.md](docs/product/ZEPHYRUS-2.0-PLAN.md)**.
 
 ---
 
@@ -234,7 +234,7 @@ npm run test:e2e              # Playwright E2E
 npx tsc --noEmit              # TypeScript check
 ```
 
-The isolated test lanes, concurrent full-suite proof, production-resource guard, and hashed release-evidence workflow are documented in [Testing and Release Evidence](docs/TESTING-AND-RELEASE-EVIDENCE.md).
+The isolated test lanes, concurrent full-suite proof, production-resource guard, and hashed release-evidence workflow are documented in [Testing and Release Evidence](docs/guides/TESTING-AND-RELEASE-EVIDENCE.md).
 
 ---
 
@@ -254,20 +254,20 @@ build) and must never deploy.
 
 Production runs behind **Apache + php8.5-fpm** at `https://zephyrus.acumenus.net`, with Reverb as a
 systemd WebSocket service. Do **not** deploy via GitHub Actions, ad-hoc SSH, or direct production
-`git pull`. See [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) and the
+`git pull`. See [docs/operations/DEPLOYMENT_CHECKLIST.md](docs/operations/DEPLOYMENT_CHECKLIST.md) and the
 [development/release runbook](docs/operations/DEVELOPMENT-AND-PRODUCTION-RELEASE-RUNBOOK.md).
 
 ---
 
 ## Project status
 
-Zephyrus 2.0 (P0–P7 of the [evolution plan](docs/ZEPHYRUS-2.0-PLAN.md)) is **shipped and deployed to
+Zephyrus 2.0 (P0–P7 of the [evolution plan](docs/product/ZEPHYRUS-2.0-PLAN.md)) is **shipped and deployed to
 production** across all operational domains, with the live cockpit, Eddy governance loop, and Arena
 process intelligence enabled. The **mount-anywhere / wall-display** slice (P8) and native mobile
 hardening are in active beta.
 
 This is a **beta** with a maintained, stakeholder-facing limitation register:
-**[docs/beta-known-limitations.md](docs/beta-known-limitations.md)**. In summary: all screens run
+**[docs/product/beta-known-limitations.md](docs/product/beta-known-limitations.md)**. In summary: all screens run
 **synthetic demo data** (disclosed in-product); Eddy actions are approval-gated and largely
 dry-run; connectors are proven against synthetic feeds, not certified production integrations; and
 iOS native builds require a macOS host to validate.
@@ -282,10 +282,11 @@ iOS native builds require a macOS host to validate.
 | [DESIGN.md](DESIGN.md) | The visual system — "The Operations Bridge" |
 | [AGENTS.md](AGENTS.md) | Engineering / build / deploy conventions |
 | [AUTHENTICATION.md](AUTHENTICATION.md) | Auth flow & protected contract |
-| [docs/ZEPHYRUS-2.0-PLAN.md](docs/ZEPHYRUS-2.0-PLAN.md) | The full 2.0 evolution master plan |
-| [docs/ZEPHYRUS-2.0-PART-X.md](docs/ZEPHYRUS-2.0-PART-X.md) | Arena — object-centric process intelligence |
-| [docs/EDDY-AI-AGENT-PLAN.md](docs/EDDY-AI-AGENT-PLAN.md) | Eddy agent architecture & governance |
-| [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) | Release runbook |
+| [docs/README.md](docs/README.md) | Index of the whole `docs/` tree — what lives where, and where new docs go |
+| [docs/product/ZEPHYRUS-2.0-PLAN.md](docs/product/ZEPHYRUS-2.0-PLAN.md) | The full 2.0 evolution master plan |
+| [docs/product/ZEPHYRUS-2.0-PART-X.md](docs/product/ZEPHYRUS-2.0-PART-X.md) | Arena — object-centric process intelligence |
+| [docs/plans/EDDY-AI-AGENT-PLAN.md](docs/plans/EDDY-AI-AGENT-PLAN.md) | Eddy agent architecture & governance |
+| [docs/operations/DEPLOYMENT_CHECKLIST.md](docs/operations/DEPLOYMENT_CHECKLIST.md) | Release runbook |
 
 ---
 

@@ -59,7 +59,7 @@ tokens. The **impeccable design hook** flags violations on every edit — keep i
   ruling 2026-07-19, HFE audit F-9) — don't theme it light, don't add reduced-motion
   gating, don't migrate its scoped overlay palette to Tailwind tokens.
   **Zephyrus 2.0 wall mode:** `text-[11px]` micro-captions are sanctioned ONLY inside
-  `Components/cockpit/` (dense wall-display captions — see docs/ZEPHYRUS-2.0-PLAN.md
+  `Components/cockpit/` (dense wall-display captions — see docs/product/ZEPHYRUS-2.0-PLAN.md
   Part IV §2); everywhere else the `text-xs` floor holds.
 - **Scripted floor:** `scripts/check-ui-canon.sh` hard-fails on faux-bold,
   `text-[Npx]` (outside the cockpit exception), `oklch(`, and any NEW

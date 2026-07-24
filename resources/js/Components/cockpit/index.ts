@@ -3,7 +3,7 @@
 // The shared Zephyrus 2.0 cockpit primitive library (P0). Everything here
 // layers on the ONE Surface primitive and the ONE STATUS_VAR color bridge,
 // driven by the single statusStyle() helper that mirrors the server
-// StatusEngine. See docs/ZEPHYRUS-2.0-PLAN.md Part V.
+// StatusEngine. See docs/product/ZEPHYRUS-2.0-PLAN.md Part V.
 export {
   statusStyle,
   cockpitStatusStyle,
