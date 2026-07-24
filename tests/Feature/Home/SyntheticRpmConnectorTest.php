@@ -62,9 +62,10 @@ class SyntheticRpmConnectorTest extends TestCase
     public function test_replaying_the_same_webhook_is_idempotent(): void
     {
         $connector = app(SyntheticRpmConnector::class);
+        $envelope = $this->envelope();
 
-        $connector->handleWebhook($this->envelope());
-        $second = $connector->handleWebhook($this->envelope());
+        $connector->handleWebhook($envelope);
+        $second = $connector->handleWebhook($envelope);
 
         $this->assertSame(2, $second->messages_skipped);
         $this->assertSame(1, RpmObservation::where('transmission_id', 'TX-TEST-0001')->count());
