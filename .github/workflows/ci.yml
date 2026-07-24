@@ -621,7 +621,9 @@ jobs:
 
   hummingbird-staff-ios:
     name: Hummingbird staff (iOS)
-    runs-on: macos-15
+    # Staff UI uses the iOS 26 liquid-glass SDK. macos-15 currently defaults
+    # to Xcode 16.4, whose SDK cannot even parse those guarded symbols.
+    runs-on: macos-26
     timeout-minutes: 45
     env:
       IOS_STAFF_ROOT: hummingbird/iosApp
