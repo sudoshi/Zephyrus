@@ -44,6 +44,12 @@ return $builder
             \App\Http\Middleware\EnsureHummingbirdPatientEnabled::class,
             \App\Http\Middleware\ProtectPatientResponse::class,
         );
+        // The staff session-inventory guard must wrap Sanctum and every later
+        // failure path so device metadata is never cacheable, even on denial.
+        $middleware->prependToPriorityList(
+            \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            \App\Http\Middleware\ProtectMobileSessionResponse::class,
+        );
 
         $middleware->prepend(\App\Http\Middleware\AssignRequestIdentity::class);
 

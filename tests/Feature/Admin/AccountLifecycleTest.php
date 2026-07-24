@@ -60,6 +60,7 @@ final class AccountLifecycleTest extends TestCase
         $mobileSession->refresh();
         $this->assertSame('revoked', $mobileSession->status);
         $this->assertSame('account_deactivation', $mobileSession->revocation_reason);
+        $this->assertNull($mobileSession->access_token_id);
         $this->assertNull($mobileSession->refresh_token_id);
         $this->assertSame(0, DB::table('prod.sessions')->where('user_id', $target->id)->count());
         $this->assertDatabaseHas('audit.user_events', [

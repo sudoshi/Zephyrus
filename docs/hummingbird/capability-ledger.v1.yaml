@@ -1015,18 +1015,30 @@ capabilities:
     phase: staff_p1
     owners: { product: Hummingbird Product, engineering: Hummingbird Platform }
     user_roles: ["@all_staff"]
-    verification_evidence: [tests/Feature/Mobile/MobileAuthTest.php]
+    verification_evidence:
+      [
+        tests/Feature/Mobile/MobileAuthTest.php,
+        tests/Feature/Mobile/MobileSessionManagementTest.php,
+        tests/Feature/Admin/AccountLifecycleTest.php,
+        hummingbird/iosApp/HummingbirdTests/StaffSessionManagementTests.swift,
+        hummingbird/iosApp/HummingbirdUITests/StaffSessionManagementUITests.swift,
+        hummingbird/androidApp/app/src/test/java/net/acumenus/hummingbird/data/StaffSessionManagementTest.kt,
+        hummingbird/androidApp/app/src/androidTest/java/net/acumenus/hummingbird/ui/StaffSessionsUiTest.kt,
+      ]
     web_routes: []
     staff_bff_operations:
       - POST /api/auth/token
       - POST /api/auth/token/refresh
       - POST /api/auth/token/revoke
       - POST /api/auth/change-password
-    ios_routes: [hummingbird/iosApp/Hummingbird/Features/Auth/LoginView.swift]
+      - GET /api/mobile/v1/me/sessions
+      - "DELETE /api/mobile/v1/me/sessions/{sessionUuid}"
+    ios_routes:
+      - hummingbird/iosApp/Hummingbird/Features/Auth/LoginView.swift
+      - hummingbird/iosApp/Hummingbird/Features/Profile/StaffSessionsView.swift
     android_routes:
-      [
-        hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/LoginScreen.kt,
-      ]
+      - hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/LoginScreen.kt
+      - hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/StaffSessionsScreen.kt
     notification_events: []
     offline_class: NO_CACHE
     data_classification: phi_minimized
@@ -1181,8 +1193,7 @@ capabilities:
     implementation_status: partial
     target_disposition: DESKTOP_ONLY
     phase: care_pathways_p0
-    owners:
-      { product: Care Pathways Product, engineering: Web Platform }
+    owners: { product: Care Pathways Product, engineering: Web Platform }
     user_roles: ["@web_authorized"]
     verification_evidence:
       - tests/Unit/CarePathways/CarePathwayDemoScenarioServiceTest.php

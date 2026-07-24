@@ -56,6 +56,7 @@ class MobileAuthTest extends TestCase
 
         $this->assertTrue(Str::isUuid((string) $session->session_uuid));
         $this->assertTrue(Str::isUuid((string) $session->token_family_uuid));
+        $this->assertSame($accessId, $session->access_token_id);
         $this->assertSame($refreshId, $session->refresh_token_id);
         $this->assertSame('mobile-access:'.$session->token_family_uuid, $accessRow->name);
         $this->assertSame('mobile-refresh:'.$session->token_family_uuid, $refreshRow->name);
@@ -138,6 +139,7 @@ class MobileAuthTest extends TestCase
             ->assertJsonStructure(['access_token', 'refresh_token', 'expires_in']);
         $rotatedAccess = (string) $rotated->json('access_token');
         $rotatedRefresh = (string) $rotated->json('refresh_token');
+        $rotatedAccessId = (int) Str::before($rotatedAccess, '|');
         $rotatedRefreshId = (int) Str::before($rotatedRefresh, '|');
 
         $this->assertNotSame($access, $rotatedAccess);
@@ -148,6 +150,7 @@ class MobileAuthTest extends TestCase
         $this->assertFalse($predecessor->can('token:refresh'));
         $session->refresh();
         $this->assertSame($familyUuid, (string) $session->token_family_uuid);
+        $this->assertSame($rotatedAccessId, $session->access_token_id);
         $this->assertSame($rotatedRefreshId, $session->refresh_token_id);
         $this->assertSame('active', $session->status);
 
@@ -190,6 +193,7 @@ class MobileAuthTest extends TestCase
         $session->refresh();
         $this->assertSame('revoked', $session->status);
         $this->assertSame('refresh_token_reuse_detected', $session->revocation_reason);
+        $this->assertNull($session->access_token_id);
         $this->assertNull($session->refresh_token_id);
         $this->assertSame(0, $user->tokens()
             ->whereIn('name', [
@@ -257,6 +261,8 @@ class MobileAuthTest extends TestCase
         $session->refresh();
         $this->assertSame('revoked', $session->status);
         $this->assertSame('user_logout', $session->revocation_reason);
+        $this->assertNull($session->access_token_id);
+        $this->assertNull($session->refresh_token_id);
         $this->assertSame(0, $user->tokens()->count());
     }
 
@@ -285,7 +291,11 @@ class MobileAuthTest extends TestCase
         $sessions = $user->mobileTokenSessions()->orderBy('mobile_token_session_id')->get();
         $this->assertCount(2, $sessions);
         $this->assertSame('revoked', $sessions[0]->status);
+        $this->assertNull($sessions[0]->access_token_id);
+        $this->assertNull($sessions[0]->refresh_token_id);
         $this->assertSame('active', $sessions[1]->status);
+        $this->assertNotNull($sessions[1]->access_token_id);
+        $this->assertNotNull($sessions[1]->refresh_token_id);
 
         $this->app['auth']->forgetGuards();
         $this->withToken((string) $rotatedFirst->json('access_token'))
@@ -349,6 +359,8 @@ class MobileAuthTest extends TestCase
         $session = $user->mobileTokenSessions()->firstOrFail();
         $this->assertSame('revoked', $session->status);
         $this->assertSame('account_inactive', $session->revocation_reason);
+        $this->assertNull($session->access_token_id);
+        $this->assertNull($session->refresh_token_id);
         $this->assertSame(0, $user->tokens()->count());
 
         $this->app['auth']->forgetGuards();
@@ -388,6 +400,10 @@ class MobileAuthTest extends TestCase
         $this->assertSame('mobile-refresh:'.$session->token_family_uuid, $legacyRefresh->accessToken->name);
         $this->assertFalse(PersonalAccessToken::query()->whereKey($legacyAccess->accessToken->getKey())->exists());
         $this->assertSame('active', $session->status);
+        $this->assertSame(
+            (int) Str::before((string) $rotated->json('access_token'), '|'),
+            $session->access_token_id,
+        );
 
         $this->app['auth']->forgetGuards();
         $this->withToken($legacyRefreshToken)
@@ -397,6 +413,8 @@ class MobileAuthTest extends TestCase
         $session->refresh();
         $this->assertSame('revoked', $session->status);
         $this->assertSame('refresh_token_reuse_detected', $session->revocation_reason);
+        $this->assertNull($session->access_token_id);
+        $this->assertNull($session->refresh_token_id);
 
         $this->app['auth']->forgetGuards();
         $this->withToken((string) $rotated->json('access_token'))
@@ -433,6 +451,16 @@ class MobileAuthTest extends TestCase
         $oldSession->refresh();
         $this->assertSame('revoked', $oldSession->status);
         $this->assertSame('password_changed', $oldSession->revocation_reason);
+        $this->assertNull($oldSession->access_token_id);
+        $this->assertNull($oldSession->refresh_token_id);
+        $newSession = MobileTokenSession::query()
+            ->where('user_id', $user->getKey())
+            ->where('status', 'active')
+            ->sole();
+        $this->assertSame(
+            (int) Str::before((string) $response->json('access_token'), '|'),
+            $newSession->access_token_id,
+        );
         $this->assertSame(1, MobileTokenSession::query()
             ->where('user_id', $user->getKey())
             ->where('status', 'active')

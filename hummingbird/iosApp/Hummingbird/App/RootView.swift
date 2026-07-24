@@ -59,8 +59,8 @@ struct RootView: View {
         .task {
             #if DEBUG
             let env = ProcessInfo.processInfo.environment
-            if StaffCommunicationsUITestMode.isEnabled {
-                auth.installPatientCommunicationsUITestSession()
+            if StaffCommunicationsUITestMode.isEnabled || StaffSessionsUITestMode.isEnabled {
+                auth.installStaffUITestSession()
             } else if case .loading = auth.phase {
                 await auth.bootstrap()
             }

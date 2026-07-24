@@ -5,6 +5,7 @@ namespace App\Services\Auth;
 use App\Models\Auth\MobileTokenSession;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -23,14 +24,22 @@ class MobileTokenSessionService
     /**
      * Create one stable family and issue its first access/refresh generation.
      *
+     * @param  array{
+     *     installation_uuid?: string,
+     *     platform?: string,
+     *     name?: string|null,
+     *     app_version?: string|null,
+     *     os_version?: string|null
+     * }  $device
      * @return array<string, mixed>
      */
-    public function issueNewFamily(User $user): array
+    public function issueNewFamily(User $user, array $device = []): array
     {
-        return DB::transaction(function () use ($user): array {
+        return DB::transaction(function () use ($user, $device): array {
             $session = MobileTokenSession::query()->create([
                 'user_id' => $user->getKey(),
                 'expires_at' => CarbonImmutable::now()->addDays($this->refreshTtlDays()),
+                ...$this->deviceAttributes($device),
             ]);
 
             return $this->issueForSession($user, $session);
@@ -180,8 +189,177 @@ class MobileTokenSessionService
                 'status' => 'revoked',
                 'revoked_at' => now(),
                 'revocation_reason' => $reason,
+                'access_token_id' => null,
                 'refresh_token_id' => null,
                 'updated_at' => now(),
+            ]);
+    }
+
+    /**
+     * Session self-service is available only from the active access credential
+     * of a server-issued mobile family. A transient Sanctum principal, browser
+     * cookie, refresh token, legacy token, or unrelated personal token cannot
+     * enumerate or revoke Hummingbird families.
+     */
+    public function isActiveAccessFamilyToken(
+        User $user,
+        PersonalAccessToken $currentToken,
+    ): bool {
+        if (! str_starts_with((string) $currentToken->name, self::ACCESS_PREFIX)) {
+            return false;
+        }
+
+        $session = $this->sessionForNamedToken($user, $currentToken);
+
+        return $session !== null
+            && $session->status === 'active'
+            && $session->revoked_at === null
+            && $session->expires_at?->isFuture() === true;
+    }
+
+    /**
+     * Return only usable token families owned by this user. Token row IDs,
+     * hashes, installation identifiers, network metadata, and bearer material
+     * never cross this boundary.
+     *
+     * @return array{
+     *     current_session_uuid: string|null,
+     *     sessions: EloquentCollection<int, MobileTokenSession>
+     * }
+     */
+    public function activeSessions(User $user, PersonalAccessToken $currentToken): array
+    {
+        $currentSession = $this->sessionForNamedToken($user, $currentToken);
+        $sessions = MobileTokenSession::query()
+            ->where('user_id', $user->getKey())
+            ->active()
+            ->orderByDesc('last_seen_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('mobile_token_session_id')
+            ->limit(100)
+            ->get();
+
+        if ($currentSession !== null
+            && $currentSession->status === 'active'
+            && $currentSession->expires_at?->isFuture()
+            && ! $sessions->contains(
+                fn (MobileTokenSession $session): bool => $session->is($currentSession),
+            )
+        ) {
+            $sessions = new EloquentCollection(
+                collect([$currentSession])
+                    ->concat($sessions)
+                    ->take(100)
+                    ->values()
+                    ->all(),
+            );
+        }
+
+        return [
+            'current_session_uuid' => $currentSession?->session_uuid,
+            'sessions' => $sessions,
+        ];
+    }
+
+    /**
+     * Revoke one session owned by the authenticated staff user. An unknown UUID
+     * and another user's UUID are deliberately indistinguishable.
+     *
+     * @return array{
+     *     session: MobileTokenSession,
+     *     already_revoked: bool,
+     *     current: bool
+     * }|null
+     */
+    public function revokeOwnedSession(
+        User $user,
+        string $sessionUuid,
+        PersonalAccessToken $currentToken,
+    ): ?array {
+        if (preg_match(
+            '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D',
+            $sessionUuid,
+        ) !== 1) {
+            return null;
+        }
+
+        $canonicalUuid = $sessionUuid;
+
+        return DB::transaction(function () use ($user, $canonicalUuid, $currentToken): ?array {
+            // Resolve the current refresh-row pointer without locking, then acquire
+            // token -> family locks in the same order used by rotation, logout, and
+            // account-wide revocation. A concurrent rotation may advance the
+            // pointer before we lock the family; the final family-wide delete still
+            // removes that successor after the family row is locked.
+            $sessionHint = MobileTokenSession::query()
+                ->where('user_id', $user->getKey())
+                ->where('session_uuid', $canonicalUuid)
+                ->first(['refresh_token_id']);
+
+            if ($sessionHint === null) {
+                return null;
+            }
+
+            if ($sessionHint->refresh_token_id !== null) {
+                $user->tokens()
+                    ->whereKey($sessionHint->refresh_token_id)
+                    ->lockForUpdate()
+                    ->first();
+            }
+
+            $session = MobileTokenSession::query()
+                ->where('user_id', $user->getKey())
+                ->where('session_uuid', $canonicalUuid)
+                ->lockForUpdate()
+                ->first();
+
+            if ($session === null) {
+                return null;
+            }
+
+            $currentFamilyUuid = $this->familyUuidFromName((string) $currentToken->name);
+            $current = $currentFamilyUuid !== null
+                && hash_equals($currentFamilyUuid, (string) $session->token_family_uuid);
+            $alreadyRevoked = $session->status === 'revoked';
+
+            if (! $alreadyRevoked) {
+                $this->revokeFamily($user, $session, 'user_session_revoked');
+            }
+
+            return [
+                'session' => $session->refresh(),
+                'already_revoked' => $alreadyRevoked,
+                'current' => $current,
+            ];
+        }, 3);
+    }
+
+    /**
+     * Rate-limit last-seen writes while still deriving the family exclusively
+     * from the authenticated Sanctum row. This is observation metadata, never a
+     * replacement for authorization or role/facility evaluation.
+     */
+    public function touchForToken(User $user, PersonalAccessToken $currentToken): void
+    {
+        $familyUuid = $this->familyUuidFromName((string) $currentToken->name);
+        if ($familyUuid === null) {
+            return;
+        }
+
+        $now = now();
+        MobileTokenSession::query()
+            ->where('user_id', $user->getKey())
+            ->where('token_family_uuid', $familyUuid)
+            ->where('access_token_id', $currentToken->getKey())
+            ->where('status', 'active')
+            ->where('expires_at', '>', $now)
+            ->where(function ($stale) use ($now): void {
+                $stale->whereNull('last_seen_at')
+                    ->orWhere('last_seen_at', '<=', $now->copy()->subMinutes(5));
+            })
+            ->update([
+                'last_seen_at' => $now,
+                'updated_at' => $now,
             ]);
     }
 
@@ -208,6 +386,8 @@ class MobileTokenSessionService
             'user_id' => $user->getKey(),
             'expires_at' => $familyExpiry,
             'refresh_token_id' => $token->getKey(),
+            'environment' => $this->serverEnvironment(),
+            'last_seen_at' => now(),
         ]);
 
         $token->forceFill(['name' => $this->refreshName($session)])->save();
@@ -243,7 +423,9 @@ class MobileTokenSessionService
 
         $session->forceFill([
             'status' => 'active',
+            'access_token_id' => $access->accessToken->getKey(),
             'refresh_token_id' => $refresh->accessToken->getKey(),
+            'last_seen_at' => $now,
         ])->save();
 
         return [
@@ -269,6 +451,13 @@ class MobileTokenSessionService
             ->where('token_family_uuid', $familyUuid)
             ->where('user_id', $user->getKey());
 
+        // Access-family authorization is pointer-bound to the exact current
+        // generation. A different personal token cannot become a Hummingbird
+        // credential merely by copying the predictable family-name format.
+        if (str_starts_with((string) $token->name, self::ACCESS_PREFIX)) {
+            $query->where('access_token_id', $token->getKey());
+        }
+
         return ($forUpdate ? $query->lockForUpdate() : $query)->first();
     }
 
@@ -285,6 +474,7 @@ class MobileTokenSessionService
             'status' => 'revoked',
             'revoked_at' => now(),
             'revocation_reason' => $reason,
+            'access_token_id' => null,
             'refresh_token_id' => null,
         ])->save();
     }
@@ -351,5 +541,46 @@ class MobileTokenSessionService
     private function refreshTtlDays(): int
     {
         return max(1, (int) config('hummingbird.token.refresh_ttl_days', 30));
+    }
+
+    /**
+     * @param  array{
+     *     installation_uuid?: string,
+     *     platform?: string,
+     *     name?: string|null,
+     *     app_version?: string|null,
+     *     os_version?: string|null
+     * }  $device
+     * @return array<string, mixed>
+     */
+    private function deviceAttributes(array $device): array
+    {
+        return [
+            'installation_uuid' => $device['installation_uuid'] ?? null,
+            'platform' => $device['platform'] ?? null,
+            'device_name' => $this->nullableTrimmed($device['name'] ?? null),
+            'app_version' => $this->nullableTrimmed($device['app_version'] ?? null),
+            'os_version' => $this->nullableTrimmed($device['os_version'] ?? null),
+            'environment' => $this->serverEnvironment(),
+            'last_seen_at' => now(),
+        ];
+    }
+
+    private function serverEnvironment(): string
+    {
+        $environment = trim(Str::limit((string) app()->environment(), 40, ''));
+
+        return $environment !== '' ? $environment : 'unknown';
+    }
+
+    private function nullableTrimmed(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed !== '' ? $trimmed : null;
     }
 }

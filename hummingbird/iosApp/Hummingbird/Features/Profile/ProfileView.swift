@@ -238,6 +238,16 @@ struct ProfileView: View {
                     Divider().overlay(Z.border)
                     infoRow("Access", "Administrator")
                 }
+                Divider().overlay(Z.border)
+                NavigationLink {
+                    StaffSessionsView()
+                } label: {
+                    Label("Signed-in devices", systemImage: "lock.iphone")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Z.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .accessibilityIdentifier("profile.staffSessions")
             }
         }
     }

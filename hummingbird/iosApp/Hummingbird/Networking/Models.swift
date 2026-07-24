@@ -14,6 +14,237 @@ struct TokenResponse: Decodable, Sendable {
     let changeToken: String?
 }
 
+struct StaffSessionListData: Decodable, Sendable {
+    let sessions: [StaffSession]
+
+    enum CodingKeys: String, CodingKey {
+        case sessions
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        sessions = try container.decode([StaffSession].self, forKey: .sessions)
+        guard (1...100).contains(sessions.count),
+              Set(sessions.map(\.sessionUuid)).count == sessions.count,
+              sessions.filter(\.current).count == 1 else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .sessions,
+                in: container,
+                debugDescription: "Staff session inventory invariants are invalid."
+            )
+        }
+    }
+}
+
+struct StaffSession: Decodable, Identifiable, Equatable, Sendable {
+    let sessionUuid: String
+    let current: Bool
+    let status: String
+    let device: StaffSessionDevice
+    let environment: String
+    let lastSeenAt: String
+    let expiresAt: String
+    let createdAt: String
+
+    var id: String { sessionUuid }
+
+    init(
+        sessionUuid: String,
+        current: Bool,
+        status: String,
+        device: StaffSessionDevice,
+        environment: String,
+        lastSeenAt: String,
+        expiresAt: String,
+        createdAt: String
+    ) {
+        self.sessionUuid = sessionUuid
+        self.current = current
+        self.status = status
+        self.device = device
+        self.environment = environment
+        self.lastSeenAt = lastSeenAt
+        self.expiresAt = expiresAt
+        self.createdAt = createdAt
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case sessionUuid
+        case current
+        case status
+        case device
+        case environment
+        case lastSeenAt
+        case expiresAt
+        case createdAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        sessionUuid = try container.decode(String.self, forKey: .sessionUuid)
+        guard StaffSessionContract.isCanonicalUUID(sessionUuid) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .sessionUuid,
+                in: container,
+                debugDescription: "Staff session UUID is not canonical."
+            )
+        }
+        current = try container.decode(Bool.self, forKey: .current)
+        status = try container.decode(String.self, forKey: .status)
+        guard status == "active" else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .status,
+                in: container,
+                debugDescription: "Only active staff sessions may be projected."
+            )
+        }
+        device = try container.decode(StaffSessionDevice.self, forKey: .device)
+        environment = try container.decode(String.self, forKey: .environment)
+        guard !environment.isEmpty, environment.unicodeScalars.count <= 40 else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .environment,
+                in: container,
+                debugDescription: "Staff session environment is invalid."
+            )
+        }
+        lastSeenAt = try container.decode(String.self, forKey: .lastSeenAt)
+        expiresAt = try container.decode(String.self, forKey: .expiresAt)
+        createdAt = try container.decode(String.self, forKey: .createdAt)
+        for (key, value) in [
+            (CodingKeys.lastSeenAt, lastSeenAt),
+            (CodingKeys.expiresAt, expiresAt),
+            (CodingKeys.createdAt, createdAt),
+        ] where !value.hasSuffix("Z") || StaffSessionTimestamp.parse(value) == nil {
+            throw DecodingError.dataCorruptedError(
+                forKey: key,
+                in: container,
+                debugDescription: "Staff session timestamp is invalid."
+            )
+        }
+    }
+}
+
+struct StaffSessionDevice: Decodable, Equatable, Sendable {
+    let platform: String?
+    let name: String?
+    let appVersion: String?
+    let osVersion: String?
+
+    init(platform: String?, name: String?, appVersion: String?, osVersion: String?) {
+        self.platform = platform
+        self.name = name
+        self.appVersion = appVersion
+        self.osVersion = osVersion
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case platform
+        case name
+        case appVersion
+        case osVersion
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        for key in [
+            CodingKeys.platform,
+            .name,
+            .appVersion,
+            .osVersion,
+        ] where !container.contains(key) {
+            throw DecodingError.keyNotFound(
+                key,
+                .init(
+                    codingPath: container.codingPath,
+                    debugDescription: "Required staff device metadata key is absent."
+                )
+            )
+        }
+        platform = try container.decodeIfPresent(String.self, forKey: .platform)
+        guard platform == nil || platform == "ios" || platform == "android" else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .platform,
+                in: container,
+                debugDescription: "Staff session platform is invalid."
+            )
+        }
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+        appVersion = try container.decodeIfPresent(String.self, forKey: .appVersion)
+        osVersion = try container.decodeIfPresent(String.self, forKey: .osVersion)
+        for (key, value, maximum) in [
+            (CodingKeys.name, name, 120),
+            (CodingKeys.appVersion, appVersion, 80),
+            (CodingKeys.osVersion, osVersion, 80),
+        ] where (value?.unicodeScalars.count ?? 0) > maximum {
+            throw DecodingError.dataCorruptedError(
+                forKey: key,
+                in: container,
+                debugDescription: "Staff session device metadata exceeds its contract bound."
+            )
+        }
+    }
+}
+
+struct StaffSessionRevocation: Decodable, Equatable, Sendable {
+    let sessionUuid: String
+    let revoked: Bool
+    let alreadyRevoked: Bool
+    let current: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case sessionUuid
+        case revoked
+        case alreadyRevoked
+        case current
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        sessionUuid = try container.decode(String.self, forKey: .sessionUuid)
+        guard StaffSessionContract.isCanonicalUUID(sessionUuid) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .sessionUuid,
+                in: container,
+                debugDescription: "Revoked staff session UUID is not canonical."
+            )
+        }
+        revoked = try container.decode(Bool.self, forKey: .revoked)
+        guard revoked else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .revoked,
+                in: container,
+                debugDescription: "Staff session revocation was not confirmed."
+            )
+        }
+        alreadyRevoked = try container.decode(Bool.self, forKey: .alreadyRevoked)
+        current = try container.decode(Bool.self, forKey: .current)
+    }
+}
+
+enum StaffSessionContract {
+    private static let canonicalUUIDPattern =
+        "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+
+    static func isCanonicalUUID(_ raw: String) -> Bool {
+        raw.range(of: canonicalUUIDPattern, options: .regularExpression) != nil
+            && UUID(uuidString: raw)?.uuidString.lowercased() == raw
+    }
+}
+
+enum StaffSessionTimestamp {
+    private static let fractionalFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let standardFormatter = ISO8601DateFormatter()
+
+    static func parse(_ raw: String) -> Date? {
+        fractionalFormatter.date(from: raw) ?? standardFormatter.date(from: raw)
+    }
+}
+
 /// The uniform BFF envelope: { data, meta, links }.
 struct Envelope<T: Decodable>: Decodable {
     let data: T

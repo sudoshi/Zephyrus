@@ -22,19 +22,30 @@ class MobileTokenSession extends Model
         'session_uuid',
         'user_id',
         'token_family_uuid',
+        'access_token_id',
         'refresh_token_id',
         'status',
+        'installation_uuid',
+        'platform',
+        'device_name',
+        'app_version',
+        'os_version',
+        'environment',
+        'last_seen_at',
         'expires_at',
         'revoked_at',
         'revocation_reason',
     ];
 
     protected $hidden = [
+        'access_token_id',
         'refresh_token_id',
     ];
 
     protected $casts = [
+        'access_token_id' => 'integer',
         'refresh_token_id' => 'integer',
+        'last_seen_at' => 'immutable_datetime',
         'expires_at' => 'immutable_datetime',
         'revoked_at' => 'immutable_datetime',
     ];

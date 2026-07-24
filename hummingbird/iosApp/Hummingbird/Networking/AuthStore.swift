@@ -46,11 +46,11 @@ final class AuthStore: ObservableObject {
     }
 
     #if DEBUG
-    /// Credential-free, process-memory session used only when the UI-test runner
-    /// launches the dedicated patient-communications fixture mode. Nothing is
-    /// written to Keychain and this code is absent from Release builds.
-    func installPatientCommunicationsUITestSession() {
-        guard StaffCommunicationsUITestMode.isEnabled else { return }
+    /// Credential-free, process-memory session used only by an explicitly
+    /// activated staff UI-test fixture. Nothing is written to Keychain and this
+    /// code is absent from Release builds.
+    func installStaffUITestSession() {
+        guard StaffCommunicationsUITestMode.isEnabled || StaffSessionsUITestMode.isEnabled else { return }
         accessToken = "ui-test-memory-token"
         refreshToken = nil
         changeToken = nil
@@ -187,6 +187,14 @@ final class AuthStore: ObservableObject {
         FlowWindowCache.clearAll()
         HouseGlanceCache.clear()
         ForYouGlanceCache.clear()
+    }
+
+    /// The server has confirmed revocation of the family represented by this
+    /// device. Do not call the already-consumed bearer again; erase protected
+    /// credentials and every user-scoped cache immediately.
+    func completeCurrentSessionRevocation() async {
+        await tokenCoordinator.clear()
+        finishInvalidation()
     }
 
     private func adopt(_ result: TokenResponse) async throws -> StaffTokenSession {
