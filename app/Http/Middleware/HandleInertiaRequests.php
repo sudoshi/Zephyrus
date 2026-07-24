@@ -77,6 +77,7 @@ class HandleInertiaRequests extends Middleware
                     'manage_data_stewardship' => $allows(Capability::ManageDataStewardship),
                     'view_patient_communications' => $allows(Capability::ViewPatientCommunications),
                     'respond_patient_communications' => $allows(Capability::RespondPatientCommunications),
+                    'view_care_pathway_catalog' => $allows(Capability::ViewCarePathwayCatalog),
                 ],
             ],
             'adminScope' => $usesAdminScope
@@ -99,6 +100,10 @@ class HandleInertiaRequests extends Middleware
                 // A read-only synthetic journey; independent from every real
                 // catalog, assignment, patient, Hummingbird, and Eddy gate.
                 'care_pathways_demo' => (bool) config('care-pathways.demo.enabled'),
+                // Read-only governance examination surface for the inactive
+                // catalog; gated identically to the governance JSON API so nav
+                // and route never disagree. Never a clinical-serving gate.
+                'care_pathways_catalog' => (bool) config('care-pathways.governance_enabled'),
                 'virtual_rounds' => (bool) config('rounds.enabled'),
                 // Home Hospital ships disabled; nav stays hidden (never a dead
                 // link) until HOME_HOSPITAL_ENABLED is on — matching the server

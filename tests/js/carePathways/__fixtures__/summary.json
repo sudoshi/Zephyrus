@@ -1,0 +1,85 @@
+{
+    "data": {
+        "release": {
+            "catalog_release_uuid": "019f95de-b9a4-726a-91d3-41d6d911d4c4",
+            "dataset_key": "drg-care-pathways-verification-package-v43.1-20260721",
+            "grouper_version": "43.1",
+            "grouper_effective_period": {
+                "start": "2026-04-01",
+                "end": "2026-09-30"
+            },
+            "state": "inactive",
+            "clinical_signoff_complete": false,
+            "clinical_signoff_count": 0,
+            "pathway_count": 250,
+            "adopted_at": "2026-07-24 20:43:49+00",
+            "activated_at": null,
+            "withdrawn_at": null
+        },
+        "catalog": {
+            "definitions": 250,
+            "versions": 250,
+            "institutionally_approved_versions": 0,
+            "active_versions": 0,
+            "sections": 7000,
+            "approved_sections": 0,
+            "patient_or_caregiver_sections": 0,
+            "drg_codebook_entries": 770,
+            "drg_mappings": 802,
+            "evidence_claims": 10123,
+            "sources": 811,
+            "current_sources": 811,
+            "noncurrent_sources": 0,
+            "changes": 324
+        },
+        "review_queues": {
+            "evidence_verified": 96,
+            "evidence_limitations": 154,
+            "institutional_signoff": 96,
+            "specialist_review": 148,
+            "redesign": 6,
+            "recorded_reviews": 0,
+            "recorded_approvals": 0
+        },
+        "controls": {
+            "by_status": {
+                "accepted_discrepancy": 3,
+                "passed": 21
+            },
+            "failed": 0,
+            "residual_unknowns": 0,
+            "service_line_mappings": {
+                "mapped": 3,
+                "pending": 23
+            }
+        },
+        "serving_flags": {
+            "approved_catalog": false,
+            "assignment": false,
+            "rounds": false,
+            "staff_mobile": false,
+            "patient": false,
+            "eddy_reference": false,
+            "eddy_instance": false,
+            "writeback": false
+        },
+        "release_readiness": {
+            "clinical_signoff_complete": false,
+            "may_serve_approved_catalog": false,
+            "patient_projection_released": false,
+            "eddy_retrieval_released": false
+        }
+    },
+    "meta": {
+        "schema": "care_pathway_governance.v1",
+        "catalog_release_uuid": "019f95de-b9a4-726a-91d3-41d6d911d4c4",
+        "dataset_key": "drg-care-pathways-verification-package-v43.1-20260721",
+        "grouper_version": "43.1",
+        "source_cutoff_date": "2026-07-21",
+        "as_of": "2026-07-24T20:50:14+00:00",
+        "clinical_approval_warning": "Automated evidence verification is not institutional clinical approval.",
+        "patient_serving": false,
+        "hummingbird_serving": false,
+        "eddy_serving": false
+    }
+}

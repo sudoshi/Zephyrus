@@ -115,6 +115,9 @@ const collections: IconifyJSON[] = [
   {
     "prefix": "heroicons",
     "icons": {
+      "archive-box": {
+        "body": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"m20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125\"/>"
+      },
       "arrow-down": {
         "body": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3\"/>"
       },
@@ -300,6 +303,9 @@ const collections: IconifyJSON[] = [
       },
       "hand-raised": {
         "body": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M10.05 4.575a1.575 1.575 0 1 0-3.15 0v3m3.15-3v-1.5a1.575 1.575 0 0 1 3.15 0v1.5m-3.15 0l.075 5.925m3.075.75V4.575m0 0a1.575 1.575 0 0 1 3.15 0V15M6.9 7.575a1.575 1.575 0 1 0-3.15 0v8.175a6.75 6.75 0 0 0 6.75 6.75h2.018a5.25 5.25 0 0 0 3.712-1.538l1.732-1.732a5.25 5.25 0 0 0 1.538-3.712l.003-2.024a.67.67 0 0 1 .198-.471a1.575 1.575 0 1 0-2.228-2.228a3.82 3.82 0 0 0-1.12 2.687M6.9 7.575V12m6.27 4.318A4.5 4.5 0 0 1 16.35 15m.002 0h-.002\"/>"
+      },
+      "hashtag": {
+        "body": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M5.25 8.25h15m-16.5 7.5h15m-1.8-13.5l-3.9 19.5m-2.1-19.5l-3.9 19.5\"/>"
       },
       "heart": {
         "body": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M21 8.25c0-2.485-2.099-4.5-4.687-4.5c-1.936 0-3.598 1.126-4.313 2.733c-.715-1.607-2.377-2.733-4.312-2.733C5.098 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12\"/>"
@@ -690,6 +696,7 @@ export const localIconifyNames = [
   "healthicons:nurse",
   "healthicons:regular-patient",
   "healthicons:ui-menu",
+  "heroicons:archive-box",
   "heroicons:arrow-down",
   "heroicons:arrow-down-circle",
   "heroicons:arrow-down-tray",
@@ -752,6 +759,7 @@ export const localIconifyNames = [
   "heroicons:flag",
   "heroicons:funnel",
   "heroicons:hand-raised",
+  "heroicons:hashtag",
   "heroicons:heart",
   "heroicons:home",
   "heroicons:home-modern",

@@ -93,6 +93,19 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             ->middleware(\App\Http\Middleware\EnsureCarePathwayDemoEnabled::class)
             ->name('care-pathways.demo');
 
+        // Read-only examination surface for the governed (inactive) DRG catalog.
+        // Gated identically to the governance JSON API: feature flag + capability.
+        Route::middleware([
+            \App\Http\Middleware\EnsureCarePathwayGovernanceEnabled::class,
+            'can:viewCarePathwayCatalog',
+        ])->group(function (): void {
+            Route::get('/care-pathways/catalog', [\App\Http\Controllers\CarePathwayCatalogPageController::class, 'index'])
+                ->name('care-pathways.catalog');
+            Route::get('/care-pathways/catalog/{versionUuid}', [\App\Http\Controllers\CarePathwayCatalogPageController::class, 'show'])
+                ->whereUuid('versionUuid')
+                ->name('care-pathways.catalog.show');
+        });
+
         // Radiology Workspace — keep this group ahead of RTDC so existing RTDC
         // bookmark ordering and the standalone /radiology URLs remain stable.
         Route::prefix('radiology')->name('radiology.')->group(function () {

@@ -8,12 +8,12 @@
 
 ## Inventory summary
 
-- Capabilities: 51
-- Navigation routes with a single ledger owner: 100
+- Capabilities: 52
+- Navigation routes with a single ledger owner: 101
 - Staff mobile/auth operations with a single ledger owner: 60
 - Patient API operations with a single ledger owner: 25
-- Implementation states: `not_applicable` 11, `partial` 22, `planned` 18
-- Target dispositions: `DEEPLINK` 8, `DESKTOP_ONLY` 9, `GLANCE` 10, `NATIVE` 20, `NOTIFY` 3, `PATIENT` 1
+- Implementation states: `complete` 1, `not_applicable` 11, `partial` 22, `planned` 18
+- Target dispositions: `DEEPLINK` 8, `DESKTOP_ONLY` 10, `GLANCE` 10, `NATIVE` 20, `NOTIFY` 3, `PATIENT` 1
 
 ## Capability ledger
 
@@ -30,6 +30,7 @@
 | `analytics` | `analytics.predictive_workbench` — Predictive planning and scenario workbench | `not_applicable` | `DESKTOP_ONLY` | `governance_p0` | Operations Intelligence Product | Web Platform | `/analytics/predictive`<br>`/analytics/workbench` | — | — | — | — |
 | `analytics` | `analytics.process_intelligence` — Process intelligence | `not_applicable` | `DEEPLINK` | `staff_p3` | Process Intelligence Product | Web Platform | `/analytics/process-intelligence` | — | — | — | — |
 | `analytics` | `analytics.retrospective` — Retrospective review | `not_applicable` | `DEEPLINK` | `staff_p3` | Operations Intelligence Product | Web Platform | `/analytics/retrospective` | — | — | — | — |
+| `care_pathways` | `care_pathways.catalog_explorer` — Governed DRG catalog explorer (read-only governance examination) | `complete` | `DESKTOP_ONLY` | `care_pathways_p0` | Care Pathways Product | Web Platform | `/care-pathways/catalog` | — | — | — | — |
 | `care_pathways` | `care_pathways.synthetic_journey_demo` — Synthetic care-pathway journey demo | `partial` | `DESKTOP_ONLY` | `care_pathways_p0` | Care Pathways Product | Web Platform | `/care-pathways/demo` | — | — | — | — |
 | `cockpit` | `cockpit.agent_inbox` — Agent inbox and governed operational approvals | `partial` | `NATIVE` | `staff_p1` | Operations Intelligence Product | Hummingbird Platform | `/ops/agent-inbox` | `GET /api/mobile/v1/ops/inbox`<br>`POST /api/mobile/v1/ops/approvals/{uuid}/decision` | — | `hummingbird/iosApp/Hummingbird/Features/Capacity/CapacityDemandView.swift` | `hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/capacity/CapacityDemandScreens.kt` |
 | `cockpit` | `cockpit.executive_brief` — Executive brief | `partial` | `NATIVE` | `staff_p1` | Executive Operations Product | Hummingbird Platform | `/ops/executive-brief` | `GET /api/mobile/v1/command/house` | — | `hummingbird/iosApp/Hummingbird/Features/Executive/ExecutiveHomeView.swift` | `hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/executive/ExecutiveScreens.kt` |
