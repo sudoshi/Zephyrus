@@ -110,7 +110,7 @@ raw release reproducibility
 - [x] Reject the same dataset key with different immutable hashes.
 - [ ] Create a migration that reproduces the deployed raw manifest/table/view topology on a fresh database without changing existing deployed tables.
 - [ ] Choose and document the durable XLSX ingestion approach: supported library or checksum-pinned normalized release bundle; do not ship an incomplete workbook parser.
-- [ ] Add tracked, minimized, non-PHI source fixtures so CI does not rely on absolute `/Users/...` paths.
+- [x] Add tracked, minimized, non-PHI source fixtures so CI does not rely on absolute `/Users/...` paths. `tests/Support/CarePathwayRawFixture.php` builds a fully synthetic two-pathway raw release in-database; no care-pathway test references a source-file path (2026-07-24 audit).
 - [ ] Add a deployed-raw-shape compatibility fixture proving adoption does not update/delete source rows.
 - [ ] Add raw mutation-rejection triggers through a forward-only migration after comparing the exact live table shape.
 - [ ] Add backup/restore and raw-release verification runbook.
@@ -159,7 +159,7 @@ raw release reproducibility
 - [x] Keep catalog FKs out of `raw`, `prod`, `rounds`, `patient_experience`, and `eddy`.
 - [x] Add append-only triggers for codebook rows, DRG mappings, canonical source versions, source changes/enrichments/completeness rows, and immutable source-section fields.
 - [x] Require the active-version count to equal the release pathway count, including the zero-version edge case.
-- [ ] Add non-overlapping effective-period enforcement for active versions of one definition.
+- [x] Add non-overlapping effective-period enforcement for active versions of one definition. Migration `2026_07_21_001700_enforce_care_pathway_active_version_period.php` adds trigger `care_pathway_active_version_non_overlap` (additive, forward-only, no-op on the all-inactive production release); proven by `CarePathwayActiveVersionPeriodTest` (6 tests: overlap rejected on insert and on activation, adjacent/cross-definition/inactive/open-ended cases).
 - [ ] Add independent-approver and required-discipline activation gates.
 - [ ] Add explicit withdrawal/retraction transitions and emergency correction path.
 - [ ] Add partition/retention planning for evidence and audit growth.
@@ -239,11 +239,11 @@ raw release reproducibility
 - [x] Focused evidence: 20 tests, 140 assertions passed on isolated PostgreSQL.
 - [x] Pint passes for all first-slice PHP files.
 - [x] Add focused model-contract, capability-separation, governance-gating, exact-version, pagination/filter, DTO-redaction, source-index, and ledger API tests.
-- [~] Run the new focused tests: current execution is blocked before PHPUnit starts because the repository requires an isolated loopback PostgreSQL server and `localhost:5432` is unavailable; no test was redirected to the live database. Syntax, Pint, route inventory, and live read-only service smoke validation pass.
-- [ ] Add full-source fixture control tests without checking local absolute paths into CI.
-- [ ] Add DB tests for malformed hash, JSON shape, date period, duplicate rank, duplicate source digest, and invalid DRG.
+- [x] Run the new focused tests. On the Linux/PostgreSQL 17 development host the `IsolatedTestDatabase` harness provisions a per-run `zephyrus_test_<token>` database on `localhost:5432` (the block was macOS-only). Focused care-pathway suite (`tests/Feature/CarePathways` + `tests/Unit/CarePathways`) passes 65 tests / 412 assertions (2026-07-24).
+- [ ] Add full-source fixture control tests without checking local absolute paths into CI. (The two-pathway minimized fixture is path-independent; a fixture asserting the full 250/770/802 control totals is still open.)
+- [x] Add DB tests for malformed hash, JSON shape, date period, duplicate rank, duplicate source digest, and invalid DRG. `CarePathwayCatalogConstraintTest` (11 tests) also covers the evidence-partition, premature-activation, duplicate-DRG, and section-approval-integrity guards.
 - [ ] Add raw immutability/deployed-shape adoption tests.
-- [ ] Run migration lane, contract lane, and full backend suite.
+- [~] Run migration lane, contract lane, and full backend suite. Migration lane passes 39 tests / 200 assertions and contract lane passes 59 tests / 1,764 assertions on the Linux host via the wrapper (Bash 5 `mapfile` works); the previously-failing 8 Mobile-parity assertions are now green. Full backend suite pending (see release section).
 - [ ] Capture release evidence with the repository evidence script.
 
 **Phase 1 exit gate:** Every source row is traceable and searchable in an inactive canonical catalog, all control totals reconcile, permissions are distinct, governance review is usable, and no unapproved content can be selected by a serving read service.
@@ -704,12 +704,12 @@ git diff --check -- \
   docs/superpowers/plans/2026-07-21-drg-care-pathways-zephyrus-eddy-hummingbird-TODO.md
 ```
 
-- [x] Focused care-pathway tests pass: 20 tests, 140 assertions.
+- [x] Focused care-pathway tests pass: 65 tests, 412 assertions on the Linux/PostgreSQL 17 host (2026-07-24). This supersedes the first-slice 20 tests / 140 assertions and adds `CarePathwayCatalogConstraintTest` (11) and `CarePathwayActiveVersionPeriodTest` (6).
 - [x] First-slice PHP files pass Pint.
 - [x] Governance-slice PHP files pass Pint and all ten GET-only routes expose the expected feature/auth/capability/throttle middleware chain.
-- [~] Governance-slice PHPUnit execution is blocked by the unavailable loopback PostgreSQL test service; the failure occurs in isolated test-database provisioning before any test loads.
-- [~] Migration lane: the repository wrapper is not macOS Bash 3 compatible (`mapfile: command not found`); its exact discovered-test command passed 39 tests/197 assertions.
-- [~] Contract lane: 51 tests/1,550 assertions passed and 8 existing `MobileRoleCatalogParityTest` assertions failed against unrelated dirty iOS/Android worktree files; no care-pathway slice file appears in those failures.
+- [x] Governance-slice PHPUnit now executes. On the Linux/PostgreSQL 17 development host the `IsolatedTestDatabase` harness provisions a per-run `zephyrus_test_<token>` database; the earlier block was a macOS-only missing loopback server, not a code defect.
+- [x] Migration lane passes 39 tests / 200 assertions via `scripts/test-suite.sh migration` (Bash 5 `mapfile` works on Linux; the wrapper only failed under macOS Bash 3).
+- [x] Contract lane passes 59 tests / 1,764 assertions via `scripts/test-suite.sh contract`; the previously-failing 8 `MobileRoleCatalogParityTest` assertions are now green (the Hummingbird-hardening commits landed the fixes).
 - [ ] Full backend suite passes or unrelated baseline failures are reproduced and documented.
 - [ ] Frontend unit/e2e/native tests pass when those phases begin.
 - [ ] Full-source adoption evidence captured without credentials or clinical prose on command lines.
@@ -745,3 +745,4 @@ git diff --check -- \
 - 2026-07-21 — Final absence/currency audit found and corrected two provenance defects: all 811 explicit “No PubMed retraction indicator detected” values had been misparsed as retracted, and the 16 sources not cited by any claim lacked direct release membership. Added an append-only status ledger, 811 corrective current-state events, a complete 811/811 release-source authority (795 cited, 16 uncited), superseding passed controls, and fail-closed non-current-source reads. Release `2` remains inactive, all serving flags remain off, and zero source or clinical rows were overwritten. Focused evidence is 18 tests/132 assertions; migration-lane equivalent is 39 tests/193 assertions.
 - 2026-07-21 — Hardened citation integrity after the final relational audit: section-source selections are append-only; claim and section citations must reference a source in the same catalog release; release-source digests must match the immutable source; non-current claim or section citations suppress serving; and audiences with no approved content return nothing. Live rows satisfied every new guard before deployment. Final focused evidence is 20 tests/140 assertions; migration-lane equivalent is 39 tests/197 assertions.
 - 2026-07-21 — Implemented the next repository-only governance slice: all remaining canonical Eloquent models and relationships; eight distinct care-pathway capabilities with source-adoption, evidence-review, clinical-approval, activation, and encounter-instance duties separated; a dual-gated off-by-default governance read service; ten GET-only staff endpoints; exact release/version/source-cutoff metadata; searchable review/source/pathway queues; and raw-payload-redacted DTOs. Added focused model, authorization, and API tests. Route inventory and Pint pass. A read-only live smoke audit returned the expected 250/250 inactive catalog, 811 sources including 16 uncited, 26 controls, 0 reviews/approvals, and no raw/provenance fields; the local PHPUnit run remains blocked before test execution because no loopback PostgreSQL test server is running. No migration, clinical activation, patient/Hummingbird/Rounds/4D/Eddy serving, commit, push, or deployment occurred.
+- 2026-07-24 — Verification + integrity-hardening slice on `feature/care-pathways-catalog-integrity-hardening` (Linux/PostgreSQL 17 host, not the macOS host of prior sessions). The `IsolatedTestDatabase` harness now provisions per-run `zephyrus_test_<token>` databases, so the previously-blocked PHPUnit lanes run for real: focused care-pathway suite 65 tests/412 assertions, migration lane 39/200, contract lane 59/1,764 (the 8 Mobile-parity failures are green after the Hummingbird-hardening commits). Added `CarePathwayCatalogConstraintTest` (11 characterization tests proving the existing DB guards reject malformed hashes, non-object/array JSON, an inverted effective period, duplicate `(release, rank)`, a non-numeric or duplicate DRG, a premature `active` version, an approved section without approved text, and a mismatched release-source digest). Added additive forward-only migration `2026_07_21_001700` with trigger `care_pathway_active_version_non_overlap` (rejects two active versions of one definition covering overlapping effective periods, on insert and on activation; open-ended NULL bounds handled; a no-op against the all-inactive production release) proven by `CarePathwayActiveVersionPeriodTest` (6 tests). Pint clean on all touched files. No adoption rerun, no clinical activation, no serving-flag change, and no deployment — the new migration is committed for review only (deployment remains deferred; `deploy.sh` does not run migrations).
