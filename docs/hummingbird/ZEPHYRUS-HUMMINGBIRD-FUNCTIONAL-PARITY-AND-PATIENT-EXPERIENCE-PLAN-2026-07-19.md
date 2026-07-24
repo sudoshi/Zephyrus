@@ -183,31 +183,61 @@ This checkpoint records repository implementation, not production approval or de
 
 #### 3.2.9 CI feature-shard duration remediation — evidence and implementation gates
 
-The 2026-07-24 release exposed a concentrated backend-test performance defect rather than a broad cost of Hummingbird ratification. The exact-merge run was held by two PostgreSQL feature shards after the other 17 jobs had passed. Release evidence from PR run `30107421291` records `feature-7` at **4,265.32 seconds** for 194 tests / 8,878 assertions. The following five classes consumed approximately **98.2%** of that shard:
+The 2026-07-24 release exposed a concentrated backend-test performance defect rather than a broad cost of Hummingbird ratification. The exact-merge run was held by two PostgreSQL feature shards after the other 17 jobs had passed. Release evidence from PR run `30107421291` records `feature-6` at **4,135.68 seconds** for 224 tests / 2,755 assertions and `feature-7` at **4,265.32 seconds** for 194 tests / 8,878 assertions. The critical classes were highly concentrated:
 
-| Test class                     | Recorded test time | Share of 4,265.32 s |
-| ------------------------------ | -----------------: | ------------------: |
-| `LaboratoryCockpitMetricsTest` |         2,701.30 s |               63.3% |
-| `AncillaryDemoScenarioTest`    |         1,018.88 s |               23.9% |
-| `PharmacyFlowBoardTest`        |           218.46 s |                5.1% |
-| `PharmacyTatAnalyticsTest`     |           135.40 s |                3.2% |
-| `LabFlowBoardTest`             |           116.26 s |                2.7% |
-| **Measured concentration**     |     **4,190.30 s** |           **98.2%** |
+| Baseline shard | Test class                     | Recorded test time | Share of shard |
+| -------------- | ------------------------------ | -----------------: | -------------: |
+| `feature-6`    | `PharmacyCockpitMetricsTest`   |         3,330.40 s |          80.5% |
+| `feature-6`    | `PharmacyDispenseTest`         |           404.27 s |           9.8% |
+| `feature-7`    | `LaboratoryCockpitMetricsTest` |         2,701.30 s |          63.3% |
+| `feature-7`    | `AncillaryDemoScenarioTest`    |         1,018.88 s |          23.9% |
+| `feature-7`    | `PharmacyFlowBoardTest`        |           218.46 s |           5.1% |
+| `feature-7`    | `PharmacyTatAnalyticsTest`     |           135.40 s |           3.2% |
+| `feature-7`    | `LabFlowBoardTest`             |           116.26 s |           2.7% |
 
-The single stale-laboratory-evidence case took **1,276.07 seconds**. The next four laboratory/ancillary refresh cases took **545.68**, **542.48**, **398.18**, and **337.07** seconds. These timings include each test's setup, which repeatedly seeds broad RTDC, case-management, staffing, command-center, cockpit, and ancillary catalogs and executes a complete `AncillaryDemoScenarioService::refresh`. Several test bodies then rebuild the entire Cockpit snapshot—legacy command-center payload, all metric providers, trends, source health, persistence/history, and drill reads—multiple times even when the assertion is scoped to one laboratory sector.
+The single stale-laboratory-evidence case took **1,276.07 seconds**. The next four laboratory/ancillary refresh cases took **545.68**, **542.48**, **398.18**, and **337.07** seconds. These timings include each test's setup, which repeatedly seeds broad RTDC, case-management, staffing, command-center, cockpit, and ancillary catalogs and executes a complete `AncillaryDemoScenarioService::refresh`. Several test bodies then rebuild the entire Cockpit snapshot—legacy command-center payload, all metric providers, trends, source health, persistence/history, and drill reads—multiple times even when the assertion is scoped to one laboratory or pharmacy sector.
+
+Disposable PostgreSQL 16 profiling isolated two production-path amplification defects and one test-boundary defect:
+
+1. `PeriopMetrics` needed one rounded prime-time-utilization headline, but called `PerioperativeMetricsService::build()`. That full build also executed first-case, case-duration, turnover, block, volume, cancellation, trend, and workbench queries whose results the Cockpit discarded. The slow-query log repeatedly recorded **12–27 second** first-case and case-duration aggregates.
+2. `StaffingMetrics` needed only unfilled-request count and coverage, but called `StaffingOperationsService::overview()`. The full overview also materialized the canonical workforce directory, at-risk detail, request queue, and resource options that the Cockpit discarded.
+3. The laboratory and pharmacy Cockpit tests correctly exercised their real seeded ancillary scenarios, but also rebuilt an unrelated legacy `CommandCenterDataService` base payload on every snapshot. That base payload was not part of the ancillary assertions.
+
+The implementation introduces a headline-only perioperative projection and a Cockpit-only staffing projection. Both reuse the existing authoritative calculation/window helpers rather than create alternate formulas. Parity tests require the fast values to equal the full dashboard/overview values. The perioperative guard permits only **2–4 queries** and fails if the fast path touches `prod.or_logs` or `prod.case_metrics`; the ancillary snapshot guards fail if discarded OR-dashboard or workforce-directory aggregates reappear. The focused laboratory and pharmacy tests mock only the unrelated command-center base payload while retaining their real ancillary seed, full `AncillaryDemoScenarioService::refresh`, Cockpit providers, status engine, persistence/history, and drill reconciliation.
+
+The same change stabilizes the Hummingbird staff iOS exact-replay journey without weakening it. The test uses a short unique reply body, waits a bounded two seconds for the editor's exact value after `typeText`, then retains the explicit exact-replay and exactly-one-visible-message assertions. The formerly failing journey passed **four consecutive local executions**, including three iterations with test retries disabled, and the complete staff iOS lane passed in preliminary PR CI.
+
+Preliminary PR `#60` run `30122622952`, pinned to pre-rebase head `a6db752b776a61b1ec33422058d466719aa63e19`, passed **19/19 jobs**. Its new JUnit artifacts prove zero failures/errors/skips and preserve per-suite, per-class, and per-test times. The comparison below uses the immediately preceding PR `#58` run `30118042639` for whole-job wall time and the retained `30107421291` PHPUnit evidence for class-level baselines:
+
+| Evidence scope                           | Baseline    | Optimized   | Reduction |
+| ---------------------------------------- | ----------- | ----------- | --------: |
+| `feature-6` whole CI job                 | 43m32s      | 15m35s      |     64.2% |
+| `feature-7` whole CI job / critical path | 1h12m54s    | 24m57s      |     65.8% |
+| All eight feature-job runner minutes     | 180m21s     | 104m39s     |     42.0% |
+| `feature-6` PHPUnit                      | 4,135.68 s  | 881.96 s    |     78.7% |
+| `feature-7` PHPUnit                      | 4,265.32 s  | 1,448.58 s  |     66.0% |
+| `PharmacyCockpitMetricsTest`             | 3,330.40 s  | 155.64 s    |     95.3% |
+| `LaboratoryCockpitMetricsTest`           | 2,701.30 s  | 174.69 s    |     93.5% |
+| `feature-6` tests / assertions           | 224 / 2,755 | 224 / 2,755 | preserved |
+| `feature-7` tests / assertions           | 194 / 8,878 | 194 / 8,881 | +3 guards |
+
+The first-stage target is observed, not yet ratified: the critical path is down more than 60% and no shard exceeded 30 minutes in **one of the required three** clean exact-head runs. Residual JUnit evidence identifies the next measured work instead of hiding it behind sharding: `AncillaryDemoScenarioTest` is **753.74 seconds / 52.0%** of optimized `feature-7`; `PharmacyDispenseTest` is **365.69 seconds / 41.5%** of optimized `feature-6`; the two flow-board classes and pharmacy TAT analytics are approximately stable. The remaining work must profile those paths and test setup directly before introducing a weighted manifest or any index.
 
 The current sharder adds a second structural problem: it sorts every `tests/Feature/**/*Test.php` path and assigns `index % 8`. Adding or renaming one earlier-sorting file reassigns nearly every later test to another shard, so load distribution is neither historically weighted nor stable across ordinary test-file additions. Scheduling can hide some critical-path cost, but it cannot solve a single 45-minute class; production query/setup cost must also be reduced.
 
 - [x] Establish a content-free timing baseline from retained CI release evidence and identify the critical-path classes and individual cases. Do not attribute the 70-minute tail to all patient/Hummingbird tests or to human approval.
-- [ ] Emit a JUnit or equivalent machine-readable per-test timing artifact from every backend shard, plus setup-versus-test-body and aggregate database query-count/query-time measurements for the five critical classes. Redact bindings and never publish patient/clinical fixture content in timing or SQL evidence.
+- [x] Emit a machine-readable JUnit timing artifact from every backend shard inside the existing release-evidence package. The preliminary run retained suite/class/test durations with zero content or SQL bindings and proved that the artifact survives both success and failure.
+- [x] Remove the measured Cockpit payload amplification. Add authoritative headline-only perioperative and Cockpit-only staffing projections, exact-output parity tests, query-count/source guards, and focused ancillary snapshot boundaries. Do not replace the shared metric authorities or weaken full integration coverage.
+- [x] Stabilize the Hummingbird staff iOS exact-replay input boundary with a bounded value expectation while retaining explicit replay and no-duplicate safety assertions.
+- [ ] Add setup-versus-test-body and aggregate database query-count/query-time measurements for the residual critical classes. Redact bindings and never publish patient/clinical fixture content in timing or SQL evidence.
 - [ ] Replace global filename-position modulo assignment with a checked-in or deterministically generated **stable weighted shard manifest**. The verifier must prove every discovered feature test appears exactly once, no excluded test silently enters a shard, no path is duplicated, and manifest drift fails CI. Use rolling medians from successful exact-SHA runs; keep a deterministic cold-start weight for new files.
-- [ ] Isolate the five measured heavy classes across shards immediately, but report this as scheduling relief only. Do not claim the suite optimized while one class still requires approximately 45 minutes.
+- [ ] Reassess class isolation only after three clean timing runs establish rolling medians. Report any later redistribution as scheduling relief only; do not use it to conceal a slow class or a production query/setup defect.
 - [ ] Profile `AncillaryDemoScenarioService::refresh`, `SnapshotBuilder::buildWithContext`, `LabFlowBoardService`, `LabDecisionPendingService`, and the Cockpit drill/current path on the exact 66-order / 328-milestone reference fixture. Capture `EXPLAIN (ANALYZE, BUFFERS, WAL)` only in a disposable non-production database and inspect repeated cohort scans, correlated subqueries, JSON predicates, trigger/provenance writes, and missing or ineffective composite/expression indexes.
 - [ ] Introduce one request-scoped aggregate snapshot for laboratory cohort/freshness/summary/callback/decision-pending facts so the Cockpit provider, health service, and drill reuse the same governed calculation instead of independently re-reading the cohort. Preserve the existing single-snapshot reconciliation rule, freshness semantics, privacy projection, and status-engine ownership.
 - [ ] Consolidate repeated aggregate queries with bounded CTEs or grouped aggregates where query plans prove improvement. Add indexes only from measured plans and representative cardinalities; do not add speculative indexes or weaken append-only/provenance triggers.
-- [ ] Reduce test setup amplification without sharing mutable state between tests: create the smallest governed ancillary fixture needed by service-level cases; retain at least one full-seeder/full-refresh integration case for each protected end-to-end invariant; combine only assertions that deliberately validate one immutable snapshot; and keep transaction isolation. Do not switch these PostgreSQL contract tests to SQLite, remove release-boundary assertions, suppress migrations/triggers, or reuse a dirty database.
-- [ ] Add performance regression budgets in two stages. First require at least a **60%** reduction from the 4,265.32-second `feature-7` baseline with no shard above **30 minutes** across three clean exact-SHA runs. After query/setup remediation, tighten the backend feature critical path to **15 minutes** across three clean runs. A budget change requires recorded evidence and review; a timeout increase is not optimization.
-- [ ] Re-run every affected class, the complete backend suite, the capability/contract/security verifiers, and all 19 CI jobs with zero skipped tests. Compare test/ assertion coverage, database invariants, output contracts, and query plans before and after. Ship CI scheduling and production-query changes as separately reviewable commits so a faster shard cannot conceal a semantic regression.
+- [ ] Continue reducing test setup amplification without sharing mutable state between tests: create the smallest governed ancillary fixture needed by service-level cases; retain at least one full-seeder/full-refresh integration case for each protected end-to-end invariant; combine only assertions that deliberately validate one immutable snapshot; and keep transaction isolation. Do not switch these PostgreSQL contract tests to SQLite, remove release-boundary assertions, suppress migrations/triggers, or reuse a dirty database.
+- [ ] Ratify performance regression budgets in two stages. The first observation satisfies at least a **60%** reduction from the 4,265.32-second `feature-7` baseline with no shard above **30 minutes**, but the gate remains **1/3 clean exact-head runs**. After query/setup remediation, tighten the backend feature critical path to **15 minutes** across three clean runs. A budget change requires recorded evidence and review; a timeout increase is not optimization.
+- [ ] Complete final publication evidence on the rebased implementation head: re-run every affected class, the complete backend suite, capability/contract/security verifiers, all four native products, and all 19 CI jobs with zero skipped tests. Compare test/assertion coverage, database invariants, output contracts, and query plans before and after. Ship CI scheduling and production-query changes as separately reviewable commits so a faster shard cannot conceal a semantic regression.
 
 ### 3.3 Parity status vocabulary
 
