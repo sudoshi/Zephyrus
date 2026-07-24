@@ -157,7 +157,7 @@ The literature on alarm/alert fatigue is blunt: **most clinical alerts are non-a
 ## 5. Authentication & security (Laravel backend → mobile)
 
 ### The core shift
-Web Zephyrus uses **session cookies** (per the repo's auth rules + `session-auth.md`). Mobile must move to **token-based auth**. Two viable Laravel paths:
+Web Zephyrus uses **session cookies** (per the repo's auth rules + `docs/archive/auth-legacy/session-auth.md`). Mobile must move to **token-based auth**. Two viable Laravel paths:
 
 | Option | What you get | Verdict for Hummingbird |
 |---|---|---|

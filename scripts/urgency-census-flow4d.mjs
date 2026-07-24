@@ -1,6 +1,6 @@
 /**
  * Urgency census — earned-urgency verification on real data (HFE closure
- * H4.2 — docs/FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md).
+ * H4.2 — docs/plans/FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md).
  *
  * Polls /api/patient-flow/occupancy and /barriers on an interval and records
  * the distribution of ok/watch/delayed disks, timer statuses, and open

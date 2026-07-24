@@ -4,7 +4,7 @@
 **Date:** 2026-07-10
 **Source:** `ACUM-OPS-OCEL-001`, *OCEL Models for Process Improvement in Modern Hospital Operations*, v1.0, 2026-07-09
 **Scope:** Zephyrus OCEL 2.0 projection, Patient-Flow Arena, all hospital operations domains, and the governed improvement loop
-**Authority:** This plan specializes `docs/ZEPHYRUS-2.0-PART-X.md`. The beta PRD still governs beta scope and feature promotion.
+**Authority:** This plan specializes `docs/product/ZEPHYRUS-2.0-PART-X.md`. The beta PRD still governs beta scope and feature promotion.
 
 ## 1. Executive decision
 

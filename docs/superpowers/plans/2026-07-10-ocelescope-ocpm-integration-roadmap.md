@@ -10,7 +10,7 @@
 **Date:** 2026-07-10
 **Source:** [`promi4s/ocelescope`](https://github.com/promi4s/ocelescope) (RWTH Aachen PADS), commit inspected 2026-07-10
 **Scope:** Adopt three ocelescope capabilities into the Zephyrus Patient-Flow Arena as **clean-room, Apache-2.0 reimplementations** — a composable OCEL filter engine, object-centric Petri-net discovery + replay-based conformance, and a QEL (quantity event log) capacity layer.
-**Authority:** This roadmap specializes [`docs/ZEPHYRUS-2.0-PART-X.md`](../../ZEPHYRUS-2.0-PART-X.md). It does not change Part X's object-type/activity catalog or PHI discipline; it extends the emission and analysis layers.
+**Authority:** This roadmap specializes [`docs/product/ZEPHYRUS-2.0-PART-X.md`](../../product/ZEPHYRUS-2.0-PART-X.md). It does not change Part X's object-type/activity catalog or PHI discipline; it extends the emission and analysis layers.
 
 ---
 

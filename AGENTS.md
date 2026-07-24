@@ -148,3 +148,4 @@ Do not use automated GitHub Actions deploy jobs, ad hoc SSH command blocks, dire
 - New API endpoints: Add to `routes/api.php` with a controller in `Http/Controllers/Api/`.
 - Mock data for development: Add mock data files in `resources/js/mock-data/` and wire them into `DataService`.
 - Navigation: `resources/js/config/navigationConfig.ts` is the single source for the desktop section menu, mobile drawer, command palette, and active route ownership. Do not create a parallel workflow navigation list.
+- Documentation: `docs/` is organized by kind — `product/`, `architecture/`, `plans/`, `devlog/`, `audits/`, `guides/`, `operations/` (runbooks), `evidence/`, plus per-surface folders (`hummingbird/`, `home-hospital/`). See [docs/README.md](docs/README.md) for the map and filing rules before adding a doc; an initiative plan in `docs/plans/` pairs with its execution log in `docs/devlog/`.

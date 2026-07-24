@@ -4,7 +4,7 @@
 **Status:** Proposed implementation plan
 **Scope:** A meticulous, admin-only wizard that integrates external staffing systems (HRIS / scheduling / credentialing / identity / EHR provider master) and resolves every staff member to `facility × service line × role × unit` — with human-in-the-loop review, confidence, and evidence — then provisions Zephyrus operational role/workflow **additively**, without ever modifying the protected authentication system.
 **Parent plan:** `docs/superpowers/plans/2026-07-04-service-line-location-deployment-implementation.md` (this is the standalone deep-dive for that plan's §11 + Phase 7 + Phase F4). The parent owns the service-line registry, IDN geography, capability matrix, and facility-space layers this wizard consumes.
-**Research baseline:** `docs/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md`
+**Research baseline:** `docs/architecture/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md`
 **Protected-auth constraint:** `.claude/rules/auth-system.md` — every change here is additive; the registration / login / `/change-password` / temp-password + Resend flow / `must_change_password` / `admin@acumenus.net` superuser are untouched.
 
 ---
@@ -431,7 +431,7 @@ Plus this plan's own gates: the resolver ≥80%-deterministic target, idempotent
 ## References
 
 - `docs/superpowers/plans/2026-07-04-service-line-location-deployment-implementation.md` (parent plan — registry, geography, capability matrix, facility-space layers)
-- `docs/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md` (research baseline)
+- `docs/architecture/SERVICE-LINE-LOCATION-DEPLOYMENT-TAXONOMY-2026-07-04.md` (research baseline)
 - `docs/superpowers/plans/2026-06-24-transport-operations.md` (Connector Contract pattern reused for `StaffingConnector`)
 - `.claude/rules/auth-system.md` (protected auth — additive-only constraint on this wizard)
 - `app/Support/Hospital/HospitalManifest.php`, `config/hospital/hospital-1.php` (Summit provider/nurse roster used for the prototype)

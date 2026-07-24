@@ -6,7 +6,7 @@
 // never be encoded by color alone (WCAG 1.4.1) and the grey-baseline render
 // discipline has exactly one enforcement point.
 //
-// Vocabulary (docs/ZEPHYRUS-2.0-PLAN.md Part IV §1): five logical states on
+// Vocabulary (docs/product/ZEPHYRUS-2.0-PLAN.md Part IV §1): five logical states on
 // four canon colors + grey — shape carries the fifth distinction.
 import type { StatusLevel } from '@/types/commandCenter';
 import type { CockpitState } from '@/types/cockpit';

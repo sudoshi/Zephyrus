@@ -29,7 +29,7 @@ use Illuminate\Validation\ValidationException;
  * conflict fails the commit closed. Existing enterprise data is never deleted;
  * every apply is an upsert with effective dating and change history.
  *
- * Plan: docs/ADMIN-INTEROPERABILITY-CONTROL-PLANE-PLAN-2026-07-12.md (ENT-REG)
+ * Plan: docs/plans/ADMIN-INTEROPERABILITY-CONTROL-PLANE-PLAN-2026-07-12.md (ENT-REG)
  */
 final class EnterpriseRegistryImportService
 {
