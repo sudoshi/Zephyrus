@@ -1,0 +1,2177 @@
+{
+    "data": [
+        {
+            "pathway": {
+                "uuid": "019f95de-b9ec-700b-836f-45996908b180",
+                "key": "drgcp-normal-newborn-liveborn-uncomplicated-385d4e9bf2c3",
+                "name": "Normal Newborn (liveborn, uncomplicated)",
+                "mdc": "15 \u2014 Newborns & Other Neonates (Perinatal Period)",
+                "care_type": "Neonatal",
+                "source_service_line": "Neonatal \/ Newborn",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-b9ed-70ef-b85f-1dac743a04a3",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 1,
+                "content_digest": "583ebb95d3289419d9899c8e828746eea9b4d0e25237a29b803fdb6f3b19202f",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "795",
+                    "title": "Normal Newborn",
+                    "mdc": "15",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 58,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-b9f0-73db-99f8-0ef507903eff",
+                "key": "drgcp-vaginal-delivery-2fd506169d41",
+                "name": "Vaginal Delivery",
+                "mdc": "14 \u2014 Pregnancy, Childbirth & the Puerperium",
+                "care_type": "Obstetric",
+                "source_service_line": "Obstetrics",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-b9f0-73db-99f8-0ef5083f8ec6",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 2,
+                "content_digest": "765fbd1540477491bcca69ff5e88ddf2f6d72f7af1ffffd3179d577539d08586",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "768",
+                    "title": "Vaginal Delivery with O.R. Procedures Except Sterilization and\/or D&C",
+                    "mdc": "14",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "796",
+                    "title": "Vaginal Delivery with Sterilization and\/or D&C with MCC",
+                    "mdc": "14",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "797",
+                    "title": "Vaginal Delivery with Sterilization and\/or D&C with CC",
+                    "mdc": "14",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "798",
+                    "title": "Vaginal Delivery with Sterilization and\/or D&C without CC\/MCC",
+                    "mdc": "14",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "805",
+                    "title": "Vaginal Delivery without Sterilization or D&C with MCC",
+                    "mdc": "14",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "806",
+                    "title": "Vaginal Delivery without Sterilization or D&C with CC",
+                    "mdc": "14",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "807",
+                    "title": "Vaginal Delivery without Sterilization or D&C without CC\/MCC",
+                    "mdc": "14",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 57,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-b9f2-713c-b09b-d1cd54588d06",
+                "key": "drgcp-sepsis-septicemia-0be7d2e08cd4",
+                "name": "Sepsis \/ Septicemia",
+                "mdc": "18 \u2014 Infectious & Parasitic Diseases (Systemic)",
+                "care_type": "Medical",
+                "source_service_line": "Critical Care",
+                "service_line_code": "critical_care",
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-b9f3-7116-bc46-59f4120f6bea",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 3,
+                "content_digest": "ffe706abdb07e45b0999678b58ec1c1305271f0071db89b135bff6625689bdd3",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "870",
+                    "title": "Septicemia or Severe Sepsis with MV >96 Hours",
+                    "mdc": "18",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "871",
+                    "title": "Septicemia or Severe Sepsis without MV >96 Hours with MCC",
+                    "mdc": "18",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "872",
+                    "title": "Septicemia or Severe Sepsis without MV >96 Hours without MCC",
+                    "mdc": "18",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 57,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-b9f5-70b0-8de9-91c70d50f4d8",
+                "key": "drgcp-covid-19-viral-pneumonia-respiratory-infection-c9bf25fb99fc",
+                "name": "COVID-19 (viral pneumonia \/ respiratory infection)",
+                "mdc": "04 \u2014 Respiratory System",
+                "care_type": "Medical",
+                "source_service_line": "RTDC \/ Medical Capacity",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-b9f5-70b0-8de9-91c70d81832a",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 4,
+                "content_digest": "083ab1cb69ecb86a5176d3668e9186a1f014828cb44f581a0ad60ab33ee5ee5a",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "177",
+                    "title": "Respiratory Infections and Inflammations with MCC",
+                    "mdc": "04",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "178",
+                    "title": "Respiratory Infections and Inflammations with CC",
+                    "mdc": "04",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "179",
+                    "title": "Respiratory Infections and Inflammations without CC\/MCC",
+                    "mdc": "04",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Verification complete with limitations \u2014 clinician signoff required",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for specialist review with documented limitations",
+                "claim_count": 54,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-b9f7-70d7-853e-0c4a40fd1b94",
+                "key": "drgcp-cesarean-delivery-0fab5563f871",
+                "name": "Cesarean Delivery",
+                "mdc": "14 \u2014 Pregnancy, Childbirth & the Puerperium",
+                "care_type": "Obstetric",
+                "source_service_line": "Obstetrics",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-b9f7-70d7-853e-0c4a41812c54",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 5,
+                "content_digest": "9a6927f0ec27b8fb9c179cc958ce02a3b1d12934408a63cf61c6d3dee5c6295e",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "783",
+                    "title": "Cesarean Section with Sterilization with MCC",
+                    "mdc": "14",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "784",
+                    "title": "Cesarean Section with Sterilization with CC",
+                    "mdc": "14",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "785",
+                    "title": "Cesarean Section with Sterilization without CC\/MCC",
+                    "mdc": "14",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "786",
+                    "title": "Cesarean Section without Sterilization with MCC",
+                    "mdc": "14",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "787",
+                    "title": "Cesarean Section without Sterilization with CC",
+                    "mdc": "14",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "788",
+                    "title": "Cesarean Section without Sterilization without CC\/MCC",
+                    "mdc": "14",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 57,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-b9f9-701a-83d7-dc05f025f6c6",
+                "key": "drgcp-heart-failure-671d63b4d61b",
+                "name": "Heart Failure",
+                "mdc": "05 \u2014 Circulatory System",
+                "care_type": "Medical",
+                "source_service_line": "RTDC \/ Medical Capacity",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-b9f9-701a-83d7-dc05f0b0724d",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 6,
+                "content_digest": "3214433b4eb8c07094028d14aab1e851c99867a36db0863f3add994cb71eaaf7",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "291",
+                    "title": "Heart Failure and Shock with MCC",
+                    "mdc": "05",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "292",
+                    "title": "Heart Failure and Shock with CC",
+                    "mdc": "05",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "293",
+                    "title": "Heart Failure and Shock without CC\/MCC",
+                    "mdc": "05",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 61,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-b9fb-70de-9b95-35ff0caa7c77",
+                "key": "drgcp-simple-pneumonia-pleurisy-337d0f29a350",
+                "name": "Simple Pneumonia & Pleurisy",
+                "mdc": "04 \u2014 Respiratory System",
+                "care_type": "Medical",
+                "source_service_line": "RTDC \/ Medical Capacity",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-b9fb-70de-9b95-35ff0cf8b45f",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 7,
+                "content_digest": "722acf9837098181f9e616a5e710b83a3e4cbcfc497e19959ac21eeb51f74768",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "193",
+                    "title": "Simple Pneumonia and Pleurisy with MCC",
+                    "mdc": "04",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "194",
+                    "title": "Simple Pneumonia and Pleurisy with CC",
+                    "mdc": "04",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "195",
+                    "title": "Simple Pneumonia and Pleurisy without CC\/MCC",
+                    "mdc": "04",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 71,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-b9fd-716b-a7c2-e8659d15172e",
+                "key": "drgcp-major-joint-replacement-hipknee-lower-extremity-a7fc97e65adc",
+                "name": "Major Joint Replacement (Hip\/Knee, Lower Extremity)",
+                "mdc": "08 \u2014 Musculoskeletal System & Connective Tissue",
+                "care_type": "Surgical",
+                "source_service_line": "Perioperative \/ Surgical",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-b9fd-716b-a7c2-e8659d38a1b1",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 8,
+                "content_digest": "95767f816daa3674aa704baf437062fc348da5cb370a3f06210171257b8097f9",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "469",
+                    "title": "Major Hip and Knee Joint Replacement or Reattachment of Lower Extremity with MCC or Total Ankle Replacement",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "470",
+                    "title": "Major Hip and Knee Joint Replacement or Reattachment of Lower Extremity without MCC",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 54,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-b9ff-7026-9a6f-1c8025473a44",
+                "key": "drgcp-acute-myocardial-infarction-dd339f0d6655",
+                "name": "Acute Myocardial Infarction",
+                "mdc": "05 \u2014 Circulatory System",
+                "care_type": "Medical",
+                "source_service_line": "Critical Care",
+                "service_line_code": "critical_care",
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-b9ff-7026-9a6f-1c80260ec03b",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 9,
+                "content_digest": "cb3c6860866592d5efe420fb1360a7c79c46b539d8c85701b4470e1571e731e9",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "280",
+                    "title": "Acute Myocardial Infarction, Discharged Alive with MCC",
+                    "mdc": "05",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "281",
+                    "title": "Acute Myocardial Infarction, Discharged Alive with CC",
+                    "mdc": "05",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "282",
+                    "title": "Acute Myocardial Infarction, Discharged Alive without CC\/MCC",
+                    "mdc": "05",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "283",
+                    "title": "Acute Myocardial Infarction, Expired with MCC",
+                    "mdc": "05",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "284",
+                    "title": "Acute Myocardial Infarction, Expired with CC",
+                    "mdc": "05",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "285",
+                    "title": "Acute Myocardial Infarction, Expired without CC\/MCC",
+                    "mdc": "05",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 53,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba01-71f9-b106-fe06f82914a3",
+                "key": "drgcp-cardiac-dysrhythmias-atrial-fibrillation-50144b3fea66",
+                "name": "Cardiac Dysrhythmias \/ Atrial Fibrillation",
+                "mdc": "05 \u2014 Circulatory System",
+                "care_type": "Medical",
+                "source_service_line": "RTDC \/ Medical Capacity",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba02-7263-b920-9dd252a057e4",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 10,
+                "content_digest": "34a20ee41e9e343b449a19493573cc17eb55937c255f70d1ac6bef8d6346f764",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "308",
+                    "title": "Cardiac Arrhythmia and Conduction Disorders with MCC",
+                    "mdc": "05",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "309",
+                    "title": "Cardiac Arrhythmia and Conduction Disorders with CC",
+                    "mdc": "05",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "310",
+                    "title": "Cardiac Arrhythmia and Conduction Disorders without CC\/MCC",
+                    "mdc": "05",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 47,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba04-735d-9977-378be8a43aea",
+                "key": "drgcp-neonate-with-significant-problems-prematurity-755aedd4b5c0",
+                "name": "Neonate with Significant Problems \/ Prematurity",
+                "mdc": "15 \u2014 Newborns & Other Neonates (Perinatal Period)",
+                "care_type": "Neonatal",
+                "source_service_line": "Neonatal \/ Newborn",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba04-735d-9977-378be9671693",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 11,
+                "content_digest": "2210a98effe06693320ca708733518c3dd380a157760243c2bf67a0271f44a65",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "789",
+                    "title": "Neonates, Died or Transferred to Another Acute Care Facility",
+                    "mdc": "15",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "790",
+                    "title": "Extreme Immaturity or Respiratory Distress Syndrome, Neonate",
+                    "mdc": "15",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "791",
+                    "title": "Prematurity with Major Problems",
+                    "mdc": "15",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "792",
+                    "title": "Prematurity without Major Problems",
+                    "mdc": "15",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "793",
+                    "title": "Full Term Neonate with Major Problems",
+                    "mdc": "15",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "794",
+                    "title": "Neonate with Other Significant Problems",
+                    "mdc": "15",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 74,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba06-71c7-b45f-ca8ce8cd76f2",
+                "key": "drgcp-acute-kidney-injury-renal-failure-ab461c418a62",
+                "name": "Acute Kidney Injury \/ Renal Failure",
+                "mdc": "11 \u2014 Kidney & Urinary Tract",
+                "care_type": "Medical",
+                "source_service_line": "RTDC \/ Medical Capacity",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba06-71c7-b45f-ca8ce9b6ee3a",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 12,
+                "content_digest": "bb2c1beb63e151b2ffc9137801e060084161f08b4b4e8a9a9b8322b50a39b2e6",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "682",
+                    "title": "Renal Failure with MCC",
+                    "mdc": "11",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "683",
+                    "title": "Renal Failure with CC",
+                    "mdc": "11",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "684",
+                    "title": "Renal Failure without CC\/MCC",
+                    "mdc": "11",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 49,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba08-7302-9fd3-532122262cfd",
+                "key": "drgcp-diabetes-with-complications-incl-dka-hhs-9758f56058ff",
+                "name": "Diabetes with Complications (incl. DKA \/ HHS)",
+                "mdc": "10 \u2014 Endocrine, Nutritional & Metabolic",
+                "care_type": "Medical",
+                "source_service_line": "RTDC \/ Medical Capacity",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba08-7302-9fd3-5321223fb083",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 13,
+                "content_digest": "51607c20af42404d10e0b45b1d24984970f9efd1cabca74d557e8acc9103436c",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "637",
+                    "title": "Diabetes with MCC",
+                    "mdc": "10",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "638",
+                    "title": "Diabetes with CC",
+                    "mdc": "10",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "639",
+                    "title": "Diabetes without CC\/MCC",
+                    "mdc": "10",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Verification complete with limitations \u2014 clinician signoff required",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for specialist review with documented limitations",
+                "claim_count": 69,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba0a-70b1-ac19-886af2cddded",
+                "key": "drgcp-copd-exacerbation-dd86233bb4ae",
+                "name": "COPD Exacerbation",
+                "mdc": "04 \u2014 Respiratory System",
+                "care_type": "Medical",
+                "source_service_line": "RTDC \/ Medical Capacity",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba0a-70b1-ac19-886af2edda87",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 14,
+                "content_digest": "e7421056d1fcb33ec72c0e5b6262b7997b0976774e369154bdfc1d17eaf963d7",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "190",
+                    "title": "Chronic Obstructive Pulmonary Disease with MCC",
+                    "mdc": "04",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "191",
+                    "title": "Chronic Obstructive Pulmonary Disease with CC",
+                    "mdc": "04",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "192",
+                    "title": "Chronic Obstructive Pulmonary Disease without CC\/MCC",
+                    "mdc": "04",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 63,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba0c-7135-8888-4c61ff090327",
+                "key": "drgcp-acute-ischemic-stroke-cerebral-infarction-6accb6ed03b7",
+                "name": "Acute Ischemic Stroke \/ Cerebral Infarction",
+                "mdc": "01 \u2014 Nervous System",
+                "care_type": "Medical",
+                "source_service_line": "Critical Care",
+                "service_line_code": "critical_care",
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba0c-7135-8888-4c61ff0d3568",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 15,
+                "content_digest": "33d4f2ade3a3bb24b574e85f10f3d832f6a9b3e3f6e2ad6c7bf9b155e0810a3b",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "061",
+                    "title": "Ischemic Stroke, Precerebral Occlusion or Transient Ischemia with Thrombolytic Agent with MCC",
+                    "mdc": "01",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "062",
+                    "title": "Ischemic Stroke, Precerebral Occlusion or Transient Ischemia with Thrombolytic Agent with CC",
+                    "mdc": "01",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "063",
+                    "title": "Ischemic Stroke, Precerebral Occlusion or Transient Ischemia with Thrombolytic Agent without CC\/MCC",
+                    "mdc": "01",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "064",
+                    "title": "Intracranial Hemorrhage or Cerebral Infarction with MCC",
+                    "mdc": "01",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "065",
+                    "title": "Intracranial Hemorrhage or Cerebral Infarction with CC or tPA in 24 Hours",
+                    "mdc": "01",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "066",
+                    "title": "Intracranial Hemorrhage or Cerebral Infarction without CC\/MCC",
+                    "mdc": "01",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 47,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba0e-7263-9124-9df40cfb4f3b",
+                "key": "drgcp-urinary-tract-infection-kidney-infection-c0bcbd5cbc95",
+                "name": "Urinary Tract Infection \/ Kidney Infection",
+                "mdc": "11 \u2014 Kidney & Urinary Tract",
+                "care_type": "Medical",
+                "source_service_line": "RTDC \/ Medical Capacity",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba0f-72fd-8b26-86f6a87e4f0e",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 16,
+                "content_digest": "620d3c32ef481a85ba66ac802f1dc0735dbcb231773c3d3e3188ccd82c87041d",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "689",
+                    "title": "Kidney and Urinary Tract Infections with MCC",
+                    "mdc": "11",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "690",
+                    "title": "Kidney and Urinary Tract Infections without MCC",
+                    "mdc": "11",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 61,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba11-7172-85fb-51c49cda2db9",
+                "key": "drgcp-cellulitis-skin-soft-tissue-infection-b64692676d19",
+                "name": "Cellulitis \/ Skin & Soft Tissue Infection",
+                "mdc": "09 \u2014 Skin, Subcutaneous Tissue & Breast",
+                "care_type": "Medical",
+                "source_service_line": "RTDC \/ Medical Capacity",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba11-7172-85fb-51c49d7820b0",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 17,
+                "content_digest": "a5840263180b9f157e7c64fe4b7540efbe6a9fb04e5ac21e44aa2f88894f3057",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "602",
+                    "title": "Cellulitis with MCC",
+                    "mdc": "09",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "603",
+                    "title": "Cellulitis without MCC",
+                    "mdc": "09",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 42,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba12-7049-bc8b-185faa0493f1",
+                "key": "drgcp-psychoses-schizophrenia-bipolar-disorder-e05814e32135",
+                "name": "Psychoses \/ Schizophrenia \/ Bipolar Disorder",
+                "mdc": "19 \u2014 Mental Diseases & Disorders",
+                "care_type": "Medical",
+                "source_service_line": "Behavioral Health",
+                "service_line_code": "behavioral_health",
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba13-7354-9b4d-0f1c735d5ea1",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 18,
+                "content_digest": "0e8c915ffaaece7615326bb7e3b9a762095e6d9ba83cd317d8a691589337b105",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "885",
+                    "title": "Psychoses",
+                    "mdc": "19",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 43,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba14-72be-9f1c-2b4cc4a158e0",
+                "key": "drgcp-respiratory-failure-0f60b78bec3e",
+                "name": "Respiratory Failure",
+                "mdc": "04 \u2014 Respiratory System",
+                "care_type": "Medical",
+                "source_service_line": "Critical Care",
+                "service_line_code": "critical_care",
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba15-70fd-a8f7-289050a68f88",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 19,
+                "content_digest": "c34943394d58055b67b7dcf6dede8e3608589de72ca759be7e359f011d22fe39",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "189",
+                    "title": "Pulmonary Edema and Respiratory Failure",
+                    "mdc": "04",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "207",
+                    "title": "Respiratory System Diagnosis with Ventilator Support >96 Hours",
+                    "mdc": "04",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "208",
+                    "title": "Respiratory System Diagnosis with Ventilator Support",
+                    "mdc": "04",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 58,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba17-730b-8131-ecf9a8b10568",
+                "key": "drgcp-spinal-fusion-44a1197d9c12",
+                "name": "Spinal Fusion",
+                "mdc": "08 \u2014 Musculoskeletal System & Connective Tissue",
+                "care_type": "Surgical",
+                "source_service_line": "Perioperative \/ Surgical",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba17-730b-8131-ecf9a94e1f0b",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 20,
+                "content_digest": "a73b557e38cc2eb32d45f5111e39f6a38ca542aa44c0fc5ed7c6fc4a3e284740",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "402",
+                    "title": "Single Level Combined Anterior and Posterior Spinal Fusion Except Cervical",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "426",
+                    "title": "Multiple Level Combined Anterior and Posterior Spinal Fusion Except Cervical with MCC or Custom-Made Anatomically Designed Interbody Fusion Device",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "427",
+                    "title": "Multiple Level Combined Anterior and Posterior Spinal Fusion Except Cervical with CC",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "428",
+                    "title": "Multiple Level Combined Anterior and Posterior Spinal Fusion Except Cervical without CC\/MCC",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "429",
+                    "title": "Combined Anterior and Posterior Cervical Spinal Fusion with MCC",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "430",
+                    "title": "Combined Anterior and Posterior Cervical Spinal Fusion without MCC",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "447",
+                    "title": "Multiple Level Spinal Fusion Except Cervical with MCC or Custom-Made Anatomically Designed Interbody Fusion Device",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "448",
+                    "title": "Multiple Level Spinal Fusion Except Cervical without MCC",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "450",
+                    "title": "Single Level Spinal Fusion Except Cervical with MCC or Custom-Made Anatomically Designed Interbody Fusion Device",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "451",
+                    "title": "Single Level Spinal Fusion Except Cervical without MCC",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "456",
+                    "title": "Spinal Fusion Except Cervical with Spinal Curvature, Malignancy, Infection or Extensive Fusions with MCC",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "457",
+                    "title": "Spinal Fusion Except Cervical with Spinal Curvature, Malignancy, Infection or Extensive Fusions with CC",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "458",
+                    "title": "Spinal Fusion Except Cervical with Spinal Curvature, Malignancy, Infection or Extensive Fusions without CC\/MCC",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "471",
+                    "title": "Cervical Spinal Fusion with MCC",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "472",
+                    "title": "Cervical Spinal Fusion with CC",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "473",
+                    "title": "Cervical Spinal Fusion without CC\/MCC",
+                    "mdc": "08",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 66,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba1a-71d5-89ef-cd3ed82bd0c2",
+                "key": "drgcp-percutaneous-coronary-intervention-pci-62b92e563d72",
+                "name": "Percutaneous Coronary Intervention (PCI)",
+                "mdc": "05 \u2014 Circulatory System",
+                "care_type": "Surgical",
+                "source_service_line": "Perioperative \/ Surgical",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba1a-71d5-89ef-cd3ed9087b29",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 21,
+                "content_digest": "979c299cf00b103d1710df9f9b039b9e869e7449ed93fdeaa25eeb19fd68e2b9",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "250",
+                    "title": "Percutaneous Cardiovascular Procedures without Intraluminal Device with MCC",
+                    "mdc": "05",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "251",
+                    "title": "Percutaneous Cardiovascular Procedures without Intraluminal Device without MCC",
+                    "mdc": "05",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "318",
+                    "title": "Percutaneous Coronary Atherectomy without Intraluminal Device",
+                    "mdc": "05",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "321",
+                    "title": "Percutaneous Cardiovascular Procedures with Intraluminal Device with MCC or 4+ Arteries\/Intraluminal Devices",
+                    "mdc": "05",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "322",
+                    "title": "Percutaneous Cardiovascular Procedures with Intraluminal Device without MCC",
+                    "mdc": "05",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "323",
+                    "title": "Coronary Intravascular Lithotripsy with Intraluminal Device with MCC",
+                    "mdc": "05",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "324",
+                    "title": "Coronary Intravascular Lithotripsy with Intraluminal Device without MCC",
+                    "mdc": "05",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "325",
+                    "title": "Coronary Intravascular Lithotripsy without Intraluminal Device",
+                    "mdc": "05",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "359",
+                    "title": "Percutaneous Coronary Atherectomy with Intraluminal Device with MCC",
+                    "mdc": "05",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "360",
+                    "title": "Percutaneous Coronary Atherectomy with Intraluminal Device without MCC",
+                    "mdc": "05",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 71,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba1d-708d-9ac6-c286c40fe297",
+                "key": "drgcp-acute-gi-hemorrhage-upper-lower-2437190ac1d2",
+                "name": "Acute GI Hemorrhage (upper & lower)",
+                "mdc": "06 \u2014 Digestive System",
+                "care_type": "Medical",
+                "source_service_line": "RTDC \/ Medical Capacity",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba1d-708d-9ac6-c286c43b2d55",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 22,
+                "content_digest": "268a3d3da43186f4880770356c6530746124cea3e7fd9b600858ff1f07887293",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "377",
+                    "title": "Gastrointestinal Hemorrhage with MCC",
+                    "mdc": "06",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "378",
+                    "title": "Gastrointestinal Hemorrhage with CC",
+                    "mdc": "06",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "379",
+                    "title": "Gastrointestinal Hemorrhage without CC\/MCC",
+                    "mdc": "06",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Evidence verified \u2014 automated independent review complete",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for institutional clinician signoff",
+                "claim_count": 64,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba1f-71c5-913e-f74009f2f0ee",
+                "key": "drgcp-cholecystectomy-biliary-procedures-61bacdd829bb",
+                "name": "Cholecystectomy \/ Biliary Procedures",
+                "mdc": "07 \u2014 Hepatobiliary System & Pancreas",
+                "care_type": "Surgical",
+                "source_service_line": "Perioperative \/ Surgical",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba1f-71c5-913e-f7400a77735c",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 23,
+                "content_digest": "b871663f5efed12ca9fdf3df3289bf0720a5e52a32c064b931bed9f554c74416",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "411",
+                    "title": "Cholecystectomy with C.D.E. with MCC",
+                    "mdc": "07",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "412",
+                    "title": "Cholecystectomy with C.D.E. with CC",
+                    "mdc": "07",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "413",
+                    "title": "Cholecystectomy with C.D.E. without CC\/MCC",
+                    "mdc": "07",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "414",
+                    "title": "Cholecystectomy Except by Laparoscope without C.D.E. with MCC",
+                    "mdc": "07",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "415",
+                    "title": "Cholecystectomy Except by Laparoscope without C.D.E. with CC",
+                    "mdc": "07",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "416",
+                    "title": "Cholecystectomy Except by Laparoscope without C.D.E. without CC\/MCC",
+                    "mdc": "07",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "417",
+                    "title": "Laparoscopic Cholecystectomy without C.D.E. with MCC",
+                    "mdc": "07",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "418",
+                    "title": "Laparoscopic Cholecystectomy without C.D.E. with CC",
+                    "mdc": "07",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "419",
+                    "title": "Laparoscopic Cholecystectomy without C.D.E. without CC\/MCC",
+                    "mdc": "07",
+                    "type_code": "P",
+                    "type_label": "Procedural\/Surgical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Verification complete with limitations \u2014 clinician signoff required",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for specialist review with documented limitations",
+                "claim_count": 57,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba21-72ca-b978-d2a78126d510",
+                "key": "drgcp-esophagitis-gastroenteritis-misc-digestive-disorders-5d6a0939ebed",
+                "name": "Esophagitis, Gastroenteritis & Misc. Digestive Disorders",
+                "mdc": "06 \u2014 Digestive System",
+                "care_type": "Medical",
+                "source_service_line": "RTDC \/ Medical Capacity",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba21-72ca-b978-d2a781e6cf9c",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 24,
+                "content_digest": "028ce3c7576df415adda444178934b47fe46f9e67e8a4b5e2e29a7901944d49e",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "391",
+                    "title": "Esophagitis, Gastroenteritis and Miscellaneous Digestive Disorders with MCC",
+                    "mdc": "06",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "392",
+                    "title": "Esophagitis, Gastroenteritis and Miscellaneous Digestive Disorders without MCC",
+                    "mdc": "06",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Verification complete with limitations \u2014 clinician signoff required",
+                "confidence": "Medium",
+                "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+                "release_disposition": "Ready for specialist review with documented limitations",
+                "claim_count": 49,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        },
+        {
+            "pathway": {
+                "uuid": "019f95de-ba23-73e2-a887-68834b75af62",
+                "key": "drgcp-fluid-electrolyte-disorders-c28ef98c6007",
+                "name": "Fluid & Electrolyte Disorders",
+                "mdc": "10 \u2014 Endocrine, Nutritional & Metabolic",
+                "care_type": "Medical",
+                "source_service_line": "RTDC \/ Medical Capacity",
+                "service_line_code": null,
+                "lifecycle_state": "candidate"
+            },
+            "version": {
+                "version_uuid": "019f95de-ba23-73e2-a887-68834bd67d39",
+                "semantic_version": "43.1-source.1",
+                "source_rank": 25,
+                "content_digest": "f4f6f5ead38d3545bb02067d840fbd06c123d9b2d24cba3e1713ea9585597010",
+                "effective_period": {
+                    "start": "2026-04-01",
+                    "end": "2026-09-30"
+                },
+                "source_cutoff_date": "2026-07-21",
+                "exact_version": true
+            },
+            "drg_candidates": [
+                {
+                    "ms_drg": "640",
+                    "title": "Miscellaneous Disorders of Nutrition, Metabolism, Fluids and Electrolytes with MCC",
+                    "mdc": "10",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                },
+                {
+                    "ms_drg": "641",
+                    "title": "Miscellaneous Disorders of Nutrition, Metabolism, Fluids and Electrolytes without MCC",
+                    "mdc": "10",
+                    "type_code": "M",
+                    "type_label": "Medical",
+                    "mapping_role": "candidate",
+                    "ambiguity_note": null,
+                    "requires_clinician_confirmation": true
+                }
+            ],
+            "evidence": {
+                "status": "Verification complete with limitations \u2014 clinician signoff required",
+                "confidence": "Medium",
+                "source_specificity": "Low \u2014 citation resolvability confirmed but title-level condition specificity is weak",
+                "release_disposition": "Ready for specialist review with documented limitations",
+                "claim_count": 62,
+                "source_currency": "current"
+            },
+            "governance": {
+                "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+                "institutional_approval_status": "not_reviewed",
+                "activation_status": "inactive",
+                "section_count": 28,
+                "approved_section_count": 0,
+                "review_count": 0,
+                "approval_count": 0
+            }
+        }
+    ],
+    "meta": {
+        "schema": "care_pathway_governance.v1",
+        "catalog_release_uuid": "019f95de-b9a4-726a-91d3-41d6d911d4c4",
+        "dataset_key": "drg-care-pathways-verification-package-v43.1-20260721",
+        "grouper_version": "43.1",
+        "source_cutoff_date": "2026-07-21",
+        "as_of": "2026-07-24T20:50:14+00:00",
+        "clinical_approval_warning": "Automated evidence verification is not institutional clinical approval.",
+        "patient_serving": false,
+        "hummingbird_serving": false,
+        "eddy_serving": false,
+        "pagination": {
+            "page": 1,
+            "per_page": 25,
+            "total": 250,
+            "last_page": 10
+        }
+    }
+}

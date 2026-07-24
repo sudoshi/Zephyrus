@@ -1,0 +1,3084 @@
+{
+    "data": [
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d1f1bd011",
+            "source_rank": 1,
+            "source_field": "admission_criteria",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "Liveborn infant delivered in-hospital, gestational age >=35 0\/7 wks, birth weight typically >=2000-2500g, physiologically stable transitioning newborn assigned to well-newborn\/mother-baby couplet (rooming-in) care",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "1d8eea7c78b2bdd5c68e94ef0bff57db67e383ab7b68de512884711a5989b5c0",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d1f5d7d40",
+            "source_rank": 1,
+            "source_field": "admission_criteria",
+            "claim_type": "risk score\/threshold",
+            "claim_excerpt": "APGAR >=7 at 5 min and no supplemental O2 requirement",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "148d8b75d7be96666598771106c05c7aec740bb0641f1b2744753230415a11e6",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d1f881784",
+            "source_rank": 1,
+            "source_field": "admission_criteria",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "NOT DRG 795 (route to NICU\/special care): persistent respiratory distress, GA <35 wks, major congenital anomaly, sustained hypoglycemia\/hypothermia, or clinical sepsis",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "b3ed77c7f398cb4823d4b555c87648a86d65817067797be5734ed680ee1f682b",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2042ea34",
+            "source_rank": 1,
+            "source_field": "admission_criteria",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "The birth admission is the index inpatient stay (no ED-discharge\/observation alternative for the healthy newborn).",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "b88acd0c23912f74b4cc5f346a1054d100e8834c158e35850d7ad692c95b9e2e",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2078023a",
+            "source_rank": 1,
+            "source_field": "risk_stratification",
+            "claim_type": "risk score\/threshold",
+            "claim_excerpt": "APGAR at 1 and 5 min (>=7 normal",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "91ec8af3e93af45a4bf3045d7187f153caaa7804ca10e9811e8e8feecf80789a",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d212fde9c",
+            "source_rank": 1,
+            "source_field": "risk_stratification",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "if <7 at 5 min repeat q5min to 20 min)",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "c71d91bfab3f98d834f0bec7d3924fd9ac04a6e54dbc4dacb9aef8e1ac6ad219",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d21b461c1",
+            "source_rank": 1,
+            "source_field": "risk_stratification",
+            "claim_type": "risk score\/threshold",
+            "claim_excerpt": "Neonatal Early-Onset Sepsis (EOS) risk calculator (Kaiser\/Puopolo, for >=34-35 wks) using GBS status, intrapartum antibiotics, max maternal temp, ROM duration, GA -> EOS risk per 1000 driving routine care vs enhanced observation vs blood culture +\/- empiric antibiotics",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "25aa9c5696ff39cbeee8aa4de68dd69f699f574376e416ce86dd7e1d01edaef7",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d227116e5",
+            "source_rank": 1,
+            "source_field": "risk_stratification",
+            "claim_type": "risk score\/threshold",
+            "claim_excerpt": "AAP 2022 hyperbilirubinemia hour-specific nomogram plus neurotoxicity risk factors (isoimmune hemolytic disease, G6PD deficiency, sepsis, albumin <3.0) -> GA\/risk-specific phototherapy and escalation thresholds",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "8b4d9c09b565e3df5ae834fc21c598c8f9a854948f21ac047ddfdd9d77a2bee8",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d22961e20",
+            "source_rank": 1,
+            "source_field": "risk_stratification",
+            "claim_type": "risk score\/threshold",
+            "claim_excerpt": "protocolized hypoglycemia screening (AAP\/Adamkin) for at-risk (LGA, SGA, IDM, late-preterm) treating glucose <40-45 mg\/dL",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "a9aaef3450254a872faa348076f67e92b777865f5eb5691f632e0104288de330",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d23362e85",
+            "source_rank": 1,
+            "source_field": "risk_stratification",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "NEWT weight-loss nomogram (loss >75th percentile flags feeding failure).",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "9919375c3856f0e75fe2a28c542bf657c7b73cff28b77c93ff47c7b9da2e3945",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d23df5c9c",
+            "source_rank": 1,
+            "source_field": "initial_workup_labs",
+            "claim_type": "risk score\/threshold",
+            "claim_excerpt": "point-of-care glucose per hypoglycemia protocol in at-risk infants (first check ~30-60 min after first feed)",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "a985c23be9eef97c71a9a6aeb8da534eb0b97b3541db6e3161647f97c27e46aa",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d24d641f1",
+            "source_rank": 1,
+            "source_field": "initial_workup_labs",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "universal predischarge total serum or transcutaneous bilirubin at 24-48h",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "2979ceb0a40cabac2ced3b50ac79a964d3a866c19da1e26eb3fe57e7a76ee6d5",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d24f16a78",
+            "source_rank": 1,
+            "source_field": "initial_workup_labs",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "state newborn metabolic\/genetic screen (dried blood spot) drawn at 24-48h once feeding established.",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "57c8c446515f88b905aa0235fd088c2542b3904317a10d9a1edb072ce2f08042",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d256146ce",
+            "source_rank": 1,
+            "source_field": "initial_imaging_dx",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "universal CCHD pulse-oximetry screen at >=24h of age (pre-ductal right hand + post-ductal foot",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "bc371ed435816b88753085d6f05b33ee7b8e96d6bddcbcf2abe593b4362a16b5",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d25e194f8",
+            "source_rank": 1,
+            "source_field": "initial_imaging_dx",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "pass = SpO2 >=95% in both and <=3% difference",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "da9c2767263f04261a58ec32565630e33c03a05f7804f84c876d84b1c54340eb",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d26601cc6",
+            "source_rank": 1,
+            "source_field": "initial_imaging_dx",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "fail = <90% anywhere)",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "f89b0347a7990fd029ba03a90ee9442b2fb066e3c56c10a1e99c0ff99d1448f3",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d26809cf2",
+            "source_rank": 1,
+            "source_field": "initial_imaging_dx",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "universal newborn hearing screen (OAE or automated ABR) before discharge per EHDI 1-3-6",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "f54fc6f9c5ad31939858f9c510c4cdff0a14b33b12b809abdc1d1ae8cd5ac3e6",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2777f9e5",
+            "source_rank": 1,
+            "source_field": "initial_imaging_dx",
+            "claim_type": "risk score\/threshold",
+            "claim_excerpt": "hip exam (Ortolani\/Barlow) with targeted hip ultrasound at 4-6 wks only if risk factors (breech, positive family history).",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "c4730646720fb33e6380cb4fd36471154ce853a57bd7d8a25a5ff20513ce5ad4",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d28564e28",
+            "source_rank": 1,
+            "source_field": "time_critical_interventions",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "Delayed cord clamping >=30-60 sec for the vigorous infant (ACOG\/AAP)",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "cd8d1ac332d40f980eac38317dbb3cbeef3b223348c51e532d586981237cc678",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d288006df",
+            "source_rank": 1,
+            "source_field": "time_critical_interventions",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "immediate skin-to-skin with thermoregulation (axillary temp 36.5-37.5C)",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "9dd867234e3aefe21859b66c53bddfc74befc7c392256e9bbe71b98e69b51afa",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2914d114",
+            "source_rank": 1,
+            "source_field": "time_critical_interventions",
+            "claim_type": "time target",
+            "claim_excerpt": "initiate breastfeeding within the first hour",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "d5db08cbc4a8dcd235c301aed7acb34ab31649df49c9fbac5ff5e0331cbb51d7",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d29d44a69",
+            "source_rank": 1,
+            "source_field": "time_critical_interventions",
+            "claim_type": "time target",
+            "claim_excerpt": "IM vitamin K 0.5-1 mg within 6h to prevent VKDB (do not defer\/omit)",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "5d76a6154048818211968caec88e4a67c6d16fe5af9c20b9b6920559bb1c3602",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2a8a432e",
+            "source_rank": 1,
+            "source_field": "time_critical_interventions",
+            "claim_type": "time target",
+            "claim_excerpt": "erythromycin 0.5% ophthalmic ointment within 24h",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "12f0439a45bd90c30b02bb432178daa65d0d3704091e7ab0e9398901dd945e4c",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2aba23a0",
+            "source_rank": 1,
+            "source_field": "time_critical_interventions",
+            "claim_type": "time target",
+            "claim_excerpt": "hepatitis B birth-dose vaccine within 24h for stable infants >=2000g",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "9956deb5350afb16f8f5afeb7e53be6e531bcae6c0038ec83ee42fb856d4ecc2",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2b7650f9",
+            "source_rank": 1,
+            "source_field": "time_critical_interventions",
+            "claim_type": "time target",
+            "claim_excerpt": "if mother HBsAg-positive or unknown, give HBV vaccine + HBIG within 12h",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "69c440e15349b692bc57fe6d6ae4783d6c41d8894933e897648889a77bc9e61d",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2b82f1df",
+            "source_rank": 1,
+            "source_field": "time_critical_interventions",
+            "claim_type": "risk score\/threshold",
+            "claim_excerpt": "first glucose check within 30-60 min of first feed in at-risk infants.",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "7be71e79e835c2f8cc99e1f064ed21ead6befccf741a95cbf5ce1d0627079cbf",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2b8f2c98",
+            "source_rank": 1,
+            "source_field": "initial_management",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "Physiologic\/supportive care: rooming-in, on-demand breastfeeding 8-12x\/24h with lactation support (or iron-fortified formula), thermoneutral environment",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "4e703721918d7003b4300348a0d5dee753d1c396fbd1fbe6bcd5ba01452bf946",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2c7b072f",
+            "source_rank": 1,
+            "source_field": "initial_management",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "prophylaxis (vitamin K IM, erythromycin eye ointment, HBV vaccine) as above",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "0049cef47496f020c73111e1d0ac1ce311b6192d16b03b80de9ecdadbebda592",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2ccfc1d5",
+            "source_rank": 1,
+            "source_field": "initial_management",
+            "claim_type": "fluid\/transfusion",
+            "claim_excerpt": "hypoglycemia protocol = feed then recheck, buccal 40% dextrose gel 200 mg\/kg for asymptomatic transitional hypoglycemia to avoid NICU transfer, IV D10 2 mL\/kg bolus if symptomatic or refractory",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "bae4992d04f0fb598a53cebcd748df4fcfb43611afa2155583d3fc37522db35d",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2cdeb377",
+            "source_rank": 1,
+            "source_field": "initial_management",
+            "claim_type": "risk score\/threshold",
+            "claim_excerpt": "phototherapy when TSB at\/above the AAP 2022 GA- and risk-specific threshold",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "e21089fd4b7a4fe1ecd4c38f959d3436fa8bb6817c7f9c4ff7915b4c6c2e8a84",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2cf761fd",
+            "source_rank": 1,
+            "source_field": "initial_management",
+            "claim_type": "fluid\/transfusion",
+            "claim_excerpt": "escalation-of-care when TSB within 2 mg\/dL of the exchange-transfusion threshold",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "26ad48c327f78badc6bd7216b9a7ab906c0266b75e02e5aafc1c89c9b8ecbf31",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2d8e38da",
+            "source_rank": 1,
+            "source_field": "monitoring_level",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "Well-newborn nursery \/ mother-baby couplet (rooming-in) with routine vitals (temp, HR, RR, color, tone) each shift after transition, plus close observation during the first ~2h transition period",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "54e60c13bb00584aacca683d38a5771d3b06395df58729e9dc1037b8bf740f61",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2dbbd231",
+            "source_rank": 1,
+            "source_field": "monitoring_level",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "escalate to special care\/NICU for persistent respiratory distress (RR >60, grunting, retractions, sustained SpO2 <90%), temperature instability, recurrent or symptomatic hypoglycemia, poor perfusion, apnea, or clinical EOS signs",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "e50b490c8ff74524910140f0b3b00828c590edce80933d711adf04ed01f5526e",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2e4986da",
+            "source_rank": 1,
+            "source_field": "monitoring_level",
+            "claim_type": "risk score\/threshold",
+            "claim_excerpt": "TSB approaching the exchange threshold triggers escalation-of-care (intensive phototherapy, urgent labs, possible transfer).",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "2b36f5c205dca7a1b491c642fe2b04b688a2f28c4bfe0b7a47d3aa5b803e512c",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2ee60512",
+            "source_rank": 1,
+            "source_field": "nutrition_mobility_vte",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "Exclusive breastfeeding on demand (8-12 feeds\/24h) is the default per AAP 2022 (support skin-to-skin, rooming-in, avoid unnecessary supplementation)",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "88770e0bd74e1e7fc9caae1f2d1aedd84b9929ff1e7b1c3c1f54ebb3f72b7f6b",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d2f57592b",
+            "source_rank": 1,
+            "source_field": "nutrition_mobility_vte",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "VTE prophylaxis is NOT applicable to newborns",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "a1a550e2f52cb6c1c1f9f67dc86030cdc45b0def1b5e663be993eb743b8b7371",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d3008b06d",
+            "source_rank": 1,
+            "source_field": "discharge_criteria",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "AAP criteria: stable vitals >=12h (RR <60, HR 100-190, axillary temp 36.5-37.4C in an open crib)",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "7dbb3909ac8aab425d79b53aa94d2ed9c0507eea17ea9daee420227210a56f6b",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d304b6e1d",
+            "source_rank": 1,
+            "source_field": "discharge_criteria",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": ">=2 successful feeds with coordinated suck\/swallow documented",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "1d571467246e9ea4cfd502da9a8a7e1fe98a2a5a525d368687391d2aeb2425b0",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d3132972e",
+            "source_rank": 1,
+            "source_field": "discharge_criteria",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": ">=1 void and >=1-2 stools",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "6784230e0868879e9bbcebc7a73e93dcd439caf856e585098e2bf3fd713bb8f4",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d315c1bda",
+            "source_rank": 1,
+            "source_field": "discharge_criteria",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "no excessive bleeding at circumcision for >=2h",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "f90ffcf2b261cc2a04ab304bceff32d06aa5457d48536e7d12da5578380ad456",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d32369daa",
+            "source_rank": 1,
+            "source_field": "discharge_criteria",
+            "claim_type": "risk score\/threshold",
+            "claim_excerpt": "predischarge bilirubin measured with a risk-stratified follow-up plan",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "3b16d68b233b5d7bd8fefc0795ff69378acc604d4459ecb996cc6c2bca24779a",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d33305468",
+            "source_rank": 1,
+            "source_field": "discharge_criteria",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "no significant jaundice before 24h",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "4e3d21d1d67f002d5154110f929cd1170460ae0d0643e88032ca076e6308daec",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d33533382",
+            "source_rank": 1,
+            "source_field": "discharge_criteria",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "PCP follow-up arranged",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "f90f512a1a13fea3351f3c6080c26db69d94ed90132b50a85ea7479bb6e82beb",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d3368c68c",
+            "source_rank": 1,
+            "source_field": "discharge_criteria",
+            "claim_type": "high-stakes operational claim",
+            "claim_excerpt": "minimum stay per NMHPA (~48h vaginal \/ ~96h cesarean) unless all early-discharge criteria fully met.",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "c4a41811426223b61bdf7ab90cd13a2be455f797d70d0c67b97a7a91161e76a1",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d33f87d8d",
+            "source_rank": 1,
+            "source_field": "discharge_planning",
+            "claim_type": "medication\/treatment",
+            "claim_excerpt": "medication reconciliation (vitamin D 400 IU\/day for breastfed infants, HBV documented, maternal-medication lactation review)",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "c982447d7d6362b723becbc961884fca989d2dbb2d8b1eebfb7cc779d347cf27",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d33fb1238",
+            "source_rank": 1,
+            "source_field": "discharge_planning",
+            "claim_type": "time target",
+            "claim_excerpt": "schedule PCP visit within 48-72h (mandatory if discharged <48h) for weight, jaundice, and feeding recheck",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "795ab415f261de7c42ab7f548a6313c7d9babe48e837fb451e8494306107f787",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d34e9744f",
+            "source_rank": 1,
+            "source_field": "expected_los",
+            "claim_type": "length of stay",
+            "claim_excerpt": "Approximately 2 days typical: ~48h after uncomplicated vaginal delivery, ~3-4 days when the newborn rooms-in with a post-cesarean mother",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "2bfbf755f8b41ec2d683a0154ff7c1efd5ef713914448ffe3de11738bb2f2396",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d35c76a3f",
+            "source_rank": 1,
+            "source_field": "expected_los",
+            "claim_type": "length of stay",
+            "claim_excerpt": "CMS MS-DRG 795 GMLOS is approximately 2.5-3.0 days (approximate",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "3d52260386e6e8bb6f4a94b89f2b4ad1a333fdda8d115c11880335647cef9b45",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d36103c2e",
+            "source_rank": 1,
+            "source_field": "expected_los",
+            "claim_type": "length of stay",
+            "claim_excerpt": "low relative weight ~0.16-0.20).",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "df2c5b7d89e62129a0c6d4330e7d5c733644f1007d9c4058f14da6e496d80801",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        },
+        {
+            "claim_uuid": "019f95de-bc17-70c9-93e4-853d363c518e",
+            "source_rank": 1,
+            "source_field": "target_los",
+            "claim_type": "length of stay",
+            "claim_excerpt": "2 days (~48h) for the vaginal-delivery dyad",
+            "automated_review": {
+                "pass_1": "Source linkage and PMID resolution checked",
+                "pass_2": "No rule-based inconsistency detected"
+            },
+            "clinical_adjudication": "Pending institutional SME signoff",
+            "verification_date": "2026-07-21",
+            "claim_digest": "b3d4b95c2af9f20c161c5c4daf2da8d38b072dea33d90c2351cd091a06e19042",
+            "sources": [
+                {
+                    "source_uuid": "019f95de-b9bb-72f7-9e7e-1d72d4306da1",
+                    "pmid": "21357346",
+                    "title": "Postnatal glucose homeostasis in late-preterm and term infants.",
+                    "current_status": "current",
+                    "content_digest": "ac9afee4591772d7c54bbc336bd106e1d8c8fdc94c0efa7c4588d16158ac9273",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bd-718a-b30b-bd0769bb2857",
+                    "pmid": "30455342",
+                    "title": "Management of Neonates Born at \u226535 0\/7 Weeks' Gestation With Suspected or Proven Early-Onset Bacterial Sepsis.",
+                    "current_status": "current",
+                    "content_digest": "b4cc3f3a01eef195ff0cd8768feb378dcd0feb10a3aead178b065d56134c8247",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4bd2e9f7",
+                    "pmid": "35921640",
+                    "title": "Policy Statement: Breastfeeding and the Use of Human Milk.",
+                    "current_status": "current",
+                    "content_digest": "344f724b59987a26bb2907e1898fd23913ce728f7df1abe1459b5756d72b21ca",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4cf9bdb1",
+                    "pmid": "35927462",
+                    "title": "Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "b57ee7d01013dda6a6383d83b28bd1a963067087754393d0f14f263fa158bbb9",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                },
+                {
+                    "source_uuid": "019f95de-b9bf-70da-a056-a83c4d597b7c",
+                    "pmid": "35927519",
+                    "title": "Technical Report: Diagnosis and Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation.",
+                    "current_status": "current",
+                    "content_digest": "ed24772402a251e3eec6fdb462fd54a07b60766aeaef037e064bd170a1e04cba",
+                    "evidence_grade": null,
+                    "applicability_note": null
+                }
+            ]
+        }
+    ],
+    "meta": {
+        "schema": "care_pathway_governance.v1",
+        "catalog_release_uuid": "019f95de-b9a4-726a-91d3-41d6d911d4c4",
+        "dataset_key": "drg-care-pathways-verification-package-v43.1-20260721",
+        "grouper_version": "43.1",
+        "source_cutoff_date": "2026-07-21",
+        "as_of": "2026-07-24T20:50:14+00:00",
+        "clinical_approval_warning": "Automated evidence verification is not institutional clinical approval.",
+        "patient_serving": false,
+        "hummingbird_serving": false,
+        "eddy_serving": false,
+        "version": {
+            "version_uuid": "019f95de-b9ed-70ef-b85f-1dac743a04a3",
+            "semantic_version": "43.1-source.1",
+            "source_rank": null,
+            "content_digest": "583ebb95d3289419d9899c8e828746eea9b4d0e25237a29b803fdb6f3b19202f",
+            "effective_period": {
+                "start": "2026-04-01",
+                "end": "2026-09-30"
+            },
+            "source_cutoff_date": "2026-07-21",
+            "exact_version": true
+        },
+        "pagination": {
+            "page": 1,
+            "per_page": 50,
+            "total": 58,
+            "last_page": 2
+        }
+    }
+}

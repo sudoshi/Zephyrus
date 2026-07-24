@@ -1,0 +1,422 @@
+{
+    "data": {
+        "pathway": {
+            "uuid": "019f95de-b9ec-700b-836f-45996908b180",
+            "key": "drgcp-normal-newborn-liveborn-uncomplicated-385d4e9bf2c3",
+            "name": "Normal Newborn (liveborn, uncomplicated)",
+            "mdc": "15 \u2014 Newborns & Other Neonates (Perinatal Period)",
+            "care_type": "Neonatal",
+            "source_service_line": "Neonatal \/ Newborn",
+            "service_line_code": null,
+            "lifecycle_state": "candidate"
+        },
+        "version": {
+            "version_uuid": "019f95de-b9ed-70ef-b85f-1dac743a04a3",
+            "semantic_version": "43.1-source.1",
+            "source_rank": 1,
+            "content_digest": "583ebb95d3289419d9899c8e828746eea9b4d0e25237a29b803fdb6f3b19202f",
+            "effective_period": {
+                "start": "2026-04-01",
+                "end": "2026-09-30"
+            },
+            "source_cutoff_date": "2026-07-21",
+            "exact_version": true,
+            "source_digest": "4db7e02ae66e3b951e654348dc60df09a0c7c619c48c879963c6c211c222b949",
+            "unresolved_flags": []
+        },
+        "drg_candidates": [
+            {
+                "ms_drg": "795",
+                "title": "Normal Newborn",
+                "mdc": "15",
+                "type_code": "M",
+                "type_label": "Medical",
+                "mapping_role": "candidate",
+                "ambiguity_note": null,
+                "requires_clinician_confirmation": true
+            }
+        ],
+        "evidence": {
+            "status": "Evidence verified \u2014 automated independent review complete",
+            "confidence": "Medium",
+            "source_specificity": "Medium \u2014 relevant existing sources resolved; no stronger new guideline selected",
+            "release_disposition": "Ready for institutional clinician signoff",
+            "claim_count": 58,
+            "source_currency": "current"
+        },
+        "governance": {
+            "clinical_signoff_status": "Not clinically approved \u2014 institutional SME signoff required",
+            "institutional_approval_status": "not_reviewed",
+            "activation_status": "inactive",
+            "reviews": [],
+            "approvals": []
+        },
+        "sections": [
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079b3403fb7",
+                "section_code": "admission_criteria",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Liveborn infant delivered in-hospital, gestational age >=35 0\/7 wks, birth weight typically >=2000-2500g, physiologically stable transitioning newborn assigned to well-newborn\/mother-baby couplet (rooming-in) care; requires no resuscitation beyond routine drying\/stimulation; APGAR >=7 at 5 min and no supplemental O2 requirement. NOT DRG 795 (route to NICU\/special care): persistent respiratory distress, GA <35 wks, major congenital anomaly, sustained hypoglycemia\/hypothermia, or clinical sepsis. The birth admission is the index inpatient stay (no ED-discharge\/observation alternative for the healthy newborn).",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "c000fbabd91d9b51901990c12aea08f2bb9e5738c3ae0a286ca9c9fa60ab6d08",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079c1ea795c",
+                "section_code": "clinical_verification_basis",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Independent automated evidence pass over all 250 rows: CMS taxonomy validation; PubMed identifier resolution and retraction scan; guideline-year and title\/topic relevance scoring; claim inventory; structural safety checks; cross-row overlap and volume arithmetic review. Clinical-signoff boundary: a licensed institutional physician\/pharmacist\/nurse\/coding\/UM review is still required before protocol, order-set, formulary or utilization use.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "00578bbe10c7d41f651bf64535a6ca95c33dacb6f8386bdc85e23dda707564ca",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079bcc2e924",
+                "section_code": "common_complications",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Hyperbilirubinemia\/jaundice (most common; mitigated by universal predischarge bilirubin + nomogram-guided phototherapy\/follow-up); transitional or at-risk hypoglycemia (protocolized screening + dextrose gel to avoid NICU transfer); suboptimal breastfeeding with excess weight loss and dehydration (lactation support, output\/weight tracking, NEWT); early-onset sepsis (EOS-calculator-guided to avoid over-treatment); hypothermia (skin-to-skin, thermoregulation); undetected CCHD or hearing loss (universal screening).",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "a9a617401358cd907fa1ae3886b0931b768e3ca34889b94baf7eba5f44f28bce",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079b7d0c842",
+                "section_code": "consults_multidisciplinary",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Lactation\/IBCLC for all breastfeeding dyads (early, especially if difficulty); audiology for hearing-screen fails; social work + case management for psychosocial risk (substance exposure, teen\/single parent, housing instability, prior CPS); pediatric cardiology if CCHD screen fails; neonatology\/NICU for instability; pharmacy for maternal-medication\/lactation compatibility and NAS management if opioid-exposed; nutrition if feeding\/weight concerns; interpreter\/child-life services as needed; confirm a primary-care medical home is identified before discharge.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "4c0dfdf66c52d775df2a2266ff6b6778cfd937e2460732319ce2977b2c793014",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079c259414a",
+                "section_code": "data_quality_notes",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Condition-level pathways may intentionally share DRGs; this is not a one-row-per-DRG crosswalk. Verification release 2026-07-21: evidence review is complete, but modeled volumes, heterogeneous DRG families and clinician-signoff limitations remain explicitly separated from taxonomy verification.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "54e0e97fa1599e43b7b5c49806225f2166254653f30189bcff4ecc7b27386f9d",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079b59ceb20",
+                "section_code": "day1_milestones",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "DOL0 (birth day): complete delivery-room care and prophylaxis (vitamin K, eye ointment, HBV); confirm successful transition (stable vitals, temp, color, RR <60 without distress); establish feeding with latch assessment; document first void (expect <24h) and first meconium stool (expect <48h); record birth weight as baseline; initiate glucose protocol if at-risk; assign EOS risk category and act on it.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "833f5286929ea3b7bd80fe95ff291546d9c1eafb58f0e425928b9a318d05db8c",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079b6518072",
+                "section_code": "day2_milestones",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "DOL1: ongoing feeding-effectiveness assessment (breastfeeding transfer, increasing voids\/stools); daily weight tracking percent loss vs NEWT (flag >7-10%); obtain predischarge bilirubin (TcB\/TSB) at 24-48h and plot on the AAP 2022 nomogram -> phototherapy decision plus risk-based follow-up timing; draw newborn metabolic screen after 24h of feeding; perform CCHD pulse-ox screen at >=24h; complete newborn hearing screen; jaundice and weight check.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "74f873ac07052b76862a87ceb479ab85dade17803d6d5f8df5311e64c8aedf62",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079b7159ae3",
+                "section_code": "day3plus_milestones",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "DOL2+: confirm all universal screens complete and documented (metabolic, CCHD, hearing) with results\/plan; reassess bilirubin trajectory and set the specific outpatient recheck interval; ensure feeding established with acceptable weight-loss trend and adequate output; complete elective circumcision with pain control plus post-procedure bleeding check; verify all discharge criteria met and follow-up scheduled; for early discharge (<48h) mandate a 48-72h PCP visit.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "bc00eef7a2d96f8f4da2e30d4e246e1494494834c400057f684ce83e14aaaa60",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079ba2298e3",
+                "section_code": "discharge_criteria",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "AAP criteria: stable vitals >=12h (RR <60, HR 100-190, axillary temp 36.5-37.4C in an open crib); >=2 successful feeds with coordinated suck\/swallow documented; >=1 void and >=1-2 stools; no excessive bleeding at circumcision for >=2h; predischarge bilirubin measured with a risk-stratified follow-up plan; no significant jaundice before 24h; EOS risk resolved\/observed; metabolic, CCHD, and hearing screens completed; HBV vaccine given or planned; maternal\/family education completed; PCP follow-up arranged; social\/environmental risks addressed; minimum stay per NMHPA (~48h vaginal \/ ~96h cesarean) unless all early-discharge criteria fully met.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "372ef8c8dc43621ba3b3184afe71038d7031dd0b66a481e2a4ed512ce9e7ed08",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079ba5b9825",
+                "section_code": "discharge_planning",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Home disposition with an identified medical home; medication reconciliation (vitamin D 400 IU\/day for breastfed infants, HBV documented, maternal-medication lactation review); schedule PCP visit within 48-72h (mandatory if discharged <48h) for weight, jaundice, and feeding recheck; teach return precautions (jaundice, poor feeding, lethargy, fever, decreased output, labored breathing); car-seat use plus car-seat tolerance screening for late-preterm\/low-birth-weight; safe-sleep ABCs, breastfeeding support\/resources, smoke-free home, and shaken-baby\/abusive-head-trauma prevention; ensure newborn-screen, hearing, and CCHD result tracking\/handoff to the PCP.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "723a3fb0cad9290d7e768b2adc480ab95e3953a6e4242b9b39740e3c8a308277",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079bfb2e1d6",
+                "section_code": "evidence_grade",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Strong for graded elements (Class I \/ Key Action Statements): AAP 2022 hyperbilirubinemia CPG (universal predischarge bilirubin, GA\/risk-based phototherapy thresholds), IM vitamin K, hepatitis B birth dose, and universal newborn\/CCHD\/hearing screening are evidence-based standards of care. Several bundle elements (rooming-in, safe sleep, discharge timing, EOS-calculator use, dextrose gel) rest on AAP policy\/consensus with observational\/RCT support = Moderate-to-consensus. Overall: Strong (Class I society guideline core) with some consensus\/expert components.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "0ba59262eca6d2ee2a8b52092b9f1a79a69b4194caa1dc9f870b2598ebf79c2c",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079bb41c36f",
+                "section_code": "expected_los",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Approximately 2 days typical: ~48h after uncomplicated vaginal delivery, ~3-4 days when the newborn rooms-in with a post-cesarean mother; CMS MS-DRG 795 GMLOS is approximately 2.5-3.0 days (approximate; low relative weight ~0.16-0.20).",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "b6c1449cf1882c7820eeb0951eaf540c775ea7cc24cfdf1ed0dcab5be84ebfea",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079be520856",
+                "section_code": "guideline_source",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "American Academy of Pediatrics (AAP). Primary: AAP 2022 Clinical Practice Guideline, Management of Hyperbilirubinemia in the Newborn Infant >=35 Weeks (Kemper et al., Pediatrics 2022); AAP Committee on Fetus and Newborn, Hospital Stay for Healthy Term Newborn Infants (Pediatrics 2015, reaffirmed); AAP\/COFN 2018 Management of Neonates >=35 Weeks With Suspected\/Proven Early-Onset Sepsis (Puopolo); AAP 2011 Postnatal Glucose Homeostasis (Adamkin); AAP 2022 Breastfeeding and the Use of Human Milk (Meek); plus ACOG\/AAP delayed cord clamping and state newborn-screening\/EHDI\/CCHD mandates.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "03e342abdec44ae0681cb26caa55352d35bee05b6f684b969a0dbc5b7c8c5ca6",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079b4a78c2b",
+                "section_code": "initial_imaging_dx",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Routine normal newborn requires minimal imaging; universal CCHD pulse-oximetry screen at >=24h of age (pre-ductal right hand + post-ductal foot; pass = SpO2 >=95% in both and <=3% difference; fail = <90% anywhere); universal newborn hearing screen (OAE or automated ABR) before discharge per EHDI 1-3-6; echocardiogram\/pediatric cardiology only if CCHD screen fails or pathologic murmur; hip exam (Ortolani\/Barlow) with targeted hip ultrasound at 4-6 wks only if risk factors (breech, positive family history).",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "28991f76534f0eede0e4a6e6460f78e470a7a6f6e8c9c0db9bdd3dc0484b4c6a",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079b58d43b7",
+                "section_code": "initial_management",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Physiologic\/supportive care: rooming-in, on-demand breastfeeding 8-12x\/24h with lactation support (or iron-fortified formula), thermoneutral environment; prophylaxis (vitamin K IM, erythromycin eye ointment, HBV vaccine) as above; hypoglycemia protocol = feed then recheck, buccal 40% dextrose gel 200 mg\/kg for asymptomatic transitional hypoglycemia to avoid NICU transfer, IV D10 2 mL\/kg bolus if symptomatic or refractory; phototherapy when TSB at\/above the AAP 2022 GA- and risk-specific threshold; escalation-of-care when TSB within 2 mg\/dL of the exchange-transfusion threshold; NO routine antibiotics (reserve for EOS-calculator-indicated cases).",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "b2ba94cc288b7597fbb548a5106674f523b253fcfdcb97ab0892f78e32b6c7fc",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079b434bbe8",
+                "section_code": "initial_workup_labs",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Infant\/cord blood type, Rh, and direct antiglobulin test (DAT\/Coombs) if mother O and\/or Rh-negative or antibody positive; point-of-care glucose per hypoglycemia protocol in at-risk infants (first check ~30-60 min after first feed); universal predischarge total serum or transcutaneous bilirubin at 24-48h; CBC with differential, blood culture, and inflammatory markers ONLY when EOS risk is elevated; review maternal serologies (HBsAg, HIV, RPR\/syphilis, rubella, GBS); state newborn metabolic\/genetic screen (dried blood spot) drawn at 24-48h once feeding established.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "e16102147ffa4f4fb6b66583cb34f4f219848e7a15fa511a08ccca49328150f6",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079bf369cc7",
+                "section_code": "key_citations",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Per PubMed: Kemper AR et al. Clinical Practice Guideline Revision: Management of Hyperbilirubinemia in the Newborn Infant 35 or More Weeks of Gestation. Pediatrics 2022;150(3):e2022058859 (PMID 35927462; DOI 10.1542\/peds.2022-058859); Slaughter JL, Kemper AR, Newman TB. Technical Report: Diagnosis and Management of Hyperbilirubinemia. Pediatrics 2022;150(3):e2022058865 (PMID 35927519; DOI 10.1542\/peds.2022-058865); Puopolo KM et al. Management of Neonates Born at >=35 0\/7 Weeks With Suspected\/Proven Early-Onset Bacterial Sepsis. Pediatrics 2018;142(6):e20182894 (PMID 30455342); Adamkin DH. Postnatal Glucose Homeostasis in Late-Preterm and Term Infants. Pediatrics 2011;127(3):575-579 (PMID 21357346); Meek JY, Noble L. Breastfeeding and the Use of Human Milk. Pediatrics 2022;150(1) (PMID 35921640); AAP COFN. Hospital Stay for Healthy Term Newborn Infants. Pediatrics 2015;135(5):948-953.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "4c70aa7c49ba356a08f78d46a3f8364be1748c2c0d7dbcda95cb4dcd626af24e",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079b869df07",
+                "section_code": "monitoring_level",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Well-newborn nursery \/ mother-baby couplet (rooming-in) with routine vitals (temp, HR, RR, color, tone) each shift after transition, plus close observation during the first ~2h transition period; escalate to special care\/NICU for persistent respiratory distress (RR >60, grunting, retractions, sustained SpO2 <90%), temperature instability, recurrent or symptomatic hypoglycemia, poor perfusion, apnea, or clinical EOS signs; TSB approaching the exchange threshold triggers escalation-of-care (intensive phototherapy, urgent labs, possible transfer).",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "797d40a7207d4b2d05d9f5c364880a8799b0e2a9ddcaab951ef9ff77c375f433",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079b95b10ec",
+                "section_code": "nutrition_mobility_vte",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Exclusive breastfeeding on demand (8-12 feeds\/24h) is the default per AAP 2022 (support skin-to-skin, rooming-in, avoid unnecessary supplementation); iron-fortified formula if not breastfeeding or medically indicated; VTE prophylaxis is NOT applicable to newborns; glucose homeostasis maintained by early\/frequent feeding plus protocolized dextrose gel; no indwelling lines\/catheters in the normal newborn (umbilical lines only in NICU); model safe-sleep (supine, alone, firm bare crib) from admission.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "bb442afc02eac7eb1ae8ebf40a5d4bdda1df3a1b38d19a26cf08f2cc7c073f89",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079c076dbf6",
+                "section_code": "pathway_pearls",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "(1) Universal predischarge bilirubin (TcB\/TSB at 24-48h) plotted on the AAP 2022 GA\/risk nomogram with a hardwired, risk-based follow-up time is the single biggest lever against the #1 readmission (jaundice); never discharge without it. (2) Use the neonatal EOS risk calculator to keep low-risk babies with mom and avoid unnecessary separation, labs, and antibiotics. (3) Protocolized 40% dextrose gel for asymptomatic at-risk hypoglycemia prevents avoidable NICU transfers and preserves breastfeeding. (4) Guarantee a 48-72h PCP follow-up (mandatory if discharged <48h); the early weight\/jaundice\/feeding recheck is what makes a safe short stay safe.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "e293a11f9775aca86ce4c428a42b6207adf4b90b4627a4f33d6384a1452b70f1",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079bc524426",
+                "section_code": "quality_metrics",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Joint Commission Perinatal Care PC-05 exclusive breast-milk feeding rate; hepatitis B birth-dose immunization coverage; newborn metabolic-screen completion and timeliness; CCHD pulse-oximetry screening rate; newborn hearing-screening rate (EHDI 1-3-6, screen by 1 month); predischarge bilirubin screening rate; 7- and 30-day newborn readmission (esp. hyperbilirubinemia\/dehydration); breastfeeding-at-discharge rate; avoidance of unnecessary NICU admission and antibiotic exposure; timely (48-72h) PCP follow-up completion.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "45c95f459b87fadf8d307a405d383ec278f67b55c4593808b8ef9e0a7ed7c090",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079bd98c446",
+                "section_code": "readmission_drivers",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "#1 = hyperbilirubinemia requiring readmission\/phototherapy (lever: predischarge TSB plus risk-based 24-72h recheck; never discharge too early without follow-up); dehydration\/hypernatremia from inadequate breastfeeding intake (lever: lactation support, weight\/output monitoring, early weight-check visit); feeding difficulty\/failure to thrive; missed or late newborn-screen\/CCHD detection; late-preterm (35-36 wk) infants disproportionately bounce back (use a lower discharge threshold and closer follow-up).",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "4907c3f23e738a3c62c17c48b90215341eb3f684a19029258ca3d63feea0f4cd",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079b38b42df",
+                "section_code": "risk_stratification",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "APGAR at 1 and 5 min (>=7 normal; if <7 at 5 min repeat q5min to 20 min); Neonatal Early-Onset Sepsis (EOS) risk calculator (Kaiser\/Puopolo, for >=34-35 wks) using GBS status, intrapartum antibiotics, max maternal temp, ROM duration, GA -> EOS risk per 1000 driving routine care vs enhanced observation vs blood culture +\/- empiric antibiotics; AAP 2022 hyperbilirubinemia hour-specific nomogram plus neurotoxicity risk factors (isoimmune hemolytic disease, G6PD deficiency, sepsis, albumin <3.0) -> GA\/risk-specific phototherapy and escalation thresholds; protocolized hypoglycemia screening (AAP\/Adamkin) for at-risk (LGA, SGA, IDM, late-preterm) treating glucose <40-45 mg\/dL; Ballard gestational-age assessment; NEWT weight-loss nomogram (loss >75th percentile flags feeding failure).",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "07cdde7d4c6c391e8ce460463fa6a8adac4432c77d1dff8d25c1b139dd1ef2b9",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079c19476cf",
+                "section_code": "scope_and_volume_notes",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Single largest inpatient category when neonates are included; ~3.0M of ~3.67M live births (2022 CDC). Remainder of births carry a problem\/prematurity DRG (see rank 11). Approximate.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "7870d8df2ee8f2ce2a4ce2e17d1874ecf9ec71e70cfa76ef78995352e2990db4",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079c0133c7e",
+                "section_code": "severity_cc_mcc_notes",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "DRG 795 is by definition the uncomplicated normal newborn (the no-problem tier). Complications shift the case OUT of 795 into the neonatal problem DRGs: 794 (neonate with other significant problems), 793 (full-term neonate with major problems), 792\/791 (prematurity without\/with MCC), 790 (extreme immaturity\/RDS), 789 (neonate died or transferred <5 days). Practically, phototherapy-requiring hyperbilirubinemia, hypoglycemia needing IV dextrose, EOS\/antibiotics, respiratory distress, or late-preterm status escalate LOS (often 3 to 7+ days), may trigger NICU\/step-down, and re-group the case; therefore 795 optimization = keeping the newborn correctly in the uncomplicated tier by preventing or early-treating these problems.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "c89efa49323d0050242cf87e10468eecee4173cd0b69cd7da09f18b80ffb3881",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079bc1bd21d",
+                "section_code": "target_los",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "2 days (~48h) for the vaginal-delivery dyad; ~3 days when linked to a cesarean; earlier discharge (24-48h) acceptable ONLY if all AAP discharge criteria are met and a guaranteed 48-72h follow-up is in place.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "848e965b2db19ec1b63a3d090af760475ff643d2ce4bdf32134f6d602022776e",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079b51ee3fb",
+                "section_code": "time_critical_interventions",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Delayed cord clamping >=30-60 sec for the vigorous infant (ACOG\/AAP); immediate skin-to-skin with thermoregulation (axillary temp 36.5-37.5C); initiate breastfeeding within the first hour; IM vitamin K 0.5-1 mg within 6h to prevent VKDB (do not defer\/omit); erythromycin 0.5% ophthalmic ointment within 24h; hepatitis B birth-dose vaccine within 24h for stable infants >=2000g; if mother HBsAg-positive or unknown, give HBV vaccine + HBIG within 12h; first glucose check within 30-60 min of first feed in at-risk infants.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "8fb9f31a5e74b3d79b542a71952c020ba9eee70ba167978291628bcabcd6ade4",
+                "approved_digest": null
+            },
+            {
+                "section_uuid": "019f95de-b9ee-739f-9452-d079c16be983",
+                "section_code": "verification_notes",
+                "audience": "staff_reference",
+                "language_code": "en",
+                "source_text": "Independent automated verification completed 2026-07-21. Pass 1 validated CMS v43.1 taxonomy, PMID resolvability, retraction indicators, source currency, topic relevance, code overlap and modeled-volume arithmetic. Pass 2 adversarially checked required fields, risk\/time\/LOS numerics, quality-metric detail, source years and clinical-template limitations. 58 high-stakes claim segments were inventoried. This is evidence verification, not institutional clinical approval. No automated critical or material issue remained.",
+                "approved_text": null,
+                "content_mode": "source",
+                "review_state": "source_candidate",
+                "source_digest": "9d06fc04e14b59b6f17e8cceefab116e10ec040e9d30e2133aca86bf1d9f09a7",
+                "approved_digest": null
+            }
+        ],
+        "authoring": {
+            "milestones": [],
+            "activities": [],
+            "goals": [],
+            "education": []
+        },
+        "changes": [
+            {
+                "change_uuid": "019f95de-c085-71ab-8249-29cb46f612a8",
+                "source_field": "verification_status",
+                "old_value": "Verified",
+                "new_value": "Evidence verified \u2014 automated independent review complete",
+                "reason": "Reclassified after current two-pass evidence verification; pending status eliminated without implying clinical approval",
+                "source_reference": "https:\/\/www.cms.gov\/medicare\/payment\/prospective-payment-systems\/acute-inpatient-pps\/ms-drg-classifications-and-software; https:\/\/www.ncbi.nlm.nih.gov\/home\/develop\/api\/",
+                "changed_on": null
+            }
+        ]
+    },
+    "meta": {
+        "schema": "care_pathway_governance.v1",
+        "catalog_release_uuid": "019f95de-b9a4-726a-91d3-41d6d911d4c4",
+        "dataset_key": "drg-care-pathways-verification-package-v43.1-20260721",
+        "grouper_version": "43.1",
+        "source_cutoff_date": "2026-07-21",
+        "as_of": "2026-07-24T20:50:14+00:00",
+        "clinical_approval_warning": "Automated evidence verification is not institutional clinical approval.",
+        "patient_serving": false,
+        "hummingbird_serving": false,
+        "eddy_serving": false
+    }
+}
