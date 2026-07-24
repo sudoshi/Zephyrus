@@ -39,6 +39,7 @@ export interface PageProps {
       manage_data_stewardship?: boolean;
       view_patient_communications?: boolean;
       respond_patient_communications?: boolean;
+      view_care_pathway_catalog?: boolean;
     };
   };
   eddy?: {
@@ -49,6 +50,7 @@ export interface PageProps {
   };
   features?: {
     care_pathways_demo?: boolean;
+    care_pathways_catalog?: boolean;
     virtual_rounds?: boolean;
     home_hospital?: boolean;
     patient_communications?: boolean;
