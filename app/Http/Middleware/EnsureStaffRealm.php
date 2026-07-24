@@ -8,12 +8,20 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/** Prevent non-staff Sanctum tokenable models from entering the staff BFF. */
+/**
+ * Prevent non-staff or inactive Sanctum principals from entering the staff BFF.
+ *
+ * Normal account deactivation revokes every credential transactionally. This
+ * request-time check is an independent fail-closed boundary for stale,
+ * concurrently authenticated, or externally invalidated access tokens.
+ */
 class EnsureStaffRealm
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user() instanceof User) {
+        $user = $request->user();
+
+        if (! $user instanceof User || ! (bool) $user->is_active) {
             return $this->denied();
         }
 

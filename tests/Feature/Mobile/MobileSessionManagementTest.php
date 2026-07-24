@@ -89,7 +89,9 @@ class MobileSessionManagementTest extends TestCase
         (require $migrationPath)->up();
         $this->assertSame($legitimateAccessId, $session->fresh()->access_token_id);
 
-        $session->forceFill(['access_token_id' => null])->save();
+        MobileTokenSession::query()
+            ->whereKey($session->getKey())
+            ->update(['access_token_id' => null]);
         $user->createToken(
             'mobile-access:'.$session->token_family_uuid,
             ['mobile:read'],
@@ -271,7 +273,7 @@ class MobileSessionManagementTest extends TestCase
         $session = MobileTokenSession::query()
             ->where('session_uuid', $issued['session_uuid'])
             ->firstOrFail();
-        $forgedObservationBaseline = now()->subHour();
+        $forgedObservationBaseline = now()->subHour()->startOfSecond();
         $session->forceFill(['last_seen_at' => $forgedObservationBaseline])->save();
         $forgedName = $user->createToken(
             'mobile-access:'.$session->token_family_uuid,

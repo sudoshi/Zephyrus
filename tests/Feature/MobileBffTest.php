@@ -21,6 +21,7 @@ use App\Models\Staffing\StaffingRequest;
 use App\Models\Transport\TransportRequest;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Auth\MobileTokenSessionService;
 use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Mobile\OperationalActivityLedger;
 use App\Services\Patient\PatientHmac;
@@ -122,7 +123,8 @@ class MobileBffTest extends TestCase
     {
         $user = $this->user();
         $this->seed(RtdcSeeder::class); // units + beds spine, so census/house/command have context
-        Sanctum::actingAs($user, ['mobile:read', 'mobile:act']);
+        $pair = app(MobileTokenSessionService::class)->issueNewFamily($user);
+        $this->withToken((string) $pair['access_token']);
 
         $endpoints = $this->documentedReadEnvelopeEndpoints($user);
         ksort($endpoints);
@@ -395,6 +397,7 @@ class MobileBffTest extends TestCase
             '/improvement/opportunities' => '/api/mobile/v1/improvement/opportunities',
             '/improvement/pdsa' => '/api/mobile/v1/improvement/pdsa',
             '/me' => '/api/mobile/v1/me',
+            '/me/sessions' => '/api/mobile/v1/me/sessions',
             '/ops/inbox' => '/api/mobile/v1/ops/inbox',
             '/or/board' => '/api/mobile/v1/or/board',
             '/patient-communications/inbox' => '/api/mobile/v1/patient-communications/inbox',
