@@ -103,6 +103,7 @@ jobs:
       - name: Verify immutable release snapshots
         run: |
           bash tests/Deployment/immutable-release-snapshot.sh
+          bash tests/Deployment/deploy-bash32-compat.sh
           bash tests/Deployment/github-ci-gate.sh
 
       - name: Copy environment template
