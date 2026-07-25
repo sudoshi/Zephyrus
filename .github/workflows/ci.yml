@@ -631,6 +631,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Booting a simulator takes 2-5 minutes and depends on nothing the
+      # builds produce, so start it immediately and let it overlap the build
+      # steps; the wait step before the first test blocks on readiness.
+      - name: Select and begin booting an available iPhone Simulator
+        id: simulator
+        run: |
+          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
+          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
+
       - name: Install pinned XcodeGen
         env:
           XCODEGEN_VERSION: 2.46.0
@@ -691,13 +701,8 @@ jobs:
           release_app="$RUNNER_TEMP/hummingbird-staff-ios-release/Build/Products/Release-iphonesimulator/Hummingbird.app"
           bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" staff
 
-      - name: Select and boot an available iPhone Simulator
-        id: simulator
-        run: |
-          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
-          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
-          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
-          xcrun simctl bootstatus "$simulator_udid" -b
+      - name: Wait for simulator boot to complete
+        run: xcrun simctl bootstatus "${{ steps.simulator.outputs.udid }}" -b
 
       - name: Run XCTest unit suite
         run: |
@@ -849,6 +854,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Booting a simulator takes 2-5 minutes and depends on nothing the
+      # builds produce, so start it immediately and let it overlap the build
+      # steps; the wait step before the first test blocks on readiness.
+      - name: Select and begin booting an available iPhone Simulator
+        id: simulator
+        run: |
+          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
+          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
+
       - name: Install pinned XcodeGen
         env:
           XCODEGEN_VERSION: 2.46.0
@@ -900,13 +915,8 @@ jobs:
           bash scripts/ci/verify-hummingbird-patient-boundary.sh artifact "$release_app"
           bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" patient
 
-      - name: Select and boot an available iPhone Simulator
-        id: simulator
-        run: |
-          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
-          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
-          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
-          xcrun simctl bootstatus "$simulator_udid" -b
+      - name: Wait for simulator boot to complete
+        run: xcrun simctl bootstatus "${{ steps.simulator.outputs.udid }}" -b
 
       - name: Run XCTest unit suite
         run: |
