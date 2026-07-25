@@ -1,24 +1,39 @@
 <?php
 
+namespace Tests\Feature\Api;
+
+use App\Models\PdsaCycle;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-beforeEach(function () {
-    $this->user = User::factory()->create([
-        'must_change_password' => false,
-        'workflow_preference' => 'improvement',
-    ]);
-});
+class ProcessAnalysisTest extends TestCase
+{
+    use RefreshDatabase;
 
-describe('nursing operations API', function () {
-    it('returns nursing operations data for authenticated user', function () {
+    private User $user;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->user = User::factory()->create([
+            'must_change_password' => false,
+            'workflow_preference' => 'improvement',
+        ]);
+    }
+
+    public function test_returns_nursing_operations_data_for_authenticated_user(): void
+    {
         $response = $this->actingAs($this->user)
             ->getJson('/improvement/api/nursing-operations?hospital=Summit+Regional+Medical+Center&workflow=Admissions&timeRange=24+Hours');
 
         $response->assertOk()
             ->assertJsonStructure(['nodes', 'edges', 'metrics']);
-    });
+    }
 
-    it('returns admissions data by default', function () {
+    public function test_returns_admissions_data_by_default(): void
+    {
         $response = $this->actingAs($this->user)
             ->getJson('/improvement/api/nursing-operations');
 
@@ -31,39 +46,36 @@ describe('nursing operations API', function () {
                     '*' => ['id', 'source', 'target'],
                 ],
             ]);
-    });
+    }
 
-    it('returns discharge workflow data', function () {
+    public function test_returns_discharge_workflow_data(): void
+    {
         $response = $this->actingAs($this->user)
             ->getJson('/improvement/api/nursing-operations?workflow=Discharges');
 
         $response->assertOk();
 
-        $data = $response->json();
-        $nodeIds = collect($data['nodes'])->pluck('id')->all();
+        $nodeIds = collect($response->json('nodes'))->pluck('id')->all();
 
-        expect($nodeIds)->toContain('discharge_order');
-    });
+        $this->assertContains('discharge_order', $nodeIds);
+    }
 
-    it('applies time range multiplier', function () {
+    public function test_applies_time_range_multiplier(): void
+    {
         $dayResponse = $this->actingAs($this->user)
             ->getJson('/improvement/api/nursing-operations?timeRange=24+Hours');
 
         $weekResponse = $this->actingAs($this->user)
             ->getJson('/improvement/api/nursing-operations?timeRange=7+Days');
 
-        $dayNodes = $dayResponse->json('nodes');
-        $weekNodes = $weekResponse->json('nodes');
+        $dayCount = $dayResponse->json('nodes')[0]['data']['metrics']['count'];
+        $weekCount = $weekResponse->json('nodes')[0]['data']['metrics']['count'];
 
-        $dayCount = $dayNodes[0]['data']['metrics']['count'];
-        $weekCount = $weekNodes[0]['data']['metrics']['count'];
+        $this->assertSame($dayCount * 7, $weekCount);
+    }
 
-        expect($weekCount)->toBe($dayCount * 7);
-    });
-});
-
-describe('process layout API', function () {
-    it('saves a process layout', function () {
+    public function test_saves_a_process_layout(): void
+    {
         $response = $this->actingAs($this->user)
             ->postJson('/improvement/process/layout', [
                 'process_type' => 'nursing_operations',
@@ -76,10 +88,10 @@ describe('process layout API', function () {
             ]);
 
         $response->assertNoContent();
-    });
+    }
 
-    it('retrieves a saved process layout', function () {
-        // First save a layout
+    public function test_retrieves_a_saved_process_layout(): void
+    {
         $this->actingAs($this->user)
             ->postJson('/improvement/process/layout', [
                 'process_type' => 'nursing_operations',
@@ -91,42 +103,43 @@ describe('process layout API', function () {
                 ],
             ]);
 
-        // Then retrieve it
         $response = $this->actingAs($this->user)
             ->getJson('/improvement/process/layout?hospital=Summit+Regional+Medical+Center&workflow=Admissions&time_range=24+Hours');
 
         $response->assertOk()
             ->assertJsonPath('found', true)
             ->assertJsonPath('process_type', 'nursing_operations');
-    });
+    }
 
-    it('returns not found for non-existent layout', function () {
+    public function test_returns_not_found_for_nonexistent_layout(): void
+    {
         $response = $this->actingAs($this->user)
             ->getJson('/improvement/process/layout?hospital=NonExistent&workflow=Admissions&time_range=24+Hours');
 
         $response->assertOk()
             ->assertJsonPath('found', false);
-    });
+    }
 
-    it('validates required fields when saving layout', function () {
+    public function test_validates_required_fields_when_saving_layout(): void
+    {
         $response = $this->actingAs($this->user)
             ->postJson('/improvement/process/layout', []);
 
         $response->assertUnprocessable()
             ->assertJsonValidationErrors(['process_type', 'hospital', 'workflow', 'time_range', 'layout_data']);
-    });
+    }
 
-    it('validates required fields when getting layout', function () {
+    public function test_validates_required_fields_when_getting_layout(): void
+    {
         $response = $this->actingAs($this->user)
             ->getJson('/improvement/process/layout');
 
         $response->assertUnprocessable()
             ->assertJsonValidationErrors(['hospital', 'workflow', 'time_range']);
-    });
-});
+    }
 
-describe('viewport API', function () {
-    it('saves viewport state', function () {
+    public function test_saves_viewport_state(): void
+    {
         $response = $this->actingAs($this->user)
             ->postJson('/improvement/process/viewport', [
                 'process_type' => 'nursing_operations',
@@ -139,52 +152,72 @@ describe('viewport API', function () {
             ]);
 
         $response->assertNoContent();
-    });
-});
+    }
 
-describe('dashboard endpoints', function () {
-    it('loads improvement dashboard', function () {
+    public function test_improvement_dashboard_redirects_into_the_cockpit_drill(): void
+    {
+        // Zephyrus 2.0 P4a: the legacy overview permanently redirects into the
+        // cockpit quality drill (COCKPIT_OVERVIEW_REDIRECTS is the rollback lever).
         $response = $this->actingAs($this->user)
             ->get('/dashboard/improvement');
 
-        $response->assertStatus(200);
-    });
+        $response->assertRedirect('/dashboard?drill=quality');
+    }
 
-    it('loads bottlenecks page', function () {
+    public function test_loads_bottlenecks_page(): void
+    {
+        $this->withoutVite();
+
         $response = $this->actingAs($this->user)
             ->get('/improvement/bottlenecks');
 
         $response->assertStatus(200);
-    });
+    }
 
-    it('loads root cause page', function () {
+    public function test_loads_root_cause_page(): void
+    {
+        $this->withoutVite();
+
         $response = $this->actingAs($this->user)
             ->get('/improvement/root-cause');
 
         $response->assertStatus(200);
-    });
+    }
 
-    it('loads PDSA index page', function () {
+    public function test_loads_pdsa_index_page(): void
+    {
+        $this->withoutVite();
+
         $response = $this->actingAs($this->user)
             ->get('/improvement/pdsa');
 
         $response->assertStatus(200);
-    });
+    }
 
-    it('loads PDSA show page', function () {
+    public function test_loads_pdsa_show_page(): void
+    {
+        $this->withoutVite();
+
+        $cycle = PdsaCycle::create([
+            'title' => 'Reduce discharge order-to-departure time',
+            'status' => 'active',
+            'started_at' => now(),
+        ]);
+
         $response = $this->actingAs($this->user)
-            ->get('/improvement/pdsa/1');
+            ->get('/improvement/pdsa/'.$cycle->pdsa_cycle_id);
 
         $response->assertStatus(200);
-    });
+    }
 
-    it('changes workflow preference', function () {
+    public function test_changes_workflow_preference(): void
+    {
         $response = $this->actingAs($this->user)
             ->get('/set-preference/perioperative');
 
         $response->assertRedirect('/dashboard/perioperative');
 
         $this->user->refresh();
-        expect($this->user->workflow_preference)->toBe('perioperative');
-    });
-});
+        $this->assertSame('perioperative', $this->user->workflow_preference);
+    }
+}

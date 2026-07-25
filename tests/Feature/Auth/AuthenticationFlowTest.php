@@ -1,68 +1,87 @@
 <?php
 
-use App\Models\User;
-use Illuminate\Support\Facades\Hash;
+namespace Tests\Feature\Auth;
 
-describe('login', function () {
-    it('renders the login page', function () {
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Spatie\Permission\Models\Role;
+use Tests\TestCase;
+
+class AuthenticationFlowTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_login_page_renders(): void
+    {
         $response = $this->get('/login');
 
         $response->assertStatus(200);
-    });
+    }
 
-    it('authenticates a user with valid credentials', function () {
-        $user = User::factory()->create([
+    public function test_authenticates_a_user_with_valid_credentials(): void
+    {
+        User::factory()->create([
             'username' => 'testuser',
             'password' => Hash::make('password123'),
             'must_change_password' => false,
         ]);
 
-        $response = $this->post('/login', [
+        $this->post('/login', [
             'username' => 'testuser',
             'password' => 'password123',
         ]);
 
         $this->assertAuthenticated();
-    });
+    }
 
-    it('rejects login with invalid credentials', function () {
-        $user = User::factory()->create([
+    public function test_rejects_login_with_invalid_credentials(): void
+    {
+        User::factory()->create([
             'username' => 'testuser',
             'password' => Hash::make('password123'),
         ]);
 
-        $response = $this->post('/login', [
+        $this->post('/login', [
             'username' => 'testuser',
             'password' => 'wrong-password',
         ]);
 
         $this->assertGuest();
-    });
+    }
 
-    it('rejects login with non-existent username', function () {
-        $response = $this->post('/login', [
+    public function test_rejects_login_with_nonexistent_username(): void
+    {
+        $this->post('/login', [
             'username' => 'nonexistent',
             'password' => 'password123',
         ]);
 
         $this->assertGuest();
-    });
-});
+    }
 
-describe('registration', function () {
-    it('creates user with must_change_password set to true', function () {
-        $response = $this->post('/register', [
+    public function test_registration_creates_user_with_must_change_password_set(): void
+    {
+        config()->set('auth-drivers.local.registration_enabled', true);
+        Http::fake();
+
+        $this->post('/register', [
             'name' => 'Test User',
             'email' => 'newuser@example.com',
         ]);
 
         $user = User::where('email', 'newuser@example.com')->first();
 
-        expect($user)->not->toBeNull();
-        expect($user->must_change_password)->toBeTrue();
-    });
+        $this->assertNotNull($user);
+        $this->assertTrue($user->must_change_password);
+    }
 
-    it('auto-generates username from email', function () {
+    public function test_registration_auto_generates_username_from_email(): void
+    {
+        config()->set('auth-drivers.local.registration_enabled', true);
+        Http::fake();
+
         $this->post('/register', [
             'name' => 'Test User',
             'email' => 'john.doe@example.com',
@@ -70,13 +89,14 @@ describe('registration', function () {
 
         $user = User::where('email', 'john.doe@example.com')->first();
 
-        expect($user)->not->toBeNull();
-        expect($user->username)->not->toBeEmpty();
-    });
-});
+        $this->assertNotNull($user);
+        $this->assertNotSame('', $user->username);
+    }
 
-describe('change password', function () {
-    it('shows change password page for authenticated user', function () {
+    public function test_shows_change_password_page_for_authenticated_user(): void
+    {
+        $this->withoutVite();
+
         $user = User::factory()->create([
             'must_change_password' => true,
         ]);
@@ -84,27 +104,27 @@ describe('change password', function () {
         $response = $this->actingAs($user)->get('/change-password');
 
         $response->assertStatus(200);
-    });
+    }
 
-    it('updates password and clears must_change_password flag', function () {
+    public function test_updates_password_and_clears_must_change_password_flag(): void
+    {
         $user = User::factory()->create([
             'password' => Hash::make('temp-password'),
             'must_change_password' => true,
         ]);
 
-        $response = $this->actingAs($user)->post('/change-password', [
+        $this->actingAs($user)->post('/change-password', [
             'current_password' => 'temp-password',
-            'password' => 'new-secure-password',
-            'password_confirmation' => 'new-secure-password',
+            'new_password' => 'new-secure-password',
+            'new_password_confirmation' => 'new-secure-password',
         ]);
 
         $user->refresh();
-        expect($user->must_change_password)->toBeFalse();
-    });
-});
+        $this->assertFalse($user->must_change_password);
+    }
 
-describe('logout', function () {
-    it('logs out the authenticated user', function () {
+    public function test_logs_out_the_authenticated_user(): void
+    {
         $user = User::factory()->create([
             'must_change_password' => false,
         ]);
@@ -115,11 +135,10 @@ describe('logout', function () {
         $this->post('/logout');
 
         $this->assertGuest();
-    });
-});
+    }
 
-describe('RBAC middleware', function () {
-    it('blocks non-admin users from admin routes', function () {
+    public function test_rbac_blocks_non_admin_users_from_admin_routes(): void
+    {
         $user = User::factory()->create([
             'must_change_password' => false,
         ]);
@@ -127,9 +146,13 @@ describe('RBAC middleware', function () {
         $response = $this->actingAs($user)->get('/users');
 
         $response->assertStatus(403);
-    });
+    }
 
-    it('allows admin users to access admin routes', function () {
+    public function test_rbac_allows_admin_users_to_access_admin_routes(): void
+    {
+        $this->withoutVite();
+
+        Role::findOrCreate('admin', 'web');
         $user = User::factory()->create([
             'must_change_password' => false,
         ]);
@@ -138,17 +161,19 @@ describe('RBAC middleware', function () {
         $response = $this->actingAs($user)->get('/users');
 
         $response->assertStatus(200);
-    });
-});
+    }
 
-describe('protected routes', function () {
-    it('redirects unauthenticated users to login', function () {
+    public function test_redirects_unauthenticated_users_to_login(): void
+    {
         $response = $this->get('/dashboard');
 
         $response->assertRedirect('/login');
-    });
+    }
 
-    it('allows authenticated users to access dashboard', function () {
+    public function test_allows_authenticated_users_to_access_dashboard(): void
+    {
+        $this->withoutVite();
+
         $user = User::factory()->create([
             'must_change_password' => false,
         ]);
@@ -156,5 +181,5 @@ describe('protected routes', function () {
         $response = $this->actingAs($user)->get('/dashboard');
 
         $response->assertStatus(200);
-    });
-});
+    }
+}
