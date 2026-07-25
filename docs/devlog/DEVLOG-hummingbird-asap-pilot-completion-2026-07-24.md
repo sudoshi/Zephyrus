@@ -123,6 +123,12 @@ is therefore staff safety evidence, not patient-pilot enablement evidence.
   routes. The existing Flow capture test now accepts the same unified opt-in command.
   Native fixture assertions validate stable semantics and grammar rather than a
   previous run's opaque handles, database sequence values, or content hash.
+- The default Flow/shared capture tests now compare all eight checked-in staff
+  fixtures with deterministic BFF semantics and fail stale artifacts without
+  writing. They canonicalize only grammar-checked database-sequence identifiers
+  and catalog hashes; every user-visible, authorization, status, relationship, and
+  envelope value remains exact. Only `HUMMINGBIRD_FIXTURE_DUMP=1` rewrites a
+  fixture, so CI cannot silently replace a reviewed contract artifact.
 - The new capture found that the staff patient-context BFF leaked source vocabulary
   (`"none"`) for `header.isolation_required`, despite the published native Boolean
   contract. `MobilePatientContextService` now normalizes false-like source values
@@ -131,14 +137,14 @@ is therefore staff safety evidence, not patient-pilot enablement evidence.
 
 ### Verification
 
-| Boundary                          | Command / target                                                    | Result                                                                                                  |
-| --------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Laravel captures                  | unified fixture command, including Flow                             | 5 non-Flow envelopes and 3 Flow envelopes captured from real factory-seeded BFF routes                  |
-| Laravel fixture/projection checks | `MobileSharedDtoFixtureTest` and `SharedDtoFixtureRegenerationTest` | fixture/provenance 4 passed / 130 assertions; BFF Boolean regression + capture 2 passed / 26 assertions |
-| Swift contract decoder            | `decode-shared-fixtures.swift`                                      | decoded all 8 fixtures                                                                                  |
-| Kotlin contract decoder           | `SharedDtoFixtureDecodeTest`                                        | 15 tests, 0 failures                                                                                    |
-| iOS Simulator                     | iPhone 17 Pro / `HummingbirdTests`                                  | 93 tests, 0 failures                                                                                    |
-| Android emulator                  | API 35 `hb(AVD)` / communications UI suite                          | 12 tests, 0 failures, including 200% text and unavailable-action states                                 |
+| Boundary                  | Command / target                                            | Result                                                                                    |
+| ------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Laravel fixture freshness | Flow/shared capture tests plus `MobileSharedDtoFixtureTest` | 7 passed / 170 assertions; all 8 factory-seeded BFF artifacts match without writing       |
+| Explicit Laravel capture  | unified fixture command, including Flow                     | 3 passed / 32 assertions; only explicit flag rewrites the 5 non-Flow and 3 Flow artifacts |
+| Swift contract decoder    | `decode-shared-fixtures.swift`                              | decoded all 8 fixtures                                                                    |
+| Kotlin contract decoder   | `SharedDtoFixtureDecodeTest`                                | 15 tests, 0 failures                                                                      |
+| iOS Simulator             | iPhone 17 Pro / `HummingbirdTests`                          | 93 tests, 0 failures                                                                      |
+| Android emulator          | API 35 `hb(AVD)` / communications UI suite                  | 12 tests, 0 failures, including 200% text and unavailable-action states                   |
 
 ### Remaining boundary
 

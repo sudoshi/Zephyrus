@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\CanonicalizesMobileFixtureValues;
 use Tests\TestCase;
 
 /**
@@ -23,11 +24,12 @@ use Tests\TestCase;
  *
  *   HUMMINGBIRD_FIXTURE_DUMP=1 php artisan test --filter='(FlowFixtureRegenerationTest|SharedDtoFixtureRegenerationTest)'
  *
- * The test is opt-in because it rewrites committed fixture artifacts. Normal
- * CI validates the checked-in artifacts and their provenance separately.
+ * Normal CI compares the checked-in artifacts with deterministic BFF responses
+ * without writing. The environment flag above is the explicit reviewed writer.
  */
 class SharedDtoFixtureRegenerationTest extends TestCase
 {
+    use CanonicalizesMobileFixtureValues;
     use RefreshDatabase;
 
     private const FIXTURE_DIR = 'docs/hummingbird/api-contract/fixtures';
@@ -62,12 +64,8 @@ class SharedDtoFixtureRegenerationTest extends TestCase
             ->assertJsonPath('data.header.isolation_required', true);
     }
 
-    public function test_regenerate_factory_backed_shared_dto_fixtures(): void
+    public function test_factory_backed_shared_dto_fixtures_match_deterministic_bff_contract(): void
     {
-        if (! env('HUMMINGBIRD_FIXTURE_DUMP')) {
-            $this->markTestSkipped('Set HUMMINGBIRD_FIXTURE_DUMP=1 to regenerate the shared DTO fixtures.');
-        }
-
         Carbon::setTestNow('2026-07-24T12:00:00Z');
 
         try {
@@ -123,30 +121,40 @@ class SharedDtoFixtureRegenerationTest extends TestCase
 
             $fixtures = [
                 'mobile-altitude-home.json' => $this->getJson('/api/mobile/v1/altitude/home?persona=bed_manager')
-                    ->assertOk()
-                    ->json(),
+                    ->assertOk(),
                 'mobile-for-you.json' => $this->getJson('/api/mobile/v1/for-you?persona=bed_manager')
-                    ->assertOk()
-                    ->json(),
+                    ->assertOk(),
                 'mobile-activity-feed.json' => $this->getJson('/api/mobile/v1/activity?persona=bed_manager')
-                    ->assertOk()
-                    ->json(),
+                    ->assertOk(),
                 'mobile-patient-operational-context.json' => $this->getJson("/api/mobile/v1/patients/{$contextRef}/operational-context?persona=bed_manager")
-                    ->assertOk()
-                    ->json(),
+                    ->assertOk(),
             ];
 
             $transportUser = $this->staffUser('transport', 'fixture-transporter');
             Sanctum::actingAs($transportUser, ['mobile:read']);
             $fixtures['mobile-transport-queue.json'] = $this->getJson('/api/mobile/v1/transport/queue?persona=transport')
-                ->assertOk()
-                ->json();
+                ->assertOk();
 
-            foreach ($fixtures as $name => $payload) {
+            foreach ($fixtures as $name => $response) {
+                $payload = $response->json();
                 $this->assertArrayHasKey('data', $payload, "{$name} must be a BFF envelope.");
                 $this->assertArrayHasKey('meta', $payload, "{$name} must be a BFF envelope.");
                 $this->assertArrayHasKey('links', $payload, "{$name} must be a BFF envelope.");
-                $this->writeFixture($name, $payload);
+                $serialized = $this->formatFixture($response->getContent());
+
+                if (env('HUMMINGBIRD_FIXTURE_DUMP')) {
+                    $this->writeFixture($name, $serialized);
+                } else {
+                    $this->assertSame(
+                        $this->canonicalizeMobileFixtureValue(json_decode(
+                            file_get_contents(base_path(self::FIXTURE_DIR.'/'.$name)),
+                            true,
+                            flags: JSON_THROW_ON_ERROR,
+                        )),
+                        $this->canonicalizeMobileFixtureValue($payload),
+                        "{$name} is stale. Review the deterministic BFF change, then run HUMMINGBIRD_FIXTURE_DUMP=1 to regenerate it.",
+                    );
+                }
             }
         } finally {
             Carbon::setTestNow();
@@ -165,12 +173,19 @@ class SharedDtoFixtureRegenerationTest extends TestCase
         ]);
     }
 
-    /** @param array<string, mixed> $payload */
-    private function writeFixture(string $name, array $payload): void
+    private function formatFixture(string $responseBody): string
+    {
+        return json_encode(
+            json_decode($responseBody, flags: JSON_THROW_ON_ERROR),
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+        )."\n";
+    }
+
+    private function writeFixture(string $name, string $serialized): void
     {
         file_put_contents(
             base_path(self::FIXTURE_DIR.'/'.$name),
-            json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)."\n",
+            $serialized,
         );
     }
 }

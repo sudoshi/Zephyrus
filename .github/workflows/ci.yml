@@ -650,15 +650,7 @@ jobs:
           xcodebuild -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" -list
 
       - name: Decode shared DTO fixtures with Swift
-        run: |
-          swiftc \
-            "$IOS_STAFF_ROOT/Hummingbird/DesignSystem/CapacityStatus.swift" \
-            "$IOS_STAFF_ROOT/Hummingbird/Networking/ISO8601DateFormatter+Flexible.swift" \
-            "$IOS_STAFF_ROOT/Hummingbird/Networking/Models.swift" \
-            "$IOS_STAFF_ROOT/Hummingbird/Features/Flow/FlowModels.swift" \
-            "$IOS_STAFF_ROOT/scripts/decode-shared-fixtures.swift" \
-            -o "$RUNNER_TEMP/hummingbird-fixture-decoder"
-          "$RUNNER_TEMP/hummingbird-fixture-decoder" "$GITHUB_WORKSPACE"
+        run: bash scripts/ci/decode-hummingbird-shared-fixtures.sh
 
       - name: Build Debug for iPhone Simulator
         run: |

@@ -19,9 +19,13 @@ case "$SUITE" in
             tests/Feature/ApiAuthorizationTest.php \
             tests/Feature/ApiIngressContractTest.php \
             tests/Feature/MobileBffTest.php \
+            tests/Feature/Mobile/FlowFixtureRegenerationTest.php \
             tests/Feature/MobileRoleCatalogParityTest.php \
+            tests/Feature/Mobile/SharedDtoFixtureRegenerationTest.php \
             tests/Feature/MobileSharedDtoFixtureTest.php \
             tests/Feature/MobileUiVocabularyParityTest.php \
+            tests/Feature/Patient/PatientProjectionFixtureRegenerationTest.php \
+            tests/Feature/Patient/PatientSharedDtoFixtureTest.php \
             tests/Feature/Rtdc/ApiSessionMiddlewareTest.php
         ;;
     integration)

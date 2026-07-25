@@ -1,11 +1,11 @@
 {
     "schema_version": 1,
-    "purpose": "Shared PHI-minimized mobile BFF fixture provenance. Every JSON fixture is captured from a real factory-seeded Laravel BFF response; it is never a hand-authored client payload.",
+    "purpose": "Shared PHI-minimized mobile BFF fixture provenance. Every JSON fixture is captured from a real factory-seeded Laravel BFF response; it is never a hand-authored client payload. Freshness comparison canonicalizes only validated database-sequence identifiers and catalog hashes so incidental test-sequence offsets cannot hide or create a semantic contract change.",
     "regeneration": {
         "command": "HUMMINGBIRD_FIXTURE_DUMP=1 php artisan test --filter='(FlowFixtureRegenerationTest|SharedDtoFixtureRegenerationTest)'",
         "post_generation_checks": [
-            "php artisan test tests/Feature/MobileSharedDtoFixtureTest.php --compact",
-            "hummingbird/iosApp/scripts/decode-shared-fixtures.swift",
+            "php artisan test tests/Feature/Mobile/FlowFixtureRegenerationTest.php tests/Feature/Mobile/SharedDtoFixtureRegenerationTest.php tests/Feature/MobileSharedDtoFixtureTest.php --compact",
+            "bash scripts/ci/decode-hummingbird-shared-fixtures.sh",
             "./gradlew testDebugUnitTest --tests net.acumenus.hummingbird.data.SharedDtoFixtureDecodeTest"
         ]
     },

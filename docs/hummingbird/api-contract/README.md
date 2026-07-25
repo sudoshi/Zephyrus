@@ -65,9 +65,12 @@ Regenerate staff fixtures with
 `HUMMINGBIRD_FIXTURE_DUMP=1 php artisan test --filter='(FlowFixtureRegenerationTest|SharedDtoFixtureRegenerationTest)'`
 and patient fixtures with
 `HUMMINGBIRD_PATIENT_FIXTURE_DUMP=1 php artisan test --filter=PatientProjectionFixtureRegenerationTest`.
-The same patient test runs without that flag in CI and fails on a stale checked-in
-fixture without writing to the worktree. Inspect each intentional diff and run the
-PHP, iOS XCTest, and Android JVM decode gates before committing.
+The staff and patient capture tests run without those flags in CI and fail on a
+stale checked-in fixture without writing to the worktree. Inspect each intentional
+diff and run the PHP, iOS XCTest, and Android JVM decode gates before committing.
+Staff freshness comparisons canonicalize only known, grammar-checked
+database-sequence identifiers and catalog hashes; all user-visible, authorization,
+status, envelope, and relationship semantics remain exact comparisons.
 
 ## Conventions baked in
 
