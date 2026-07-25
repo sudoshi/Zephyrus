@@ -1082,3 +1082,31 @@ activate any feature, create a production patient, migrate data, or deploy an ap
 This aligns native persisted-presentation evidence. It does not complete a system accessibility
 matrix, formal contrast measurement, VoiceOver/TalkBack review, localization, clinical content
 approval, production enrollment, a production patient, migration, or deployment.
+
+## 2026-07-25 — Safe local synthetic-reference test-database teardown
+
+### Completed implementation
+
+- Tightened the PHPUnit isolated-database teardown after it encountered a session that the test
+  role was not permitted to terminate. The teardown previously attempted to terminate every
+  connection to its random `zephyrus_test_<12-hex>` database before dropping it.
+- The query now terminates only sessions owned by `current_user`. This preserves the required
+  cleanup of the test runner's own connections while avoiding an attempt to terminate an
+  administrator, monitoring, or backup connection. Test bootstrap continues to fail before
+  provision if the database host is not loopback or the database name is not test-scoped.
+- Added a support-level regression that locks the ownership predicate into the teardown query. A
+  second complete run of the guarded synthetic-reference provisioner suite exited without the
+  previous cleanup warning.
+
+### Verification
+
+| Boundary                        | Command / target                                                                                                                      | Result                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| Test-database teardown syntax   | `php -l tests/Support/IsolatedTestDatabase.php` and the new support test                                                              | passed                                         |
+| Reference-patient safety matrix | `php artisan test` for the isolated-database support test plus reference encounter, identity, and draft-projection provisioner suites | 20 passed / 254 assertions; no cleanup warning |
+
+### Remaining boundary
+
+This hardens local test isolation only. It does not inspect, create, activate, or enroll a patient
+in production; issue a production credential; publish a draft; enable a feature; migrate data; or
+deploy an application.
