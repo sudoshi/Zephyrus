@@ -814,3 +814,34 @@ merge/correction reason, poll or push a lifecycle event while the app is open, c
 activate a production patient, enable a feature flag, approve a patient source, authorize
 a pilot, migrate data, or deploy an application. Those source, policy, operational, and
 deployed end-to-end requirements remain separate gates.
+
+## 2026-07-25 — Enrollment principal/grant and opaque-handle boundary ratification
+
+### Completed implementation
+
+- Confirmed the complete server-side enrollment transition rather than treating the
+  native invitation form as proof: a single locked transaction validates the bound,
+  verified identity link and active grant; activates the pending patient principal and
+  grant; consumes the challenge; writes the audit fact; and issues the patient session.
+- Confirmed that the patient realm does not define raw MRN, patient-reference,
+  encounter-reference, or bearer-secret columns. Source linkage material remains
+  protected server-side; it is not an app contract.
+- Strengthened the patient encounter API boundary regression. Its response is an explicit
+  allowlist of opaque encounter/grant UUIDs, relationship, scopes, validity, and version;
+  the regression now asserts that no MRN, patient reference, encounter reference, source
+  ID, or source-linkage field appears. The iOS and Android patient decoders consume that
+  opaque UUID contract rather than source identifiers.
+
+### Verification
+
+| Boundary                                      | Command / target                                                                                                                                                                         | Result                     |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| Enrollment, storage, and serialization bounds | `php artisan test --compact tests/Feature/Patient/PatientAuthLifecycleTest.php tests/Feature/Patient/PatientIdentityFoundationTest.php tests/Feature/Patient/PatientApiBoundaryTest.php` | 30 passed / 618 assertions |
+| Markdown and diff integrity                   | `npx --no-install prettier --check <two changed Markdown files>` and `git diff --check`                                                                                                  | passed                     |
+
+### Remaining boundary
+
+This closes the already-implemented principal/grant and opaque mobile-handle checklist
+row. It does not perform approved identity proofing, show a sufficient wrong-patient
+confirmation, create or activate a production patient, enable a flag, authorize a pilot,
+migrate data, or deploy an application.
