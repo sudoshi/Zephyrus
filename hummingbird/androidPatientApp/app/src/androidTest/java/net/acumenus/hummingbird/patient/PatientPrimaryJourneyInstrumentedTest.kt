@@ -379,7 +379,10 @@ class PatientPrimaryJourneyInstrumentedTest {
                 assertEquals(false, activity.isPrivacyCoverActive)
             }
 
-            scenario.moveToState(Lifecycle.State.STARTED)
+            // CREATED models a fully backgrounded task. It still invokes
+            // onPause (the security boundary under test) without relying on
+            // the emulator-sensitive RESUMED -> STARTED-only transition.
+            scenario.moveToState(Lifecycle.State.CREATED)
             scenario.onActivity { activity ->
                 assertEquals(true, activity.isPrivacyCoverActive)
             }

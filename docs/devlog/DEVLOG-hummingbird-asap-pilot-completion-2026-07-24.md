@@ -867,6 +867,11 @@ migrate data, or deploy an application.
   no-network previews make the withheld-content state renderable in native automation;
   the Android hook is compiled from its Debug source set and the iOS preview is enclosed
   in `#if DEBUG`.
+- The Android privacy-cover instrumentation journey now backgrounds the task to
+  `Lifecycle.State.CREATED` rather than relying on the emulator-sensitive intermediate
+  `STARTED` transition. This still invokes `onPause`, which is the production boundary
+  that applies the privacy cover, and it resumes through the same foreground-revalidation
+  path.
 
 ### Verification
 
@@ -875,7 +880,7 @@ migrate data, or deploy an application.
 | iOS model access boundary               | iPhone 17 Pro / iOS 26.3.1: `PatientAppViewModelTests`                                                                                   | 27 passed / 0 failures; empty-grant and transport-failure rechecks purge the care surface while retaining retry-only tokens       |
 | iOS rendered/accessibility boundary     | iPhone 17 Pro / iOS 26.3.1: `testForegroundAccessVerificationFailureHidesAllCareTabsAndKeepsUrgentHelpVisible` and no-active counterpart | 2 passed / 0 failures; reviewed capture shows opaque readable cards, urgent help, decorative imagery, retry/exit, and no tabs     |
 | Android model access boundary           | Debug JVM: `PatientAppViewModelTest`, `PatientSessionCoordinatorTest`, and `PatientLaunchHooksTest`                                      | 46 passed / 0 failures; vanished-grant and verification-unavailable states leave no care snapshot, messaging, or preference state |
-| Android rendered/accessibility boundary | API 35 `hb` emulator: `PatientPrimaryJourneyInstrumentedTest`                                                                            | 7 passed / 0 failures; explicit empty and access-verification-unavailable states render without care content                      |
+| Android rendered/accessibility boundary | API 35 `hb` emulator: full `connectedDebugAndroidTest` patient suite                                                                     | 16 passed / 0 failures; explicit empty and access-verification-unavailable states render without care content                     |
 | Android static analysis                 | `:app:lintDebug`                                                                                                                         | passed                                                                                                                            |
 
 ### Remaining boundary
