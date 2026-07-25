@@ -85,7 +85,10 @@ interface CommunicationWorkItem {
     status: string;
     ownership_state: string;
     assigned_to_me: boolean;
-    actions: CommunicationActions;
+    // A transition response may intentionally omit mutable-action capability
+    // data while the server replaces or withdraws a protected projection.
+    // Treat absence as no authority until a complete detail response arrives.
+    actions?: CommunicationActions;
     work_item_version: number;
     thread_version: number;
     last_message_at: string | null;
@@ -181,7 +184,7 @@ function contextLabel(value: string | null): string {
 }
 
 function isClaimable(item: CommunicationWorkItem): boolean {
-    return item.actions.can_claim === true;
+    return item.actions?.can_claim === true;
 }
 
 function hasSelectedProjectionDrift(
@@ -200,9 +203,9 @@ function hasSelectedProjectionDrift(
         previous.status !== next.status ||
         previous.ownership_state !== next.ownership_state ||
         previous.assigned_to_me !== next.assigned_to_me ||
-        previous.actions.can_claim !== next.actions.can_claim ||
-        previous.actions.can_reply !== next.actions.can_reply ||
-        previous.actions.can_close !== next.actions.can_close ||
+        previous.actions?.can_claim !== next.actions?.can_claim ||
+        previous.actions?.can_reply !== next.actions?.can_reply ||
+        previous.actions?.can_close !== next.actions?.can_close ||
         previous.work_item_version !== next.work_item_version ||
         previous.thread_version !== next.thread_version
     );
@@ -1863,10 +1866,10 @@ export default function PatientCommunicationsIndex({
 
                                     {canRespond &&
                                         detail.status === "open" &&
-                                        (detail.actions.can_reply ||
-                                            detail.actions.can_close) && (
+                                        (detail.actions?.can_reply ||
+                                            detail.actions?.can_close) && (
                                             <>
-                                                {detail.actions.can_reply && (
+                                                {detail.actions?.can_reply && (
                                                     <>
                                                         <label className="block text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
                                                             Patient-visible
@@ -1935,7 +1938,7 @@ export default function PatientCommunicationsIndex({
                                                     </>
                                                 )}
 
-                                                {detail.actions.can_close && (
+                                                {detail.actions?.can_close && (
                                                     <div className="flex flex-wrap items-end gap-3 border-t border-healthcare-border pt-3 dark:border-healthcare-border-dark">
                                                         <label className="min-w-60 flex-1 text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                                             Closure reason

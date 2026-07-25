@@ -884,3 +884,34 @@ This ratifies strict client-side revalidation on foreground return. It does not 
 an approved patient-data retention rule after discharge, source-driven transfer/merge/
 correction semantics, active-session revocation push or polling, identity proofing, a
 production patient, feature activation, pilot authorization, migration, or deployment.
+
+## 2026-07-25 — Staff action-capability transition fails closed
+
+### Completed implementation
+
+- Corrected a PR-discovered staff communications safety defect. During a protected
+  server-transition response, the routing projection can intentionally omit mutable-action
+  capability data while it is being replaced or withdrawn. The web inbox previously assumed
+  the field existed and could crash before it removed obsolete source detail.
+- The work-item type now records that capability data can be absent. Every claim/reply/close
+  affordance treats that absence as **no authority**; retained-versus-refreshed action
+  differences still count as projection drift and trigger the existing stale-detail purge.
+- The transition-polling regression uses an actionless source row/detail and proves that
+  content may remain readable only as already-authorized detail while **Assign to me**,
+  **Send response**, and **Close communication** are all absent. No client-side fallback
+  reconstructs permission or emits a mutation.
+
+### Verification
+
+| Boundary                       | Command / target                                            | Result                                                               |
+| ------------------------------ | ----------------------------------------------------------- | -------------------------------------------------------------------- |
+| Focused transition regression  | `vitest run PatientCommunicationTransitionPolling.test.tsx` | 1 file / 7 tests passed; omitted action capabilities withhold writes |
+| Full frontend regression suite | `npm test`                                                  | 147 files / 655 tests passed                                         |
+| Formatting and diff integrity  | Prettier target check and `git diff --check`                | passed                                                               |
+
+### Remaining boundary
+
+This fixes a fail-closed web presentation defect in the existing staff communication
+slice. It does not add a recipient, modify server-side authorization, establish a
+responsibility-pool/coverage feed, enable messaging, approve a pilot, create a production
+patient, migrate data, or deploy an application.
