@@ -100,8 +100,21 @@ The standalone Debug build's artifacts are never reused; XCTest recompiles every
 ### S3. Parallelize XCUITest (2 simulator clones) + split the 11-test routing class — **staff iOS UI step 12.1 m → ~6.5–7.5 m**
 - [ ] `project.yml:19-20` `parallelizable: true`, `-parallel-testing-enabled YES -parallel-testing-worker-count 2` (`ci.yml:727`), and split `PatientCommunicationRoutingUITests` (11 of 18 tests; XCTest distributes per-class, so without the split two workers cap at −4 m).
 
-### S4. Tree-sha verdict reuse on the squash push + docs-only fast path — **merge→deploy ~25 m → ~1–2 m** *(needs an explicit [SU] evidence-chain ruling first)*
-- [ ] Add a 30 s `changes` gatekeeper job: (a) on main pushes, if a successful run exists whose head tree-sha equals this commit's tree-sha, output `reuse=true`; (b) on any event, output `docs_only` from the diff. All 11 job definitions gain `needs: changes` + skip conditions. Skipped required checks satisfy branch protection and the run concludes `success` (verified), so the deploy gate passes on the exact SHA — but the run's evidence artifacts would point at the PR run, which is precisely the [SU] ruling to record before landing. `strict: true` makes tree matches near-universal.
+### S4. Tree-sha verdict reuse on the squash push + docs-only fast path — **merge→deploy ~25 m → ~1–2 m**
+> **[SU] evidence-chain ruling recorded 2026-07-24** ("Proceed"): on a reused main run, the verdict
+> evidence for the deployed SHA is the linked fully-green PR run for the byte-identical git tree; the
+> gatekeeper's step summary records both SHAs, the shared tree SHA, and the reused run URL.
+- [x] Verdict reuse (a): `changes` gatekeeper on main pushes resolves the squash subject's PR number,
+  compares the squash commit's tree-sha to the PR head's tree-sha via the git-objects API (no checkout),
+  and requires a **fully-successful** `ci.yml` run for that head — the same all-jobs-green bar the deploy
+  gate applies to main runs today, so a PR run that passed only its 17 required contexts (e.g. a
+  non-required staff-iOS flake) correctly fails open to a full main suite. All 11 job definitions gained
+  `needs: changes` + `if: needs.changes.outputs.reuse != 'true'`; reuse can never trigger on
+  `pull_request` events, so branch protection semantics are untouched. Empirically verified on real
+  history: PR #61 and #63 squash trees are byte-identical to their PR-head trees.
+- [ ] Docs-only fast path (b): deferred to a follow-up; `needs: changes` is already in place, so it is
+  an output + condition extension. Classification must exclude `docs/hummingbird/**` (generated docs are
+  contract-verified in CI) and keep gitleaks running on every diff.
 
 ### S5. De-risk the `macos-26` queue tail — **removes the +35 m variance**
 - [ ] In order: (a) test whether `macos-15`'s Xcode selection now covers the needed iOS-26 SDK — if yes, leave the scarce pool entirely; (b) evaluate larger-runner pools; (c) failing both, move XCUITest journeys to main-push/nightly lanes only (permissible — staff iOS is not a required PR check — but record the coverage trade-off explicitly).
