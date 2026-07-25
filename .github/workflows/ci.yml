@@ -387,6 +387,18 @@ jobs:
       - name: Vite production build
         run: bash scripts/capture-release-evidence.sh frontend-build npx vite build
 
+      # Plan S6: browser + DAST download this build and skip their own
+      # vite runs — one production build per CI run.
+      - name: Upload production build for browser/DAST reuse
+        uses: actions/upload-artifact@v4
+        with:
+          name: vite-production-build
+          path: public/build
+          if-no-files-found: error
+          # Long enough that a failed-job rerun a day or two later can still
+          # download it; the durable build record lives in release evidence.
+          retention-days: 3
+
       - name: UI canon check
         run: bash scripts/capture-release-evidence.sh frontend-ui-canon bash scripts/check-ui-canon.sh
 
@@ -499,7 +511,9 @@ jobs:
   browser:
     name: Browser (Playwright / Chromium)
     runs-on: ubuntu-latest
-    needs: changes
+    # frontend is needed for the shared vite build (plan S6); the implicit
+    # success() in `if` keeps this job skipped whenever frontend skips.
+    needs: [changes, frontend]
     # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
     if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 20
@@ -524,6 +538,7 @@ jobs:
       TEST_USERNAME: e2e_admin
       TEST_PASSWORD: BrowserOnlyPassword!123
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:8084
+      PLAYWRIGHT_SKIP_BUILD: "true"
       RELEASE_EVIDENCE_DIR: artifacts/release-evidence/browser
 
     services:
@@ -583,6 +598,12 @@ jobs:
       - name: Prepare test application
         run: cp .env.example .env
 
+      - name: Download production build from the frontend job
+        uses: actions/download-artifact@v4
+        with:
+          name: vite-production-build
+          path: public/build
+
       - name: Run Playwright
         run: bash scripts/run-browser-suite.sh
 
@@ -604,7 +625,9 @@ jobs:
   dast:
     name: DAST (OWASP ZAP baseline)
     runs-on: ubuntu-latest
-    needs: changes
+    # frontend is needed for the shared vite build (plan S6); the implicit
+    # success() in `if` keeps this job skipped whenever frontend skips.
+    needs: [changes, frontend]
     # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
     if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 25
@@ -628,6 +651,7 @@ jobs:
       DEMO_AUTO_LOGIN_ENABLED: "false"
       TEST_USERNAME: e2e_admin
       TEST_PASSWORD: BrowserOnlyPassword!123
+      DAST_SKIP_BUILD: "true"
       RELEASE_EVIDENCE_DIR: artifacts/release-evidence/dast
 
     services:
@@ -676,6 +700,12 @@ jobs:
 
       - name: Prepare test application
         run: cp .env.example .env
+
+      - name: Download production build from the frontend job
+        uses: actions/download-artifact@v4
+        with:
+          name: vite-production-build
+          path: public/build
 
       - name: Run pinned ZAP baseline
         run: bash scripts/capture-release-evidence.sh dast-zap bash scripts/run-dast-suite.sh
@@ -779,15 +809,19 @@ jobs:
 
   hummingbird-staff-ios:
     name: Hummingbird staff (iOS)
-    # Staff UI uses the iOS 26 liquid-glass SDK. macos-15 currently defaults
-    # to Xcode 16.4, whose SDK cannot even parse those guarded symbols.
-    runs-on: macos-26
+    # Staff UI needs the iOS 26 liquid-glass SDK. macos-15 defaults to
+    # Xcode 16.4 but ships Xcode 26.0-26.3 side-by-side (probe 2026-07-25:
+    # full staff XCTest+XCUITest suites green under Xcode 26.3), so pin
+    # DEVELOPER_DIR instead of paying the scarce macos-26 pool's queue
+    # tail (measured up to 35.4 m; macos-15 queues in seconds).
+    runs-on: macos-15
     needs: changes
     # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
     if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 45
     env:
       IOS_STAFF_ROOT: hummingbird/iosApp
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
 
     steps:
       - uses: actions/checkout@v4

@@ -135,7 +135,7 @@ The standalone Debug build's artifacts are never reused; XCTest recompiles every
 - [ ] Either way: emit queue-delay (job `started_at` − run `created_at`) into release evidence so the tail is *measured* continuously.
 
 ### S6. Single vite build per run — **browser 9.0 → ~7.5 m, DAST 4.3 → ~2.5 m**
-- [ ] Frontend job uploads `public/build`; browser + DAST download it and set the already-existing `PLAYWRIGHT_SKIP_BUILD` / `DAST_SKIP_BUILD` flags (`run-browser-suite.sh:74`, `run-dast-suite.sh:75`). Optionally fold ZAP into the browser job against the still-running server later — but DAST is a *required check by name*, so any fold must ship with a branch-protection update in the same window.
+- [x] Frontend job uploads `public/build`; browser + DAST download it and set the already-existing `PLAYWRIGHT_SKIP_BUILD` / `DAST_SKIP_BUILD` flags (`run-browser-suite.sh:74`, `run-dast-suite.sh:75`). Optionally fold ZAP into the browser job against the still-running server later — but DAST is a *required check by name*, so any fold must ship with a branch-protection update in the same window.
 
 ---
 
