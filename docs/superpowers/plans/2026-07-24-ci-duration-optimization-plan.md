@@ -53,34 +53,34 @@
 
 ### Q1. Preboot the iOS simulator during the builds — **−3 to −5 m staff iOS**
 The boot step (1.8–5.0 m) runs strictly after both builds but depends on nothing they produce.
-- [ ] Move `Select and boot an available iPhone Simulator` (staff `ci.yml:694-700`, patient `903-909`) to immediately after checkout; make `xcrun simctl boot` non-blocking (background boot), and add a cheap `xcrun simctl bootstatus $UDID -b` wait right before the first test step. Boot then overlaps the ~4–5 m build window and its cost collapses to ~0.
+- [x] Move `Select and boot an available iPhone Simulator` (staff `ci.yml:694-700`, patient `903-909`) to immediately after checkout; make `xcrun simctl boot` non-blocking (background boot), and add a cheap `xcrun simctl bootstatus $UDID -b` wait right before the first test step. Boot then overlaps the ~4–5 m build window and its cost collapses to ~0.
 - Verify: staff iOS step timeline shows boot wait <30 s on 3 consecutive runs.
 
 ### Q2. `build-for-testing` + `test-without-building` — **net ~−4 m staff iOS**
 The standalone Debug build's artifacts are never reused; XCTest recompiles everything.
-- [ ] Replace `Build Debug for iPhone Simulator` (`ci.yml:663-674`) with `xcodebuild build-for-testing` targeting `$RUNNER_TEMP/hummingbird-staff-ios-tests` (the derivedDataPath the test steps already use), and switch both test invocations (`ci.yml:709/724`) to `test-without-building`. Same change for patient iOS (`~884-939`).
+- [x] Replace `Build Debug for iPhone Simulator` (`ci.yml:663-674`) with `xcodebuild build-for-testing` targeting `$RUNNER_TEMP/hummingbird-staff-ios-tests` (the derivedDataPath the test steps already use), and switch both test invocations (`ci.yml:709/724`) to `test-without-building`. Same change for patient iOS (`~884-939`).
 - Verify: one compile phase total in the job log; XCTest step drops from 4.1 m to ≤1.5 m.
 
 ### Q3. In-job XCUITest flake retry (PR lanes only) — **−20 to −27 m per flake occurrence**
-- [ ] Add `-retry-tests-on-failure -maximum-test-repetitions 3` to the XCUITest invocations (`ci.yml:717-730`, `926-939`), gated on `github.event_name == 'pull_request'` so §3.2.9 budget-evidence runs (main) stay retry-free.
+- [x] Add `-retry-tests-on-failure -maximum-test-repetitions 3` to the XCUITest invocations (`ci.yml:717-730`, `926-939`), gated on `github.event_name == 'pull_request'` so §3.2.9 budget-evidence runs (main) stay retry-free. *(shipped as `-retry-tests-on-failure -test-iterations 3 -test-repetition-relaunch-enabled YES` — `-maximum-test-repetitions` is the test-plan GUI name, not an xcodebuild flag; usage exit 64.)*
 - Verify: inject a known-flaky rerun; job self-heals without a full rerun.
 
 ### Q4. Resequence Release build + transport verify after the test steps — **−2.2 m to first-failure**
-- [ ] Move `ci.yml:676-692` (Build Release + transport verify) after XCUITest so test failures surface ~2 m sooner; keep them in-job (the separate-job variant costs a scarce macOS slot — see S5).
+- [x] Move `ci.yml:676-692` (Build Release + transport verify) after XCUITest so test failures surface ~2 m sooner; keep them in-job (the separate-job variant costs a scarce macOS slot — see S5).
 
 ### Q5. Security gate: decouple dependency audits from live registry events — **kills red-main incidents**
-- [ ] In `scripts/security/run-security-suite.sh:19-22`, run `composer audit`/`npm audit`/`pip-audit` as **hard gates only when the diff touches the corresponding lockfile** (`git diff --name-only origin/main...HEAD`), plus an unconditional scheduled nightly workflow that opens an issue on new advisories. Gitleaks/semgrep/edge-security stay hard-gated on every run.
+- [x] In `scripts/security/run-security-suite.sh:19-22`, run `composer audit`/`npm audit`/`pip-audit` as **hard gates only when the diff touches the corresponding lockfile** (`git diff --name-only origin/main...HEAD`), plus an unconditional scheduled nightly workflow that opens an issue on new advisories. Gitleaks/semgrep/edge-security stay hard-gated on every run.
 - Rationale: today's `brace-expansion` advisory turned main red for hours and cost three CI round-trips on an unrelated one-line PR. Advisory response becomes a *scheduled, owned* activity instead of a merge-blocking ambush.
 
 ### Q6. §3.2.9 instrumentation prerequisite — **unblocks the whole structural tier**
-- [ ] Add setup-vs-test-body wall-time split + aggregate DB query-count/time to the shard harness for the residual heavy classes (the JUnit artifacts already give per-test totals; add a `setUp` timer via a base-class hook + `DB::listen` counter emitted into the release-evidence dir). This is the unchecked §3.2.9 box that *gates* the weighted manifest (S1) and the seeding rework (S2).
+- [x] Add setup-vs-test-body wall-time split + aggregate DB query-count/time to the shard harness for the residual heavy classes (the JUnit artifacts already give per-test totals; add a `setUp` timer via a base-class hook + `DB::listen` counter emitted into the release-evidence dir). This is the unchecked §3.2.9 box that *gates* the weighted manifest (S1) and the seeding rework (S2).
 
 ### Q7. Hygiene ratchets (all trivial, all off critical path)
-- [ ] `timeout-minutes: 90 → 30` on backend shards (`ci.yml:137`) — matches the ratified "no shard above 30 m" budget; caps hung-shard burn.
-- [ ] `cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}` (`ci.yml:11`) — closes the permanently-undeployable-superseded-main-commit hole.
-- [ ] Pint `--parallel` (`ci.yml:117`): quality job 101 s → ~35 s.
-- [ ] Cache Playwright chromium (`~/.cache/ms-playwright`, keyed on the lockfile's playwright version) + add the existing composer-cache block to browser (`ci.yml:~432`) and dast (`~517`) jobs.
-- [ ] Drop `--coverage` from PR-lane Vitest (`ci.yml:265`; nothing consumes the lcov — keep it on main pushes so the coverage record persists).
+- [x] `timeout-minutes: 90 → 30` on backend shards (`ci.yml:137`) — matches the ratified "no shard above 30 m" budget; caps hung-shard burn.
+- [x] `cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}` (`ci.yml:11`) — closes the permanently-undeployable-superseded-main-commit hole.
+- [ ] Pint `--parallel` (`ci.yml:117`): quality job 101 s → ~35 s. **DEFERRED:** needs Pint ≥ 1.22; the 1.20→1.29.3 bump restyles ~150 files — dedicated bump+reformat PR.
+- [x] Cache Playwright chromium (`~/.cache/ms-playwright`, keyed on the lockfile's playwright version) + add the existing composer-cache block to browser (`ci.yml:~432`) and dast (`~517`) jobs.
+- [x] Drop `--coverage` from PR-lane Vitest (`ci.yml:265`; nothing consumes the lcov — keep it on main pushes so the coverage record persists).
 
 **Tier-1 projected nominal wall:** staff iOS 26.9 m → **~16.5–18.6 m** (Q1+Q2+Q4 compose on the step chain; boot overlap bounded by build length). Backend untouched (gated by Q6→S1), so on an unlucky modulo deal the wall is the worst backend shard **~19–24 m**; median run **~18–19 m**. The macOS queue tail remains (addressed in S5).
 
