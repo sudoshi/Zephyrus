@@ -670,7 +670,10 @@ jobs:
             -o "$RUNNER_TEMP/hummingbird-fixture-decoder"
           "$RUNNER_TEMP/hummingbird-fixture-decoder" "$GITHUB_WORKSPACE"
 
-      - name: Build Debug for iPhone Simulator
+      # build-for-testing writes app + test bundles into the derivedDataPath
+      # the test steps read, so XCTest/XCUITest run test-without-building
+      # instead of recompiling from scratch.
+      - name: Build Debug for testing (iPhone Simulator)
         run: |
           xcodebuild \
             -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
@@ -678,10 +681,10 @@ jobs:
             -configuration Debug \
             -sdk iphonesimulator \
             -destination "generic/platform=iOS Simulator" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-debug" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build
+            build-for-testing
 
       - name: Build Release for iPhone Simulator
         run: |
@@ -717,7 +720,7 @@ jobs:
             -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            test
+            test-without-building
 
       - name: Run XCUITest reference journeys
         run: |
@@ -732,7 +735,7 @@ jobs:
             -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            test
+            test-without-building
 
       - name: Shut down test simulator
         if: always() && steps.simulator.outputs.udid != ''
@@ -883,7 +886,10 @@ jobs:
           bash scripts/ci/verify-hummingbird-patient-boundary.sh source "$IOS_PATIENT_ROOT"
           xcodebuild -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" -list
 
-      - name: Build Debug for iPhone Simulator
+      # build-for-testing writes app + test bundles into the derivedDataPath
+      # the test steps read, so XCTest/XCUITest run test-without-building
+      # instead of recompiling from scratch.
+      - name: Build Debug for testing (iPhone Simulator)
         run: |
           xcodebuild \
             -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
@@ -891,10 +897,10 @@ jobs:
             -configuration Debug \
             -sdk iphonesimulator \
             -destination "generic/platform=iOS Simulator" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-debug" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build
+            build-for-testing
 
       - name: Build Release for iPhone Simulator
         run: |
@@ -931,7 +937,7 @@ jobs:
             -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            test
+            test-without-building
 
       - name: Run XCUITest reference journeys
         run: |
@@ -946,7 +952,7 @@ jobs:
             -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            test
+            test-without-building
 
       - name: Shut down test simulator
         if: always() && steps.simulator.outputs.udid != ''
