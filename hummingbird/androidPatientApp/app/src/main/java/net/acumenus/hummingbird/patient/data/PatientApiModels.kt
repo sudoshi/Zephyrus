@@ -274,6 +274,8 @@ data class PatientDischargeReadinessContent(
     val estimatedConfidence: String?,
     val criteria: List<PatientDischargeCriterion>,
     val unresolvedNeeds: List<String>,
+    val equipment: List<String>,
+    val transport: List<String>,
     val medications: List<PatientDischargeMedication>,
     val followUp: List<PatientDischargeFollowUp>,
     val warningSigns: List<String>,
@@ -750,6 +752,8 @@ object PatientEnvelopeDecoder {
                     )
                 },
                 unresolvedNeeds = content.stringList("unresolved_needs"),
+                equipment = content.stringList("equipment"),
+                transport = content.stringList("transport"),
                 medications = content.objects("medications") { medication ->
                     PatientDischargeMedication(
                         itemUuid = medication.getString("item_uuid"),

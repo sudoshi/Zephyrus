@@ -3152,6 +3152,10 @@ components:
             $ref: "#/components/schemas/PatientDischargeCriterion"
         unresolved_needs:
           $ref: "#/components/schemas/PatientLanguageList"
+        equipment:
+          $ref: "#/components/schemas/PatientLanguageList"
+        transport:
+          $ref: "#/components/schemas/PatientLanguageList"
         medications:
           type: array
           items:

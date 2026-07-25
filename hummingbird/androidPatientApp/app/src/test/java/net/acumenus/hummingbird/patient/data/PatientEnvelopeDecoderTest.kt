@@ -326,7 +326,9 @@ class PatientEnvelopeDecoderTest {
                     "status": "pending",
                     "detail": "Your team will review this with you each day."
                   }],
-                  "unresolved_needs": ["A ride home arranged for the day you leave."],
+                  "unresolved_needs": ["Your team is reviewing the remaining preparations with you."],
+                  "equipment": ["Your care team is checking whether you need equipment for safe movement at home."],
+                  "transport": ["Transportation home is being planned. Your team will confirm the plan before you leave."],
                   "medications": [{
                     "item_uuid": "019f4d7a-3200-7000-8000-000000000025",
                     "name": "Your updated medicine list",
@@ -352,6 +354,14 @@ class PatientEnvelopeDecoderTest {
 
         assertEquals("estimated", envelope.data.content.estimatedConfidence)
         assertEquals("pending", envelope.data.content.criteria.single().status)
+        assertEquals(
+            listOf("Your care team is checking whether you need equipment for safe movement at home."),
+            envelope.data.content.equipment,
+        )
+        assertEquals(
+            listOf("Transportation home is being planned. Your team will confirm the plan before you leave."),
+            envelope.data.content.transport,
+        )
         assertEquals("Your updated medicine list", envelope.data.content.medications.single().name)
         assertEquals("Within a week or two of leaving", envelope.data.content.followUp.single().whenLabel)
         assertEquals("speak_with_bedside_staff", envelope.data.content.contacts.single().route)

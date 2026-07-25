@@ -199,7 +199,9 @@ internal object SyntheticReferencePatientScenario {
                     detail = "Your care team will review this with you each day.",
                 ),
             ),
-            unresolvedNeeds = listOf("A ride home arranged for the day you leave."),
+            unresolvedNeeds = listOf("Your team is reviewing the remaining preparations with you."),
+            equipment = listOf("Your care team is checking whether you need equipment for safe movement at home."),
+            transport = listOf("Transportation home is being planned. Your team will confirm the plan before you leave."),
             medications = listOf(
                 PatientDischargeReadinessMedication(
                     id = "01982e0c-709a-7ef0-9000-000000000017",

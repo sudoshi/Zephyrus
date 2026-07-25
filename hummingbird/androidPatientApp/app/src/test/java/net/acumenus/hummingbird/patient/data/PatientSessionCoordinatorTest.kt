@@ -54,6 +54,14 @@ class PatientSessionCoordinatorTest {
         assertEquals("Test", ready.snapshot.pathwayEvents?.events?.single()?.category)
         assertEquals("Getting ready to leave", ready.snapshot.dischargeReadiness?.headline)
         assertEquals("Moving safely with the support you need", ready.snapshot.dischargeReadiness?.criteria?.single()?.label)
+        assertEquals(
+            listOf("Your care team is checking whether you need equipment for safe movement at home."),
+            ready.snapshot.dischargeReadiness?.equipment,
+        )
+        assertEquals(
+            listOf("Transportation home is being planned. Your team will confirm the plan before you leave."),
+            ready.snapshot.dischargeReadiness?.transport,
+        )
         assertEquals("Your care-team conversation", ready.snapshot.roundsSummary?.headline)
         assertEquals("How you are doing", ready.snapshot.roundsSummary?.topics?.single()?.title)
         assertEquals(
@@ -743,7 +751,9 @@ internal class FakePatientApiGateway(
                             detail = "Your team will review this with you each day.",
                         ),
                     ),
-                    unresolvedNeeds = listOf("A ride home arranged for the day you leave."),
+                    unresolvedNeeds = listOf("Your team is reviewing the remaining preparations with you."),
+                    equipment = listOf("Your care team is checking whether you need equipment for safe movement at home."),
+                    transport = listOf("Transportation home is being planned. Your team will confirm the plan before you leave."),
                     medications = listOf(
                         PatientDischargeMedication(
                             itemUuid = "019f4d7a-3200-7000-8000-000000000025",

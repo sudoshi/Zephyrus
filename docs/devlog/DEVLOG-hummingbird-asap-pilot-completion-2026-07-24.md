@@ -585,3 +585,40 @@ This ratifies the governed, default-off technical pathway only. It does not esta
 clinical response-time SLA, enable patient messaging, staff a pool, authorize a pilot,
 expose routing metadata, create a production patient, migrate data, or deploy an
 application.
+
+## 2026-07-25 — Patient discharge equipment-and-transport preparation ratification
+
+### Completed implementation
+
+- Extended the existing patient `discharge_readiness` projection with two optional,
+  additive patient-language lists: `equipment` and `transport`. The content guard accepts
+  only strings for those fields and retains the existing fail-closed top-level allowlist and
+  forbidden-key scan. It additionally rejects explicit ETA/time, dispatch, queue/capacity,
+  driver/vehicle, route, and assigned-transport wording from those lists. It does not
+  introduce a new route, source adapter, policy, feature flag, or release state.
+- Updated the OpenAPI contract, disclosure matrix, deterministic testing-only projection
+  provisioner, and shared JSON fixture so the BFF contract stays aligned with both native
+  decoders. The reference language says that equipment needs and the getting-home plan are
+  being checked or planned; it does not promise an item, a ride, an exact departure time,
+  a route, or a staff assignment.
+- Both native My Path experiences render a section only when its separately released list
+  is nonempty: **Equipment and supplies for home** and **Getting home**. The final
+  discharge reminder explicitly leaves confirmation to the care team. These additions do
+  not infer missing content and do not expose operational transport state.
+
+### Verification
+
+| Boundary                             | Command / target                                                                                                                                                      | Result                                                                                                       |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Projection safety and BFF contract   | `PatientProjectionKernelTest` + `PatientProjectionApiTest`; then `PatientProjectionFixtureRegenerationTest` + `PatientSharedDtoFixtureTest`                           | 21 passed / 630 assertions, then 5 passed / 243 assertions; the controlled fixture dump also passed (1 / 66) |
+| iOS model and rendered journey       | iPhone 17 Pro / iOS 26.3.1: fixture decoder + bootstrap-model tests; `PatientReferenceJourneyUITests/testReferenceJourneyExposesCarePathTeamAndSafeMessagingLanguage` | 2 model tests, then 1 rendered journey passed; no failures or skips                                          |
+| Android decoder and rendered journey | API 35 `hb` emulator: focused decoder/fixture/coordinator JVM tests and `connectedDebugAndroidTest --rerun-tasks`                                                     | 43 focused JVM tests and all 15 instrumentation tests passed; 0 failures, errors, or skips                   |
+
+### Remaining boundary
+
+This is a default-off, additive contract and presentation increment. It does not approve
+an equipment or transport source, make a clinical or operational arrangement, release
+real patient content, create or activate a production patient, authorize a pilot, migrate
+data, or deploy an application. Production disclosure still requires clinical review,
+source lineage, an approved release workflow, patient-advisor validation, and separate
+activation authority.

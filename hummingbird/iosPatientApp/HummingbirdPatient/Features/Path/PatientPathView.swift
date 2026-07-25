@@ -218,6 +218,20 @@ struct PatientPathView: View {
                         icon: "clock.arrow.circlepath",
                         items: discharge.unresolvedNeeds ?? []
                     )
+                    if let equipment = discharge.equipment, !equipment.isEmpty {
+                        PatientBulletListCard(
+                            title: "Equipment and supplies for home",
+                            icon: "cross.case.fill",
+                            items: equipment
+                        )
+                    }
+                    if let transport = discharge.transport, !transport.isEmpty {
+                        PatientBulletListCard(
+                            title: "Getting home",
+                            icon: "car.fill",
+                            items: transport
+                        )
+                    }
                     PatientBulletListCard(
                         title: "Medicines to review",
                         icon: "pills.fill",
@@ -257,7 +271,7 @@ struct PatientPathView: View {
                             Label("Your team confirms the details", systemImage: "person.crop.circle.badge.checkmark")
                                 .font(.headline)
                                 .foregroundStyle(PatientPalette.teal)
-                            Text("This is a released summary to help you prepare. Your care team will confirm medicines, follow-up, warning signs, and the safe time to leave.")
+                            Text("This is a released summary to help you prepare. Your care team will confirm equipment, your getting-home plan, medicines, follow-up, warning signs, and the safe time to leave.")
                                 .font(.body)
                         }
                     }

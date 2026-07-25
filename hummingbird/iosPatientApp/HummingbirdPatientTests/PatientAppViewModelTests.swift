@@ -124,6 +124,14 @@ final class PatientAppViewModelTests: XCTestCase {
             viewModel.snapshot?.dischargeReadiness?.criteria?.first?.label,
             "Moving safely with the support you need"
         )
+        XCTAssertEqual(
+            viewModel.snapshot?.dischargeReadiness?.equipment,
+            ["Your care team is checking whether you need equipment for safe movement at home."]
+        )
+        XCTAssertEqual(
+            viewModel.snapshot?.dischargeReadiness?.transport,
+            ["Transportation home is being planned. Your team will confirm the plan before you leave."]
+        )
         XCTAssertEqual(viewModel.snapshot?.careTeam.first?.name, "Jordan Lee, RN")
         XCTAssertTrue(viewModel.snapshot?.hasTodayProjection == true)
         XCTAssertTrue(viewModel.snapshot?.hasPathwayProjection == true)
@@ -1305,7 +1313,9 @@ private enum PatientFixtures {
                         detail: "Your team will review this with you each day."
                     ),
                 ],
-                unresolvedNeeds: ["A ride home arranged for the day you leave."],
+                unresolvedNeeds: ["Your team is reviewing the remaining preparations with you."],
+                equipment: ["Your care team is checking whether you need equipment for safe movement at home."],
+                transport: ["Transportation home is being planned. Your team will confirm the plan before you leave."],
                 medications: [
                     PatientDischargeMedication(
                         itemUUID: "019f0000-0000-7000-8000-000000000037",

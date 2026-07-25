@@ -574,6 +574,14 @@ private fun androidx.compose.foundation.lazy.LazyListScope.pathwayContent(
             entries = readiness.unresolvedNeeds,
         )
         patientListCard(
+            title = "Equipment and supplies for home",
+            entries = readiness.equipment,
+        )
+        patientListCard(
+            title = "Getting home",
+            entries = readiness.transport,
+        )
+        patientListCard(
             title = "Medicines to review",
             entries = readiness.medications.map { medication ->
                 listOf(medication.name, medication.purpose)
@@ -600,7 +608,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.pathwayContent(
         item {
             GuidanceCard(
                 title = "Your team confirms the details",
-                body = "This is a released summary to help you prepare. Your care team will confirm medicines, follow-up, warning signs, and the safe time to leave.",
+                body = "This is a released summary to help you prepare. Your care team will confirm equipment, your getting-home plan, medicines, follow-up, warning signs, and the safe time to leave.",
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
         }

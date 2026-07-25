@@ -598,7 +598,7 @@ The patient product should feel reassuring without becoming juvenile, visually n
 
 #### Journey E: discharge preparation
 
-- [ ] My Path shows discharge criteria, estimated date/range with uncertainty, unresolved needs, medications/education, equipment, transport, follow-up, warning signs, and who to contact.
+- [ ] My Path shows discharge criteria, estimated date/range with uncertainty, unresolved needs, medications/education, equipment, transport, follow-up, warning signs, and who to contact. _(2026-07-25 incremental: `discharge_readiness` now has optional, release-guarded patient-language `equipment` and `transport` lists. Both native My Path views render only nonempty lists as **Equipment and supplies for home** and **Getting home**; they use no dispatch status, assigned staff, route, capacity, exact departure time, or transport ETA. The deterministic testing-only BFF fixture, PHP guard/API tests, iPhone 17 Pro simulator, and Android API 35 emulator cover the field-to-view path. The item remains open: no production source adapter, clinical content/release approval, patient-advisor validation, pilot, or feature activation is implied.)_
 - [ ] Patient/family goals and preferences are visible to the care team.
 - [ ] Teach-back identifies areas needing clarification.
 - [ ] Required clinical documents link to the designated source rather than being silently copied into a separate record.

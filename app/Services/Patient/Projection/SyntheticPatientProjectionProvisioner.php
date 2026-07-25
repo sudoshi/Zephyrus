@@ -333,7 +333,9 @@ class SyntheticPatientProjectionProvisioner
                         'detail' => 'Your team will check this with you each day.',
                     ],
                 ],
-                'unresolved_needs' => ['A ride home arranged for the day you leave.'],
+                'unresolved_needs' => ['Your team is reviewing the remaining preparations with you.'],
+                'equipment' => ['Your care team is checking whether you need equipment for safe movement at home.'],
+                'transport' => ['Transportation home is being planned. Your team will confirm the plan before you leave.'],
                 'medications' => [
                     [
                         'item_uuid' => $this->uuid($seed.'/discharge/med/home'),

@@ -586,6 +586,8 @@ object PatientSnapshotFactory {
                         )
                     },
                     unresolvedNeeds = content.unresolvedNeeds,
+                    equipment = content.equipment,
+                    transport = content.transport,
                     medications = content.medications.map { medication ->
                         PatientDischargeReadinessMedication(
                             id = medication.itemUuid,

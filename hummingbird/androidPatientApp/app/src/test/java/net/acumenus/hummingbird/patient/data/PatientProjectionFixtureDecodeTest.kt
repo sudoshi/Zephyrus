@@ -66,6 +66,14 @@ class PatientProjectionFixtureDecodeTest {
 
         assertEquals("discharge_readiness", discharge.data.kind)
         assertTrue(discharge.data.content.criteria.any { it.status == "pending" })
+        assertEquals(
+            listOf("Your care team is checking whether you need equipment for safe movement at home."),
+            discharge.data.content.equipment,
+        )
+        assertEquals(
+            listOf("Transportation home is being planned. Your team will confirm the plan before you leave."),
+            discharge.data.content.transport,
+        )
         assertEquals("speak_with_bedside_staff", discharge.data.content.contacts.single().route)
     }
 

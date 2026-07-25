@@ -29,12 +29,18 @@
                 }
             ],
             "headline": "Getting ready to leave",
+            "equipment": [
+                "Your care team is checking whether you need equipment for safe movement at home."
+            ],
             "follow_up": [
                 {
                     "when": "Within a week or two of leaving",
                     "label": "Follow-up visit with your care team",
                     "item_uuid": "6705898b-ed0b-5518-be92-b383a58cb116"
                 }
+            ],
+            "transport": [
+                "Transportation home is being planned. Your team will confirm the plan before you leave."
             ],
             "medications": [
                 {
@@ -47,7 +53,9 @@
                 "Call your care team if symptoms get worse after you go home."
             ],
             "estimated_range": "In the next day or two",
-            "unresolved_needs": ["A ride home arranged for the day you leave."],
+            "unresolved_needs": [
+                "Your team is reviewing the remaining preparations with you."
+            ],
             "estimated_confidence": "estimated"
         },
         "uncertainty": {

@@ -1002,6 +1002,8 @@ struct PatientDischargeReadinessContent: Codable, Equatable {
     let estimatedConfidence: String?
     let criteria: [PatientDischargeCriterion]?
     let unresolvedNeeds: [String]?
+    let equipment: [String]?
+    let transport: [String]?
     let medications: [PatientDischargeMedication]?
     let followUp: [PatientDischargeFollowUp]?
     let warningSigns: [String]?
@@ -1016,6 +1018,8 @@ struct PatientDischargeReadinessContent: Codable, Equatable {
         case estimatedConfidence = "estimated_confidence"
         case criteria
         case unresolvedNeeds = "unresolved_needs"
+        case equipment
+        case transport
         case medications
         case followUp = "follow_up"
         case warningSigns = "warning_signs"

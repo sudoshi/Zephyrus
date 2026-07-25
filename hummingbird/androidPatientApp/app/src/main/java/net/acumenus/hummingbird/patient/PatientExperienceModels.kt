@@ -229,6 +229,8 @@ data class PatientDischargeReadinessView(
     val estimatedConfidence: String?,
     val criteria: List<PatientDischargeReadinessCriterion>,
     val unresolvedNeeds: List<String>,
+    val equipment: List<String>,
+    val transport: List<String>,
     val medications: List<PatientDischargeReadinessMedication>,
     val followUp: List<PatientDischargeReadinessFollowUp>,
     val warningSigns: List<String>,
