@@ -552,6 +552,18 @@ class PatientStaffMessageHandoffConsumerTest extends TestCase
         $this->assertSame(1, Artisan::call('hummingbird:patient-message-handoff-health'));
     }
 
+    public function test_disabled_handoff_reports_no_fresh_heartbeat_without_requiring_operator_action(): void
+    {
+        $report = $this->app->make(PatientMessageHandoffHealthReporter::class)->report();
+
+        $this->assertSame('disabled', $report['activation_state']);
+        $this->assertSame('disabled', $report['status']);
+        $this->assertFalse($report['consumer']['heartbeat_present']);
+        $this->assertFalse($report['consumer']['heartbeat_fresh']);
+        $this->assertFalse($report['requires_operator_action']);
+        $this->assertSame(0, Artisan::call('hummingbird:patient-message-handoff-health', ['--json' => true]));
+    }
+
     public function test_post_batch_heartbeat_stays_degraded_until_every_unexpired_outbox_is_resolved(): void
     {
         [$unit, $staff] = $this->operationalUnitAndResponder();
