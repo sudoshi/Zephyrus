@@ -8,9 +8,14 @@ final class PatientStateVocabularyTests: XCTestCase {
             [
                 "requested": "Requested",
                 "planned": "Planned",
+                "scheduled": "Scheduled",
                 "confirmed": "Confirmed",
+                "waiting": "Waiting",
+                "transport_requested": "Transportation requested",
                 "in_progress": "Happening now",
                 "completed": "Completed",
+                "result_pending": "Result not available yet",
+                "result_released": "Result available",
                 "delayed": "Delayed",
                 "canceled": "No longer planned",
             ]

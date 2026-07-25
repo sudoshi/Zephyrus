@@ -163,6 +163,15 @@ class SyntheticPatientProjectionProvisioner
                     'time_window' => 'This morning',
                     'timing_confidence' => 'estimated',
                     'can_change' => true,
+                ], [
+                    'item_uuid' => $this->uuid($seed.'/today/test-update'),
+                    'label' => 'A test update',
+                    'category' => 'test',
+                    'status' => 'result_pending',
+                    'time_window' => 'Later today',
+                    'timing_confidence' => 'unknown',
+                    'preparation' => 'Your care team will explain what happens next.',
+                    'can_change' => true,
                 ]],
                 'care_location' => [
                     'facility_display_name' => 'Synthetic Reference Hospital',

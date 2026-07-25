@@ -15,6 +15,8 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["synthetic-reference-banner"].exists)
         XCTAssertTrue(app.descendants(matching: .any)["patient-freshness"].exists)
         XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["urgent-help-notice"]))
+        XCTAssertTrue(scrollUntilExists(app.staticTexts["A test update"]))
+        XCTAssertTrue(scrollUntilExists(app.staticTexts["Result not available yet"]))
         attachScreenshot(named: "Today")
 
         app.tabBars.buttons["My Path"].tap()

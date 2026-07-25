@@ -44,6 +44,11 @@ struct PatientTodayView: View {
                         PatientCard {
                             VStack(alignment: .leading, spacing: 10) {
                                 PatientCertaintyBadge(certainty: item.certainty)
+                                if let statusLabel = item.statusLabel {
+                                    Text(statusLabel)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(PatientPalette.ink)
+                                }
                                 Text(item.title)
                                     .font(.title3.bold())
                                 Text(item.timeLabel)

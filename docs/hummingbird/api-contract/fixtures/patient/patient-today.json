@@ -18,6 +18,16 @@
                     "can_change": true,
                     "time_window": "This morning",
                     "timing_confidence": "estimated"
+                },
+                {
+                    "label": "A test update",
+                    "status": "result_pending",
+                    "category": "test",
+                    "item_uuid": "e4344824-7fdb-5ee2-a52e-bebcaec76c99",
+                    "can_change": true,
+                    "preparation": "Your care team will explain what happens next.",
+                    "time_window": "Later today",
+                    "timing_confidence": "unknown"
                 }
             ],
             "questions": [
@@ -69,7 +79,7 @@
             "observed_at": "2026-01-15T12:04:00.000000Z"
         },
         "policy_version": "patient-disclosure-v1-test",
-        "state_vocabulary_version": "patient-state-vocabulary.v1-draft",
+        "state_vocabulary_version": "patient-state-vocabulary.v2-draft",
         "as_of": "2026-01-15T12:04:00.000000Z",
         "stale": false,
         "version": 1

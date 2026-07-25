@@ -44,7 +44,7 @@ class PatientTimestampContractTest extends TestCase
     {
         $meta = $this->metadataFor('req-state-vocabulary');
 
-        $this->assertSame('patient-state-vocabulary.v1-draft', $meta['state_vocabulary_version']);
+        $this->assertSame('patient-state-vocabulary.v2-draft', $meta['state_vocabulary_version']);
     }
 
     public function test_ambiguous_and_skipped_local_times_serialize_to_one_utc_instant(): void

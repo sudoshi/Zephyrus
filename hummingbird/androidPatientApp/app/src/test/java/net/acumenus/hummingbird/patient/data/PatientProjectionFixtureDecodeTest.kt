@@ -13,13 +13,15 @@ class PatientProjectionFixtureDecodeTest {
         val today = PatientEnvelopeDecoder.today(fixture("patient-today.json"))
 
         assertEquals("today", today.data.kind)
-        assertEquals("planned", today.data.content.schedule.single().status)
-        assertEquals("other", today.data.content.schedule.single().category)
+        assertEquals("planned", today.data.content.schedule.first().status)
+        assertEquals("other", today.data.content.schedule.first().category)
+        assertEquals("result_pending", today.data.content.schedule.last().status)
+        assertEquals("test", today.data.content.schedule.last().category)
         assertEquals("Reference inpatient unit", today.data.content.careLocation?.unitDisplayName)
         assertEquals("In the next day or two", today.data.content.dischargeOutlook?.estimatedRange)
         assertEquals("Tell your care team what you would like explained today.", today.data.content.questions.single())
-        assertTrue(today.data.content.schedule.single().canChange)
-        assertEquals("patient-state-vocabulary.v1-draft", today.meta.stateVocabularyVersion)
+        assertTrue(today.data.content.schedule.first().canChange)
+        assertEquals("patient-state-vocabulary.v2-draft", today.meta.stateVocabularyVersion)
     }
 
     @Test

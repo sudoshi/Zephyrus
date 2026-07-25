@@ -15,9 +15,7 @@
                     ]
                 }
             ],
-            "notices": [
-                "Messages are not monitored for emergencies."
-            ],
+            "notices": ["Messages are not monitored for emergencies."],
             "summary": "These roles are involved in your care today.",
             "headline": "Your care team",
             "communication_options": [
@@ -34,10 +32,7 @@
         "provenance": {
             "review_state": "automated_test_only",
             "source_class": "synthetic_clinical_record",
-            "input_classes": [
-                "synthetic_schedule",
-                "synthetic_care_plan"
-            ],
+            "input_classes": ["synthetic_schedule", "synthetic_care_plan"],
             "producer_version": "fixture-v1",
             "projection_method": "deterministic_fixture"
         },
@@ -53,7 +48,7 @@
             "observed_at": "2026-01-15T12:24:00.000000Z"
         },
         "policy_version": "patient-disclosure-v1-test",
-        "state_vocabulary_version": "patient-state-vocabulary.v1-draft",
+        "state_vocabulary_version": "patient-state-vocabulary.v2-draft",
         "as_of": "2026-01-15T12:24:00.000000Z",
         "stale": false,
         "version": 1

@@ -157,7 +157,7 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
                     'item_uuid' => (string) Str::uuid(),
                     'label' => 'Care team rounds',
                     'category' => 'other',
-                    'status' => 'planned',
+                    'status' => 'result_pending',
                     'time_window' => 'This morning',
                     'timing_confidence' => 'estimated',
                     'can_change' => true,

@@ -330,7 +330,7 @@
             "observed_at": "2026-01-15T12:12:00.000000Z"
         },
         "policy_version": "patient-disclosure-v1-test",
-        "state_vocabulary_version": "patient-state-vocabulary.v1-draft",
+        "state_vocabulary_version": "patient-state-vocabulary.v2-draft",
         "as_of": "2026-01-15T12:12:00.000000Z",
         "stale": false,
         "version": 9007199254740993,

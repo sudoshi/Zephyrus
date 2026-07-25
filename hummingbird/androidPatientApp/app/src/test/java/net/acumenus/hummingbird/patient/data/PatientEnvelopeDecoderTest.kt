@@ -187,7 +187,7 @@ class PatientEnvelopeDecoderTest {
         )
         assertEquals("current", envelope.meta.sourceFreshness?.status)
         assertEquals("patient-disclosure-v1", envelope.meta.policyVersion)
-        assertEquals("patient-state-vocabulary.v1-draft", envelope.meta.stateVocabularyVersion)
+        assertEquals("patient-state-vocabulary.v2-draft", envelope.meta.stateVocabularyVersion)
         assertEquals("request-test", envelope.meta.requestId)
         assertEquals("/api/patient/v1/encounters/test/today", envelope.links["self"])
     }
@@ -609,7 +609,7 @@ class PatientEnvelopeDecoderTest {
           "meta": {
             "source_freshness": {"status": "current", "observed_at": "2026-07-19T11:59:00Z"},
             "policy_version": "patient-disclosure-v1",
-            "state_vocabulary_version": "patient-state-vocabulary.v1-draft",
+            "state_vocabulary_version": "patient-state-vocabulary.v2-draft",
             "version": 3,
             "as_of": "2026-07-19T12:00:00Z",
             "stale": false,

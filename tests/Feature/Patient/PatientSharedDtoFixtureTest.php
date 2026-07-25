@@ -48,7 +48,7 @@ class PatientSharedDtoFixtureTest extends TestCase
                 "{$filename} must retain its expected version representation.",
             );
             $this->assertSame('current', $fixture->meta->source_freshness->status ?? null, "{$filename} freshness drifted.");
-            $this->assertSame('patient-state-vocabulary.v1-draft', $fixture->meta->state_vocabulary_version ?? null, "{$filename} vocabulary version drifted.");
+            $this->assertSame('patient-state-vocabulary.v2-draft', $fixture->meta->state_vocabulary_version ?? null, "{$filename} vocabulary version drifted.");
         }
     }
 

@@ -96,6 +96,10 @@ final class PatientAppViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.snapshot?.patientName, "Sam Example")
         XCTAssertEqual(viewModel.snapshot?.todayItems.first?.title, "Care team rounds")
         XCTAssertTrue(viewModel.snapshot?.todayItems.first?.detail.contains("Type: Care update.") == true)
+        XCTAssertEqual(
+            viewModel.snapshot?.todayItems.first(where: { $0.title == "A test update" })?.statusLabel,
+            "Result not available yet"
+        )
         XCTAssertEqual(viewModel.snapshot?.todayItems.last?.title, "Planning for leaving the hospital")
         XCTAssertEqual(viewModel.snapshot?.encounterLabel, "5 East · Room 512 · Example Hospital")
         XCTAssertTrue(viewModel.snapshot?.todayNextSteps.contains("Tell your care team what you would like explained today.") == true)
@@ -1129,6 +1133,17 @@ private enum PatientFixtures {
                         timeWindow: "This morning",
                         timingConfidence: "estimated",
                         preparation: nil,
+                        canChange: true
+                    ),
+                    PatientScheduleItem(
+                        itemUUID: "019f0000-0000-7000-8000-000000000022",
+                        label: "A test update",
+                        detail: nil,
+                        category: .test,
+                        status: "result_pending",
+                        timeWindow: "Later today",
+                        timingConfidence: "unknown",
+                        preparation: "Your care team will explain what happens next.",
                         canChange: true
                     ),
                 ],

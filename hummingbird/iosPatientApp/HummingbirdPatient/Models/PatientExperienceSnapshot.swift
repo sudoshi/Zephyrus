@@ -99,6 +99,7 @@ struct PatientExperienceSnapshot: Equatable {
                     .joined(separator: " ")
                     .nonEmpty ?? "Your care team has released this step for today.",
                 certainty: PatientCertainty(timingConfidence: item.timingConfidence, status: item.status),
+                statusLabel: PatientStateVocabulary.label(for: item.status, domain: .schedule),
                 provenance: today?.data.provenance.patientDescription ?? "Released patient projection"
             )
         }
@@ -255,6 +256,14 @@ struct PatientExperienceSnapshot: Equatable {
                     detail: "Your team is still reviewing what support would be safest after this stay.",
                     certainty: .beingClarified,
                     provenance: "Synthetic interdisciplinary plan · not a discharge order"
+                ),
+                PatientPlanItem(
+                    title: "A test update",
+                    timeLabel: "Later today",
+                    detail: "Your care team will explain what happens next.",
+                    certainty: .beingClarified,
+                    statusLabel: "Result not available yet",
+                    provenance: "Synthetic test-plan placeholder · no result content"
                 ),
             ],
             todayNextSteps: ["Write down questions for care team rounds."],
@@ -554,6 +563,7 @@ struct PatientPlanItem: Identifiable, Equatable {
     let timeLabel: String
     let detail: String
     let certainty: PatientCertainty
+    let statusLabel: String?
     let provenance: String
 
     init(
@@ -562,6 +572,7 @@ struct PatientPlanItem: Identifiable, Equatable {
         timeLabel: String,
         detail: String,
         certainty: PatientCertainty,
+        statusLabel: String? = nil,
         provenance: String
     ) {
         self.id = id
@@ -569,6 +580,7 @@ struct PatientPlanItem: Identifiable, Equatable {
         self.timeLabel = timeLabel
         self.detail = detail
         self.certainty = certainty
+        self.statusLabel = statusLabel
         self.provenance = provenance
     }
 }
@@ -579,9 +591,9 @@ enum PatientCertainty: String, Equatable {
     case beingClarified = "Being clarified"
 
     init(timingConfidence: String?, status: String?) {
-        if status == "completed" || timingConfidence == "confirmed" {
+        if ["completed", "result_released"].contains(status) || timingConfidence == "confirmed" {
             self = .confirmed
-        } else if ["planned", "in_progress"].contains(status) || timingConfidence == "estimated" {
+        } else if ["planned", "scheduled", "transport_requested", "in_progress"].contains(status) || timingConfidence == "estimated" {
             self = .expected
         } else {
             self = .beingClarified

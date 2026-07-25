@@ -414,3 +414,38 @@ This ratifies contract and UI parity for information that has already crossed th
 separate governed patient projection release boundary. It does not create a patient
 record, source adapter, clinical release, exact clinical schedule/result, message
 routing change, feature enablement, pilot authorization, migration, or deployment.
+
+## 2026-07-25 — Patient schedule-status vocabulary v2 contract ratification
+
+### Completed implementation
+
+- Expanded the coordinated patient-safe schedule taxonomy from its initial seven
+  generic states to include `scheduled`, `waiting`, `transport_requested`,
+  `result_pending`, and `result_released`. The authoritative default-English labels
+  are versioned as `patient-state-vocabulary.v2-draft`; the backend guard, envelope
+  metadata, OpenAPI, deterministic fixtures, iOS, and Android use the same version.
+- Both native apps deliberately withhold a projection that declares an incompatible
+  state-vocabulary version. Neither client title-cases an internal code. On iOS, the
+  approved schedule label is shown with the existing timing-certainty treatment; on
+  Android, the mapped label reaches the existing patient-plan card.
+- The deterministic, test-only Today projection and both debug reference scenarios
+  contain **A test update** in the `result_pending` state. It renders only **Result
+  not available yet** with generic next-step language. It contains no result value,
+  interpretation, source payload, or clinical release assertion.
+
+### Verification
+
+| Boundary                                                      | Command / target                                                                                                                                 | Result                                                                              |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Laravel registry, guard, metadata, fixtures, and DTO evidence | focused Patient state/fixture/projection suite                                                                                                   | 21 passed / 347 assertions                                                          |
+| Android native contract and mapping                           | Debug JVM: `PatientStateVocabularyTest`, `PatientEnvelopeDecoderTest`, `PatientProjectionFixtureDecodeTest`, and `PatientSessionCoordinatorTest` | passed / 0 failures                                                                 |
+| iOS native contract and mapping                               | iPhone 17 Pro / iOS 26.3.1: `PatientAPIModelTests`, `PatientStateVocabularyTests`, and `PatientAppViewModelTests`                                | 38 passed / 0 failures                                                              |
+| iOS rendered journey                                          | iPhone 17 Pro / iOS 26.3.1: `PatientReferenceJourneyUITests/testReferenceJourneyExposesCarePathTeamAndSafeMessagingLanguage`                     | 1 passed / 0 failures; verifies the generic pending-result label                    |
+| Android rendered journey                                      | API 35 `hb` emulator / `connectedDebugAndroidTest --rerun-tasks`                                                                                 | 15 passed / 0 failures, errors, or skips; verifies the generic pending-result label |
+
+### Remaining boundary
+
+This ratifies a patient-language status taxonomy and its client compatibility gate.
+It does not approve a clinical source, create a result, determine an organization’s
+result-release policy, activate a patient feature, authorize a pilot, run a migration,
+or deploy an application change.

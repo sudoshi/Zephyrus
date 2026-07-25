@@ -23,6 +23,10 @@ class PatientSessionCoordinatorTest {
         assertEquals("Sample Patient", ready.snapshot.patientDisplayName)
         assertEquals("Care team rounds", ready.snapshot.todayItems.first().title)
         assertEquals("Care update", ready.snapshot.todayItems.first().explanation.substringAfter("Type: ").substringBefore('.'))
+        assertEquals(
+            "Result not available yet",
+            ready.snapshot.todayItems.first { it.title == "A test update" }.status,
+        )
         assertEquals("Planning for leaving the hospital", ready.snapshot.todayItems.last().title)
         assertEquals("Reference Hospital · Reference inpatient unit · Reference room", ready.snapshot.todayCareLocationLabel)
         assertEquals("Monitoring and treatment", ready.snapshot.pathway.single().title)
@@ -598,14 +602,25 @@ internal class FakePatientApiGateway(
                     summary = "Released summary.",
                     schedule = listOf(
                         PatientScheduleItem(
-                        itemUuid = "019f4d7a-3200-7000-8000-000000000011",
-                        label = "Care team rounds",
-                        detail = "Review today’s care plan.",
-                        category = "other",
-                        status = "planned",
+                            itemUuid = "019f4d7a-3200-7000-8000-000000000011",
+                            label = "Care team rounds",
+                            detail = "Review today’s care plan.",
+                            category = "other",
+                            status = "planned",
                             timeWindow = "This morning",
                             timingConfidence = "estimated",
                             preparation = null,
+                            canChange = true,
+                        ),
+                        PatientScheduleItem(
+                            itemUuid = "019f4d7a-3200-7000-8000-000000000012",
+                            label = "A test update",
+                            detail = null,
+                            category = "test",
+                            status = "result_pending",
+                            timeWindow = "Later today",
+                            timingConfidence = "unknown",
+                            preparation = "Your care team will explain what happens next.",
                             canChange = true,
                         ),
                     ),

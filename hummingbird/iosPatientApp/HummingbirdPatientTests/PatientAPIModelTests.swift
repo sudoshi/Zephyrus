@@ -10,10 +10,12 @@ final class PatientAPIModelTests: XCTestCase {
         XCTAssertEqual(today.data.content.schedule?.first?.status, "planned")
         XCTAssertEqual(today.data.content.schedule?.first?.category, .other)
         XCTAssertTrue(today.data.content.schedule?.first?.canChange == true)
+        XCTAssertEqual(today.data.content.schedule?.last?.status, "result_pending")
+        XCTAssertEqual(today.data.content.schedule?.last?.category, .test)
         XCTAssertEqual(today.data.content.careLocation?.unitDisplayName, "Reference inpatient unit")
         XCTAssertEqual(today.data.content.dischargeOutlook?.estimatedRange, "In the next day or two")
         XCTAssertEqual(today.data.content.questions?.first, "Tell your care team what you would like explained today.")
-        XCTAssertEqual(today.meta.stateVocabularyVersion, "patient-state-vocabulary.v1-draft")
+        XCTAssertEqual(today.meta.stateVocabularyVersion, "patient-state-vocabulary.v2-draft")
 
         let pathway = try decodeFixture("patient-pathway.json", as: PatientEnvelope<PatientProjectionData<PatientPathwayContent>>.self)
         XCTAssertEqual(pathway.data.kind, "pathway")
@@ -337,7 +339,7 @@ final class PatientAPIModelTests: XCTestCase {
               "observed_at": "2026-07-19T14:18:00.000000Z"
             },
             "policy_version": "patient-disclosure-v1",
-            "state_vocabulary_version": "patient-state-vocabulary.v1-draft",
+            "state_vocabulary_version": "patient-state-vocabulary.v2-draft",
             "request_id": "request-1",
             "generated_at": "2026-07-19T14:20:01.000000Z"
           },
@@ -353,7 +355,7 @@ final class PatientAPIModelTests: XCTestCase {
         XCTAssertEqual(envelope.data.provenance.reviewState, "clinically_reviewed")
         XCTAssertEqual(envelope.meta.sourceFreshness?.status, "current")
         XCTAssertEqual(envelope.meta.policyVersion, "patient-disclosure-v1")
-        XCTAssertEqual(envelope.meta.stateVocabularyVersion, "patient-state-vocabulary.v1-draft")
+        XCTAssertEqual(envelope.meta.stateVocabularyVersion, "patient-state-vocabulary.v2-draft")
         XCTAssertEqual(envelope.meta.version, .integer(2))
     }
 }
