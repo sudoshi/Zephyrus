@@ -436,7 +436,12 @@ paths:
             content:
               {
                 application/json:
-                  { schema: { $ref: "#/components/schemas/Envelope" } },
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/EddyApprovalDecisionEnvelope",
+                      },
+                  },
               },
           }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -2596,6 +2601,12 @@ paths:
             in: path,
             required: true,
             schema: { type: string, format: uuid },
+          },
+          {
+            name: persona,
+            in: query,
+            schema: { $ref: "#/components/schemas/MobilePersonaId" },
+            description: Current authorized staff persona; the server independently validates it before accepting a decision.,
           },
         ]
       requestBody:
@@ -5273,3 +5284,21 @@ components:
         decision: { type: string, enum: [approved, rejected] }
         reason: { type: string, maxLength: 1000 }
       required: [decision]
+    EddyApprovalDecisionResult:
+      type: object
+      description: >
+        Server-recorded outcome of one explicit human decision. The server may return the
+        exact replay for the same idempotency key and payload; clients must not infer that
+        Eddy made this decision.
+      properties:
+        approval_uuid: { type: string, format: uuid }
+        action_uuid: { type: [string, "null"], format: uuid }
+        decision: { type: string, enum: [approved, rejected] }
+        action_status: { type: [string, "null"] }
+      required: [approval_uuid, decision]
+    EddyApprovalDecisionEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/EddyApprovalDecisionResult" }

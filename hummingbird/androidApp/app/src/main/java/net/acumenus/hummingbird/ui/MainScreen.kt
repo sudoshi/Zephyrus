@@ -84,6 +84,8 @@ import net.acumenus.hummingbird.ui.altitude.DebugAltitudeExplorerScreen
 import net.acumenus.hummingbird.ui.altitude.DrillDetailScreen
 import net.acumenus.hummingbird.ui.altitude.EddyConversationDetailScreen
 import net.acumenus.hummingbird.ui.altitude.EddyConversationHistoryScreen
+import net.acumenus.hummingbird.ui.altitude.EddyApprovalDetailScreen
+import net.acumenus.hummingbird.ui.altitude.EddyApprovalsScreen
 import net.acumenus.hummingbird.ui.altitude.EddyContextScreen
 import net.acumenus.hummingbird.ui.altitude.PatientContextScreen
 import net.acumenus.hummingbird.ui.capacity.ApprovalDetailScreen
@@ -127,6 +129,8 @@ private sealed interface AltitudeDetail {
     data class Eddy(val scopeRef: String) : AltitudeDetail
     data class EddyHistory(val scopeRef: String) : AltitudeDetail
     data class EddyConversation(val scopeRef: String, val conversationId: String) : AltitudeDetail
+    data class EddyApprovals(val scopeRef: String) : AltitudeDetail
+    data class EddyApproval(val scopeRef: String, val approvalId: String) : AltitudeDetail
     data class Transport(val job: TransportJob, val webLink: String?) : AltitudeDetail
     data class Evs(val turn: EvsTurn, val webLink: String?) : AltitudeDetail
     data class ORCase(val room: ORRoom, val webLink: String?) : AltitudeDetail
@@ -413,6 +417,7 @@ fun MainScreen(
                         scopeRef = currentDetail.scopeRef,
                         onBack = { detail = null },
                         onOpenHistory = { detail = AltitudeDetail.EddyHistory(currentDetail.scopeRef) },
+                        onOpenApprovals = { detail = AltitudeDetail.EddyApprovals(currentDetail.scopeRef) },
                     )
                     is AltitudeDetail.EddyHistory -> EddyConversationHistoryScreen(
                         vm = vm,
@@ -427,6 +432,20 @@ fun MainScreen(
                         bearer = bearer,
                         conversationId = currentDetail.conversationId,
                         onBack = { detail = AltitudeDetail.EddyHistory(currentDetail.scopeRef) },
+                    )
+                    is AltitudeDetail.EddyApprovals -> EddyApprovalsScreen(
+                        vm = vm,
+                        bearer = bearer,
+                        onBack = { detail = AltitudeDetail.Eddy(currentDetail.scopeRef) },
+                        onOpenApproval = { approvalId ->
+                            detail = AltitudeDetail.EddyApproval(currentDetail.scopeRef, approvalId)
+                        },
+                    )
+                    is AltitudeDetail.EddyApproval -> EddyApprovalDetailScreen(
+                        vm = vm,
+                        bearer = bearer,
+                        approvalId = currentDetail.approvalId,
+                        onBack = { detail = AltitudeDetail.EddyApprovals(currentDetail.scopeRef) },
                     )
                     is AltitudeDetail.Transport -> TransportJobDetailScreen(
                         auth = auth,

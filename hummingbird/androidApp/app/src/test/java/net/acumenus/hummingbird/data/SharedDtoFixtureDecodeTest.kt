@@ -134,6 +134,55 @@ class SharedDtoFixtureDecodeTest {
     }
 
     @Test
+    fun decodesEddyApprovalPreviewAndServerDecisionWithoutTreatingItAsAnEddyAction() {
+        val preview = api.parseEddyApprovalPreview(JSONObject("""
+            {
+              "approval_uuid": "f2de3b42-5f41-4a34-9a91-c6292465bba1",
+              "action_uuid": "dca4d2b5-0dca-49d6-a2e4-431aaf1bcb91",
+              "action_type": "flag_barrier",
+              "title": "Flag a discharge barrier",
+              "surface": "rtdc",
+              "tier": "T1",
+              "risk": "medium",
+              "requested_at": "2026-07-24T16:00:00Z",
+              "rationale": "A discharge barrier needs review.",
+              "runner_up": "Escalate to the charge nurse.",
+              "params": { "unit": "5 East", "barrier_count": 2, "nested": { "hidden": true } },
+              "preview": "Would flag a throughput/discharge barrier on 5 East for the next huddle."
+            }
+        """.trimIndent()))
+        val decision = api.parseEddyApprovalDecision(JSONObject("""
+            {
+              "approval_uuid": "f2de3b42-5f41-4a34-9a91-c6292465bba1",
+              "decision": "approved",
+              "action_status": "approved"
+            }
+        """.trimIndent()))
+
+        assertEquals("f2de3b42-5f41-4a34-9a91-c6292465bba1", preview.summary.approvalUuid)
+        assertEquals("flag_barrier", preview.summary.actionType)
+        assertEquals("Would flag a throughput/discharge barrier on 5 East for the next huddle.", preview.preview)
+        assertEquals("5 East", preview.params.first { it.name == "unit" }.value)
+        assertEquals("Operational detail", preview.params.first { it.name == "nested" }.value)
+        assertEquals("approved", decision.decision)
+        assertEquals("approved", decision.actionStatus)
+    }
+
+    @Test
+    fun eddyApprovalPathsAreNoStoreAndExplicitDecisionKeysWin() {
+        val path = "/api/mobile/v1/eddy/approvals/f2de3b42-5f41-4a34-9a91-c6292465bba1/decision?persona=capacity_lead"
+        val replayKey = "5ac78f64-66f8-4db3-a871-6f143e14ea34"
+
+        assertEquals("no-store", api.sensitiveNoStoreHeaders(path)["Cache-Control"])
+        assertEquals("no-cache", api.sensitiveNoStoreHeaders(path)["Pragma"])
+        assertTrue(api.shouldDisableHttpCaches(path))
+        assertEquals(
+            replayKey,
+            api.requestIdempotencyKey("POST", path, "{\"decision\":\"approved\"}", replayKey),
+        )
+    }
+
+    @Test
     fun decodesFlowWindowFixture() {
         val window = api.parseFlowWindow(fixture("mobile-flow-window.json"))
 

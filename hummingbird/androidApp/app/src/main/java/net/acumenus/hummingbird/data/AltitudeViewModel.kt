@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import net.acumenus.hummingbird.widget.HouseGlanceStore
+import java.util.UUID
 
 class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
     private val api = ApiClient()
@@ -33,6 +34,13 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
     var eddyConversationDetail by mutableStateOf<EddyConversationDetail?>(null); private set
     var eddyHistoryLoading by mutableStateOf(false); private set
     var eddyHistoryError by mutableStateOf<String?>(null); private set
+    var eddyApprovals by mutableStateOf<List<EddyApprovalSummary>>(emptyList()); private set
+    var eddyApprovalPreview by mutableStateOf<EddyApprovalPreview?>(null); private set
+    var eddyApprovalsLoading by mutableStateOf(false); private set
+    var eddyApprovalsError by mutableStateOf<String?>(null); private set
+    var eddyApprovalWorking by mutableStateOf(false); private set
+    var eddyApprovalDecision by mutableStateOf<EddyApprovalDecisionResult?>(null); private set
+    private val eddyApprovalIdempotencyKeys = mutableMapOf<String, String>()
     private var eddyConversationId: String? = null
     private var eddyScopeRef: String? = null
 
@@ -97,6 +105,7 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
         eddyContext = null
         resetEddyChat()
         resetEddyHistory()
+        resetEddyApprovals()
         error = null
     }
 
@@ -180,6 +189,96 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
                 eddyHistoryError = "This Eddy conversation is unavailable right now."
             } finally {
                 if (selectedRole.id == roleId) eddyHistoryLoading = false
+            }
+        }
+    }
+
+    /** Read the current user's pending Eddy proposals from the server, never from a device cache. */
+    fun loadEddyApprovals(bearer: String) {
+        if (eddyApprovalsLoading) return
+        val roleId = selectedRole.id
+        eddyApprovalsLoading = true
+        eddyApprovalsError = null
+        eddyApprovalDecision = null
+        viewModelScope.launch {
+            try {
+                val approvals = api.eddyApprovals(bearer, roleId)
+                    .filter { it.approvalUuid.isNotBlank() }
+                if (selectedRole.id == roleId) eddyApprovals = approvals
+            } catch (e: ApiException) {
+                if (selectedRole.id != roleId) return@launch
+                if (e.statusCode == 401) needsReauth = true
+                eddyApprovalsError = e.message ?: "Eddy approvals are unavailable right now."
+            } catch (_: Exception) {
+                if (selectedRole.id != roleId) return@launch
+                eddyApprovalsError = "Eddy approvals are unavailable right now."
+            } finally {
+                if (selectedRole.id == roleId) eddyApprovalsLoading = false
+            }
+        }
+    }
+
+    /** Fetch the no-store dry run immediately before the user may confirm a decision. */
+    fun loadEddyApproval(bearer: String, approvalId: String) {
+        if (approvalId.isBlank() || eddyApprovalsLoading) return
+        val roleId = selectedRole.id
+        eddyApprovalsLoading = true
+        eddyApprovalsError = null
+        eddyApprovalPreview = null
+        eddyApprovalDecision = null
+        viewModelScope.launch {
+            try {
+                val preview = api.eddyApproval(bearer, approvalId, roleId)
+                if (selectedRole.id == roleId) eddyApprovalPreview = preview
+            } catch (e: ApiException) {
+                if (selectedRole.id != roleId) return@launch
+                if (e.statusCode == 401) needsReauth = true
+                eddyApprovalsError = e.message ?: "This Eddy approval is unavailable right now."
+            } catch (_: Exception) {
+                if (selectedRole.id != roleId) return@launch
+                eddyApprovalsError = "This Eddy approval is unavailable right now."
+            } finally {
+                if (selectedRole.id == roleId) eddyApprovalsLoading = false
+            }
+        }
+    }
+
+    /**
+     * Send a consciously selected human decision online. The exact idempotency key remains
+     * only in this ViewModel while an explicit retry is possible; it is never persisted or
+     * automatically replayed after an authorization failure.
+     */
+    fun decideEddyApproval(bearer: String, approvalId: String, decision: String) {
+        if (approvalId.isBlank() || decision !in setOf("approved", "rejected") || eddyApprovalWorking) return
+        val roleId = selectedRole.id
+        val keyRef = "$approvalId:$decision"
+        val idempotencyKey = eddyApprovalIdempotencyKeys.getOrPut(keyRef) { UUID.randomUUID().toString() }
+        eddyApprovalWorking = true
+        eddyApprovalsError = null
+        viewModelScope.launch {
+            try {
+                val result = api.decideEddyApproval(
+                    bearer = bearer,
+                    approvalId = approvalId,
+                    persona = roleId,
+                    decision = decision,
+                    idempotencyKey = idempotencyKey,
+                )
+                if (selectedRole.id == roleId) {
+                    eddyApprovalDecision = result
+                    eddyApprovals = eddyApprovals.filterNot { it.approvalUuid == approvalId }
+                    eddyApprovalIdempotencyKeys.remove(keyRef)
+                }
+            } catch (e: ApiException) {
+                if (selectedRole.id != roleId) return@launch
+                if (e.statusCode == 401) needsReauth = true
+                eddyApprovalsError = e.message
+                    ?: "The Eddy decision was not recorded. Check live connectivity and review server status before intentionally trying again."
+            } catch (_: Exception) {
+                if (selectedRole.id != roleId) return@launch
+                eddyApprovalsError = "The Eddy decision was not recorded. Check live connectivity and review server status before intentionally trying again."
+            } finally {
+                if (selectedRole.id == roleId) eddyApprovalWorking = false
             }
         }
     }
@@ -273,6 +372,16 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
         eddyConversationDetail = null
         eddyHistoryLoading = false
         eddyHistoryError = null
+    }
+
+    private fun resetEddyApprovals() {
+        eddyApprovals = emptyList()
+        eddyApprovalPreview = null
+        eddyApprovalsLoading = false
+        eddyApprovalsError = null
+        eddyApprovalWorking = false
+        eddyApprovalDecision = null
+        eddyApprovalIdempotencyKeys.clear()
     }
 
     private fun request(block: suspend () -> Unit) {

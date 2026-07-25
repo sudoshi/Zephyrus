@@ -8,6 +8,7 @@ use App\Models\Ops\OperationalAction;
 use App\Models\Ops\Recommendation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -212,13 +213,22 @@ class EddyMobileBffTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'capacity_lead', 'workflow_preference' => 'rtdc']);
         $approval = $this->eddyApproval($user, 'eddy');
+        $idempotencyKey = 'eddy-mobile-approval-exact-replay';
         Sanctum::actingAs($user, ['mobile:read', 'mobile:act']);
 
-        $this->postJson("/api/mobile/v1/eddy/approvals/{$approval->approval_uuid}/decision", ['decision' => 'approved'])
+        $this->withHeader('Idempotency-Key', $idempotencyKey)
+            ->postJson("/api/mobile/v1/eddy/approvals/{$approval->approval_uuid}/decision?persona=capacity_lead", ['decision' => 'approved'])
+            ->assertOk()
+            ->assertJsonPath('data.decision', 'approved')
+            ->assertJsonPath('data.action_status', 'approved');
+
+        $this->withHeader('Idempotency-Key', $idempotencyKey)
+            ->postJson("/api/mobile/v1/eddy/approvals/{$approval->approval_uuid}/decision?persona=capacity_lead", ['decision' => 'approved'])
             ->assertOk()
             ->assertJsonPath('data.decision', 'approved')
             ->assertJsonPath('data.action_status', 'approved');
 
         $this->assertSame('approved', $approval->fresh()->status);
+        $this->assertSame(1, DB::table('ops.operational_events')->where('event_type', 'recommendation.approved')->count());
     }
 }

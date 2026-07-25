@@ -908,6 +908,53 @@ class ApiClient(
         )
     }
 
+    /** Pending, server-scoped Eddy proposals. This transient inbox is never cached offline. */
+    suspend fun eddyApprovals(bearer: String, persona: String): List<EddyApprovalSummary> = withContext(Dispatchers.IO) {
+        getEnvelope(withPersona("/api/mobile/v1/eddy/approvals", persona), bearer)
+            .optJSONArray("data")
+            .objects()
+            .map(::parseEddyApprovalSummary)
+    }
+
+    /** Fetch the dry-run preview immediately before a human considers a decision. */
+    suspend fun eddyApproval(
+        bearer: String,
+        approvalId: String,
+        persona: String,
+    ): EddyApprovalPreview = withContext(Dispatchers.IO) {
+        parseEddyApprovalPreview(
+            getData(
+                withPersona("/api/mobile/v1/eddy/approvals/${urlPart(approvalId)}", persona),
+                bearer,
+            ),
+        )
+    }
+
+    /**
+     * Send one online-only human decision. Callers own the idempotency key in view state so an
+     * explicit retry can replay exactly the same decision; this method never retries a mutation.
+     */
+    suspend fun decideEddyApproval(
+        bearer: String,
+        approvalId: String,
+        persona: String,
+        decision: String,
+        idempotencyKey: String,
+    ): EddyApprovalDecisionResult = withContext(Dispatchers.IO) {
+        require(decision in setOf("approved", "rejected")) { "An explicit approval decision is required." }
+        require(idempotencyKey.isNotBlank()) { "A decision key is required." }
+        val body = JSONObject().put("decision", decision).toString()
+        val (code, text) = send(
+            "POST",
+            withPersona("/api/mobile/v1/eddy/approvals/${urlPart(approvalId)}/decision", persona),
+            body,
+            bearer,
+            idempotencyKey,
+        )
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code, errorCode(text))
+        parseEddyApprovalDecision(JSONObject(text).getJSONObject("data"))
+    }
+
     suspend fun flowWindow(
         bearer: String,
         persona: String,
@@ -1690,6 +1737,52 @@ class ApiClient(
             createdAt = data.optStringOrNull("created_at"),
             hasProposedAction = data.has("proposed_action") && !data.isNull("proposed_action"),
         )
+
+    internal fun parseEddyApprovalSummary(data: JSONObject): EddyApprovalSummary =
+        EddyApprovalSummary(
+            approvalUuid = data.optStringOrNull("approval_uuid") ?: "",
+            actionUuid = data.optStringOrNull("action_uuid"),
+            actionType = data.optStringOrNull("action_type") ?: "",
+            title = data.optStringOrNull("title")?.ifBlank { null } ?: "Eddy proposal",
+            surface = data.optStringOrNull("surface")?.ifBlank { null } ?: "operations",
+            tier = data.optStringOrNull("tier")?.ifBlank { null } ?: "T1",
+            risk = data.optStringOrNull("risk"),
+            requestedAt = data.optStringOrNull("requested_at"),
+        )
+
+    internal fun parseEddyApprovalPreview(data: JSONObject): EddyApprovalPreview =
+        EddyApprovalPreview(
+            summary = parseEddyApprovalSummary(data),
+            rationale = data.optStringOrNull("rationale"),
+            runnerUp = data.optStringOrNull("runner_up"),
+            preview = data.optStringOrNull("preview"),
+            params = parseEddyApprovalParameters(data.optJSONObject("params")),
+        )
+
+    internal fun parseEddyApprovalDecision(data: JSONObject): EddyApprovalDecisionResult =
+        EddyApprovalDecisionResult(
+            approvalUuid = data.optStringOrNull("approval_uuid") ?: "",
+            decision = data.optStringOrNull("decision") ?: "",
+            actionStatus = data.optStringOrNull("action_status"),
+        )
+
+    private fun parseEddyApprovalParameters(params: JSONObject?): List<EddyApprovalParameter> {
+        if (params == null) return emptyList()
+        val keys = params.keys()
+        val names = buildList {
+            while (keys.hasNext()) add(keys.next())
+        }.sorted().take(20)
+        return names.map { name ->
+            val raw = params.opt(name)
+            val value = when (raw) {
+                null, JSONObject.NULL -> "—"
+                is JSONObject -> "Operational detail"
+                is JSONArray -> "${raw.length()} item${if (raw.length() == 1) "" else "s"}"
+                else -> raw.toString().take(240)
+            }
+            EddyApprovalParameter(name = name, value = value)
+        }
+    }
 
     private fun parsePersona(o: JSONObject?): PersonaData {
         val roleId = o?.optStringOrNull("role_id") ?: MobileRoleCatalog.default.id

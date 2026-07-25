@@ -710,6 +710,44 @@ data class EddyConversationDetail(
 )
 
 /**
+ * Server-derived, PHI-minimized pending action. A native client may show the
+ * approval only transiently; the server remains responsible for whether the
+ * active user and persona can actually decide it.
+ */
+data class EddyApprovalSummary(
+    val approvalUuid: String,
+    val actionUuid: String?,
+    val actionType: String,
+    val title: String,
+    val surface: String,
+    val tier: String,
+    val risk: String?,
+    val requestedAt: String?,
+)
+
+/** Fetch-on-open, dry-run detail for one pending Eddy proposal. */
+data class EddyApprovalPreview(
+    val summary: EddyApprovalSummary,
+    val rationale: String?,
+    val runnerUp: String?,
+    val preview: String?,
+    val params: List<EddyApprovalParameter>,
+)
+
+/** A bounded, display-safe operational parameter rendered from the server preview. */
+data class EddyApprovalParameter(
+    val name: String,
+    val value: String,
+)
+
+/** Server confirmation of the human's decision, retained only in current view state. */
+data class EddyApprovalDecisionResult(
+    val approvalUuid: String,
+    val decision: String,
+    val actionStatus: String?,
+)
+
+/**
  * Carries an HTTP status so the UI can react to 401 (re-auth). `errorCode` mirrors the
  * envelope's `error.code` (e.g. "invalid_since" on a 422 delta rejection).
  */

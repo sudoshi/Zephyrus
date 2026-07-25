@@ -39,28 +39,35 @@ dock uses apply unchanged; mobile is a second presentation, not a second brain.
 
 ### Current native status (2026-07-24)
 
-- **iOS:** context, nonstreaming chat, and a chat-toolbar entry to authorized,
-  server-owned read-only conversation history.
-- **Android:** authorized context, scoped nonstreaming chat, and a history entry
-  from that context to the same read-only conversation history.
+- **iOS:** context, nonstreaming chat, a chat-toolbar entry to authorized,
+  server-owned read-only conversation history, and a pending-approval entry.
+- **Android:** authorized context, scoped nonstreaming chat, plus history and
+  pending-approval entries from that context.
 - **Both clients:** send `Cache-Control: no-store`, disable the HTTP cache for
-  context/chat/history, and retain neither transcript nor history offline.
-- **Not implemented in either client:** streaming chat, history deletion, approval
-  inbox/detail/decision, or autonomous action. A displayed draft action is an
-  explanatory read-only marker, never an approval affordance.
+  context/chat/history/approval reads and decisions, retain neither transcript,
+  approval preview, nor idempotency key offline, and never queue/replay a mutation
+  automatically.
+- **Approval boundary:** the server provides a PHI-minimized list and fetch-on-open
+  dry run; the client requires explicit confirmation and submits only an online human
+  `approved`/`rejected` decision with the selected persona and an in-memory exact
+  idempotency key. The server independently enforces `mobile:act`, user scope, active
+  persona, pending state, and exact replay. Eddy never decides.
+- **Not implemented in either client:** streaming chat, history deletion, or
+  autonomous action. A draft marker in conversation history remains explanatory and
+  cannot be used to approve it.
 
 ---
 
 ## 2. Native surfaces (build once per platform from the design tokens)
 
-| Mobile component                   | Web analog                | Notes                                                                                             |
-| ---------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------- |
-| `EddyChatScreen`                   | `EddySlideOver`           | Implemented as iOS chat and Android authorized-context chat; Android remains scoped/nonstreaming. |
-| `EddyMessageList`                  | `EddyMessageList`         | Markdown assistant bubbles; `tabular-nums` for metrics.                                           |
-| `EddyConversationHistory`          | Conversation dock/history | Implemented, server-owned user-scoped list/detail; no local persistence or approval control.      |
-| `EddyApprovalSheet` (bottom sheet) | `EddyApprovalCard`        | Planned only: dry-run preview + rationale + runner-up; human Approve / Deny.                      |
-| `EddyVoiceButton`                  | (none)                    | On-device STT → text into the composer.                                                           |
-| `EddyQuickActions`                 | `EddyAskButton` chips     | Role-keyed seed prompts (§4).                                                                     |
+| Mobile component                   | Web analog                | Notes                                                                                                                                                                                        |
+| ---------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EddyChatScreen`                   | `EddySlideOver`           | Implemented as iOS chat and Android authorized-context chat; Android remains scoped/nonstreaming.                                                                                            |
+| `EddyMessageList`                  | `EddyMessageList`         | Markdown assistant bubbles; `tabular-nums` for metrics.                                                                                                                                      |
+| `EddyConversationHistory`          | Conversation dock/history | Implemented, server-owned user-scoped list/detail; no local persistence or approval control.                                                                                                 |
+| `EddyApprovalSheet` (bottom sheet) | `EddyApprovalCard`        | Implemented as a native no-store inbox and detail screen: fetch-on-open dry run + rationale + runner-up, confirmation-gated online human approve/reject, exact replay, and no offline queue. |
+| `EddyVoiceButton`                  | (none)                    | On-device STT → text into the composer.                                                                                                                                                      |
+| `EddyQuickActions`                 | `EddyAskButton` chips     | Role-keyed seed prompts (§4).                                                                                                                                                                |
 
 Components are token-themed (operational **blue/slate** `healthcare-*`; crimson/gold
 is the Acumenus mark + focus only), status is **never color alone** (pair the tier
@@ -120,9 +127,9 @@ a routine `flag_barrier` is tier_3, a breach-relieving `propose_surge_plan` is t
 
 ### 3.4 Offline
 
-Eddy context, chat, and history are **no-store** and are not queued for offline
-delivery. A future approval decision is safety-critical: it must require connectivity,
-re-fetch the preview on reconnect, and never enter an outbox.
+Eddy context, chat, history, and approval previews are **no-store** and are not queued
+for offline delivery. An approval decision is safety-critical: it requires connectivity,
+uses a fetch-on-open preview, and never enters an outbox.
 
 ---
 

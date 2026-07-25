@@ -102,6 +102,57 @@ final class EddyConversationHistoryAPIClientTests: XCTestCase {
         }
     }
 
+    func testEddyApprovalReadsAndExplicitHumanDecisionAreNoStoreAndIdempotent() async throws {
+        let approvalID = "f2de3b42-5f41-4a34-9a91-c6292465bba1"
+        let replayKey = UUID(uuidString: "5ac78f64-66f8-4db3-a871-6f143e14ea34")!
+        var requests: [URLRequest] = []
+        EddyConversationHistoryURLProtocol.handler = { request in
+            requests.append(request)
+            switch (request.httpMethod, request.url?.path) {
+            case ("GET", "/api/mobile/v1/eddy/approvals"):
+                return (200, Data(Self.approvalListEnvelope.utf8))
+            case ("GET", "/api/mobile/v1/eddy/approvals/\(approvalID)"):
+                return (200, Data(Self.approvalPreviewEnvelope.utf8))
+            case ("POST", "/api/mobile/v1/eddy/approvals/\(approvalID)/decision"):
+                return (200, Data(Self.approvalDecisionEnvelope.utf8))
+            default:
+                return (404, Data(#"{"error":{"message":"Not found"}}"#.utf8))
+            }
+        }
+
+        let client = Self.client()
+        let approvals = try await client.eddyApprovals(persona: "capacity_lead", bearer: "staff-token")
+        let preview = try await client.eddyApproval(id: approvalID, persona: "capacity_lead", bearer: "staff-token")
+        let outcome = try await client.decideEddyApproval(
+            id: approvalID,
+            persona: "capacity_lead",
+            decision: "approved",
+            idempotencyKey: replayKey,
+            bearer: "staff-token"
+        )
+
+        XCTAssertEqual(approvals.map(\.approvalUuid), [approvalID])
+        XCTAssertEqual(preview.summary.actionType, "flag_barrier")
+        XCTAssertEqual(preview.params["unit"]?.displayString, "5 East")
+        XCTAssertEqual(outcome.approvalUuid, approvalID)
+        XCTAssertEqual(outcome.decision, "approved")
+
+        XCTAssertEqual(requests.count, 3)
+        for request in requests {
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer staff-token")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Cache-Control"), "no-store, no-cache, max-age=0")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Pragma"), "no-cache")
+            XCTAssertEqual(request.cachePolicy, .reloadIgnoringLocalCacheData)
+            XCTAssertEqual(URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "persona" })?.value, "capacity_lead")
+        }
+        let decisionRequest = try XCTUnwrap(requests.last)
+        XCTAssertEqual(decisionRequest.httpMethod, "POST")
+        XCTAssertEqual(decisionRequest.value(forHTTPHeaderField: "Idempotency-Key"), replayKey.uuidString.lowercased())
+        let body = try XCTUnwrap(Self.bodyData(from: decisionRequest))
+        let decisionBody = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: String])
+        XCTAssertEqual(decisionBody["decision"], "approved")
+    }
+
     private static func client() -> APIClient {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [EddyConversationHistoryURLProtocol.self]
@@ -114,6 +165,21 @@ final class EddyConversationHistoryAPIClientTests: XCTestCase {
             session: URLSession(configuration: configuration),
             tokenCoordinator: nil
         )
+    }
+
+    private static func bodyData(from request: URLRequest) -> Data? {
+        if let body = request.httpBody { return body }
+        guard let stream = request.httpBodyStream else { return nil }
+        stream.open()
+        defer { stream.close() }
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 4_096)
+        while stream.hasBytesAvailable {
+            let count = stream.read(&buffer, maxLength: buffer.count)
+            if count <= 0 { break }
+            data.append(buffer, count: count)
+        }
+        return data
     }
 
     private static let historyEnvelope = #"""
@@ -154,6 +220,56 @@ final class EddyConversationHistoryAPIClientTests: XCTestCase {
         ]
       },
       "meta": {"stale": false},
+      "links": {}
+    }
+    """#
+
+    private static let approvalListEnvelope = #"""
+    {
+      "data": [{
+        "approval_uuid": "f2de3b42-5f41-4a34-9a91-c6292465bba1",
+        "action_uuid": "dca4d2b5-0dca-49d6-a2e4-431aaf1bcb91",
+        "action_type": "flag_barrier",
+        "title": "Flag a discharge barrier",
+        "surface": "rtdc",
+        "tier": "T1",
+        "risk": "medium",
+        "requested_at": "2026-07-24T16:00:00Z"
+      }],
+      "meta": {"count": 1},
+      "links": {}
+    }
+    """#
+
+    private static let approvalPreviewEnvelope = #"""
+    {
+      "data": {
+        "approval_uuid": "f2de3b42-5f41-4a34-9a91-c6292465bba1",
+        "action_uuid": "dca4d2b5-0dca-49d6-a2e4-431aaf1bcb91",
+        "action_type": "flag_barrier",
+        "title": "Flag a discharge barrier",
+        "surface": "rtdc",
+        "tier": "T1",
+        "risk": "medium",
+        "requested_at": "2026-07-24T16:00:00Z",
+        "rationale": "A discharge barrier needs review.",
+        "runner_up": "Escalate to the charge nurse.",
+        "params": {"unit": "5 East", "barrier_count": 2},
+        "preview": "Would flag a throughput/discharge barrier on 5 East for the next huddle."
+      },
+      "meta": {},
+      "links": {}
+    }
+    """#
+
+    private static let approvalDecisionEnvelope = #"""
+    {
+      "data": {
+        "approval_uuid": "f2de3b42-5f41-4a34-9a91-c6292465bba1",
+        "decision": "approved",
+        "action_status": "approved"
+      },
+      "meta": {},
       "links": {}
     }
     """#

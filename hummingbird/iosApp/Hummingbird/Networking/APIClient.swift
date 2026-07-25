@@ -808,6 +808,52 @@ struct APIClient {
         ).data
     }
 
+    /// Pending, server-scoped Eddy proposals. The inbox is no-store and read-only until a
+    /// human opens one preview and explicitly confirms an online decision.
+    func eddyApprovals(persona: String?, bearer: String) async throws -> [EddyApprovalSummary] {
+        try await getEnvelope(
+            path: withPersona("/api/mobile/v1/eddy/approvals", persona),
+            bearer: bearer,
+            as: [EddyApprovalSummary].self,
+            noStore: true
+        ).data
+    }
+
+    /// Fetch the server's PHI-minimized dry run directly before a human decision.
+    func eddyApproval(id: String, persona: String?, bearer: String) async throws -> EddyApprovalPreview {
+        let encodedID = Self.pathComponent(id)
+        return try await getEnvelope(
+            path: withPersona("/api/mobile/v1/eddy/approvals/\(encodedID)", persona),
+            bearer: bearer,
+            as: EddyApprovalPreview.self,
+            noStore: true
+        ).data
+    }
+
+    /// Submit one explicit online human decision. The caller owns [idempotencyKey] for any
+    /// intentional exact replay; mutations are never automatically retried after a 401.
+    func decideEddyApproval(
+        id: String,
+        persona: String?,
+        decision: String,
+        idempotencyKey: UUID,
+        bearer: String
+    ) async throws -> EddyApprovalDecisionResult {
+        guard ["approved", "rejected"].contains(decision) else {
+            throw APIError(message: "An explicit approval decision is required.", statusCode: nil)
+        }
+        let encodedID = Self.pathComponent(id)
+        let data = try await send(
+            path: withPersona("/api/mobile/v1/eddy/approvals/\(encodedID)/decision", persona),
+            method: "POST",
+            body: ["decision": decision],
+            bearer: bearer,
+            explicitIdempotencyKey: idempotencyKey,
+            noStore: true
+        )
+        return try Self.decoder.decode(Envelope<EddyApprovalDecisionResult>.self, from: data).data
+    }
+
     /// Send a chat turn to Eddy (persona-aware, grounded in live operations + the RAG
     /// knowledge base). Uses a longer timeout than the shared `send` because a model turn
     /// can take several seconds; a 503 hard-failure still carries a usable reply envelope.

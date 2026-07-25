@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -53,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -68,6 +70,9 @@ import net.acumenus.hummingbird.data.DisplayField
 import net.acumenus.hummingbird.data.DrillDetail
 import net.acumenus.hummingbird.data.EddyChatRole
 import net.acumenus.hummingbird.data.EddyChatTurn
+import net.acumenus.hummingbird.data.EddyApprovalPreview
+import net.acumenus.hummingbird.data.EddyApprovalSummary
+import net.acumenus.hummingbird.data.EddyApprovalDecisionResult
 import net.acumenus.hummingbird.data.EddyConversationDetail
 import net.acumenus.hummingbird.data.EddyConversationMessage
 import net.acumenus.hummingbird.data.EddyConversationSummary
@@ -564,6 +569,7 @@ fun EddyContextScreen(
     scopeRef: String,
     onBack: () -> Unit,
     onOpenHistory: () -> Unit,
+    onOpenApprovals: () -> Unit,
 ) {
     var draft by remember(scopeRef) { mutableStateOf("") }
 
@@ -576,6 +582,9 @@ fun EddyContextScreen(
         containerColor = Z.bg,
         topBar = {
             DetailTopBar("Eddy", onBack) {
+                IconButton(onClick = onOpenApprovals) {
+                    Icon(Icons.Filled.CheckCircle, contentDescription = "Pending Eddy approvals")
+                }
                 IconButton(onClick = onOpenHistory) {
                     Icon(Icons.Filled.History, contentDescription = "Conversation history")
                 }
@@ -856,6 +865,258 @@ private fun EddyConversationMessageBubble(message: EddyConversationMessage) {
                     fontSize = 11.sp,
                 )
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EddyApprovalsScreen(
+    vm: AltitudeViewModel,
+    bearer: String,
+    onBack: () -> Unit,
+    onOpenApproval: (String) -> Unit,
+) {
+    LaunchedEffect(bearer, vm.selectedRole.id) {
+        vm.loadEddyApprovals(bearer)
+    }
+
+    Scaffold(
+        containerColor = Z.bg,
+        topBar = {
+            DetailTopBar("Eddy approvals", onBack) {
+                IconButton(onClick = { vm.loadEddyApprovals(bearer) }) {
+                    Icon(Icons.Filled.Refresh, contentDescription = "Refresh Eddy approvals")
+                }
+            }
+        },
+    ) { inner ->
+        EddyApprovalsContent(
+            approvals = vm.eddyApprovals,
+            loading = vm.eddyApprovalsLoading,
+            error = vm.eddyApprovalsError,
+            modifier = Modifier.padding(inner),
+            onOpenApproval = onOpenApproval,
+        )
+    }
+}
+
+/** A no-store-only inbox of server-authorized candidates for a qualified human decision. */
+@Composable
+internal fun EddyApprovalsContent(
+    approvals: List<EddyApprovalSummary>,
+    loading: Boolean,
+    error: String?,
+    modifier: Modifier = Modifier,
+    onOpenApproval: (String) -> Unit,
+) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Column(Modifier.fillMaxWidth().panel().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text("Human decision queue", color = Z.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Eddy may propose an operational action. A qualified person must review the live server preview and explicitly decide; actions are never queued offline.",
+                    color = Z.inkMuted,
+                    fontSize = 13.sp,
+                )
+            }
+        }
+        error?.let { item { ErrorPanel(it) } }
+        if (loading && approvals.isEmpty()) {
+            item { LoadingPanel() }
+        } else if (!loading && approvals.isEmpty() && error == null) {
+            item { EmptyPanel("No pending Eddy approvals are available.") }
+        } else {
+            items(approvals, key = { it.approvalUuid }) { approval ->
+                EddyApprovalRow(approval, onOpen = { onOpenApproval(approval.approvalUuid) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun EddyApprovalRow(approval: EddyApprovalSummary, onOpen: () -> Unit) {
+    OutlinedButton(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(approval.title, color = Z.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                "${approval.tier} · ${(approval.risk ?: "review").uppercase()} · ${humanizeLocal(approval.surface)}",
+                color = Z.inkMuted,
+                fontSize = 12.sp,
+            )
+            Text("Open live preview before deciding", color = Z.primary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EddyApprovalDetailScreen(
+    vm: AltitudeViewModel,
+    bearer: String,
+    approvalId: String,
+    onBack: () -> Unit,
+) {
+    var pendingDecision by remember(approvalId) { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(bearer, vm.selectedRole.id, approvalId) {
+        vm.loadEddyApproval(bearer, approvalId)
+    }
+
+    val preview = vm.eddyApprovalPreview
+    val outcome = vm.eddyApprovalDecision
+    val decision = pendingDecision
+    if (decision != null && preview != null && outcome == null) {
+        val approving = decision == "approved"
+        AlertDialog(
+            onDismissRequest = { pendingDecision = null },
+            title = { Text(if (approving) "Record approval?" else "Record rejection?") },
+            text = {
+                Text(
+                    "You are about to ${if (approving) "approve" else "reject"} this live operational proposal. " +
+                        "This is your human decision, not Eddy's; it is sent now and is never queued for later offline delivery.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingDecision = null
+                    vm.decideEddyApproval(bearer, approvalId, decision)
+                }) {
+                    Text(if (approving) "Record approval" else "Record rejection")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDecision = null }) { Text("Cancel") }
+            },
+        )
+    }
+
+    Scaffold(
+        containerColor = Z.bg,
+        topBar = { DetailTopBar("Review Eddy proposal", onBack) },
+        bottomBar = {
+            if (preview != null && outcome == null) {
+                EddyApprovalDecisionBar(
+                    working = vm.eddyApprovalWorking,
+                    onApprove = { pendingDecision = "approved" },
+                    onReject = { pendingDecision = "rejected" },
+                )
+            }
+        },
+    ) { inner ->
+        EddyApprovalDetailContent(
+            preview = preview,
+            outcome = outcome,
+            loading = vm.eddyApprovalsLoading,
+            error = vm.eddyApprovalsError,
+            modifier = Modifier.padding(inner),
+        )
+    }
+}
+
+/** Read-only preview plus an explicit human decision boundary; no local command queue exists. */
+@Composable
+internal fun EddyApprovalDetailContent(
+    preview: EddyApprovalPreview?,
+    outcome: EddyApprovalDecisionResult?,
+    loading: Boolean,
+    error: String?,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        error?.let { item { ErrorPanel(it) } }
+        if (preview == null && outcome == null && loading) {
+            item { LoadingPanel() }
+        } else if (outcome != null) {
+            item {
+                Column(Modifier.fillMaxWidth().panel().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Decision recorded", color = Z.ink, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "The server recorded your human ${outcome.decision} decision. Eddy did not make this decision.",
+                        color = Z.inkMuted,
+                        fontSize = 13.sp,
+                    )
+                }
+            }
+        } else if (preview != null) {
+            item {
+                Column(Modifier.fillMaxWidth().panel().padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text(preview.summary.title, color = Z.ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "${preview.summary.tier} · ${(preview.summary.risk ?: "review").uppercase()} · ${humanizeLocal(preview.summary.surface)}",
+                        color = Z.inkMuted,
+                        fontSize = 12.sp,
+                    )
+                    preview.preview?.let { Text(it, color = Z.ink, fontSize = 14.sp) }
+                    Text("Live server preview · not retained offline", color = Z.primary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            preview.rationale?.let { rationale ->
+                item {
+                    Column(Modifier.fillMaxWidth().panel().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text("Why Eddy proposed this", color = Z.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text(rationale, color = Z.inkMuted, fontSize = 13.sp)
+                    }
+                }
+            }
+            preview.runnerUp?.let { runnerUp ->
+                item {
+                    Column(Modifier.fillMaxWidth().panel().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text("Alternative considered", color = Z.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text(runnerUp, color = Z.inkMuted, fontSize = 13.sp)
+                    }
+                }
+            }
+            if (preview.params.isNotEmpty()) {
+                item {
+                    Column(Modifier.fillMaxWidth().panel().padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Text("Operational details", color = Z.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        preview.params.forEach { parameter ->
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                                Text(humanizeLocal(parameter.name), color = Z.inkMuted, fontSize = 12.sp, modifier = Modifier.weight(0.42f))
+                                Text(parameter.value, color = Z.ink, fontSize = 12.sp, modifier = Modifier.weight(0.58f))
+                            }
+                        }
+                    }
+                }
+            }
+            item {
+                Text(
+                    "Before you decide, confirm the current operational situation. The server will validate your current authorization and persona; a decision needs a live connection and is never sent automatically.",
+                    color = Z.inkMuted,
+                    fontSize = 13.sp,
+                    modifier = Modifier.testTag("eddy-approval-live-decision-boundary"),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EddyApprovalDecisionBar(
+    working: Boolean,
+    onApprove: () -> Unit,
+    onReject: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().background(Z.surface).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button(
+            onClick = onApprove,
+            enabled = !working,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Z.primary),
+        ) {
+            Text(if (working) "Recording decision…" else "Approve after review")
+        }
+        OutlinedButton(onClick = onReject, enabled = !working, modifier = Modifier.fillMaxWidth()) {
+            Text("Reject after review")
         }
     }
 }
