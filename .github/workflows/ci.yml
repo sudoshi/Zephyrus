@@ -686,24 +686,6 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             build-for-testing
 
-      - name: Build Release for iPhone Simulator
-        run: |
-          xcodebuild \
-            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
-            -scheme Hummingbird \
-            -configuration Release \
-            -sdk iphonesimulator \
-            -destination "generic/platform=iOS Simulator" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-release" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            build
-
-      - name: Verify staff Release app transport boundary
-        run: |
-          release_app="$RUNNER_TEMP/hummingbird-staff-ios-release/Build/Products/Release-iphonesimulator/Hummingbird.app"
-          bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" staff
-
       - name: Wait for simulator boot to complete
         run: xcrun simctl bootstatus "${{ steps.simulator.outputs.udid }}" -b
 
@@ -741,6 +723,26 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             test-without-building
+
+      # The Release build gates the deploy path, not test feedback, so it
+      # runs after the tests to surface test failures sooner.
+      - name: Build Release for iPhone Simulator
+        run: |
+          xcodebuild \
+            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
+            -scheme Hummingbird \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-release" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Verify staff Release app transport boundary
+        run: |
+          release_app="$RUNNER_TEMP/hummingbird-staff-ios-release/Build/Products/Release-iphonesimulator/Hummingbird.app"
+          bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" staff
 
       - name: Shut down test simulator
         if: always() && steps.simulator.outputs.udid != ''
@@ -907,25 +909,6 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             build-for-testing
 
-      - name: Build Release for iPhone Simulator
-        run: |
-          xcodebuild \
-            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
-            -scheme HummingbirdPatient \
-            -configuration Release \
-            -sdk iphonesimulator \
-            -destination "generic/platform=iOS Simulator" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-release" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            build
-
-      - name: Verify patient Release app boundary
-        run: |
-          release_app="$RUNNER_TEMP/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/HummingbirdPatient.app"
-          bash scripts/ci/verify-hummingbird-patient-boundary.sh artifact "$release_app"
-          bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" patient
-
       - name: Wait for simulator boot to complete
         run: xcrun simctl bootstatus "${{ steps.simulator.outputs.udid }}" -b
 
@@ -963,6 +946,27 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             test-without-building
+
+      # The Release build gates the deploy path, not test feedback, so it
+      # runs after the tests to surface test failures sooner.
+      - name: Build Release for iPhone Simulator
+        run: |
+          xcodebuild \
+            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
+            -scheme HummingbirdPatient \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-release" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Verify patient Release app boundary
+        run: |
+          release_app="$RUNNER_TEMP/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/HummingbirdPatient.app"
+          bash scripts/ci/verify-hummingbird-patient-boundary.sh artifact "$release_app"
+          bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" patient
 
       - name: Shut down test simulator
         if: always() && steps.simulator.outputs.udid != ''
