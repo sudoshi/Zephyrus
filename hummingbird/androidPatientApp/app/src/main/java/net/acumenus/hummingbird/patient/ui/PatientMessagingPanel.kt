@@ -278,7 +278,7 @@ private fun NewThreadComposer(
                 )
                 Text(topic.description, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    text = "Expected response: ${topic.expectedResponseWindow}",
+                    text = "Typical response: ${topic.expectedResponseWindow}",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -370,7 +370,7 @@ private fun ThreadConversation(
     )
     Text(thread.patientVisibleState(), style = MaterialTheme.typography.bodyMedium)
     Text(
-        text = "Expected response: ${thread.expectedResponseWindow}",
+        text = "Typical response: ${thread.expectedResponseWindow}",
         style = MaterialTheme.typography.bodySmall,
     )
     HorizontalDivider()

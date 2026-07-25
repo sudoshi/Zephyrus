@@ -229,6 +229,9 @@ private struct PatientMessageThreadSummaryCard: View {
                 Label(thread.ownershipState.patientLabel, systemImage: thread.status == .open ? "message.badge.fill" : "checkmark.circle.fill")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(thread.status == .open ? PatientPalette.blue : PatientPalette.teal)
+                Label("Typical response", systemImage: "clock")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PatientPalette.blue)
                 Text(thread.expectedResponseWindow)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -238,7 +241,9 @@ private struct PatientMessageThreadSummaryCard: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Conversation: \(thread.topic.label). \(thread.ownershipState.patientLabel). \(thread.expectedResponseWindow)")
+        .accessibilityLabel(
+            "Conversation: \(thread.topic.label). \(thread.ownershipState.patientLabel). Typical response: \(thread.expectedResponseWindow)"
+        )
     }
 }
 
@@ -273,9 +278,12 @@ private struct PatientNewMessageComposer: View {
                         Text(topic.description)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Text(topic.expectedResponseWindow)
+                        Label("Typical response", systemImage: "clock")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PatientPalette.blue)
+                        Text(topic.expectedResponseWindow)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
 
                         if topic.code == "rounds_question" {
                             PatientCard {
@@ -558,11 +566,17 @@ private struct PatientMessageThreadView: View {
                 Label(thread.ownershipState.patientLabel, systemImage: "message.badge.fill")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PatientPalette.blue)
+                Label("Typical response", systemImage: "clock")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PatientPalette.blue)
                 Text(thread.expectedResponseWindow)
                     .font(.subheadline)
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "Conversation: \(thread.topic.label). \(thread.ownershipState.patientLabel). Typical response: \(thread.expectedResponseWindow)"
+        )
         .accessibilityIdentifier("message-thread-header")
     }
 }

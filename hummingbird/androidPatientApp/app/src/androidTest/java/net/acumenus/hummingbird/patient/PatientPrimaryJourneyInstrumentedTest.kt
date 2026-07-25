@@ -246,6 +246,8 @@ class PatientPrimaryJourneyInstrumentedTest {
             composeRule.onNodeWithTag("message-topic-care_question")
                 .performScrollTo()
                 .performClick()
+            composeRule.onNodeWithTag("message-topic-care_question")
+                .assert(hasText("Typical response:", substring = true))
             composeRule.onNodeWithTag("new-message-input")
                 .performScrollTo()
                 .performTextInput("Please explain today's plan.")

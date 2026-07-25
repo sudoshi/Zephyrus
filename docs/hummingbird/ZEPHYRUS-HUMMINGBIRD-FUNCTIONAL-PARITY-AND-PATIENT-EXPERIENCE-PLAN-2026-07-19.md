@@ -589,8 +589,8 @@ The patient product should feel reassuring without becoming juvenile, visually n
 
 #### Journey D: contacting the care team
 
-- [ ] Patient chooses a topic or team pool, not necessarily an individual clinician.
-- [ ] UI explains typical response expectations and the urgent bedside/emergency alternative.
+- [x] Patient chooses a topic or team pool, not necessarily an individual clinician. _(2026-07-25: both native apps render only the topic labels/descriptions released by the encounter-specific messaging policy. The policy maps each topic to an accountable responsibility pool under lock, but that pool key/digest is never serialized to the patient; patients never select a named individual or staff-only routing target. Server routing re-evaluates the policy, active encounter, grant, scopes, pool readiness, and responder eligibility on the write path. The patient BFF test proves pool identifiers are absent; the Android API 35 journey selects a topic while the iPhone 17 Pro journey verifies the corresponding patient-visible conversation context. Messaging remains default-off pending governance and activation.)_
+- [x] UI explains typical response expectations and the urgent bedside/emergency alternative. _(2026-07-25: the required policy response window is shown as **Typical response** beside each offered topic and in each thread on both platforms. The approved immediate-help card remains above the messaging surface and states that messaging is neither emergency monitoring nor live chat; topic-specific rounds wording repeats that it does not promise a particular discussion. Missing approved guidance/version or response window prevents fresh writes. This is a patient-language/presentation control, not an SLA guarantee, pilot authorization, or feature activation.)_
 - [ ] Message is scanned, persisted, audited, and routed based on encounter, unit, topic, availability, and handoff rules.
 - [ ] Recipient pool acknowledges ownership; unowned messages escalate.
 - [ ] Patient sees sent, delivered, assigned/acknowledged, responded, closed, and rerouted states.

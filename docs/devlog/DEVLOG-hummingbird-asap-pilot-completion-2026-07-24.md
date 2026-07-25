@@ -550,3 +550,38 @@ presentation only. It does not approve an upstream rounds source, author/review 
 clinical summary, release clinical content, expose the staff Virtual Rounds workspace,
 create a production patient, enable the default-off feature, authorize a pilot, migrate
 data, deploy an application, or close the related journey checklist item.
+
+## 2026-07-25 — Patient messaging topic-and-response expectation ratification
+
+### Completed implementation
+
+- Confirmed that the patient API exposes only patient-safe topic labels, descriptions,
+  and the required policy response window. The server keeps the accountability-pool
+  key/digest internal, resolves routing only on the locked write path, and rejects a
+  fresh write when the active encounter/grant/scopes, approved policy, urgent guidance,
+  response window, encryption key, staffed pool, or handoff-readiness boundary is not
+  satisfied.
+- Aligned the native patient language around **Typical response**. iOS now labels the
+  configured response window in each conversation row, thread header, and composer;
+  Android uses the same wording in its topic chooser and thread header. This makes the
+  non-promissory expectation recognizable without converting it into a delivery or
+  clinical guarantee.
+- The immediate-help presentation remains above messaging and states that messages are
+  not emergency monitoring or live chat. The patient selects a topic, never an
+  individual clinician or internal responsibility pool. No route, policy shape,
+  content, feature default, or routing authority changed.
+
+### Verification
+
+| Boundary                   | Command / target                                                                                                             | Result                                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Patient BFF policy/routing | `php artisan test tests/Feature/Patient/PatientMessagingApiTest.php --compact`                                               | 28 passed / 496 assertions; includes topic disclosure and internal routing-metadata omission        |
+| iOS rendered journey       | iPhone 17 Pro / iOS 26.3.1: `PatientReferenceJourneyUITests/testReferenceJourneyExposesCarePathTeamAndSafeMessagingLanguage` | 1 passed / 0 failures; verifies accessible typical-response meaning in a conversation header        |
+| Android rendered journey   | API 35 `hb` emulator / `connectedDebugAndroidTest --rerun-tasks`                                                             | 15 passed / 0 failures, errors, or skips; verifies the selected-topic typical-response presentation |
+
+### Remaining boundary
+
+This ratifies the governed, default-off technical pathway only. It does not establish a
+clinical response-time SLA, enable patient messaging, staff a pool, authorize a pilot,
+expose routing metadata, create a production patient, migrate data, or deploy an
+application.

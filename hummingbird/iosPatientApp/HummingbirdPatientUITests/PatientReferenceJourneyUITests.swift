@@ -78,7 +78,10 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         XCTAssertTrue(scrollUntilHittable(threadTopic))
         threadTopic.tap()
         XCTAssertTrue(app.descendants(matching: .any)["message-immediate-help"].waitForExistence(timeout: 3))
-        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["message-thread-header"]))
+        let threadHeader = app.descendants(matching: .any)["message-thread-header"]
+        XCTAssertTrue(scrollUntilExists(threadHeader))
+        XCTAssertTrue(threadHeader.label.contains("Typical response"))
+        XCTAssertTrue(threadHeader.label.contains("usually responds"))
         XCTAssertTrue(scrollUntilExists(app.staticTexts["Your mobility team will check how you are feeling and review safe support before you begin. Timing can still change."]))
         XCTAssertFalse(app.descendants(matching: .any)["message-reply-composer"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["correct-message-019f0000-0000-7000-8000-000000000062"].exists)
