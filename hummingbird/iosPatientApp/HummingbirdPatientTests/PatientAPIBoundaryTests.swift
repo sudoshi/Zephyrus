@@ -211,4 +211,16 @@ final class PatientAPIBoundaryTests: XCTestCase {
             XCTAssertNotNil(UIImage(named: name), "Missing patient background asset \(name)")
         }
     }
+
+    func testVisualSceneAssignmentsMatchTheCrossPlatformPatientExperience() {
+        XCTAssertEqual(PatientPhotoScene.welcome.assetName, "PatientAiryFlight")
+        XCTAssertEqual(PatientPhotoScene.loading.assetName, "PatientAiryFlight")
+        XCTAssertEqual(PatientPhotoScene.today.assetName, "PatientCalmGreen")
+        XCTAssertEqual(PatientPhotoScene.sessions.assetName, "PatientCalmGreen")
+        XCTAssertEqual(PatientPhotoScene.pathway.assetName, "PatientWarmMotion")
+        XCTAssertEqual(PatientPhotoScene.empty.assetName, "PatientWarmMotion")
+        XCTAssertEqual(PatientPhotoScene.careTeam.assetName, "PatientCareConnection")
+        XCTAssertEqual(PatientPhotoScene.messages.assetName, "PatientCareConnection")
+        XCTAssertEqual(PatientPhotoScene.error.assetName, "PatientCareConnection")
+    }
 }

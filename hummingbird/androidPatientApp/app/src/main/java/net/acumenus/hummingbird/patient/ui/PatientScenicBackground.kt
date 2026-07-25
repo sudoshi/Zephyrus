@@ -17,11 +17,14 @@ import net.acumenus.hummingbird.patient.R
 
 enum class PatientScene(@DrawableRes val drawable: Int) {
     WELCOME(R.drawable.patient_hummingbird_airy_flight),
-    TODAY(R.drawable.patient_hummingbird_airy_flight),
+    TODAY(R.drawable.patient_hummingbird_calm_green),
     PATHWAY(R.drawable.patient_hummingbird_warm_motion),
     CARE_TEAM(R.drawable.patient_hummingbird_care_connection),
     MESSAGES(R.drawable.patient_hummingbird_care_connection),
-    LOADING_OR_EMPTY(R.drawable.patient_hummingbird_calm_green),
+    ACCOUNT(R.drawable.patient_hummingbird_calm_green),
+    LOADING(R.drawable.patient_hummingbird_airy_flight),
+    EMPTY(R.drawable.patient_hummingbird_warm_motion),
+    ERROR(R.drawable.patient_hummingbird_care_connection),
 }
 
 /**

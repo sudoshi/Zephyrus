@@ -1,6 +1,6 @@
 # Hummingbird Patient Android background asset provenance
 
-Last verified: 2026-07-21
+Last verified: 2026-07-25
 
 These four JPEGs are bundled in `app/src/main/res/drawable-nodpi/`; the app does
 not download, rotate, or remotely select patient backgrounds. Each sRGB app
@@ -12,12 +12,12 @@ and a surface-color vertical scrim of 68%, 84%, and 96% opacity from top to
 bottom. Images are decorative (`contentDescription = null`); content and
 safety state remain complete if an image cannot be perceived.
 
-| App asset                                 | Repository source                                    | Use                                                                 | Source -> app pixels       | Source SHA-256                                                     | App SHA-256                                                        |
-| ----------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| `patient_hummingbird_calm_green.jpg`      | `public/images/auth/hummingbirds/hummingbird-01.jpg` | Loading and empty                                                   | 1689 x 2400 -> 1407 x 2000 | `9230a368fd2c0cab308280425b35b645b2a505871277a8136ec1c199cd53d6dc` | `d5dc322481721ac5a29a6fe34c777bf727385dcd9d3d5aad1674182b5ccbec2d` |
-| `patient_hummingbird_airy_flight.jpg`     | `public/images/auth/hummingbirds/hummingbird-06.jpg` | Welcome, enrollment, sign-in, Today, unavailable, recoverable error | 1600 x 2400 -> 1333 x 2000 | `65b640f035d8527d879f5b354e36eabb78ec3c9ca5c915356e05912a4aadc008` | `a400063289b0ec8b62a7059c3e1e10618da545fe50871b2f3ddb35935e958117` |
-| `patient_hummingbird_care_connection.jpg` | `public/images/auth/hummingbirds/hummingbird-07.jpg` | Care Team and Messages                                              | 1600 x 2400 -> 1333 x 2000 | `b545c010ed87c9ee4150c616b6031f2e66b329bc0e339fbe4ac735d6f4236988` | `b70ba3d0626f27bd29311a3e70a8e306768fd3c316cfae2554765b89603dcfbd` |
-| `patient_hummingbird_warm_motion.jpg`     | `public/images/auth/hummingbirds/hummingbird-12.jpg` | My Path                                                             | 1800 x 2400 -> 1500 x 2000 | `38e37231c4a14e3223823bbee531590aadd982bc7994c6538b02d291670b729d` | `b3f127a8fbd2754d69adc12432fc01f22a9096ee8850b8fdab10e769e5105fb8` |
+| App asset                                 | Repository source                                    | Use                                                      | Source -> app pixels       | Source SHA-256                                                     | App SHA-256                                                        |
+| ----------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `patient_hummingbird_calm_green.jpg`      | `public/images/auth/hummingbirds/hummingbird-01.jpg` | Today, preferences, and device sessions                  | 1689 x 2400 -> 1407 x 2000 | `9230a368fd2c0cab308280425b35b645b2a505871277a8136ec1c199cd53d6dc` | `d5dc322481721ac5a29a6fe34c777bf727385dcd9d3d5aad1674182b5ccbec2d` |
+| `patient_hummingbird_airy_flight.jpg`     | `public/images/auth/hummingbirds/hummingbird-06.jpg` | Welcome, enrollment, sign-in, and loading                | 1600 x 2400 -> 1333 x 2000 | `65b640f035d8527d879f5b354e36eabb78ec3c9ca5c915356e05912a4aadc008` | `a400063289b0ec8b62a7059c3e1e10618da545fe50871b2f3ddb35935e958117` |
+| `patient_hummingbird_care_connection.jpg` | `public/images/auth/hummingbirds/hummingbird-07.jpg` | Care Team, Messages, and access-verification unavailable | 1600 x 2400 -> 1333 x 2000 | `b545c010ed87c9ee4150c616b6031f2e66b329bc0e339fbe4ac735d6f4236988` | `b70ba3d0626f27bd29311a3e70a8e306768fd3c316cfae2554765b89603dcfbd` |
+| `patient_hummingbird_warm_motion.jpg`     | `public/images/auth/hummingbirds/hummingbird-12.jpg` | My Path and empty                                        | 1800 x 2400 -> 1500 x 2000 | `38e37231c4a14e3223823bbee531590aadd982bc7994c6538b02d291670b729d` | `b3f127a8fbd2754d69adc12432fc01f22a9096ee8850b8fdab10e769e5105fb8` |
 
 ## Crop and fallback policy
 

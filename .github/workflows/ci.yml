@@ -206,6 +206,7 @@ jobs:
           php scripts/verify-hummingbird-patient-contract.php
           php scripts/verify-hummingbird-contract-baseline.php
           php scripts/verify-hummingbird-transport-security.php
+          bash scripts/verify-hummingbird-patient-visual-assets.sh
           php scripts/generate-hummingbird-route-inventory.php --check
           bash scripts/check-no-tracking-technologies.sh
 

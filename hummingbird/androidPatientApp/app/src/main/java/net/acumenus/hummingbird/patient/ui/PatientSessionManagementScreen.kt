@@ -57,7 +57,7 @@ internal fun PatientSessionManagementScreen(
     onConfirmRevocation: () -> Unit,
 ) {
     BackHandler(onBack = onDismiss)
-    PatientScenicBackground(scene = PatientScene.LOADING_OR_EMPTY) {
+    PatientScenicBackground(scene = PatientScene.ACCOUNT) {
         Scaffold(
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
             topBar = {

@@ -104,6 +104,7 @@ internal fun PatientApp(
                 title = "No active hospital stay",
                 message = session.message,
                 retryLabel = "Check again",
+                scene = PatientScene.EMPTY,
                 onRetry = viewModel::retryCurrentCareAccess,
                 onExit = viewModel::signOut,
             )
@@ -113,6 +114,7 @@ internal fun PatientApp(
                 title = "We can’t confirm your care access",
                 message = session.message,
                 retryLabel = "Try again",
+                scene = PatientScene.ERROR,
                 onRetry = viewModel::retryCurrentCareAccess,
                 onExit = viewModel::signOut,
             )
@@ -139,7 +141,7 @@ internal fun PatientApp(
 
 @Composable
 private fun PatientLoadingScreen(message: String) {
-    PatientScenicBackground(scene = PatientScene.LOADING_OR_EMPTY) {
+    PatientScenicBackground(scene = PatientScene.LOADING) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -170,10 +172,11 @@ private fun PatientEmptyScreen(
     title: String,
     message: String,
     retryLabel: String,
+    scene: PatientScene,
     onRetry: () -> Unit,
     onExit: () -> Unit,
 ) {
-    PatientScenicBackground(scene = PatientScene.LOADING_OR_EMPTY) {
+    PatientScenicBackground(scene = scene) {
         Column(
             modifier = Modifier
                 .fillMaxSize()

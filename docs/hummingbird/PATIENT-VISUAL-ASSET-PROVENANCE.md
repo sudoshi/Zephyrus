@@ -1,7 +1,7 @@
 # Hummingbird Patient visual asset provenance
 
 Status: **release-blocking review open**
-Last verified: 2026-07-19
+Last verified: 2026-07-25
 Technical owner: Hummingbird Patient mobile maintainers
 Release approval owner: Product Design and Legal/Compliance (named approver not yet assigned)
 
@@ -44,6 +44,10 @@ attribution review required**.
   paths is `cd6d1b048ad44763f88e7f1a3474657645a8559b` (2026-07-02,
   “Beautify login with hummingbird slideshow”). That commit is a repository
   lineage marker only and is not licensing evidence.
+- The native scene assignments are deliberately identical where the products
+  share a state: Airy Flight for welcome/loading, Calm Green for Today/account,
+  Warm Motion for pathway/empty, and Care Connection for care team/messages/error.
+  iOS XCTest and Android JVM tests pin those assignments independently.
 
 ## Approval record to complete before release
 
@@ -62,7 +66,15 @@ attribution review required**.
 
 ## Checksum verification
 
-Run from the repository root:
+Run the repository verifier from the root. It pins every source, iOS copy, and
+Android derivative to the ledger hashes above (12 files total), and it runs in
+the Hummingbird CI contract lane:
+
+```bash
+bash scripts/verify-hummingbird-patient-visual-assets.sh
+```
+
+For a human-readable file-by-file listing, run:
 
 ```bash
 sha256sum \

@@ -39,6 +39,46 @@ Each subsequent entry must cite the exact commit SHA, command output/test count,
 simulator or emulator target, feature-flag state, decision record, and unresolved
 blocker. Narrative progress without those artifacts is not an accepted update.
 
+## 2026-07-25 — Patient scenic-background parity and integrity guard
+
+### Completed implementation
+
+- Corrected the Android patient scene assignment to match the shared patient
+  visual language: Airy Flight for welcome/loading, Calm Green for Today and
+  account surfaces, Warm Motion for pathway and empty states, and Care
+  Connection for Care Team, Messages, and access-verification error. The change
+  separates loading, empty/unavailable, account, and error states instead of
+  silently reusing one image for unrelated patient moments.
+- Added independent iOS XCTest and Android JVM assertions for the exact scene
+  mapping, so a future asset reassignment must deliberately update both native
+  product expectations.
+- Added `scripts/verify-hummingbird-patient-visual-assets.sh`, a cross-platform
+  SHA-256 verifier for the four repository sources, four byte-identical iOS
+  copies, and four optimized Android derivatives. The Hummingbird CI contract
+  lane now runs it. The provenance record remains explicit that checksum proof
+  is technical lineage, not copyright, licensing, attribution, or release
+  approval.
+
+### Verification
+
+| Boundary                      | Command / target                                                                                                                                      | Result                                                                                  |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Asset lineage                 | `bash scripts/verify-hummingbird-patient-visual-assets.sh`                                                                                            | 12 source/iOS/Android SHA-256 pins matched the provenance ledger                        |
+| Android unit / release        | `./gradlew testDebugUnitTest --tests net.acumenus.hummingbird.patient.ui.PatientVisualAssetPolicyTest`; `./gradlew testReleaseUnitTest --rerun-tasks` | focused policy suite passed; 104 release JVM tests, 0 failures/errors/skips             |
+| Android emulator              | `./gradlew connectedDebugAndroidTest --rerun-tasks --console=plain` on `hb(AVD)` / API 35                                                             | 16 instrumented tests, 0 failures/errors/skips                                          |
+| Android static analysis       | `./gradlew lintDebug --console=plain`                                                                                                                 | passed                                                                                  |
+| iOS Simulator                 | `xcodebuild ... -only-testing:HummingbirdPatientTests/PatientAPIBoundaryTests test` on iPhone 17 Pro                                                  | 12 tests, 0 failures                                                                    |
+| Native product boundaries     | both source-boundary scans plus `verify-hummingbird-patient-xcode-project.sh`                                                                         | Android and iOS source boundaries passed; generated Xcode project matched `project.yml` |
+| Documentation / patch quality | target-file Prettier check and `git diff --check`                                                                                                     | passed                                                                                  |
+
+### Remaining boundary
+
+The backgrounds remain app-local and decorative; their release is still on hold
+until Product Design and Legal/Compliance record source rights, any required
+attribution/model releases, focal-point approvals, named release ownership, and
+approval evidence. No patient feature flag, production patient, or deployment
+changed in this increment.
+
 ## 2026-07-24 — Native staff Eddy no-store SSE increment
 
 ### Completed implementation
