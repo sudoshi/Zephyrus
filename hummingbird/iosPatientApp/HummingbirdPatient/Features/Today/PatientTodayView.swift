@@ -98,6 +98,54 @@ struct PatientTodayView: View {
                     .accessibilityIdentifier("today-care-goals")
                 }
 
+                if let rounds = snapshot.roundsSummary {
+                    PatientCard {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("After your care-team conversation", systemImage: "person.2.wave.2.fill")
+                                .font(.headline)
+                                .foregroundStyle(PatientPalette.teal)
+                            Text(rounds.headline)
+                                .font(.title3.bold())
+                            Text(rounds.summary)
+                                .font(.body)
+                            if let roundWindow = rounds.roundWindow, !roundWindow.isEmpty {
+                                Label(roundWindow, systemImage: "clock")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(PatientPalette.blue)
+                            }
+                            if let topics = rounds.topics, !topics.isEmpty {
+                                Divider()
+                                Text("Topics your team released")
+                                    .font(.subheadline.weight(.semibold))
+                                ForEach(topics) { topic in
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(topic.title)
+                                            .font(.subheadline.weight(.semibold))
+                                        Text(
+                                            "\(PatientStateVocabulary.label(for: topic.status, domain: .roundsTopic)) · \(topic.summary)"
+                                        )
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            PatientProvenanceText(
+                                value: snapshot.roundsSummaryProvenance ?? "Released care-team conversation"
+                            )
+                        }
+                    }
+                    .accessibilityIdentifier("today-rounds-summary")
+
+                    let conversationNextSteps = (rounds.nextSteps ?? []) + (rounds.questions ?? [])
+                    if !conversationNextSteps.isEmpty {
+                        PatientBulletListCard(
+                            title: "Next steps from your conversation",
+                            icon: "checklist",
+                            items: conversationNextSteps
+                        )
+                    }
+                }
+
                 if !snapshot.hasTodayProjection || snapshot.todayItems.isEmpty {
                     PatientPhotoStateCard(
                         scene: .empty,

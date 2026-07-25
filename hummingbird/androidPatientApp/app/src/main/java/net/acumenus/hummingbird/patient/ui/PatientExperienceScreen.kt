@@ -323,6 +323,42 @@ private fun androidx.compose.foundation.lazy.LazyListScope.todayContent(snapshot
             )
         }
     }
+    snapshot.roundsSummary?.let { rounds ->
+        item {
+            PatientInformationCard(
+                title = "After your care-team conversation",
+                badge = rounds.roundWindow?.takeIf { it.isNotBlank() } ?: "Released care-team summary",
+                primary = rounds.headline,
+                explanation = rounds.summary,
+                provenance = rounds.provenance,
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .testTag("today-rounds-summary"),
+            )
+        }
+        if (rounds.topics.isNotEmpty()) {
+            item {
+                SectionHeading(
+                    title = "Topics from your care-team conversation",
+                    subtitle = "Patient-facing topics your team released after reviewing your care.",
+                )
+            }
+            items(rounds.topics, key = { it.id }) { topic ->
+                PatientInformationCard(
+                    title = topic.title,
+                    badge = topic.status,
+                    primary = topic.status,
+                    explanation = topic.summary,
+                    provenance = rounds.provenance,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+        }
+        patientListCard(
+            title = "Next steps from your conversation",
+            entries = rounds.nextSteps + rounds.questions,
+        )
+    }
     items(snapshot.todayItems, key = { it.title }) { item ->
         TodayItemCard(item = item, modifier = Modifier.padding(horizontal = 16.dp))
     }

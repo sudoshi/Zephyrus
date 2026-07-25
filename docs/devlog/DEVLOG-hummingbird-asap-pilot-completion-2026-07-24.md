@@ -515,3 +515,38 @@ This ratifies a defensive client rendering rule. It does not review or approve a
 delay reason, determine an ETA, inspect staffing/capacity, approve clinical wording,
 release a patient projection, enable a patient feature, authorize a pilot, migrate data,
 or deploy an application.
+
+## 2026-07-25 — Today rounds-summary projection-reuse ratification
+
+### Completed implementation
+
+- Audited the existing patient-realm `GET /encounters/{encounterUuid}/rounds/summary`
+  projection before changing the native views. It already requires the separate
+  `rounds_summary` patient feature gate and the existing `pathway:read` encounter
+  grant; both clients already fetch it independently, preserve patient-facing
+  provenance, and treat an unavailable release as absent.
+- Today now composes only that already released content: the plain-language headline,
+  summary, approximate discussion window, released topic summaries, provenance, and
+  released next steps/questions. It appears after the existing current-stage,
+  care-team, and care-goal context, allowing a patient to orient to what the team
+  discussed without navigating away from Today.
+- No route, schema, API operation, source adapter, staff-workspace access, content
+  generation, grant/scope, feature-flag default, or patient record changed. A missing,
+  retracted, or feature-disabled rounds release produces no fallback card; neither app
+  invents a conversation summary, topic, timing, or next step.
+
+### Verification
+
+| Boundary                 | Command / target                                                                                                                                            | Result                                                                                                   |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Android native mapping   | Debug JVM: `PatientSessionCoordinatorTest`                                                                                                                  | passed / 0 failures                                                                                      |
+| iOS native + UI journey  | iPhone 17 Pro / iOS 26.3.1: `PatientAppViewModelTests` and `PatientReferenceJourneyUITests/testReferenceJourneyExposesCarePathTeamAndSafeMessagingLanguage` | 25 passed / 0 failures; verifies the Today rounds-summary and conversation-next-steps cards              |
+| Android rendered journey | API 35 `hb` emulator / `connectedDebugAndroidTest --rerun-tasks`                                                                                            | 15 passed / 0 failures, errors, or skips; verifies the Today rounds-summary, topics, and next-step cards |
+
+### Remaining boundary
+
+This ratifies reuse of a separate, already governed patient projection in native
+presentation only. It does not approve an upstream rounds source, author/review a
+clinical summary, release clinical content, expose the staff Virtual Rounds workspace,
+create a production patient, enable the default-off feature, authorize a pilot, migrate
+data, deploy an application, or close the related journey checklist item.
