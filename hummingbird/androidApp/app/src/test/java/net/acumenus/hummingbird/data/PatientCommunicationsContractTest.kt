@@ -27,6 +27,9 @@ class PatientCommunicationsContractTest {
         assertEquals(7, item.workItemVersion)
         assertEquals(11, item.threadVersion)
         assertTrue(item.isEscalationDue)
+        assertTrue(item.actions?.canClaim == true)
+        assertFalse(item.actions?.canReply == true)
+        assertFalse(item.actions?.canClose == true)
         assertEquals("I have a question about tonight's medicine.", item.messages.single().body)
 
         val exposedFields = PatientCommunicationWorkItem::class.java.declaredFields.map { it.name }.toSet()
@@ -514,15 +517,19 @@ class PatientCommunicationsContractTest {
     }
 
     @Test
-    fun `pool owned rerouted and escalated unassigned work remain claimable`() {
+    fun `claim availability follows server affordances and missing metadata fails closed`() {
         val item = api.parsePatientCommunicationWorkItem(workItemFixture())
 
-        assertTrue(PatientCommunicationPresentation.isClaimable(item.copy(ownershipState = "pool_owned")))
-        assertTrue(PatientCommunicationPresentation.isClaimable(item.copy(ownershipState = "rerouted")))
-        assertTrue(PatientCommunicationPresentation.isClaimable(item.copy(ownershipState = "escalated")))
-        assertFalse(PatientCommunicationPresentation.isClaimable(item.copy(ownershipState = "assigned")))
-        assertFalse(PatientCommunicationPresentation.isClaimable(item.copy(assignedToMe = true)))
-        assertFalse(PatientCommunicationPresentation.isClaimable(item.copy(status = "closed")))
+        assertTrue(PatientCommunicationPresentation.isClaimable(item))
+        assertFalse(
+            PatientCommunicationPresentation.isClaimable(
+                item.copy(
+                    ownershipState = "escalated",
+                    actions = PatientCommunicationActions(false, false, false),
+                ),
+            ),
+        )
+        assertFalse(PatientCommunicationPresentation.isClaimable(item.copy(actions = null)))
     }
 
     @Test
@@ -624,6 +631,7 @@ class PatientCommunicationsContractTest {
           "status": "open",
           "ownership_state": "pool_owned",
           "assigned_to_me": false,
+          "actions": {"can_claim": true, "can_reply": false, "can_close": false},
           "work_item_version": 7,
           "thread_version": 11,
           "last_message_at": "2026-07-19T14:00:00-04:00",

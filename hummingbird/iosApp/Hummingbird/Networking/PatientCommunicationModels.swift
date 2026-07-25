@@ -11,6 +11,15 @@ struct PatientCommunicationInboxData: Decodable, Equatable {
     let count: Int
 }
 
+/// Server-computed direct-action affordances for the current staff member.
+/// They are intentionally advisory: a mutation still rechecks authorization,
+/// effective membership, canonical scope, ownership, and versions at commit.
+struct PatientCommunicationActions: Decodable, Equatable {
+    let canClaim: Bool
+    let canReply: Bool
+    let canClose: Bool
+}
+
 struct PatientCommunicationWorkItem: Decodable, Equatable, Identifiable {
     let workItemUuid: String
     let threadUuid: String
@@ -29,18 +38,19 @@ struct PatientCommunicationWorkItem: Decodable, Equatable, Identifiable {
     let isResponseDue: Bool
     let isEscalationDue: Bool
     let closedAt: String?
-    var facility: PatientCommunicationFacility? = nil
-    var serviceLine: PatientCommunicationServiceLine? = nil
     let messages: [PatientCommunicationMessage]?
     let hasEarlierMessages: Bool?
+    var facility: PatientCommunicationFacility? = nil
+    var serviceLine: PatientCommunicationServiceLine? = nil
+    // Missing affordances fail closed for an older or malformed response. They
+    // must never be reconstructed from an ownership-state heuristic.
+    var actions: PatientCommunicationActions? = nil
 
     var id: String { workItemUuid }
     var isOpen: Bool { status == "open" }
-    var canClaim: Bool {
-        isOpen && !assignedToMe && ["pool_owned", "rerouted", "escalated"].contains(ownershipState)
-    }
-    var canReply: Bool { isOpen && assignedToMe }
-    var canClose: Bool { canReply && ownershipState == "responded" }
+    var canClaim: Bool { actions?.canClaim == true }
+    var canReply: Bool { actions?.canReply == true }
+    var canClose: Bool { actions?.canClose == true }
 }
 
 struct PatientCommunicationTopic: Decodable, Equatable {

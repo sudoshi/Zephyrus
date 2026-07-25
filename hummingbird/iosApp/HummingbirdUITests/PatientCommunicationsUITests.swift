@@ -73,6 +73,28 @@ final class PatientCommunicationsUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", "capability")).firstMatch.exists)
     }
 
+    func testServerDeniedDirectActionsHideClaimReplyAndCloseControls() {
+        app.launchEnvironment = [
+            "HB_STAFF_COMM_UI_TEST": "1",
+            "HB_STAFF_COMM_UI_SCENARIO": "action_forbidden",
+        ]
+        app.launch()
+        openMessages()
+
+        let row = app.descendants(matching: .any)["patientCommunications.row.11111111-1111-4111-8111-111111111111"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+
+        XCTAssertTrue(app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "unavailable to claim")
+        ).firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["patientCommunications.claimButton"].exists)
+        XCTAssertFalse(app.textViews["patientCommunications.replyEditor"].exists)
+        XCTAssertFalse(app.buttons["patientCommunications.sendButton"].exists)
+        XCTAssertFalse(app.buttons["patientCommunications.closeButton"].exists)
+        capture("patient-communications-server-denied-actions")
+    }
+
     func testLayoutRemainsNavigableWithAccessibilityDisplayPreferences() {
         app.launchArguments += [
             "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge",

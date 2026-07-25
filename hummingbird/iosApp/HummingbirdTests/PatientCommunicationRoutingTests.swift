@@ -1590,7 +1590,12 @@ private final class PatientCommunicationRoutingFakeRepository: PatientCommunicat
             workItemVersion: 4, threadVersion: 8,
             lastMessageAt: "2026-07-20T12:00:00Z", dueAt: "2026-07-20T13:00:00Z",
             escalateAt: "2026-07-20T14:00:00Z", isResponseDue: false, isEscalationDue: false,
-            closedAt: nil, messages: [], hasEarlierMessages: false
+            closedAt: nil, messages: [], hasEarlierMessages: false,
+            actions: Self.actions(
+                status: "open",
+                ownershipState: ownershipState,
+                assignedToMe: assignedToMe
+            )
         )
         candidates = try! PatientCommunicationRoutingContractTests.decode(
             PatientCommunicationRoutingContractTests.validCandidatesJSON(
@@ -1650,7 +1655,12 @@ private final class PatientCommunicationRoutingFakeRepository: PatientCommunicat
             isEscalationDue: false,
             closedAt: nil,
             messages: current.messages,
-            hasEarlierMessages: current.hasEarlierMessages
+            hasEarlierMessages: current.hasEarlierMessages,
+            actions: Self.actions(
+                status: "open",
+                ownershipState: ownershipState,
+                assignedToMe: assignedToMe
+            )
         )
         currentItemOverride = projection
         return projection
@@ -1946,7 +1956,14 @@ private final class PatientCommunicationRoutingFakeRepository: PatientCommunicat
             isEscalationDue: item.isEscalationDue,
             closedAt: item.closedAt,
             messages: item.messages,
-            hasEarlierMessages: item.hasEarlierMessages
+            hasEarlierMessages: item.hasEarlierMessages,
+            actions: Self.actions(
+                status: item.status,
+                ownershipState: isGenericReplay
+                    ? "responded"
+                    : (action == .reroute ? "rerouted" : (action == .release ? "pool_owned" : "assigned")),
+                assignedToMe: isGenericReplay
+            )
         )
         // The server mutation response and subsequent authoritative reads must
         // expose the same committed projection. Retained-row drift detection
@@ -1988,7 +2005,25 @@ private final class PatientCommunicationRoutingFakeRepository: PatientCommunicat
             isEscalationDue: item.isEscalationDue,
             closedAt: status == "closed" ? "2026-07-20T12:02:00Z" : nil,
             messages: messages ?? item.messages,
-            hasEarlierMessages: item.hasEarlierMessages
+            hasEarlierMessages: item.hasEarlierMessages,
+            actions: Self.actions(
+                status: status,
+                ownershipState: ownershipState,
+                assignedToMe: assignedToMe
+            )
+        )
+    }
+
+    private static func actions(
+        status: String,
+        ownershipState: String,
+        assignedToMe: Bool
+    ) -> PatientCommunicationActions {
+        .init(
+            canClaim: status == "open" && !assignedToMe
+                && ["pool_owned", "rerouted", "escalated"].contains(ownershipState),
+            canReply: status == "open" && assignedToMe,
+            canClose: status == "open" && assignedToMe && ownershipState == "responded"
         )
     }
 }

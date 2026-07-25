@@ -72,7 +72,10 @@ class StaffPatientCommunicationService
     {
         $this->assertAvailable();
         $this->assertCapability($user, Capability::ViewPatientCommunications);
-        $poolIds = $this->effectiveMemberships($user)->pluck('responsibility_pool_id');
+        $memberships = $this->effectiveMemberships($user);
+        $poolIds = $memberships->pluck('responsibility_pool_id');
+        $membershipsByPoolId = $memberships->keyBy('responsibility_pool_id');
+        $canRespond = $this->canDirectlyRespond($request, $user);
 
         $items = $poolIds->isEmpty()
             ? collect()
@@ -97,6 +100,12 @@ class StaffPatientCommunicationService
                 $user,
                 false,
                 $contexts[(int) $item->getKey()] ?? null,
+                $this->workItemActions(
+                    $item,
+                    $user,
+                    $membershipsByPoolId->get((int) $item->responsibility_pool_id),
+                    $canRespond,
+                ),
             ))
             ->values()
             ->all();
@@ -127,7 +136,18 @@ class StaffPatientCommunicationService
             'assignee',
         ]);
 
-        $data = $this->serializeWorkItem($workItem, $user, true);
+        $data = $this->serializeWorkItem(
+            $workItem,
+            $user,
+            true,
+            null,
+            $this->workItemActions(
+                $workItem,
+                $user,
+                null,
+                $this->canDirectlyRespond($request, $user),
+            ),
+        );
 
         $this->audit->record('patient_communications.thread_viewed', 'access', 'success', [
             'request' => $request,
@@ -1041,6 +1061,20 @@ class StaffPatientCommunicationService
         }
     }
 
+    /**
+     * Web sessions have no personal-access token, while mobile read tokens may
+     * deliberately omit mobile:act. A role capability by itself must never
+     * cause a read-only mobile session to render a direct mutation control.
+     */
+    private function canDirectlyRespond(Request $request, User $user): bool
+    {
+        if (! $this->authorization->allows($user, Capability::RespondPatientCommunications)) {
+            return false;
+        }
+
+        return $user->currentAccessToken() === null || $user->tokenCan('mobile:act');
+    }
+
     private function effectiveMemberships(User $user): Collection
     {
         return PoolMembership::query()
@@ -1590,12 +1624,14 @@ class StaffPatientCommunicationService
         User $viewer,
         bool $includeMessages = false,
         ?array $context = null,
+        ?array $actions = null,
     ): array {
         $thread = $workItem->thread;
         $grant = $workItem->accessGrant;
         $pool = $workItem->pool;
         $context ??= $this->workItemContexts(collect([$workItem]))[(int) $workItem->getKey()] ?? null;
         $context ??= $this->emptyWorkItemContext();
+        $actions ??= $this->workItemActions($workItem, $viewer);
         $encounter = $context['encounter'] ?? null;
 
         $patientContextRef = null;
@@ -1632,6 +1668,11 @@ class StaffPatientCommunicationService
             'ownership_state' => (string) $workItem->ownership_state,
             'assigned_to_me' => $workItem->assigned_user_id !== null
                 && (int) $workItem->assigned_user_id === (int) $viewer->getKey(),
+            // These affordances are advisory UI state only. Every write still
+            // re-evaluates capability, effective membership, canonical scope,
+            // assignment, and optimistic versions under lock. Clients must not
+            // infer availability from ownership_state or a stale local row.
+            'actions' => $actions,
             'work_item_version' => (int) $workItem->row_version,
             'thread_version' => (int) $thread?->version,
             'last_message_at' => $workItem->last_message_at?->toISOString(),
@@ -1661,6 +1702,61 @@ class StaffPatientCommunicationService
         }
 
         return $data;
+    }
+
+    /**
+     * Produces the current viewer's bounded direct-action affordances without
+     * disclosing the assignee's identity or wider pool membership. The inbox
+     * passes its already-effective membership collection to avoid a query per
+     * row; detail and mutation responses resolve one current membership.
+     *
+     * @return array{can_claim: bool, can_reply: bool, can_close: bool}
+     */
+    private function workItemActions(
+        ThreadWorkItem $workItem,
+        User $viewer,
+        ?PoolMembership $membership = null,
+        ?bool $canRespond = null,
+    ): array {
+        $membership ??= PoolMembership::query()
+            ->effective()
+            ->where('responsibility_pool_id', $workItem->responsibility_pool_id)
+            ->where('staff_user_id', $viewer->getKey())
+            ->first();
+        $canRespond ??= $this->authorization->allows(
+            $viewer,
+            Capability::RespondPatientCommunications,
+        );
+        $open = $workItem->status === 'open';
+        $assignedToViewer = $workItem->assigned_user_id !== null
+            && (int) $workItem->assigned_user_id === (int) $viewer->getKey();
+
+        return [
+            'can_claim' => $canRespond
+                && $membership instanceof PoolMembership
+                && $membership->can_claim
+                && $open
+                && $workItem->assigned_user_id === null
+                && in_array(
+                    $workItem->ownership_state,
+                    ['pool_owned', 'rerouted', 'escalated'],
+                    true,
+                ),
+            'can_reply' => $canRespond
+                && $membership instanceof PoolMembership
+                && $membership->can_reply
+                && $open
+                && $assignedToViewer,
+            // The server independently verifies that a patient-visible reply
+            // follows the latest patient message before it will close. The
+            // state check only prevents exposing an impossible close control.
+            'can_close' => $canRespond
+                && $membership instanceof PoolMembership
+                && $membership->can_close
+                && $open
+                && $assignedToViewer
+                && $workItem->ownership_state === 'responded',
+        ];
     }
 
     /**

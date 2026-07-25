@@ -169,6 +169,9 @@ class StaffPatientCommunicationApiTest extends TestCase
             ->assertJsonPath('data.items.0.topic.code', 'care_question')
             ->assertJsonPath('data.items.0.pool.label', 'Staff API Test Care Team')
             ->assertJsonPath('data.items.0.ownership_state', 'pool_owned')
+            ->assertJsonPath('data.items.0.actions.can_claim', true)
+            ->assertJsonPath('data.items.0.actions.can_reply', false)
+            ->assertJsonPath('data.items.0.actions.can_close', false)
             ->assertJsonPath('meta.classification', 'patient_communication_restricted')
             ->assertJsonPath('meta.offline_writes_allowed', false)
             ->assertJsonMissingPath('data.items.0.messages');
@@ -212,6 +215,99 @@ class StaffPatientCommunicationApiTest extends TestCase
             'target_id' => (string) $workItem->work_item_uuid,
             'outcome' => 'success',
         ]);
+    }
+
+    public function test_direct_action_affordances_are_server_computed_and_fail_closed(): void
+    {
+        $fixture = $this->routedCommunication();
+        $workItem = $fixture['work_item'];
+        $staffToken = $this->staffToken($fixture['staff']);
+        $inboxUrl = '/api/mobile/v1/patient-communications/inbox';
+        $detailUrl = "/api/mobile/v1/patient-communications/threads/{$workItem->work_item_uuid}";
+
+        // The pool-owned fixture is claimable, but neither reply nor close is
+        // available until a current eligible responder owns it.
+        $this->withToken($staffToken)
+            ->getJson($inboxUrl)
+            ->assertOk()
+            ->assertJsonPath('data.items.0.actions', [
+                'can_claim' => true,
+                'can_reply' => false,
+                'can_close' => false,
+            ]);
+
+        // A mobile read-only token must not render an action which its route
+        // middleware will deny, even when the same user has the role capability.
+        $this->app['auth']->forgetGuards();
+        $this->withToken($this->staffToken($fixture['staff'], ['mobile:read']))
+            ->getJson($inboxUrl)
+            ->assertOk()
+            ->assertJsonPath('data.items.0.actions', [
+                'can_claim' => false,
+                'can_reply' => false,
+                'can_close' => false,
+            ]);
+
+        // Escalation does not erase a real assignment. The old client-side
+        // ownership-state heuristic would have offered this as claimable to a
+        // different responder; the server-owned affordance fails closed.
+        $otherResponder = User::factory()->create([
+            'role' => 'bedside_nurse',
+            'is_active' => true,
+        ]);
+        $workItem->forceFill([
+            'assigned_user_id' => $otherResponder->getKey(),
+            'ownership_state' => 'escalated',
+        ])->save();
+        $this->app['auth']->forgetGuards();
+        $this->withToken($staffToken)
+            ->getJson($detailUrl)
+            ->assertOk()
+            ->assertJsonPath('data.actions', [
+                'can_claim' => false,
+                'can_reply' => false,
+                'can_close' => false,
+            ]);
+
+        $workItem->forceFill([
+            'assigned_user_id' => null,
+            'ownership_state' => 'pool_owned',
+        ])->save();
+        $this->app['auth']->forgetGuards();
+        $claim = $this->claim($fixture, $staffToken);
+        $this->assertSame([
+            'can_claim' => false,
+            'can_reply' => true,
+            'can_close' => false,
+        ], $claim['work_item']['actions']);
+
+        $reply = $this->withToken($staffToken)
+            ->withHeader('Idempotency-Key', (string) Str::uuid7())
+            ->postJson($detailUrl.'/reply', [
+                'work_item_version' => $claim['work_item']['work_item_version'],
+                'thread_version' => $claim['work_item']['thread_version'],
+                'client_message_uuid' => (string) Str::uuid7(),
+                'message' => self::STAFF_REPLY,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.work_item.actions', [
+                'can_claim' => false,
+                'can_reply' => true,
+                'can_close' => true,
+            ])
+            ->json('data');
+
+        $fixture['membership']->forceFill(['can_reply' => false, 'can_close' => false])->save();
+        $this->app['auth']->forgetGuards();
+        $this->withToken($staffToken)
+            ->getJson($detailUrl)
+            ->assertOk()
+            ->assertJsonPath('data.work_item_uuid', $reply['work_item']['work_item_uuid'])
+            ->assertJsonPath('data.actions', [
+                'can_claim' => false,
+                'can_reply' => false,
+                'can_close' => false,
+            ]);
     }
 
     public function test_inbox_projects_only_active_canonical_facility_and_primary_service_line_context(): void

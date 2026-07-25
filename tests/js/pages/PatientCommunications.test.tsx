@@ -41,6 +41,11 @@ const workItem = {
     status: "open",
     ownership_state: "pool_owned",
     assigned_to_me: false,
+    actions: {
+        can_claim: true,
+        can_reply: false,
+        can_close: false,
+    },
     work_item_version: 1,
     thread_version: 2,
     last_message_at: "2026-07-20T12:00:00Z",
@@ -212,6 +217,55 @@ describe("Patient Communications workspace", () => {
         expect(
             screen.getByText("No communications match these filters."),
         ).toBeInTheDocument();
+    });
+
+    it("uses server-computed action affordances instead of guessing from an escalated state", async () => {
+        vi.spyOn(axios, "get").mockResolvedValueOnce(
+            envelope({
+                ...detail,
+                ownership_state: "escalated",
+                actions: {
+                    can_claim: false,
+                    can_reply: false,
+                    can_close: false,
+                },
+            }),
+        );
+        render(
+            <PatientCommunicationsIndex
+                initialInbox={{
+                    items: [
+                        {
+                            ...workItem,
+                            ownership_state: "escalated",
+                            actions: {
+                                can_claim: false,
+                                can_reply: false,
+                                can_close: false,
+                            },
+                        },
+                    ],
+                    count: 1,
+                }}
+                endpoints={endpoints}
+                auth={{ user: null }}
+            />,
+        );
+
+        fireEvent.click(
+            screen.getByRole("button", {
+                name: /Question for my care team/i,
+            }),
+        );
+
+        expect(
+            await screen.findByText(
+                /unavailable to claim with your current team permissions/i,
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole("button", { name: "Assign to me" }),
+        ).not.toBeInTheDocument();
     });
 
     it("locks an unknown claim outcome and retries the exact command without changing its key or payload", async () => {
@@ -553,6 +607,11 @@ describe("Patient Communications workspace", () => {
             ...detail,
             ownership_state: "acknowledged",
             assigned_to_me: false,
+            actions: {
+                can_claim: false,
+                can_reply: false,
+                can_close: false,
+            },
         };
         vi.spyOn(axios, "get").mockResolvedValueOnce(
             envelope(assignedElsewhere),
@@ -575,7 +634,7 @@ describe("Patient Communications workspace", () => {
 
         expect(
             await screen.findByText(
-                "This communication is assigned to another responder.",
+                /either assigned to another responder or unavailable to claim/i,
             ),
         ).toBeInTheDocument();
         expect(

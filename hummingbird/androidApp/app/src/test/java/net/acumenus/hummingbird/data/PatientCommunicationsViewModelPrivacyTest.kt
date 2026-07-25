@@ -514,6 +514,11 @@ class PatientCommunicationsViewModelPrivacyTest {
         status = "open",
         ownershipState = "acknowledged",
         assignedToMe = true,
+        actions = PatientCommunicationActions(
+            canClaim = false,
+            canReply = true,
+            canClose = false,
+        ),
         workItemVersion = 7,
         threadVersion = 11,
         lastMessageAt = "2026-07-20T01:00:00-04:00",

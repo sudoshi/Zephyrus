@@ -585,6 +585,7 @@ $expectedSchemaRequired = [
     'PatientCommunicationFacility' => ['key', 'label'],
     'PatientCommunicationServiceLine' => ['code', 'label'],
     'PatientCommunicationPool' => ['label', 'pool_uuid'],
+    'PatientCommunicationActions' => ['can_claim', 'can_close', 'can_reply'],
     'PatientCommunicationRoutingActions' => ['can_reassign', 'can_release', 'can_reroute'],
     'PatientCommunicationReleaseReasonOption' => ['code', 'label'],
     'PatientCommunicationReassignReasonOption' => ['code', 'label'],
@@ -611,6 +612,7 @@ $expectedSchemaRequired = [
         'visibility',
     ],
     'PatientCommunicationWorkItem' => [
+        'actions',
         'assigned_to_me',
         'closed_at',
         'due_at',

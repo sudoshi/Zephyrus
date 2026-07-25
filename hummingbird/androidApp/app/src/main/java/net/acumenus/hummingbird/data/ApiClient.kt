@@ -1433,6 +1433,16 @@ class ApiClient(
         val facility = o.optJSONObject("facility")
         val serviceLine = o.optJSONObject("service_line")
         val pool = o.optJSONObject("pool") ?: JSONObject()
+        val actions = o.optJSONObject("actions")?.let { raw ->
+            val claim = raw.opt("can_claim")
+            val reply = raw.opt("can_reply")
+            val close = raw.opt("can_close")
+            if (claim is Boolean && reply is Boolean && close is Boolean) {
+                PatientCommunicationActions(claim, reply, close)
+            } else {
+                null
+            }
+        }
 
         return PatientCommunicationWorkItem(
             workItemUuid = o.optString("work_item_uuid"),
@@ -1477,6 +1487,7 @@ class ApiClient(
                     label = it.optStringOrNull("label") ?: "Service line",
                 )
             },
+            actions = actions,
         )
     }
 

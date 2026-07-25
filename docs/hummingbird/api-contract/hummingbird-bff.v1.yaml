@@ -669,7 +669,9 @@ paths:
         Returns at most 200 open work items ordered by escalation state and response target.
         The response contains restricted patient-communication context and must not be cached
         offline. Capability alone is insufficient: the caller must also have an effective
-        membership in the work item's active responsibility pool.
+        membership in the work item's active responsibility pool. Each returned work item
+        includes only server-computed direct-action affordances for the current caller;
+        clients must not infer claim/reply/close permission from ownership state.
       x-authorization-capability:
         enum_case: ViewPatientCommunications
         gate: viewPatientCommunications
@@ -2848,6 +2850,18 @@ components:
         pool_uuid: { type: string, format: uuid }
         label: { type: string, minLength: 1, maxLength: 120 }
       required: [pool_uuid, label]
+    PatientCommunicationActions:
+      type: object
+      additionalProperties: false
+      description: >
+        Current caller's advisory direct-action affordances. They are not authorization
+        grants: every mutation rechecks capability, effective membership, canonical scope,
+        ownership, and optimistic versions at commit time.
+      properties:
+        can_claim: { type: boolean }
+        can_reply: { type: boolean }
+        can_close: { type: boolean }
+      required: [can_claim, can_reply, can_close]
     PatientCommunicationRoutingActions:
       type: object
       additionalProperties: false
@@ -3081,6 +3095,7 @@ components:
               ],
           }
         assigned_to_me: { type: boolean }
+        actions: { $ref: "#/components/schemas/PatientCommunicationActions" }
         work_item_version: { type: integer, minimum: 1 }
         thread_version: { type: integer, minimum: 1 }
         last_message_at: { type: string, format: date-time }
@@ -3110,6 +3125,7 @@ components:
           status,
           ownership_state,
           assigned_to_me,
+          actions,
           work_item_version,
           thread_version,
           last_message_at,

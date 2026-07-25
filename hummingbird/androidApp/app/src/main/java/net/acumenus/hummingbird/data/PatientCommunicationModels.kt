@@ -37,6 +37,13 @@ data class PatientCommunicationMessage(
     val sentAt: String?,
 )
 
+/** Server-computed direct-action affordances for the current staff member. */
+data class PatientCommunicationActions(
+    val canClaim: Boolean,
+    val canReply: Boolean,
+    val canClose: Boolean,
+)
+
 data class PatientCommunicationWorkItem(
     val workItemUuid: String,
     val threadUuid: String,
@@ -59,6 +66,9 @@ data class PatientCommunicationWorkItem(
     val hasEarlierMessages: Boolean = false,
     val facility: PatientCommunicationFacility? = null,
     val serviceLine: PatientCommunicationServiceLine? = null,
+    // Missing or malformed action metadata fails closed. Clients must not
+    // reconstruct permission from ownership state or a locally stale row.
+    val actions: PatientCommunicationActions? = null,
 )
 
 data class PatientCommunicationInbox(
@@ -285,10 +295,8 @@ enum class PatientCommunicationAttention {
 }
 
 object PatientCommunicationPresentation {
-    private val claimableOwnershipStates = setOf("pool_owned", "rerouted", "escalated")
-
     fun isClaimable(item: PatientCommunicationWorkItem): Boolean =
-        item.status == "open" && !item.assignedToMe && item.ownershipState in claimableOwnershipStates
+        item.actions?.canClaim == true
 
     fun attention(item: PatientCommunicationWorkItem): PatientCommunicationAttention = when {
         item.status == "closed" -> PatientCommunicationAttention.Closed

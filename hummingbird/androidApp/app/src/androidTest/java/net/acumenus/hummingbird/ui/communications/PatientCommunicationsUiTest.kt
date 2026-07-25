@@ -18,6 +18,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import net.acumenus.hummingbird.data.PatientCommunicationMessage
+import net.acumenus.hummingbird.data.PatientCommunicationActions
 import net.acumenus.hummingbird.data.PatientCommunicationPool
 import net.acumenus.hummingbird.data.PatientCommunicationReassignCandidate
 import net.acumenus.hummingbird.data.PatientCommunicationRerouteCandidate
@@ -234,6 +235,48 @@ class PatientCommunicationsUiTest {
 
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Claim and acknowledge"))
         compose.onNodeWithText("Claim and acknowledge").assertIsNotEnabled()
+    }
+
+    @Test
+    fun serverDeniedDirectActionsHideClaimReplyAndCloseControls() {
+        compose.setContent {
+            HummingbirdTheme {
+                PatientCommunicationDetailContent(
+                    item = sampleItem(
+                        ownershipState = "escalated",
+                        actions = PatientCommunicationActions(
+                            canClaim = false,
+                            canReply = false,
+                            canClose = false,
+                        ),
+                    ),
+                    canRespond = true,
+                    replyDraft = "",
+                    mutating = false,
+                    error = null,
+                    mutationError = null,
+                    notice = null,
+                    conflictNotice = null,
+                    canRetryMutation = false,
+                    onReplyDraftChange = {},
+                    onClaim = {},
+                    onReply = {},
+                    onClose = {},
+                    onRetryMutation = {},
+                    onDiscardAndRefresh = {},
+                    onRefresh = {},
+                    onOpenPatient = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText(
+            "This conversation is either owned by another team member or unavailable to claim with your current team permissions.",
+        ).assertIsDisplayed()
+        compose.onNodeWithText("Claim and acknowledge").assertDoesNotExist()
+        compose.onNodeWithText("Reply to the patient").assertDoesNotExist()
+        compose.onNodeWithText("Send patient-visible reply").assertDoesNotExist()
+        compose.onNodeWithText("Close conversation").assertDoesNotExist()
     }
 
     @Test
@@ -553,6 +596,7 @@ class PatientCommunicationsUiTest {
         ownershipState: String = "pool_owned",
         isEscalationDue: Boolean = false,
         messages: List<PatientCommunicationMessage> = emptyList(),
+        actions: PatientCommunicationActions? = null,
     ) = PatientCommunicationWorkItem(
         workItemUuid = "019f7cb6-4d44-73e1-b28c-82bea62c4192",
         threadUuid = "019f7cb6-4d44-73e1-b28c-82bea62c4191",
@@ -563,6 +607,11 @@ class PatientCommunicationsUiTest {
         status = "open",
         ownershipState = ownershipState,
         assignedToMe = assignedToMe,
+        actions = actions ?: PatientCommunicationActions(
+            canClaim = !assignedToMe && ownershipState in setOf("pool_owned", "rerouted", "escalated"),
+            canReply = assignedToMe,
+            canClose = assignedToMe && ownershipState == "responded",
+        ),
         workItemVersion = 7,
         threadVersion = 11,
         lastMessageAt = "2026-07-19T14:00:00-04:00",
