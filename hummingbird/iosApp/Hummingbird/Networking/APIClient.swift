@@ -10,6 +10,97 @@ struct StaffTokenSession: Codable, Equatable, Sendable {
     let accessExpiresAt: Date
 }
 
+/// Strict, bounded parser for the one-data-line Eddy SSE grammar. Unknown or
+/// malformed frames are ignored, and the raw proposed-action block is never
+/// represented in a native event.
+struct EddySSEFrameParser {
+    private static let maximumFrameCharacters = 128 * 1024
+    private var dataLines: [String] = []
+    private var frameCharacterCount = 0
+
+    mutating func consume(line: String) throws -> [EddyStreamEvent] {
+        let normalized = line.hasSuffix("\r") ? String(line.dropLast()) : line
+        if normalized.isEmpty {
+            return flush()
+        }
+        guard normalized.hasPrefix("data:") else { return [] }
+
+        let data = String(normalized.dropFirst(5)).hasPrefix(" ")
+            ? String(String(normalized.dropFirst(5)).dropFirst())
+            : String(normalized.dropFirst(5))
+        // The versioned Eddy contract has one data line per frame. AsyncBytes
+        // line iteration may elide blank separators, so the next data line is
+        // an additional explicit boundary for this contract.
+        let previous = flush()
+        frameCharacterCount += data.count
+        guard frameCharacterCount <= Self.maximumFrameCharacters else {
+            throw APIError(message: "Eddy stream response was too large to process safely.", statusCode: nil)
+        }
+        dataLines.append(data)
+        return previous
+    }
+
+    mutating func finish() throws -> [EddyStreamEvent] {
+        flush()
+    }
+
+    private mutating func flush() -> [EddyStreamEvent] {
+        guard !dataLines.isEmpty else { return [] }
+        let payload = dataLines.joined(separator: "\n")
+        dataLines.removeAll(keepingCapacity: true)
+        frameCharacterCount = 0
+        return decode(payload: payload)
+    }
+
+    private func decode(payload: String) -> [EddyStreamEvent] {
+        if payload == "[DONE]" { return [.done] }
+        guard let data = payload.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return []
+        }
+        if let conversationID = object["conversation_id"] as? String, !conversationID.isEmpty {
+            return [.conversationStarted(conversationID)]
+        }
+        if let token = object["token"] as? String {
+            return [.token(token)]
+        }
+        if object["complete"] as? Bool == true {
+            return [.complete(EddyStreamReply(
+                conversationId: nil,
+                cleanReply: object["clean_reply"] as? String ?? "",
+                provider: object["provider"] as? String
+            ))]
+        }
+        if let message = object["error"] as? String, !message.isEmpty {
+            return [.error(message)]
+        }
+        return []
+    }
+}
+
+/// Do not render a raw proposal while token frames are still arriving. The
+/// terminal reply passes through the same guard to protect against a malformed
+/// upstream clean-reply frame.
+enum EddyStreamDisplayText {
+    private static let proposalMarker = "<propose_action>"
+
+    static func provisional(_ raw: String) -> String {
+        let normalized = raw.lowercased()
+        if let index = normalized.range(of: proposalMarker)?.lowerBound {
+            let offset = normalized.distance(from: normalized.startIndex, to: index)
+            return String(raw.prefix(offset))
+        }
+        let hiddenSuffixLength = (1..<proposalMarker.count)
+            .reversed()
+            .first { normalized.hasSuffix(String(proposalMarker.prefix($0))) } ?? 0
+        return hiddenSuffixLength == 0 ? raw : String(raw.dropLast(hiddenSuffixLength))
+    }
+
+    static func terminal(_ cleanReply: String) -> String {
+        provisional(cleanReply)
+    }
+}
+
 /// Device-only protected persistence for the staff token pair. The old separate
 /// Keychain items are migrated once, with an intentionally expired access timestamp so
 /// the first authenticated request refreshes before it is sent.
@@ -403,6 +494,7 @@ struct APIClient {
         d.keyDecodingStrategy = .convertFromSnakeCase
         return d
     }()
+    private static let eddyStreamInactivityTimeout: TimeInterval = 45
 
     // MARK: Endpoints
 
@@ -879,6 +971,148 @@ struct APIClient {
         )
         // The 503 unavailable envelope still decodes (data.message is a friendly string).
         return try Self.decoder.decode(Envelope<EddyChatReply>.self, from: data)
+    }
+
+    /**
+     * Consume one non-idempotent Eddy SSE exchange. The stream is purposely
+     * separate from [send]: it has no generated Idempotency-Key and never
+     * receives an automatic 401 replay after the server may have persisted the
+     * user turn. The callback owns transient view state only.
+     */
+    @MainActor
+    func eddyChatStream(
+        message: String,
+        conversationId: String?,
+        persona: String?,
+        surface: String? = "hummingbird",
+        pageContext: String? = nil,
+        pageComponent: String? = nil,
+        pageData: [String: String]? = nil,
+        bearer: String,
+        onEvent: (EddyStreamEvent) -> Void
+    ) async throws -> EddyStreamReply {
+        var payload: [String: Any] = ["message": message]
+        if let conversationId { payload["conversation_id"] = conversationId }
+        if let surface { payload["surface"] = surface }
+        if let pageContext { payload["page_context"] = pageContext }
+        if let pageComponent { payload["page_component"] = pageComponent }
+        if let pageData, !pageData.isEmpty { payload["page_data"] = pageData }
+
+        let path = withPersona("/api/mobile/v1/eddy/chat/stream", persona)
+        guard let url = URL(string: path, relativeTo: baseURL) else {
+            throw APIError(message: "Bad URL", statusCode: nil)
+        }
+        var effectiveBearer = bearer
+        if let tokenCoordinator {
+            // Rotation may finish before the POST is transmitted. It is not an
+            // automatic stream replay and therefore cannot duplicate a turn.
+            effectiveBearer = try await tokenCoordinator.bearerBeforeRequest(
+                presentedBearer: bearer,
+                refresh: { refreshToken in
+                    try await refreshSession(refreshToken: refreshToken)
+                }
+            )
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(effectiveBearer)", forHTTPHeaderField: "Authorization")
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.setValue("no-store, no-cache, max-age=0", forHTTPHeaderField: "Cache-Control")
+        request.setValue("no-cache", forHTTPHeaderField: "Pragma")
+        request.timeoutInterval = Self.eddyStreamInactivityTimeout
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])
+
+        let bytes: URLSession.AsyncBytes
+        let response: URLResponse
+        do {
+            (bytes, response) = try await session.bytes(for: request)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            if Task.isCancelled { throw CancellationError() }
+            throw APIError(message: "Can't reach the Eddy stream. Please try again shortly.", statusCode: nil)
+        }
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError(message: "Invalid response", statusCode: nil)
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw APIError(
+                message: http.statusCode == 401
+                    ? "Your session has expired. Please sign in again."
+                    : "Eddy stream failed to start. Please try again shortly.",
+                statusCode: http.statusCode
+            )
+        }
+        guard http.value(forHTTPHeaderField: "Content-Type")?
+            .lowercased()
+            .contains("text/event-stream") == true else {
+            throw APIError(message: "Eddy returned an invalid stream response.", statusCode: http.statusCode)
+        }
+
+        var parser = EddySSEFrameParser()
+        var streamConversationID: String?
+        var terminalReply: EddyStreamReply?
+        var streamError: String?
+        var receivedDone = false
+        do {
+            for try await line in bytes.lines {
+                for event in try parser.consume(line: line) {
+                    switch event {
+                    case .conversationStarted(let id):
+                        streamConversationID = id
+                        onEvent(event)
+                    case .token:
+                        onEvent(event)
+                    case .complete(let reply):
+                        terminalReply = reply
+                    case .error(let message):
+                        streamError = message
+                    case .done:
+                        receivedDone = true
+                    }
+                }
+            }
+            for event in try parser.finish() {
+                switch event {
+                case .conversationStarted(let id):
+                    streamConversationID = id
+                    onEvent(event)
+                case .token:
+                    onEvent(event)
+                case .complete(let reply):
+                    terminalReply = reply
+                case .error(let message):
+                    streamError = message
+                case .done:
+                    receivedDone = true
+                }
+            }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as APIError {
+            throw error
+        } catch {
+            if Task.isCancelled { throw CancellationError() }
+            throw APIError(message: "The connection to Eddy was interrupted. Please try again shortly.", statusCode: nil)
+        }
+
+        if let streamError {
+            throw APIError(message: streamError, statusCode: nil)
+        }
+        guard receivedDone, let terminalReply else {
+            throw APIError(
+                message: "Eddy did not finish this response. Check the server history before intentionally trying again.",
+                statusCode: nil
+            )
+        }
+        return EddyStreamReply(
+            conversationId: streamConversationID ?? terminalReply.conversationId ?? conversationId,
+            cleanReply: terminalReply.cleanReply,
+            provider: terminalReply.provider
+        )
     }
 
     /// POST an action endpoint supplied by an A2 drill payload. Use only for endpoints whose

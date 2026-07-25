@@ -7,6 +7,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import net.acumenus.hummingbird.widget.HouseGlanceStore
 import java.util.UUID
@@ -43,6 +46,9 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
     private val eddyApprovalIdempotencyKeys = mutableMapOf<String, String>()
     private var eddyConversationId: String? = null
     private var eddyScopeRef: String? = null
+    private var eddyStreamJob: Job? = null
+    private var eddyStreamGeneration = 0L
+    private var eddyRawStreamText = ""
 
     var loading by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
@@ -305,14 +311,18 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
         beginEddyChat(scopeRef)
         val conversationId = eddyConversationId
         val roleId = selectedRole.id
+        val streamGeneration = ++eddyStreamGeneration
+        eddyRawStreamText = ""
         eddyChatTurns = eddyChatTurns + EddyChatTurn(EddyChatRole.USER, trimmed) +
             EddyChatTurn(EddyChatRole.ASSISTANT, "", pending = true)
         eddyChatLoading = true
         eddyChatError = null
 
-        viewModelScope.launch {
+        eddyStreamJob = viewModelScope.launch {
+            var terminalReply: EddyStreamReply? = null
+            var streamError: String? = null
             try {
-                val reply = api.eddyChat(
+                api.eddyChatStream(
                     bearer = bearer,
                     message = trimmed,
                     conversationId = conversationId,
@@ -324,25 +334,67 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
                         "persona" to roleId,
                         "scope_ref" to scopeRef,
                     ),
-                )
-                if (eddyScopeRef != scopeRef) return@launch
-                eddyConversationId = reply.conversationId ?: eddyConversationId
-                resolvePendingEddyTurn(reply.message.content, reply.message.provider)
+                ).collect { event ->
+                    if (streamGeneration != eddyStreamGeneration || eddyScopeRef != scopeRef) return@collect
+                    when (event) {
+                        is EddyStreamEvent.ConversationStarted -> eddyConversationId = event.conversationId
+                        is EddyStreamEvent.Token -> appendStreamingEddyToken(event.text)
+                        is EddyStreamEvent.Complete -> {
+                            terminalReply = EddyStreamReply(
+                                conversationId = eddyConversationId,
+                                cleanReply = event.cleanReply,
+                                provider = event.provider,
+                            )
+                        }
+                        is EddyStreamEvent.Error -> streamError = event.message
+                        EddyStreamEvent.Done -> Unit
+                    }
+                }
+                if (streamGeneration != eddyStreamGeneration || eddyScopeRef != scopeRef) return@launch
+                if (streamError != null) {
+                    eddyChatError = streamError
+                    resolvePendingEddyTurn(streamError.orEmpty(), null)
+                } else if (terminalReply != null) {
+                    val reply = terminalReply!!
+                    eddyConversationId = reply.conversationId ?: eddyConversationId
+                    resolvePendingEddyTurn(EddyStreamDisplayText.terminal(reply.cleanReply), reply.provider)
+                } else {
+                    val message = "Eddy did not finish this response. Check the server history before intentionally trying again."
+                    eddyChatError = message
+                    resolvePendingEddyTurn(message, null)
+                }
+            } catch (_: CancellationException) {
+                // Scope change and ViewModel teardown deliberately cancel a
+                // non-replayable stream. Do not turn that into a second prompt.
             } catch (e: ApiException) {
-                if (eddyScopeRef != scopeRef) return@launch
+                if (streamGeneration != eddyStreamGeneration || eddyScopeRef != scopeRef) return@launch
                 if (e.statusCode == 401) needsReauth = true
                 val message = e.message ?: "Eddy is unavailable right now. Please try again shortly."
                 eddyChatError = message
                 resolvePendingEddyTurn(message, null)
             } catch (_: Exception) {
-                if (eddyScopeRef != scopeRef) return@launch
+                if (streamGeneration != eddyStreamGeneration || eddyScopeRef != scopeRef) return@launch
                 val message = "Eddy is unavailable right now. Please try again shortly."
                 eddyChatError = message
                 resolvePendingEddyTurn(message, null)
             } finally {
-                if (eddyScopeRef == scopeRef) eddyChatLoading = false
+                if (streamGeneration == eddyStreamGeneration && eddyScopeRef == scopeRef) {
+                    eddyChatLoading = false
+                    eddyStreamJob = null
+                }
             }
         }
+    }
+
+    private fun appendStreamingEddyToken(token: String) {
+        if (eddyRawStreamText.length + token.length > EDDY_STREAM_MAX_CHARACTERS) {
+            throw ApiException("Eddy stream response was too large to display safely.", null)
+        }
+        eddyRawStreamText += token
+        val index = eddyChatTurns.indexOfLast { it.pending }
+        if (index < 0) return
+        val pending = eddyChatTurns[index].copy(text = EddyStreamDisplayText.provisional(eddyRawStreamText))
+        eddyChatTurns = eddyChatTurns.toMutableList().also { it[index] = pending }
     }
 
     private fun resolvePendingEddyTurn(message: String, provider: String?) {
@@ -360,11 +412,15 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun resetEddyChat() {
+        eddyStreamGeneration++
+        eddyStreamJob?.cancel()
+        eddyStreamJob = null
         eddyChatTurns = emptyList()
         eddyChatLoading = false
         eddyChatError = null
         eddyConversationId = null
         eddyScopeRef = null
+        eddyRawStreamText = ""
     }
 
     private fun resetEddyHistory() {
@@ -404,5 +460,6 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
 
     private companion object {
         const val EDDY_MESSAGE_MAX_LENGTH = 8_000
+        const val EDDY_STREAM_MAX_CHARACTERS = 64_000
     }
 }

@@ -108,6 +108,43 @@ class EddyMobileBffTest extends TestCase
         $this->postJson('/api/mobile/v1/eddy/chat', ['message' => 'hi'])->assertStatus(401);
     }
 
+    public function test_mobile_stream_is_no_store_and_emits_a_sanitized_persisted_proposal(): void
+    {
+        Http::fake([
+            '*/eddy/chat/stream' => Http::response(
+                "data: {\"token\":\"Review \"}\n\n"
+                ."data: {\"complete\":true,\"clean_reply\":\"Review the capacity board.\",\"provider\":\"ollama\",\"proposed_action\":{\"action_type\":\"flag_barrier\",\"raw_upstream_only\":\"must-not-reach-mobile\"}}\n\n"
+                ."data: [DONE]\n\n",
+                200,
+                ['Content-Type' => 'text/event-stream'],
+            ),
+        ]);
+        $user = User::factory()->create();
+        Sanctum::actingAs($user, ['mobile:read']);
+
+        $response = $this->postJson('/api/mobile/v1/eddy/chat/stream?persona=bed_manager', [
+            'message' => 'What needs review?',
+            'page_context' => 'house',
+            'page_component' => 'House capacity',
+            'page_data' => ['scope_ref' => 'house'],
+        ]);
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'text/event-stream; charset=UTF-8')
+            ->assertHeader('Pragma', 'no-cache');
+        $cacheControl = (string) $response->headers->get('Cache-Control');
+        $this->assertStringContainsString('no-store', $cacheControl);
+        $this->assertStringContainsString('no-cache', $cacheControl);
+        $this->assertStringContainsString('max-age=0', $cacheControl);
+
+        $stream = $response->streamedContent();
+        $this->assertStringContainsString('data: {"conversation_id":', $stream);
+        $this->assertStringContainsString('data: {"complete":true,"clean_reply":"Review the capacity board.","provider":"ollama"}', $stream);
+        $this->assertStringContainsString('data: {"persisted":true,', $stream);
+        $this->assertStringContainsString('"tier":"T1"', $stream);
+        $this->assertStringNotContainsString('raw_upstream_only', $stream);
+    }
+
     public function test_conversation_history_and_detail_are_user_scoped(): void
     {
         $this->fakeEddy();

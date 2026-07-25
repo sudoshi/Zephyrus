@@ -278,6 +278,8 @@ struct EddyChatView: View {
     @State private var input = ""
     @State private var conversationId: String?
     @State private var isSending = false
+    @State private var streamingRawText = ""
+    @State private var streamTask: Task<Void, Never>?
     @State private var showingHistory = false
     @State private var showingApprovals = false
     @FocusState private var inputFocused: Bool
@@ -354,6 +356,12 @@ struct EddyChatView: View {
             }
         }
         .tint(Z.primary)
+        .onDisappear {
+            // A chat POST may already have persisted the user turn, so leaving
+            // this scope cancels the socket rather than attempting a retry.
+            streamTask?.cancel()
+            streamTask = nil
+        }
         .sheet(isPresented: $showingHistory) { EddyConversationHistoryView() }
         .sheet(isPresented: $showingApprovals) { EddyApprovalsView() }
     }
@@ -394,7 +402,7 @@ struct EddyChatView: View {
         HStack {
             if bubble.role == .user { Spacer(minLength: Z.s6) }
             VStack(alignment: bubble.role == .user ? .trailing : .leading, spacing: 4) {
-                if bubble.pending {
+                if bubble.pending && bubble.text.isEmpty {
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.small).tint(Z.inkMuted)
                         Text("Assessing…").font(.system(size: 13)).foregroundStyle(Z.inkMuted)
@@ -417,6 +425,12 @@ struct EddyChatView: View {
                         }
                     if bubble.role == .assistant, let provider = bubble.provider {
                         Text("via \(provider)").font(.system(size: 10)).foregroundStyle(Z.inkMuted)
+                    }
+                    if bubble.role == .assistant, bubble.pending {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.mini).tint(Z.inkMuted)
+                            Text("Assessing…").font(.system(size: 10)).foregroundStyle(Z.inkMuted)
+                        }
                     }
                 }
             }
@@ -460,6 +474,7 @@ struct EddyChatView: View {
         guard !trimmed.isEmpty, !isSending else { return }
         input = ""
         inputFocused = false
+        streamingRawText = ""
         bubbles.append(EddyBubble(role: .user, text: trimmed))
         bubbles.append(EddyBubble(role: .assistant, text: "", pending: true))
         isSending = true
@@ -470,21 +485,53 @@ struct EddyChatView: View {
         if let scopeRef = eddyContext.scopeRef { pageData["scope_ref"] = scopeRef }
         let pageContext = eddyContext.screenKey
         let pageComponent = eddyContext.summary ?? eddyContext.screenTitle
-        Task {
+        streamTask = Task {
             do {
-                let reply = try await api.eddyChat(message: trimmed, conversationId: conversationId,
-                                                   persona: profile.roleId,
-                                                   pageContext: pageContext, pageComponent: pageComponent,
-                                                   pageData: pageData, bearer: auth.accessToken ?? "").data
+                let reply = try await api.eddyChatStream(
+                    message: trimmed,
+                    conversationId: conversationId,
+                    persona: profile.roleId,
+                    pageContext: pageContext,
+                    pageComponent: pageComponent,
+                    pageData: pageData,
+                    bearer: auth.accessToken ?? ""
+                ) { event in
+                    guard !Task.isCancelled else { return }
+                    switch event {
+                    case .conversationStarted(let id):
+                        conversationId = id
+                    case .token(let token):
+                        appendStreamingToken(token)
+                    case .complete, .error, .done:
+                        // The terminal result below is the only server-sanitized
+                        // answer we render as complete; proposals have no UI path.
+                        break
+                    }
+                }
+                guard !Task.isCancelled else { return }
                 conversationId = reply.conversationId ?? conversationId
-                resolvePending(text: reply.message.content, provider: reply.message.provider)
+                resolvePending(text: EddyStreamDisplayText.terminal(reply.cleanReply), provider: reply.provider)
+            } catch is CancellationError {
+                // Intentional scope dismissal has no automatic replay or error copy.
             } catch let error as APIError {
+                guard !Task.isCancelled else { return }
                 resolvePending(text: error.message, provider: nil)
             } catch {
+                guard !Task.isCancelled else { return }
                 resolvePending(text: "Eddy is unavailable right now. Please try again shortly.", provider: nil)
             }
-            isSending = false
+            if !Task.isCancelled { isSending = false }
+            streamTask = nil
         }
+    }
+
+    private func appendStreamingToken(_ token: String) {
+        guard streamingRawText.count + token.count <= 64_000,
+              let index = bubbles.lastIndex(where: \.pending) else {
+            return
+        }
+        streamingRawText += token
+        bubbles[index].text = EddyStreamDisplayText.provisional(streamingRawText)
     }
 
     private func resolvePending(text: String, provider: String?) {
@@ -495,6 +542,7 @@ struct EddyChatView: View {
         bubbles[index].text = text.isEmpty ? "…" : text
         bubbles[index].provider = provider
         bubbles[index].pending = false
+        streamingRawText = ""
     }
 }
 

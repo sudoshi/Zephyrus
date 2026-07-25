@@ -11,8 +11,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * Proxies Eddy's SSE token stream to the caller and persists the assistant turn
  * from the terminal `complete` frame. Shared by the web dock controller and the
  * Hummingbird mobile BFF so both stream the byte-identical contract: an opening
- * `conversation_id` frame, Eddy's passthrough token frames, a terminal `persisted`
- * frame carrying the sanitized proposed action, then `[DONE]`.
+ * `conversation_id` frame, safe token frames, a server-persisted terminal
+ * `complete` frame, a terminal `persisted` frame carrying the sanitized proposed
+ * action, then `[DONE]`. The upstream terminal frame is deliberately never
+ * forwarded verbatim because it can contain raw proposal fields.
  *
  * Eddy is stateless — {@see EddyChatService} owns conversation/message persistence.
  */
@@ -40,17 +42,27 @@ trait ProxiesEddyChatStream
                     if ($chunk === '') {
                         continue;
                     }
-                    echo $chunk;            // passthrough Eddy's SSE frames to the caller
-                    $this->sseFlush();
                     $buffer .= $chunk;
-                    $complete = $this->extractCompleteFrame($buffer) ?? $complete;
+                    $complete = $this->relaySafeEddyFrames($buffer) ?? $complete;
                 }
+
+                // A compliant SSE producer terminates each frame, but process a
+                // final unterminated frame defensively instead of discarding a
+                // completed assistant turn on connection close.
+                $complete = $this->relaySafeEddyFrames($buffer, true) ?? $complete;
             } catch (\Throwable $e) {
                 $this->sseFrame(['error' => 'Eddy stream is unavailable.']);
             }
 
             if ($complete !== null) {
                 $assistant = $chat->persistStreamResult($user, $prep, $complete);
+                // Native clients render this persisted clean reply, not the raw
+                // upstream complete frame that may have carried proposal markup.
+                $this->sseFrame([
+                    'complete' => true,
+                    'clean_reply' => $assistant->content,
+                    'provider' => $assistant->metadata['provider'] ?? null,
+                ]);
                 // The sanitized (tier/risk/label-enriched) proposal — clients render
                 // the approval card from THIS, not the raw model block in `complete`.
                 $this->sseFrame([
@@ -62,7 +74,10 @@ trait ProxiesEddyChatStream
             $this->sseFrame('[DONE]');
         }, 200, array_merge([
             'Content-Type' => 'text/event-stream',
-            'Cache-Control' => 'no-cache',
+            // The stream can carry a governed AI response and therefore must not
+            // be retained by browsers, proxies, or native URL caches.
+            'Cache-Control' => 'no-store, no-cache, max-age=0',
+            'Pragma' => 'no-cache',
             'Connection' => 'keep-alive',
             'X-Accel-Buffering' => 'no',
         ], $extraHeaders));
@@ -83,20 +98,61 @@ trait ProxiesEddyChatStream
     }
 
     /**
-     * Find the terminal `complete` frame in the accumulated SSE buffer.
+     * Consume complete upstream frames from an incremental SSE buffer and emit
+     * only safe client frames. The upstream terminal `complete` frame is captured
+     * for persistence but never reaches the browser/native client verbatim.
      *
+     * @param  string  $buffer  Mutated to retain an incomplete trailing frame.
      * @return array<string, mixed>|null
      */
-    private function extractCompleteFrame(string $buffer): ?array
+    private function relaySafeEddyFrames(string &$buffer, bool $final = false): ?array
     {
-        foreach (explode("\n\n", $buffer) as $frame) {
-            $line = trim($frame);
-            if (! str_starts_with($line, 'data: ')) {
+        $complete = null;
+
+        while (preg_match('/\r?\n\r?\n/', $buffer, $delimiter, PREG_OFFSET_CAPTURE) === 1) {
+            $frame = substr($buffer, 0, $delimiter[0][1]);
+            $buffer = substr($buffer, $delimiter[0][1] + strlen($delimiter[0][0]));
+            $complete = $this->relaySafeEddyFrame($frame) ?? $complete;
+        }
+
+        if ($final && trim($buffer) !== '') {
+            $complete = $this->relaySafeEddyFrame($buffer) ?? $complete;
+            $buffer = '';
+        }
+
+        if (strlen($buffer) > 131072) {
+            throw new \RuntimeException('Eddy stream frame exceeded the safe buffer limit.');
+        }
+
+        return $complete;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function relaySafeEddyFrame(string $frame): ?array
+    {
+        foreach (preg_split('/\r?\n/', trim($frame)) ?: [] as $line) {
+            if (! str_starts_with($line, 'data:')) {
                 continue;
             }
-            $decoded = json_decode(substr($line, 6), true);
-            if (is_array($decoded) && ($decoded['complete'] ?? false) === true) {
+
+            $decoded = json_decode(ltrim(substr($line, 5)), true);
+            if (! is_array($decoded)) {
+                continue;
+            }
+            if (($decoded['complete'] ?? false) === true) {
                 return $decoded;
+            }
+            if (is_string($decoded['token'] ?? null)) {
+                $this->sseFrame(['token' => $decoded['token']]);
+
+                return null;
+            }
+            if (is_string($decoded['error'] ?? null)) {
+                $this->sseFrame(['error' => 'Eddy stream is unavailable.']);
+
+                return null;
             }
         }
 

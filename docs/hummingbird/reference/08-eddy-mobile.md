@@ -19,15 +19,15 @@ the remaining target design; the current execution checklist is
 
 ## 1. What the BFF gives the apps
 
-| Endpoint                               | Scope            | Purpose                                                                |
-| -------------------------------------- | ---------------- | ---------------------------------------------------------------------- |
-| `POST /eddy/chat`                      | `mobile:read`    | One turn → assistant reply (+ optional draft action). Mobile envelope. |
-| `POST /eddy/chat/stream`               | `mobile:read`    | SSE token stream (Ktor consumes natively).                             |
-| `GET /eddy/conversations`              | `mobile:read`    | The user's recent conversations.                                       |
-| `GET /eddy/conversations/{uuid}`       | `mobile:read`    | One conversation + messages (user-scoped).                             |
-| `GET /eddy/approvals`                  | `mobile:read`    | Pending **Eddy-proposed** approvals the user may act on.               |
-| `GET /eddy/approvals/{uuid}`           | `mobile:read`    | Fetch-on-open dry-run preview.                                         |
-| `POST /eddy/approvals/{uuid}/decision` | **`mobile:act`** | Approve / reject. A human decision — never the agent.                  |
+| Endpoint                               | Scope            | Purpose                                                                 |
+| -------------------------------------- | ---------------- | ----------------------------------------------------------------------- |
+| `POST /eddy/chat`                      | `mobile:read`    | One turn → assistant reply (+ optional draft action). Mobile envelope.  |
+| `POST /eddy/chat/stream`               | `mobile:read`    | No-store SSE token stream, consumed directly by both native transports. |
+| `GET /eddy/conversations`              | `mobile:read`    | The user's recent conversations.                                        |
+| `GET /eddy/conversations/{uuid}`       | `mobile:read`    | One conversation + messages (user-scoped).                              |
+| `GET /eddy/approvals`                  | `mobile:read`    | Pending **Eddy-proposed** approvals the user may act on.                |
+| `GET /eddy/approvals/{uuid}`           | `mobile:read`    | Fetch-on-open dry-run preview.                                          |
+| `POST /eddy/approvals/{uuid}/decision` | **`mobile:act`** | Approve / reject. A human decision — never the agent.                   |
 
 Conversations opened on mobile are persisted with `origin = hummingbird` (the web
 dock uses `origin = web`); both share the same `eddy.*` store and a user's history
@@ -39,9 +39,9 @@ dock uses apply unchanged; mobile is a second presentation, not a second brain.
 
 ### Current native status (2026-07-24)
 
-- **iOS:** context, nonstreaming chat, a chat-toolbar entry to authorized,
-  server-owned read-only conversation history, and a pending-approval entry.
-- **Android:** authorized context, scoped nonstreaming chat, plus history and
+- **iOS:** authorized context, streamed chat, a chat-toolbar entry to server-owned
+  read-only conversation history, and a pending-approval entry.
+- **Android:** authorized context, scoped streamed chat, plus history and
   pending-approval entries from that context.
 - **Both clients:** send `Cache-Control: no-store`, disable the HTTP cache for
   context/chat/history/approval reads and decisions, retain neither transcript,
@@ -52,9 +52,15 @@ dock uses apply unchanged; mobile is a second presentation, not a second brain.
   `approved`/`rejected` decision with the selected persona and an in-memory exact
   idempotency key. The server independently enforces `mobile:act`, user scope, active
   persona, pending state, and exact replay. Eddy never decides.
-- **Not implemented in either client:** streaming chat, history deletion, or
-  autonomous action. A draft marker in conversation history remains explanatory and
-  cannot be used to approve it.
+- **Streaming boundary:** both clients use a dedicated no-store SSE transport with
+  a 45-second inactivity limit, cancellation on scope dismissal, no generated
+  idempotency key, and no automatic replay. Token text updates one transient pending
+  assistant bubble. The BFF withholds the upstream terminal frame and sends only a
+  server-persisted clean reply; clients also suppress any partial proposal markup as
+  defense in depth. A streamed proposal never opens or executes an action.
+- **Not implemented in either client:** history deletion or autonomous action. A
+  draft marker in conversation history remains explanatory and cannot be used to
+  approve it.
 
 ---
 
@@ -62,7 +68,7 @@ dock uses apply unchanged; mobile is a second presentation, not a second brain.
 
 | Mobile component                   | Web analog                | Notes                                                                                                                                                                                        |
 | ---------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `EddyChatScreen`                   | `EddySlideOver`           | Implemented as iOS chat and Android’s global authorized-house entry plus authorized-context chat; Android remains nonstreaming.                                                              |
+| `EddyChatScreen`                   | `EddySlideOver`           | Implemented as iOS chat and Android’s global authorized-house entry plus authorized-context chat; both render bounded streamed token text and final server-persisted clean replies.          |
 | `EddyMessageList`                  | `EddyMessageList`         | Markdown assistant bubbles; `tabular-nums` for metrics.                                                                                                                                      |
 | `EddyConversationHistory`          | Conversation dock/history | Implemented, server-owned user-scoped list/detail; no local persistence or approval control.                                                                                                 |
 | `EddyApprovalSheet` (bottom sheet) | `EddyApprovalCard`        | Implemented as a native no-store inbox and detail screen: fetch-on-open dry run + rationale + runner-up, confirmation-gated online human approve/reject, exact replay, and no offline queue. |
@@ -82,15 +88,21 @@ as the web ([03-architecture.md §5](03-architecture.md)).
 
 ```
 data: {"conversation_id":"<uuid>"}     ← first frame
-data: {"token":"…"}                     ← N passthrough token frames
+data: {"token":"…"}                     ← N relayed token frames
+data: {"complete":true,"clean_reply":"…","provider":"…"|null} ← server-persisted terminal reply
 data: {"persisted":true,"message_id":<id>,"proposed_action":{…}|null}   ← terminal
 data: [DONE]
 ```
 
-This is the BFF stream contract, not evidence of native streaming support. When a
-native streaming client is implemented, it must render tokens as they arrive and
-fetch the authorized approval preview before presenting any human decision. It must
-not infer or approve an action from token text.
+The BFF parses the upstream stream, relays only token/error frames, persists the
+assistant result, and emits the clean terminal reply above. It does **not** relay the
+upstream terminal frame verbatim, because that frame can contain a raw model proposal.
+Both native clients render token text as it arrives into one transient pending bubble,
+then replace it with the clean reply after `[DONE]`. They use a bounded parser, do not
+persist the stream, cancel it when its screen disappears, and never retry it
+automatically. The `persisted.proposed_action` record is not an execution instruction:
+the client must fetch the authorized approval preview before presenting a separate,
+explicit human decision.
 
 ### 3.2 The PHI-free doorbell (`B.8` fetch-on-open)
 

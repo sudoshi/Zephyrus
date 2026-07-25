@@ -685,6 +685,26 @@ data class EddyChatTurn(
     val pending: Boolean = false,
 )
 
+/**
+ * The only client-visible states of a streamed Eddy response. A raw model
+ * proposal is intentionally not represented here: the server persists and
+ * sanitizes proposals, and the separate approval inbox owns human decisions.
+ */
+sealed interface EddyStreamEvent {
+    data class ConversationStarted(val conversationId: String) : EddyStreamEvent
+    data class Token(val text: String) : EddyStreamEvent
+    data class Complete(val cleanReply: String, val provider: String?) : EddyStreamEvent
+    data class Error(val message: String) : EddyStreamEvent
+    data object Done : EddyStreamEvent
+}
+
+/** Server-sanitized terminal response after a complete Eddy SSE exchange. */
+data class EddyStreamReply(
+    val conversationId: String?,
+    val cleanReply: String,
+    val provider: String?,
+)
+
 /** Server-persisted staff conversation metadata; Hummingbird intentionally keeps no local copy. */
 data class EddyConversationSummary(
     val id: String,

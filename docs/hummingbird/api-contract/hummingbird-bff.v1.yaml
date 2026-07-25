@@ -2389,7 +2389,12 @@ paths:
         diagnostic_detail_exposed: false
         expected_statuses: [401, 403, 413, 415, 422, 429, 500]
       tags: [eddy]
-      summary: SSE token stream. Frames - conversation_id, then token, a terminal persisted (with proposed_action), then [DONE].
+      summary: >-
+        No-store SSE stream. Frames: conversation_id; zero or more token frames;
+        a server-persisted clean complete reply; a sanitized persisted proposal;
+        then [DONE]. The upstream terminal frame is never relayed verbatim. Clients
+        must not infer or execute an action from stream content and must fetch the
+        authorized approval preview before a human decision.
       requestBody:
         {
           required: true,

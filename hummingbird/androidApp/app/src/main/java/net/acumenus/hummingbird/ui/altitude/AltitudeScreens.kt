@@ -695,11 +695,13 @@ private fun EddyChatBubble(turn: EddyChatTurn) {
             },
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            if (turn.pending) {
+            if (turn.pending && turn.text.isBlank()) {
                 Text("Eddy is assessing…", color = Z.inkMuted, fontSize = 13.sp)
             } else {
                 Text(turn.text, color = if (isUser) Z.bg else Z.ink, fontSize = 14.sp)
-                if (!isUser && turn.provider != null) {
+                if (!isUser && turn.pending) {
+                    Text("Eddy is assessing…", color = Z.inkMuted, fontSize = 11.sp)
+                } else if (!isUser && turn.provider != null) {
                     Text("Via ${turn.provider}", color = Z.inkMuted, fontSize = 11.sp)
                 }
             }

@@ -1159,6 +1159,23 @@ struct EddyReplyMessage: Decodable, Equatable {
     let provider: String?
 }
 
+/// The deliberately narrow native projection of one Eddy SSE exchange. Raw model
+/// proposals never cross this type: approval remains a separate human workflow.
+enum EddyStreamEvent: Equatable {
+    case conversationStarted(String)
+    case token(String)
+    case complete(EddyStreamReply)
+    case error(String)
+    case done
+}
+
+/// Server-sanitized terminal reply from an Eddy SSE exchange.
+struct EddyStreamReply: Equatable {
+    let conversationId: String?
+    let cleanReply: String
+    let provider: String?
+}
+
 /// Server-owned staff chat metadata. Native clients keep these values only in view state.
 struct EddyConversationSummary: Decodable, Identifiable, Equatable {
     let id: String
