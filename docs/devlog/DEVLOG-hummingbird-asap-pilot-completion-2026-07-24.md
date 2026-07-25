@@ -915,3 +915,33 @@ This fixes a fail-closed web presentation defect in the existing staff communica
 slice. It does not add a recipient, modify server-side authorization, establish a
 responsibility-pool/coverage feed, enable messaging, approve a pilot, create a production
 patient, migrate data, or deploy an application.
+
+## 2026-07-25 — Deterministic mobile BFF fixture ratification
+
+### Completed implementation
+
+- Diagnosed two exact-SHA CI fixture-regeneration failures as test-runtime artifacts, not a
+  BFF behavior change: staff patient-context handles are correctly derived from the runtime's
+  dedicated signing key, and the Flow barrier action's identifier correctly derives from a
+  database sequence.
+- Hardened the fixture comparator so it normalizes only those opaque/runtime values. Distinct
+  patient-context handles retain distinct canonical placeholders, while repeated references
+  retain their equality relationship; the BFF still must provide a valid opaque-handle grammar
+  in every expected field.
+- Added a direct regression covering repeated versus distinct patient handles, plus dynamic
+  barrier IDs and their action endpoint. This keeps the native shared-fixture gate meaningful
+  without pinning a deployment-specific signing key or database sequence value in source.
+
+### Verification
+
+| Boundary                                   | Command / target                                                                                                           | Result                                                                                                    |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Fresh-key shared DTO and Flow fixture gate | `HUMMINGBIRD_PATIENT_CONTEXT_KEY=<test key> php artisan test SharedDtoFixtureRegenerationTest FlowFixtureRegenerationTest` | 4 passed / 44 assertions; fixture grammar, alias relationship, and sequence handling remain deterministic |
+| PHP formatting and diff integrity          | `./vendor/bin/pint --test <two changed PHP files>` and `git diff --check`                                                  | passed                                                                                                    |
+
+### Remaining boundary
+
+This ratifies CI determinism for the existing native shared-fixture evidence. It does not change
+the patient-context key policy, disclose source patient identifiers, enable any patient feature,
+replace the production signing key, approve a source, authorize a pilot, migrate data, or deploy
+an application.

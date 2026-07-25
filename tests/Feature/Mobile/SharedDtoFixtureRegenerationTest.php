@@ -64,6 +64,39 @@ class SharedDtoFixtureRegenerationTest extends TestCase
             ->assertJsonPath('data.header.isolation_required', true);
     }
 
+    public function test_contract_canonicalization_ignores_runtime_opaque_handles_and_sequence_ids(): void
+    {
+        $fixturePayload = [
+            'patient_context_ref' => 'ptok_'.str_repeat('a', 24),
+            'entity_ref' => 'ptok_'.str_repeat('a', 24),
+            'related' => [
+                'patient_context_ref' => 'ptok_'.str_repeat('c', 24),
+            ],
+            'id' => 'barrier-1',
+            'action' => [
+                'endpoint' => '/api/mobile/v1/rtdc/barriers/1/resolve',
+            ],
+        ];
+        $runtimePayload = [
+            'patient_context_ref' => 'ptok_'.str_repeat('b', 24),
+            'entity_ref' => 'ptok_'.str_repeat('b', 24),
+            'related' => [
+                'patient_context_ref' => 'ptok_'.str_repeat('d', 24),
+            ],
+            'id' => 'barrier-42',
+            'action' => [
+                'endpoint' => '/api/mobile/v1/rtdc/barriers/42/resolve',
+            ],
+        ];
+
+        $canonicalFixture = $this->canonicalizeMobileFixtureValue($fixturePayload);
+
+        $this->assertSame('ptok_<generated:1>', $canonicalFixture['patient_context_ref']);
+        $this->assertSame('ptok_<generated:1>', $canonicalFixture['entity_ref']);
+        $this->assertSame('ptok_<generated:2>', $canonicalFixture['related']['patient_context_ref']);
+        $this->assertSame($canonicalFixture, $this->canonicalizeMobileFixtureValue($runtimePayload));
+    }
+
     public function test_factory_backed_shared_dto_fixtures_match_deterministic_bff_contract(): void
     {
         Carbon::setTestNow('2026-07-24T12:00:00Z');
