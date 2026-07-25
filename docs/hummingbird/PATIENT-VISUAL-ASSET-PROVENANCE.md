@@ -37,6 +37,10 @@ attribution review required**.
   near-opaque system-color scrim for readable text.
 - iOS suppresses the photography when Reduce Transparency is enabled. The
   screen remains complete against an opaque system background.
+- Both patient products also honor a default-on, patient-selectable
+  `hide_scenery` presentation preference. It removes decorative photography
+  while retaining the same opaque care surface and all content/actions; it is
+  not a clinical preference or a substitute for system accessibility settings.
 - Runtime aspect-fill is presentation behavior, not a new derivative asset.
   Both native renderers explicitly use a static centered aspect-fill policy;
   native tests pin that policy rather than relying on a framework default.

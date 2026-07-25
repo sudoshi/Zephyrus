@@ -41,6 +41,7 @@ class PatientPrimaryJourneyInstrumentedTest {
                 .assertIsDisplayed()
             composeRule.onNodeWithTag("patient-preference-text-size-extra_large").performClick()
             composeRule.onNodeWithTag("patient-preference-high-contrast").performClick()
+            composeRule.onNodeWithTag("patient-preference-show-scenery").performClick()
             composeRule.onNodeWithTag("patient-preferences")
                 .performScrollToNode(hasText("Save preferences"))
             composeRule.onNodeWithTag("save-patient-preferences").performClick()
@@ -49,6 +50,7 @@ class PatientPrimaryJourneyInstrumentedTest {
             composeRule.onNodeWithTag("patient-content")
                 .performScrollToNode(hasText("Your reading preferences"))
             composeRule.onNodeWithTag("patient-presentation-preference-notice").assertIsDisplayed()
+            composeRule.onNodeWithText("background images off", substring = true).assertIsDisplayed()
         }
     }
 

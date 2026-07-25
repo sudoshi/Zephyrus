@@ -3,6 +3,7 @@ package net.acumenus.hummingbird.patient.ui
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -39,6 +40,7 @@ class PatientVisualAssetPolicyTest {
 
         assertEquals(0.46f, defaultPolicy.imageAlpha)
         assertEquals(listOf(0.68f, 0.84f, 0.96f), defaultPolicy.scrimAlphas)
+        assertTrue(defaultPolicy.rendersDecorativeImage)
         assertEquals(0.16f, largeTextPolicy.imageAlpha)
         assertEquals(listOf(0.88f, 0.94f, 0.99f), largeTextPolicy.scrimAlphas)
     }
@@ -52,5 +54,18 @@ class PatientVisualAssetPolicyTest {
 
         assertEquals(0f, highContrastPolicy.imageAlpha)
         assertEquals(listOf(1f, 1f, 1f), highContrastPolicy.scrimAlphas)
+        assertFalse(highContrastPolicy.rendersDecorativeImage)
+    }
+
+    @Test
+    fun patientCanDisableDecorativePhotographyWithoutHidingCareContent() {
+        val sceneryDisabledPolicy = patientSceneAccessibilityPolicy(
+            fontScale = 1f,
+            hideScenery = true,
+        )
+
+        assertEquals(0f, sceneryDisabledPolicy.imageAlpha)
+        assertEquals(listOf(1f, 1f, 1f), sceneryDisabledPolicy.scrimAlphas)
+        assertFalse(sceneryDisabledPolicy.rendersDecorativeImage)
     }
 }

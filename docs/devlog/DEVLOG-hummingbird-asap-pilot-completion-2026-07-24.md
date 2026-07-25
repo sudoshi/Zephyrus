@@ -1213,3 +1213,37 @@ dynamic system colors, large-text/high-contrast surfaces that intentionally use 
 an unavailable-image scenario, focal-point suitability on supported viewports, asset licensing,
 formal accessibility conformance, patient/family usability, a patient activation, production
 data, migration, or deployment.
+
+## 2026-07-25 — Patient-selectable decorative-scenery fallback
+
+### Completed implementation
+
+- Added one default-on, nonclinical `hide_scenery` preference to the patient-only profile contract,
+  Laravel validation/persistence allowlist, iOS model, and Android model. The JSON preference object
+  already governs account presentation settings, so this is additive and requires no schema migration.
+- Both preference screens now offer **Show Hummingbird background images** with patient-readable
+  explanation. Turning it off removes decorative photography and retains the same opaque care
+  surface, including loading/error cards; high contrast and iOS Reduce Transparency remain stronger
+  overrides. The setting never changes care content, urgent-help guidance, routing, or a clinical
+  preference.
+- Both native care views identify the active choice as **background images off**. Synthetic-reference
+  saves remain device-local and explicitly say no patient account changed.
+
+### Verification
+
+| Boundary                               | Command / target                                                                                                 | Result                           |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Backend patient preference contract    | `php artisan test tests/Feature/Patient/PatientApiBoundaryTest.php`                                              | 14 passed / 495 assertions       |
+| Android model/rendering policy         | Focused Debug JVM patient decoder, endpoint, presentation, and visual-policy tests                               | passed                           |
+| Android saved-preference journey       | API 35 `hb` emulator: `./gradlew connectedDebugAndroidTest --rerun-tasks`                                        | 16 passed / 0 failures / 0 skips |
+| iOS model/rendering policy             | iPhone 17 Pro focused `PatientAPIClientTests`, `PatientAPIModelTests`, and `PatientPresentationPreferencesTests` | 26 passed / 0 failures           |
+| iOS saved-preference journey           | iPhone 17 Pro / iOS 26.3.1 `testSavedAccessibilityPreferencesApplyAHighContrastExtraLargeCareView`               | 1 passed / 0 failures            |
+| iOS full patient regression            | iPhone 17 Pro / iOS 26.3.1 `xcodebuild test`                                                                     | 84 passed / 0 failures / 0 skips |
+| Patient contract and source boundaries | `php scripts/verify-hummingbird-patient-contract.php`; accessibility matrix; iOS/Android patient-boundary scans  | passed                           |
+
+### Remaining boundary
+
+This makes image suppression an explicit, patient-controlled presentation fallback. It does not
+approve background focal points or asset rights, establish cross-platform system Reduce Transparency
+equivalence, complete the full accessibility/device/language matrix, activate a patient feature,
+create a production patient, migrate data, or deploy.

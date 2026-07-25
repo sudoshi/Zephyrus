@@ -62,6 +62,8 @@ criteria:
       - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientScenicBackground.kt
       - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/ui/PatientVisualAssetPolicyTest.kt
       - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientSessionManagementInstrumentedTest.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientPrimaryJourneyInstrumentedTest.kt
+      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientSessionManagementUITests.swift
     human_validation_required:
       - Inspect each image moment with large text, dark mode, light mode, increased contrast, and reduced transparency.
       - Confirm no image is announced by VoiceOver or TalkBack and no care meaning depends on it.

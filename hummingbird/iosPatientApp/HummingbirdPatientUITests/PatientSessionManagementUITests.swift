@@ -78,10 +78,10 @@ final class PatientSessionManagementUITests: XCTestCase {
                 .firstMatch.exists
         )
         app.buttons["save-patient-preferences"].tap()
-        XCTAssertTrue(
-            app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "No patient account was changed"))
-                .firstMatch.waitForExistence(timeout: 3)
-        )
+        let savedStatus = app.staticTexts
+            .containing(NSPredicate(format: "label CONTAINS %@", "No patient account was changed"))
+            .firstMatch
+        XCTAssertTrue(scrollUntilHittable(savedStatus, maximumSwipes: 4))
         attachScreenshot(named: "Patient-Preferences-Reference")
     }
 
@@ -107,6 +107,14 @@ final class PatientSessionManagementUITests: XCTestCase {
         }
         expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: highContrast)
         waitForExpectations(timeout: 2)
+
+        let showScenery = app.switches["patient-preference-show-scenery"]
+        XCTAssertTrue(showScenery.waitForExistence(timeout: 2))
+        if (showScenery.value as? String) == "1" {
+            showScenery.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        }
+        expectation(for: NSPredicate(format: "value == '0'"), evaluatedWith: showScenery)
+        waitForExpectations(timeout: 2)
         app.buttons["save-patient-preferences"].tap()
 
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
@@ -119,6 +127,10 @@ final class PatientSessionManagementUITests: XCTestCase {
         XCTAssertTrue(presentationNotice.waitForExistence(timeout: 3))
         XCTAssertTrue(
             app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "high contrast"))
+                .firstMatch.waitForExistence(timeout: 2)
+        )
+        XCTAssertTrue(
+            app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "background images off"))
                 .firstMatch.waitForExistence(timeout: 2)
         )
         attachScreenshot(named: "Patient-Preferences-High-Contrast-Extra-Large")

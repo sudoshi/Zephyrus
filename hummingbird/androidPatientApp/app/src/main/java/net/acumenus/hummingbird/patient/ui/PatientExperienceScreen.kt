@@ -248,6 +248,7 @@ private fun PatientPresentationPreferenceNotice(modifier: Modifier = Modifier) {
         }
         if (presentation.highContrast) add("high contrast")
         if (presentation.reducedMotion) add("reduced motion")
+        if (presentation.hideScenery) add("background images off")
     }
     if (choices.isEmpty()) return
 

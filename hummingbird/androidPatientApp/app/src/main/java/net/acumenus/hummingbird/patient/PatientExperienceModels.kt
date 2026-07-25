@@ -79,6 +79,7 @@ internal fun PatientPreferencesUpdate.applyTo(current: PatientPreferences): Pati
         textSize = textSize ?: current.textSize,
         reducedMotion = reducedMotion ?: current.reducedMotion,
         highContrast = highContrast ?: current.highContrast,
+        hideScenery = hideScenery ?: current.hideScenery,
         notificationPreview = notificationPreview ?: current.notificationPreview,
         preferredChannel = preferredChannel ?: current.preferredChannel,
     )

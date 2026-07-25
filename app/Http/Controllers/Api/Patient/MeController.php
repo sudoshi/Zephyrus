@@ -46,6 +46,7 @@ class MeController extends Controller
             'text_size',
             'reduced_motion',
             'high_contrast',
+            'hide_scenery',
             'notification_preview',
             'preferred_channel',
         ];

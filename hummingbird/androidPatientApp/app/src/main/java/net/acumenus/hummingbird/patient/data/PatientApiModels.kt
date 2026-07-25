@@ -56,6 +56,7 @@ data class PatientPreferences(
     val highContrast: Boolean?,
     val notificationPreview: String?,
     val preferredChannel: String?,
+    val hideScenery: Boolean? = null,
 )
 
 /**
@@ -69,6 +70,7 @@ data class PatientPreferencesUpdate(
     val textSize: String? = null,
     val reducedMotion: Boolean? = null,
     val highContrast: Boolean? = null,
+    val hideScenery: Boolean? = null,
     val notificationPreview: String? = null,
     val preferredChannel: String? = null,
 ) {
@@ -78,6 +80,7 @@ data class PatientPreferencesUpdate(
         textSize?.let { put("text_size", it) }
         reducedMotion?.let { put("reduced_motion", it) }
         highContrast?.let { put("high_contrast", it) }
+        hideScenery?.let { put("hide_scenery", it) }
         notificationPreview?.let { put("notification_preview", it) }
         preferredChannel?.let { put("preferred_channel", it) }
     }
@@ -525,6 +528,7 @@ object PatientEnvelopeDecoder {
                         textSize = preferences.nullableString("text_size"),
                         reducedMotion = preferences.nullableBoolean("reduced_motion"),
                         highContrast = preferences.nullableBoolean("high_contrast"),
+                        hideScenery = preferences.nullableBoolean("hide_scenery"),
                         notificationPreview = preferences.nullableString("notification_preview"),
                         preferredChannel = preferences.nullableString("preferred_channel"),
                     )

@@ -121,7 +121,7 @@ class PatientEndpointBoundaryTest {
 
         val response = api.updatePreferences(
             "patient-access-test".toCharArray(),
-            PatientPreferencesUpdate(reducedMotion = true, textSize = "large"),
+            PatientPreferencesUpdate(reducedMotion = true, textSize = "large", hideScenery = true),
         )
 
         assertEquals("PUT", capturedMethod)
@@ -129,6 +129,7 @@ class PatientEndpointBoundaryTest {
         assertEquals("Bearer patient-access-test", capturedAuthorization)
         assertTrue(capturedBody?.contains("\"reduced_motion\":true") == true)
         assertTrue(capturedBody?.contains("\"text_size\":\"large\"") == true)
+        assertTrue(capturedBody?.contains("\"hide_scenery\":true") == true)
         assertEquals("Sample Patient", response.data.displayName)
     }
 

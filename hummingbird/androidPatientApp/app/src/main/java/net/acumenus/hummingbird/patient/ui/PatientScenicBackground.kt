@@ -36,7 +36,10 @@ enum class PatientScene(@DrawableRes val drawable: Int) {
 internal data class PatientSceneAccessibilityPolicy(
     val imageAlpha: Float,
     val scrimAlphas: List<Float>,
-)
+) {
+    val rendersDecorativeImage: Boolean
+        get() = imageAlpha > 0f
+}
 
 /**
  * Decorative patient photography always fills the viewport from its center.
@@ -53,8 +56,9 @@ internal object PatientScenicImageCropPolicy {
 internal fun patientSceneAccessibilityPolicy(
     fontScale: Float,
     highContrast: Boolean = false,
+    hideScenery: Boolean = false,
 ): PatientSceneAccessibilityPolicy = when {
-    highContrast -> PatientSceneAccessibilityPolicy(
+    highContrast || hideScenery -> PatientSceneAccessibilityPolicy(
         imageAlpha = 0f,
         scrimAlphas = listOf(1f, 1f, 1f),
     )
@@ -81,20 +85,23 @@ internal fun PatientScenicBackground(
     val accessibilityPolicy = patientSceneAccessibilityPolicy(
         fontScale = fontScale,
         highContrast = presentation.highContrast,
+        hideScenery = presentation.hideScenery,
     )
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(surface),
     ) {
-        Image(
-            painter = painterResource(scene.drawable),
-            contentDescription = null,
-            contentScale = PatientScenicImageCropPolicy.contentScale,
-            alignment = PatientScenicImageCropPolicy.alignment,
-            alpha = accessibilityPolicy.imageAlpha,
-            modifier = Modifier.fillMaxSize(),
-        )
+        if (accessibilityPolicy.rendersDecorativeImage) {
+            Image(
+                painter = painterResource(scene.drawable),
+                contentDescription = null,
+                contentScale = PatientScenicImageCropPolicy.contentScale,
+                alignment = PatientScenicImageCropPolicy.alignment,
+                alpha = accessibilityPolicy.imageAlpha,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()

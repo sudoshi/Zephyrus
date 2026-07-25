@@ -32,6 +32,11 @@ safety state remain complete if an image cannot be perceived.
   semantic containers above the scrim.
 - The Material surface and all clinical/safety content remain present without
   relying on image pixels, color alone, or image semantics.
+- `hide_scenery` is an optional, default-false patient presentation preference.
+  When a patient turns it on, Android uses the same opaque surface policy as
+  high contrast and does not render the decorative JPEG. This is a rendering
+  choice only; it does not change care content, urgent-help guidance, routing,
+  or any clinical preference.
 
 ## Scenic-layer contrast verification
 

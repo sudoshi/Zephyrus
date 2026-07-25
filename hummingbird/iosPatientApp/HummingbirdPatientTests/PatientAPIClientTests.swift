@@ -170,6 +170,7 @@ final class PatientAPIClientTests: XCTestCase {
             XCTAssertEqual(json["text_size"] as? String, "extra_large")
             XCTAssertEqual(json["reduced_motion"] as? Bool, true)
             XCTAssertEqual(json["high_contrast"] as? Bool, true)
+            XCTAssertEqual(json["hide_scenery"] as? Bool, true)
             XCTAssertEqual(json["notification_preview"] as? String, "hidden")
             XCTAssertEqual(json["preferred_channel"] as? String, "none")
             XCTAssertEqual(Set(json.keys), [
@@ -178,6 +179,7 @@ final class PatientAPIClientTests: XCTestCase {
                 "text_size",
                 "reduced_motion",
                 "high_contrast",
+                "hide_scenery",
                 "notification_preview",
                 "preferred_channel",
             ])
@@ -191,6 +193,7 @@ final class PatientAPIClientTests: XCTestCase {
                 textSize: .extraLarge,
                 reducedMotion: true,
                 highContrast: true,
+                hideScenery: true,
                 notificationPreview: .hidden,
                 preferredChannel: PatientPreferredChannel.none
             ),

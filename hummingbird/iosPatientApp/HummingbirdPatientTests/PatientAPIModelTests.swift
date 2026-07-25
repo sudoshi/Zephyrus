@@ -89,6 +89,7 @@ final class PatientAPIModelTests: XCTestCase {
               "text_size": "large",
               "reduced_motion": true,
               "high_contrast": true,
+              "hide_scenery": true,
               "notification_preview": "hidden",
               "preferred_channel": "none"
             }
@@ -106,6 +107,7 @@ final class PatientAPIModelTests: XCTestCase {
         XCTAssertEqual(envelope.data.displayName, "Sample Patient")
         XCTAssertEqual(envelope.data.principalType, "patient")
         XCTAssertEqual(envelope.data.preferences.textSize, .large)
+        XCTAssertEqual(envelope.data.preferences.hideScenery, true)
         XCTAssertEqual(envelope.data.preferences.notificationPreview, .hidden)
         XCTAssertNil(envelope.meta.version)
         XCTAssertNotNil(envelope.meta.asOfDate)

@@ -39,7 +39,7 @@ struct PatientPhotoBackground: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                if reduceTransparency || presentationPreferences.highContrast {
+                if suppressesScenery {
                     Color(uiColor: .systemBackground)
                 } else {
                     Image(scene.assetName)
@@ -72,6 +72,10 @@ struct PatientPhotoBackground: View {
         }
         return [background.opacity(0.68), background.opacity(0.92)]
     }
+
+    private var suppressesScenery: Bool {
+        reduceTransparency || presentationPreferences.hidesDecorativeScenery
+    }
 }
 
 struct PatientPhotoStateCard: View {
@@ -88,14 +92,16 @@ struct PatientPhotoStateCard: View {
 
     var body: some View {
         ZStack {
-            Image(scene.assetName)
-                .resizable()
-                .scaledToFill()
-                .accessibilityHidden(true)
+            if !suppressesScenery {
+                Image(scene.assetName)
+                    .resizable()
+                    .scaledToFill()
+                    .accessibilityHidden(true)
+            }
 
             Color(uiColor: .systemBackground)
                 .opacity(
-                    reduceTransparency || presentationPreferences.highContrast
+                    suppressesScenery
                         ? 1
                         : (colorSchemeContrast == .increased ? 0.96 : 0.86)
                 )
@@ -130,6 +136,10 @@ struct PatientPhotoStateCard: View {
                 )
         }
         .accessibilityElement(children: .contain)
+    }
+
+    private var suppressesScenery: Bool {
+        reduceTransparency || presentationPreferences.hidesDecorativeScenery
     }
 }
 

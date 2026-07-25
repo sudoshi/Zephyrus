@@ -130,6 +130,7 @@ struct PatientPresentationPreferenceNotice: View {
         presentationPreferences.textSize != .standard
             || presentationPreferences.highContrast
             || presentationPreferences.reducedMotion
+            || presentationPreferences.hideScenery
     }
 
     private var summary: String {
@@ -147,6 +148,9 @@ struct PatientPresentationPreferenceNotice: View {
         }
         if presentationPreferences.reducedMotion {
             choices.append("reduced motion")
+        }
+        if presentationPreferences.hideScenery {
+            choices.append("background images off")
         }
         let joinedChoices = ListFormatter.localizedString(byJoining: choices)
         return "Hummingbird Patient is using \(joinedChoices). Your device accessibility settings can make text larger."

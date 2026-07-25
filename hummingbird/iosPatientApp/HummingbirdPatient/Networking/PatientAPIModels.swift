@@ -129,6 +129,7 @@ struct PatientPreferences: Codable, Equatable {
     let textSize: PatientTextSizePreference?
     let reducedMotion: Bool?
     let highContrast: Bool?
+    let hideScenery: Bool?
     let notificationPreview: PatientNotificationPreviewPreference?
     let preferredChannel: PatientPreferredChannel?
 
@@ -136,12 +137,14 @@ struct PatientPreferences: Codable, Equatable {
         textSize: PatientTextSizePreference? = nil,
         reducedMotion: Bool? = nil,
         highContrast: Bool? = nil,
+        hideScenery: Bool? = nil,
         notificationPreview: PatientNotificationPreviewPreference? = nil,
         preferredChannel: PatientPreferredChannel? = nil
     ) {
         self.textSize = textSize
         self.reducedMotion = reducedMotion
         self.highContrast = highContrast
+        self.hideScenery = hideScenery
         self.notificationPreview = notificationPreview
         self.preferredChannel = preferredChannel
     }
@@ -150,6 +153,7 @@ struct PatientPreferences: Codable, Equatable {
         case textSize = "text_size"
         case reducedMotion = "reduced_motion"
         case highContrast = "high_contrast"
+        case hideScenery = "hide_scenery"
         case notificationPreview = "notification_preview"
         case preferredChannel = "preferred_channel"
     }
@@ -161,6 +165,7 @@ struct PatientPreferencesInput: Codable, Equatable {
     let textSize: PatientTextSizePreference?
     let reducedMotion: Bool?
     let highContrast: Bool?
+    let hideScenery: Bool?
     let notificationPreview: PatientNotificationPreviewPreference?
     let preferredChannel: PatientPreferredChannel?
 
@@ -170,6 +175,7 @@ struct PatientPreferencesInput: Codable, Equatable {
         textSize: PatientTextSizePreference? = nil,
         reducedMotion: Bool? = nil,
         highContrast: Bool? = nil,
+        hideScenery: Bool? = nil,
         notificationPreview: PatientNotificationPreviewPreference? = nil,
         preferredChannel: PatientPreferredChannel? = nil
     ) {
@@ -178,6 +184,7 @@ struct PatientPreferencesInput: Codable, Equatable {
         self.textSize = textSize
         self.reducedMotion = reducedMotion
         self.highContrast = highContrast
+        self.hideScenery = hideScenery
         self.notificationPreview = notificationPreview
         self.preferredChannel = preferredChannel
     }
@@ -188,6 +195,7 @@ struct PatientPreferencesInput: Codable, Equatable {
         case textSize = "text_size"
         case reducedMotion = "reduced_motion"
         case highContrast = "high_contrast"
+        case hideScenery = "hide_scenery"
         case notificationPreview = "notification_preview"
         case preferredChannel = "preferred_channel"
     }

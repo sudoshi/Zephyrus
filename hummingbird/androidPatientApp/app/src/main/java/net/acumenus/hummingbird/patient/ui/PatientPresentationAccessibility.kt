@@ -19,6 +19,7 @@ internal data class PatientPresentationAccessibility(
     val textSizePreference: String = "standard",
     val highContrast: Boolean = false,
     val reducedMotion: Boolean = false,
+    val hideScenery: Boolean = false,
 ) {
     val accessibilityTag: String
         get() = "patient-presentation-${normalizedTextSizePreference}-" +
@@ -55,12 +56,14 @@ internal fun PatientPresentationAccessibilityProvider(
         effectiveFontScale,
         preferences?.highContrast,
         preferences?.reducedMotion,
+        preferences?.hideScenery,
     ) {
         PatientPresentationAccessibility(
             effectiveFontScale = effectiveFontScale,
             textSizePreference = preferences?.textSize ?: "standard",
             highContrast = preferences?.highContrast == true,
             reducedMotion = preferences?.reducedMotion == true,
+            hideScenery = preferences?.hideScenery == true,
         )
     }
 

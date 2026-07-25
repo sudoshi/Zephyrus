@@ -6,6 +6,7 @@ struct PatientPreferencesView: View {
     @State private var textSize: PatientTextSizePreference
     @State private var reducedMotion: Bool
     @State private var highContrast: Bool
+    @State private var showScenery: Bool
     @State private var notificationPreview: PatientNotificationPreviewPreference
     @State private var preferredChannel: PatientPreferredChannel
 
@@ -15,6 +16,7 @@ struct PatientPreferencesView: View {
         _textSize = State(initialValue: preferences.textSize ?? .standard)
         _reducedMotion = State(initialValue: preferences.reducedMotion ?? false)
         _highContrast = State(initialValue: preferences.highContrast ?? false)
+        _showScenery = State(initialValue: preferences.hideScenery != true)
         _notificationPreview = State(initialValue: preferences.notificationPreview ?? .hidden)
         _preferredChannel = State(initialValue: preferences.preferredChannel ?? .push)
     }
@@ -44,8 +46,10 @@ struct PatientPreferencesView: View {
                             .accessibilityIdentifier("patient-preference-reduced-motion")
                         Toggle("Prefer high contrast", isOn: $highContrast)
                             .accessibilityIdentifier("patient-preference-high-contrast")
+                        Toggle("Show Hummingbird background images", isOn: $showScenery)
+                            .accessibilityIdentifier("patient-preference-show-scenery")
 
-                        Text("Hummingbird also respects the accessibility settings on this device.")
+                        Text("You can hide decorative background images at any time. High contrast and Reduce Transparency also hide them. Hummingbird respects the accessibility settings on this device.")
                             .font(.footnote)
                             .patientSecondaryText()
                     }
@@ -100,6 +104,7 @@ struct PatientPreferencesView: View {
                                     textSize: textSize,
                                     reducedMotion: reducedMotion,
                                     highContrast: highContrast,
+                                    hideScenery: !showScenery,
                                     notificationPreview: notificationPreview,
                                     preferredChannel: preferredChannel
                                 )

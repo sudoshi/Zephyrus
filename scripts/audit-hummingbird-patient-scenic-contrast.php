@@ -16,8 +16,7 @@ declare(strict_types=1);
  * fails closed if the Android source no longer contains the constants modeled
  * below, preventing a stale calculation from being reported as renderer proof.
  */
-
-if (!function_exists('imagecreatefromjpeg')) {
+if (! function_exists('imagecreatefromjpeg')) {
     fwrite(STDERR, "The GD PHP extension is required for this contrast audit.\n");
     exit(2);
 }
@@ -51,15 +50,15 @@ $themes = [
     ],
 ];
 
-$repositoryRoot = realpath(__DIR__ . '/..');
+$repositoryRoot = realpath(__DIR__.'/..');
 if ($repositoryRoot === false) {
     fwrite(STDERR, "Unable to resolve the repository root.\n");
     exit(2);
 }
 
 /**
- * @param list<int> $under
- * @param list<int> $over
+ * @param  list<int>  $under
+ * @param  list<int>  $over
  * @return list<int>
  */
 function composite(array $under, array $over, float $overAlpha): array
@@ -89,7 +88,7 @@ function scrimAlphaAt(float $verticalPosition): float
 function verifyAuditedAndroidRenderingConstants(string $repositoryRoot): void
 {
     $path = $repositoryRoot
-        . '/hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientScenicBackground.kt';
+        .'/hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientScenicBackground.kt';
     $source = file_get_contents($path);
     if ($source === false) {
         throw new RuntimeException("Unable to read Android scenic renderer: {$path}");
@@ -99,7 +98,7 @@ function verifyAuditedAndroidRenderingConstants(string $repositoryRoot): void
         'imageAlpha = 0.46f',
         'scrimAlphas = listOf(0.68f, 0.84f, 0.96f)',
     ] as $literal) {
-        if (!str_contains($source, $literal)) {
+        if (! str_contains($source, $literal)) {
             throw new RuntimeException(
                 "Android scenic renderer no longer contains audited default constant: {$literal}",
             );
@@ -107,7 +106,7 @@ function verifyAuditedAndroidRenderingConstants(string $repositoryRoot): void
     }
 
     $themePath = $repositoryRoot
-        . '/hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/HummingbirdPatientTheme.kt';
+        .'/hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/HummingbirdPatientTheme.kt';
     $themeSource = file_get_contents($themePath);
     if ($themeSource === false) {
         throw new RuntimeException("Unable to read Android patient theme: {$themePath}");
@@ -121,7 +120,7 @@ function verifyAuditedAndroidRenderingConstants(string $repositoryRoot): void
         'onSurface = Color(0xFFDEE3E6)',
         'onSurfaceVariant = Color(0xFFBFC8CB)',
     ] as $literal) {
-        if (!str_contains($themeSource, $literal)) {
+        if (! str_contains($themeSource, $literal)) {
             throw new RuntimeException(
                 "Android patient theme no longer contains audited constant: {$literal}",
             );
@@ -130,8 +129,8 @@ function verifyAuditedAndroidRenderingConstants(string $repositoryRoot): void
 }
 
 /**
- * @param array<string, array{surface: list<int>, foregrounds: array<string, list<int>>}> $themes
- * @param array<string, string> $assetPaths
+ * @param  array<string, array{surface: list<int>, foregrounds: array<string, list<int>>}>  $themes
+ * @param  array<string, string>  $assetPaths
  * @return array<string, array<string, array{ratio: float, asset: string, x: int, y: int}>>
  */
 function auditScenicContrast(string $repositoryRoot, array $themes, array $assetPaths): array
@@ -170,8 +169,8 @@ function auditScenicContrast(string $repositoryRoot, array $themes, array $asset
     }
 
     foreach ($assetPaths as $assetName => $relativePath) {
-        $path = $repositoryRoot . '/' . $relativePath;
-        if (!is_file($path)) {
+        $path = $repositoryRoot.'/'.$relativePath;
+        if (! is_file($path)) {
             throw new RuntimeException("Missing patient scenic asset: {$relativePath}");
         }
 
@@ -188,9 +187,9 @@ function auditScenicContrast(string $repositoryRoot, array $themes, array $asset
             for ($x = 0; $x < $width; $x++) {
                 $pixel = imagecolorat($image, $x, $y);
                 $photo = [
-                    ($pixel >> 16) & 0xff,
-                    ($pixel >> 8) & 0xff,
-                    $pixel & 0xff,
+                    ($pixel >> 16) & 0xFF,
+                    ($pixel >> 8) & 0xFF,
+                    $pixel & 0xFF,
                 ];
 
                 foreach ($themes as $themeName => $theme) {
@@ -231,7 +230,7 @@ function auditScenicContrast(string $repositoryRoot, array $themes, array $asset
             ) {
                 throw new RuntimeException(
                     "The {$themeName} {$foregroundName} luminance intersects the scenic range; "
-                    . 'the audit must be expanded to scan per-pixel ratios.',
+                    .'the audit must be expanded to scan per-pixel ratios.',
                 );
             }
 
@@ -260,7 +259,7 @@ try {
     verifyAuditedAndroidRenderingConstants($repositoryRoot);
     $minimums = auditScenicContrast($repositoryRoot, $themes, $assetPaths);
 } catch (RuntimeException $exception) {
-    fwrite(STDERR, $exception->getMessage() . "\n");
+    fwrite(STDERR, $exception->getMessage()."\n");
     exit(2);
 }
 
@@ -268,7 +267,7 @@ $hasFailure = false;
 foreach ($minimums as $themeName => $themeMinimums) {
     foreach ($themeMinimums as $foregroundName => $minimum) {
         $passes = $minimum['ratio'] >= WCAG_AA_NORMAL_TEXT_MINIMUM;
-        $hasFailure = $hasFailure || !$passes;
+        $hasFailure = $hasFailure || ! $passes;
         printf(
             "%s %s: %.3f:1 %s (minimum at %s %d,%d)\n",
             $themeName,

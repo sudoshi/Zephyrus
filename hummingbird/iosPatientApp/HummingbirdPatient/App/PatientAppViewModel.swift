@@ -377,6 +377,7 @@ final class PatientAppViewModel: ObservableObject {
                 textSize: input.textSize,
                 reducedMotion: input.reducedMotion,
                 highContrast: input.highContrast,
+                hideScenery: input.hideScenery,
                 notificationPreview: input.notificationPreview,
                 preferredChannel: input.preferredChannel
             )

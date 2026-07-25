@@ -2274,6 +2274,8 @@ components:
           type: boolean
         high_contrast:
           type: boolean
+        hide_scenery:
+          type: boolean
         notification_preview:
           type: string
           enum: [hidden, generic]
@@ -2332,6 +2334,8 @@ components:
         reduced_motion:
           type: boolean
         high_contrast:
+          type: boolean
+        hide_scenery:
           type: boolean
         notification_preview:
           type: string

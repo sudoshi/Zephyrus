@@ -58,6 +58,7 @@ class PatientEnvelopeDecoderTest {
                   "text_size": "large",
                   "reduced_motion": true,
                   "high_contrast": true,
+                  "hide_scenery": true,
                   "notification_preview": "generic",
                   "preferred_channel": "push"
                 }
@@ -74,6 +75,7 @@ class PatientEnvelopeDecoderTest {
         assertEquals("large", envelope.data.preferences.textSize)
         assertEquals(true, envelope.data.preferences.reducedMotion)
         assertEquals(true, envelope.data.preferences.highContrast)
+        assertEquals(true, envelope.data.preferences.hideScenery)
         assertEquals("generic", envelope.data.preferences.notificationPreview)
         assertEquals("push", envelope.data.preferences.preferredChannel)
     }
@@ -85,6 +87,7 @@ class PatientEnvelopeDecoderTest {
             textSize = "extra_large",
             reducedMotion = true,
             highContrast = false,
+            hideScenery = true,
             preferredChannel = "none",
         ).json()
 
@@ -93,11 +96,13 @@ class PatientEnvelopeDecoderTest {
             "text_size",
             "reduced_motion",
             "high_contrast",
+            "hide_scenery",
             "preferred_channel",
         ), json.keys().asSequence().toSet())
         assertEquals("extra_large", json.getString("text_size"))
         assertTrue(json.getBoolean("reduced_motion"))
         assertFalse(json.getBoolean("high_contrast"))
+        assertTrue(json.getBoolean("hide_scenery"))
     }
 
     @Test
