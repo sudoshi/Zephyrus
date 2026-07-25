@@ -90,7 +90,8 @@ The standalone Debug build's artifacts are never reused; XCTest recompiles every
 
 ### S1. Stable weighted shard manifest (LPT) — **worst shard 21.5 m → ~11.6 m, deterministically**
 *Gated behind Q6 per §3.2.9 ordering; weights from rolling medians of 3 clean exact-SHA runs.*
-- [ ] Replace the modulo deal (`run-backend-test-shard.sh:33-38`) with a committed `tests/ci/shard-manifest.json` (path → shard, LPT-packed from the JUnit medians). Unlisted files get a deterministic default weight + LPT slot at runtime. Add the §3.2.9-mandated verifier: every discovered test appears exactly once, no duplicates, no silent exclusions, manifest drift fails CI.
+- [x] Replace the modulo deal (`run-backend-test-shard.sh:33-38`) with a committed `tests/ci/shard-manifest.json` (path → shard, LPT-packed from the JUnit medians). Unlisted files get a deterministic default weight + LPT slot at runtime. Add the §3.2.9-mandated verifier: every discovered test appears exactly once, no duplicates, no silent exclusions, manifest drift fails CI.
+- *Shipped 2026-07-25: weights = per-file medians over 5 evidence runs; measured pack = floor file `AncillaryDemoScenarioTest` alone on shard 0 at 790.7 s, all other bins exactly 771.7 s. Verifier lives in the backend-quality job.*
 - Arithmetic: LPT over measured class weights yields max bin ≈ **638 s** PHPUnit (~11.6 m job) vs 1,245 s observed; more shards buy ≤12 s because `AncillaryDemoScenarioTest` (625.8 s) is itself the floor — do not add shards.
 
 ### S2. Kill setup amplification in the ~21 consumer classes — **−38 m suite compute**
