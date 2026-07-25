@@ -809,15 +809,19 @@ jobs:
 
   hummingbird-staff-ios:
     name: Hummingbird staff (iOS)
-    # Staff UI uses the iOS 26 liquid-glass SDK. macos-15 currently defaults
-    # to Xcode 16.4, whose SDK cannot even parse those guarded symbols.
-    runs-on: macos-26
+    # Staff UI needs the iOS 26 liquid-glass SDK. macos-15 defaults to
+    # Xcode 16.4 but ships Xcode 26.0-26.3 side-by-side (probe 2026-07-25:
+    # full staff XCTest+XCUITest suites green under Xcode 26.3), so pin
+    # DEVELOPER_DIR instead of paying the scarce macos-26 pool's queue
+    # tail (measured up to 35.4 m; macos-15 queues in seconds).
+    runs-on: macos-15
     needs: changes
     # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
     if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 45
     env:
       IOS_STAFF_ROOT: hummingbird/iosApp
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
 
     steps:
       - uses: actions/checkout@v4
