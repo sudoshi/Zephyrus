@@ -16,8 +16,10 @@ schemes:
       targets:
         - name: HummingbirdTests
           parallelizable: false
+        # XCTest distributes UI tests to parallel simulator clones per-class;
+        # the suite is split into balanced classes for this (plan S3).
         - name: HummingbirdUITests
-          parallelizable: false
+          parallelizable: true
 targets:
   Hummingbird:
     type: application

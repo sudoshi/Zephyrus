@@ -110,7 +110,7 @@ The standalone Debug build's artifacts are never reused; XCTest recompiles every
   per shard so CI never pays that path. Scenario builds: 135 → ~26 per full run.
 
 ### S3. Parallelize XCUITest (2 simulator clones) + split the 11-test routing class — **staff iOS UI step 12.1 m → ~6.5–7.5 m**
-- [ ] `project.yml:19-20` `parallelizable: true`, `-parallel-testing-enabled YES -parallel-testing-worker-count 2` (`ci.yml:727`), and split `PatientCommunicationRoutingUITests` (11 of 18 tests; XCTest distributes per-class, so without the split two workers cap at −4 m).
+- [x] `project.yml:19-20` `parallelizable: true`, `-parallel-testing-enabled YES -parallel-testing-worker-count 2` (`ci.yml:727`), and split `PatientCommunicationRoutingUITests` (11 of 18 tests; XCTest distributes per-class, so without the split two workers cap at −4 m). *Shipped: routing class split 5 (mutations/replay) + 6 (revocation purges) via a shared `PatientCommunicationRoutingUITestCase` base — test-method names byte-identical to the original 11; class sizes now 6/5/3/2/2 so two workers balance ~9/9.*
 
 ### S4. Tree-sha verdict reuse on the squash push + docs-only fast path — **merge→deploy ~25 m → ~1–2 m**
 > **[SU] evidence-chain ruling recorded 2026-07-24** ("Proceed"): on a reused main run, the verdict

@@ -902,6 +902,8 @@ jobs:
       - name: Run XCUITest reference journeys
         # In-job flake retry on PR lanes only; §3.2.9 budget-evidence runs on
         # main must stay retry-free so ratified budgets measure true cost.
+        # Two workers on two simulator clones (plan S3): XCTest hands out
+        # whole classes, so the suite is split into balanced classes.
         env:
           XCUITEST_RETRY_FLAGS: ${{ github.event_name == 'pull_request' && '-retry-tests-on-failure -test-iterations 3 -test-repetition-relaunch-enabled YES' || '' }}
         run: |
@@ -913,7 +915,8 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
             -resultBundlePath "$RUNNER_TEMP/HummingbirdStaffUITests.xcresult" \
             -only-testing:HummingbirdUITests \
-            -parallel-testing-enabled NO \
+            -parallel-testing-enabled YES \
+            -parallel-testing-worker-count 2 \
             $XCUITEST_RETRY_FLAGS \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
