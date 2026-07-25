@@ -68,6 +68,15 @@ class PatientPrimaryJourneyInstrumentedTest {
                 .performScrollToNode(hasText("Morning medicines"))
             composeRule.onNodeWithText("Morning medicines").assertIsDisplayed()
             composeRule.onNodeWithTag("patient-content")
+                .performScrollToNode(hasText("Where you are in your care"))
+            composeRule.onNodeWithText("Where you are in your care").assertIsDisplayed()
+            composeRule.onNodeWithTag("patient-content")
+                .performScrollToNode(hasText("Your care team today"))
+            composeRule.onNodeWithText("Your care team today").assertIsDisplayed()
+            composeRule.onNodeWithTag("patient-content")
+                .performScrollToNode(hasText("Goals for your care"))
+            composeRule.onNodeWithText("Goals for your care").assertIsDisplayed()
+            composeRule.onNodeWithTag("patient-content")
                 .performScrollToNode(hasText("A test update"))
             composeRule.onNodeWithText("A test update").assertIsDisplayed()
             composeRule.onNodeWithText("Result not available yet").assertIsDisplayed()
@@ -108,10 +117,17 @@ class PatientPrimaryJourneyInstrumentedTest {
             composeRule.onNodeWithTag("patient-content")
                 .performScrollToNode(hasText("Preparing for the next setting"))
             composeRule.onNodeWithText("Preparing for the next setting").assertIsDisplayed()
+            composeRule.onNodeWithTag("patient-content")
+                .performScrollToNode(
+                    hasText(
+                        "A request for an explanation does not record consent, completion, or that you understand the information.",
+                        substring = true,
+                    ),
+                )
             composeRule.onNodeWithText(
                 "A request for an explanation does not record consent, completion, or that you understand the information.",
                 substring = true,
-            ).performScrollTo().assertIsDisplayed()
+            ).assertIsDisplayed()
             composeRule.onNodeWithTag("patient-content")
                 .performScrollToNode(hasText("What has happened so far"))
             composeRule.onNodeWithText("What has happened so far").assertIsDisplayed()

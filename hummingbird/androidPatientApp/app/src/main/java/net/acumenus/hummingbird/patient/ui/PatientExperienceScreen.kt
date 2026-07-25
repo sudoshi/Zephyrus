@@ -274,6 +274,55 @@ private fun androidx.compose.foundation.lazy.LazyListScope.todayContent(snapshot
             )
         }
     }
+    snapshot.pathwayCurrentStage?.let { stage ->
+        val stageDetail = snapshot.pathway.firstOrNull { it.title == stage }
+        item {
+            PatientInformationCard(
+                title = "Where you are in your care",
+                badge = "Current stage",
+                primary = stage,
+                explanation = stageDetail?.explanation
+                    ?: "This stage comes from the patient pathway your care team released.",
+                provenance = stageDetail?.provenance ?: snapshot.sourceLabel,
+                modifier = Modifier.padding(horizontal = 16.dp).testTag("today-current-care-stage"),
+            )
+        }
+    }
+    if (snapshot.careTeam.isNotEmpty()) {
+        item {
+            PatientInformationCard(
+                title = "Your care team today",
+                badge = "Released care-team summary",
+                primary = snapshot.careTeamSummary
+                    ?: "Your released care team is listed below.",
+                explanation = snapshot.careTeam.joinToString(" · ") { member ->
+                    "${member.name} — ${member.role}"
+                } + ". Open Care Team for ways to connect with your team.",
+                provenance = snapshot.careTeam.first().provenance,
+                modifier = Modifier.padding(horizontal = 16.dp).testTag("today-care-team-summary"),
+            )
+        }
+    }
+    if (snapshot.pathwayGoals.isNotEmpty()) {
+        item {
+            SectionHeading(
+                title = "Goals for your care",
+                subtitle = "Released goals that can guide today’s questions and next steps.",
+            )
+        }
+        items(snapshot.pathwayGoals, key = { it.id }) { goal ->
+            PatientInformationCard(
+                title = "Goal for your care",
+                badge = goal.status,
+                primary = goal.label,
+                explanation = listOf(goal.authorLabel, goal.detail)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" · "),
+                provenance = goal.provenance,
+                modifier = Modifier.padding(horizontal = 16.dp).testTag("today-care-goal-${goal.id}"),
+            )
+        }
+    }
     items(snapshot.todayItems, key = { it.title }) { item ->
         TodayItemCard(item = item, modifier = Modifier.padding(horizontal = 16.dp))
     }

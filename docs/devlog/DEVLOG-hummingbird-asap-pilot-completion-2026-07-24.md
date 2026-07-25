@@ -449,3 +449,35 @@ This ratifies a patient-language status taxonomy and its client compatibility ga
 It does not approve a clinical source, create a result, determine an organization’s
 result-release policy, activate a patient feature, authorize a pilot, run a migration,
 or deploy an application change.
+
+## 2026-07-25 — Today context projection-reuse ratification
+
+### Completed implementation
+
+- Audited the existing patient contracts before adding a field. Both apps already fetch
+  the independently authorized Today, Pathway, and Care Team projections and preserve
+  their released patient-safe content. No parallel Today schema, route, source call,
+  or duplicate projection was needed.
+- Today now renders the released current care stage, care-team summary/member names and
+  roles, and pathway goals from those existing projections. Cards retain the originating
+  Pathway or Care Team provenance and are omitted if that projection is unavailable;
+  they never infer a stage, staff assignment, goal, or contact route.
+- The Android reference journey now uses the scroll container for a long, composable
+  care view rather than relying on a child node’s incidental position. This surfaced
+  during the emulator run after Today gained the additional patient-readable context.
+
+### Verification
+
+| Boundary                 | Command / target                                                                                                             | Result                                                                                 |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Android native mapping   | Debug JVM: `PatientSessionCoordinatorTest` and `PatientStateVocabularyTest`                                                  | passed / 0 failures                                                                    |
+| iOS native mapping       | iPhone 17 Pro / iOS 26.3.1: `PatientAppViewModelTests` and `PatientAPIModelTests`                                            | 34 passed / 0 failures                                                                 |
+| iOS rendered journey     | iPhone 17 Pro / iOS 26.3.1: `PatientReferenceJourneyUITests/testReferenceJourneyExposesCarePathTeamAndSafeMessagingLanguage` | 1 passed / 0 failures; verifies current-stage, team, and goal cards                    |
+| Android rendered journey | API 35 `hb` emulator / `connectedDebugAndroidTest --rerun-tasks`                                                             | 15 passed / 0 failures, errors, or skips; verifies current-stage, team, and goal cards |
+
+### Remaining boundary
+
+This ratifies a no-new-data composition of content that has already crossed its own
+released patient-projection boundary. It does not create a patient record, change a
+grant or scope, add a production source/reconciliation worker, release clinical content,
+enable a patient feature, authorize a pilot, migrate data, or deploy an application.

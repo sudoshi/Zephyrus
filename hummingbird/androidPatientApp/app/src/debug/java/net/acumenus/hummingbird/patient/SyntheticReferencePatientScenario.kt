@@ -96,6 +96,7 @@ internal object SyntheticReferencePatientScenario {
                 provenance = "Source: discharge-planning pathway • timing not yet confirmed",
             ),
         ),
+        pathwayCurrentStage = "Stabilize symptoms and review tests",
         pathwayMilestones = listOf(
             PatientMilestone(
                 id = "01982e0c-709a-7ef0-9000-000000000011",
@@ -241,6 +242,7 @@ internal object SyntheticReferencePatientScenario {
             notices = listOf("This summary can change after your team reassesses you. It does not replace a conversation with your care team."),
             provenance = "Source: released care-conversation summary • updated 8:42 AM",
         ),
+        careTeamSummary = "The released teams below are coordinating today’s care and next steps.",
         careTeam = listOf(
             PatientCareTeamMember(
                 name = "Dr. Morgan",

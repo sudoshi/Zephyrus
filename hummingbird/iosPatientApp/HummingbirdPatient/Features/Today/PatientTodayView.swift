@@ -31,6 +31,73 @@ struct PatientTodayView: View {
                     .foregroundStyle(PatientPalette.ink)
                     .padding(.top, 4)
 
+                if let currentStage = snapshot.pathwayStages.first(where: { $0.state == .current }) {
+                    PatientCard {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Where you are in your care", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                                .font(.headline)
+                                .foregroundStyle(PatientPalette.teal)
+                            Text(currentStage.title)
+                                .font(.title3.bold())
+                            Text(currentStage.detail)
+                                .font(.body)
+                            PatientProvenanceText(value: currentStage.provenance)
+                        }
+                    }
+                    .accessibilityIdentifier("today-current-care-stage")
+                }
+
+                if snapshot.hasCareTeamProjection, !snapshot.careTeam.isEmpty {
+                    PatientCard {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Your care team today", systemImage: "person.3.fill")
+                                .font(.headline)
+                                .foregroundStyle(PatientPalette.blue)
+                            Text(snapshot.careTeamSummary)
+                                .font(.body)
+                            ForEach(snapshot.careTeam) { member in
+                                Text("\(member.name) · \(member.role)")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            Text("Open Care Team for ways to connect with your team.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            PatientProvenanceText(value: snapshot.careTeam[0].provenance)
+                        }
+                    }
+                    .accessibilityIdentifier("today-care-team-summary")
+                }
+
+                if !snapshot.pathwayGoals.isEmpty {
+                    PatientCard {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Goals for your care", systemImage: "target")
+                                .font(.headline)
+                                .foregroundStyle(PatientPalette.teal)
+                            ForEach(snapshot.pathwayGoals) { goal in
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(goal.label)
+                                        .font(.subheadline.weight(.semibold))
+                                    Text(
+                                        [
+                                            PatientStateVocabulary.label(for: goal.status, domain: .goal),
+                                            goal.explanation,
+                                            goal.targetRange,
+                                        ]
+                                        .compactMap { $0 }
+                                        .filter { !$0.isEmpty }
+                                        .joined(separator: " · ")
+                                    )
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                                }
+                            }
+                            PatientProvenanceText(value: currentStageProvenance)
+                        }
+                    }
+                    .accessibilityIdentifier("today-care-goals")
+                }
+
                 if !snapshot.hasTodayProjection || snapshot.todayItems.isEmpty {
                     PatientPhotoStateCard(
                         scene: .empty,
@@ -96,5 +163,9 @@ struct PatientTodayView: View {
 
     private var firstName: String {
         snapshot.patientName.split(separator: " ").first.map(String.init) ?? snapshot.patientName
+    }
+
+    private var currentStageProvenance: String {
+        snapshot.pathwayStages.first?.provenance ?? "Released patient pathway"
     }
 }
