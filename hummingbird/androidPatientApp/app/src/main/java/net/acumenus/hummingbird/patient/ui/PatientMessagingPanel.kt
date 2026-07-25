@@ -555,24 +555,40 @@ private fun StatusText(message: String, error: Boolean = false) {
     )
 }
 
-private fun PatientMessageThread.patientVisibleState(): String = when (status) {
-    "closed" -> "Closed"
+/**
+ * Patient-language presentation for the exact thread states accepted by the
+ * patient BFF. This deliberately excludes pool names, individual assignees,
+ * routing reasons, and operational escalation details.
+ *
+ * iOS decodes this field as a closed enum. Android keeps the wire model as a
+ * string, so an unknown value must fail safely to neutral language rather than
+ * inventing an operational meaning.
+ */
+internal fun PatientMessageThread.patientVisibleState(): String = when {
+    status == "closed" || ownershipState == "closed" -> "Conversation closed"
     else -> when (ownershipState) {
-        "awaiting_team" -> "Sent to your care team"
-        "team_acknowledged" -> "Your care team acknowledged this conversation"
-        "assigned" -> "Your care team is reviewing this conversation"
-        else -> "Open with your care team"
+        "awaiting_team" -> "Waiting for your care team"
+        "assigned" -> "With your care team"
+        "acknowledged" -> "Seen by your care team"
+        "responded" -> "Care team responded"
+        "rerouted" -> "Finding the right care team member"
+        "escalated" -> "Receiving added attention"
+        else -> "Status being confirmed"
     }
 }
 
-private fun String.patientVisibleDeliveryState(): String = when (this) {
-    "sent", "server_accepted" -> "Sent"
+/** Patient-language delivery state with no claim about a named recipient. */
+internal fun String.patientVisibleDeliveryState(): String = when (this) {
+    "sent" -> "Sent"
     "delivered" -> "Delivered"
-    "acknowledged", "read" -> "Acknowledged by care team"
-    else -> "Status available in this conversation"
+    "assigned" -> "With your care team"
+    "acknowledged" -> "Seen by your care team"
+    "responded" -> "Responded"
+    "closed" -> "Closed"
+    else -> "Status being confirmed"
 }
 
-private fun String.patientVisibleDeliveryStateAt(updatedAt: String?): String {
+internal fun String.patientVisibleDeliveryStateAt(updatedAt: String?): String {
     val label = patientVisibleDeliveryState()
     val time = updatedAt?.let { value ->
         runCatching {

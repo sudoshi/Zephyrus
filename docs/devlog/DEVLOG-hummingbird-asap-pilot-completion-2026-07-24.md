@@ -698,3 +698,35 @@ messaging, approve education content, enable a source, authorize a pilot, create
 production patient, migrate data, or deploy an application. Clinical teach-back review,
 interpreter/language accommodation, patient-advisor validation, and activation authority
 remain separate requirements.
+
+## 2026-07-25 — Patient messaging-status language parity ratification
+
+### Completed implementation
+
+- Reconciled the Android patient messaging display with the existing patient BFF and iOS
+  contract. Android now gives the same patient-safe meaning to every supported thread
+  ownership state: waiting for the team, with the team, seen by the team, responded,
+  finding the right team member, receiving added attention, and conversation closed.
+  Corresponding message delivery receipts use the same bounded language.
+- Removed the synthetic Android-only `team_acknowledged` wire value. The Debug-only
+  reference fixture now uses the contract's `acknowledged` value, so emulator evidence
+  exercises a real BFF state rather than normalizing an undocumented test-only variant.
+- Kept the least-disclosure boundary intact. These labels never reveal a named clinician,
+  responsibility pool, staff availability, routing reason, or escalation mechanism. An
+  unexpected Android wire string renders **Status being confirmed** instead of a guessed
+  operational status; a closed thread remains closed even if an inconsistent ownership
+  string arrives.
+
+### Verification
+
+| Boundary                         | Command / target                                                                                                                | Result                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Android presentation mapping     | `:app:testDebugUnitTest --tests 'net.acumenus.hummingbird.patient.ui.PatientMessagingPresentationTest'`                         | 3 passed / 0 failures                                                                                       |
+| Android rendered reference state | API 35 `hb` emulator: `PatientPrimaryJourneyInstrumentedTest#syntheticMessagingKeepsImmediateHelpAboveComposeAndPendingThreads` | 1 passed / 0 failures; renders **Seen by your care team** from the normalized `acknowledged` contract state |
+| iOS regression                   | iPhone 17 Pro / iOS 26.3.1: `PatientReferenceJourneyUITests/testReferenceJourneyExposesCarePathTeamAndSafeMessagingLanguage`    | 1 passed / 0 failures or skips                                                                              |
+
+### Remaining boundary
+
+This closes the patient-language presentation row only. It does not activate messaging,
+change routing, persist a new receipt, create a production patient, expose operational
+metadata, approve an SLA, authorize a pilot, migrate data, or deploy an application.
