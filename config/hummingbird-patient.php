@@ -263,6 +263,10 @@ return [
             30,
             min(600, (int) env('HUMMINGBIRD_PATIENT_STAFF_MESSAGING_HEARTBEAT_TTL_SECONDS', 120)),
         ),
+        'claim_lease_seconds' => max(
+            30,
+            min(900, (int) env('HUMMINGBIRD_PATIENT_STAFF_MESSAGING_CLAIM_LEASE_SECONDS', 120)),
+        ),
         'batch_size' => max(
             1,
             min(500, (int) env('HUMMINGBIRD_PATIENT_STAFF_MESSAGING_BATCH_SIZE', 100)),

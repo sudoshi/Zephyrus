@@ -31,6 +31,8 @@ use Throwable;
  */
 class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffReadiness
 {
+    private const MAX_DELIVERY_FAILURES = 10;
+
     private const REQUIRED_TABLES = [
         'patient_communications.responsibility_pools',
         'patient_communications.pool_memberships',
@@ -108,7 +110,44 @@ class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffRead
         );
 
         $limit = max(1, min(500, $limit ?? (int) config('hummingbird-patient.staff_messaging.batch_size', 100)));
-        $outboxIds = PatientNotificationOutbox::query()
+        $claims = $this->claimDueOutbox($workerDigest, $limit);
+
+        $delivered = 0;
+        $failed = 0;
+        foreach ($claims as $claim) {
+            try {
+                if ($this->consumeOne($claim, $workerDigest)) {
+                    $delivered++;
+                }
+            } catch (Throwable $exception) {
+                $failed++;
+                $this->recordFailure($claim, $workerDigest, $exception);
+            }
+        }
+
+        $this->writeHeartbeat(
+            $heartbeatPolicyVersion,
+            $workerDigest,
+            $currentPolicyReady && ! $this->hasUnresolvedOutbox() ? 'ready' : 'degraded',
+            $failed,
+        );
+
+        return ['selected' => count($claims), 'delivered' => $delivered, 'failed' => $failed];
+    }
+
+    /**
+     * Append a durable, short-lived claim before an outbox fact can be handled.
+     *
+     * The candidate query is intentionally advisory only. Each candidate is
+     * locked and re-evaluated before its immutable claim is written, so two
+     * scheduler processes cannot both deliver the same staff-inbox handoff.
+     *
+     * @return list<array{outbox_id: int, attempt_number: int, attempt_uuid: string}>
+     */
+    private function claimDueOutbox(string $workerDigest, int $limit): array
+    {
+        $candidateLimit = min(2000, max($limit, $limit * 4));
+        $candidateIds = PatientNotificationOutbox::query()
             ->where('destination', 'staff_inbox')
             ->where('available_at', '<=', now())
             ->where(function (Builder $query): void {
@@ -124,39 +163,72 @@ class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffRead
                     });
             })
             ->orderBy('notification_outbox_id')
-            ->limit($limit)
+            ->limit($candidateLimit)
             ->pluck('notification_outbox_id')
             ->map(static fn (mixed $id): int => (int) $id)
             ->all();
 
-        $delivered = 0;
-        $failed = 0;
-        foreach ($outboxIds as $outboxId) {
-            try {
-                if ($this->consumeOne($outboxId, $workerDigest)) {
-                    $delivered++;
-                }
-            } catch (Throwable $exception) {
-                $failed++;
-                $this->recordFailure($outboxId, $workerDigest, $exception);
+        $claims = [];
+        foreach ($candidateIds as $outboxId) {
+            $claim = $this->claimDueOutboxOne($outboxId, $workerDigest);
+            if ($claim !== null) {
+                $claims[] = $claim;
+            }
+            if (count($claims) >= $limit) {
+                break;
             }
         }
 
-        $this->writeHeartbeat(
-            $heartbeatPolicyVersion,
-            $workerDigest,
-            $currentPolicyReady && ! $this->hasUnresolvedOutbox() ? 'ready' : 'degraded',
-            $failed,
-        );
-
-        return ['selected' => count($outboxIds), 'delivered' => $delivered, 'failed' => $failed];
+        return $claims;
     }
 
-    private function consumeOne(int $outboxId, string $workerDigest): bool
+    /**
+     * @return array{outbox_id: int, attempt_number: int, attempt_uuid: string}|null
+     */
+    private function claimDueOutboxOne(int $outboxId, string $workerDigest): ?array
     {
-        return DB::transaction(function () use ($outboxId, $workerDigest): bool {
+        return DB::transaction(function () use ($outboxId, $workerDigest): ?array {
             $outbox = PatientNotificationOutbox::query()->lockForUpdate()->find($outboxId);
-            if ($outbox === null || ! $this->outboxDueForAttempt($outbox)) {
+            if ($outbox === null || ! $this->outboxIsAvailable($outbox)) {
+                return null;
+            }
+
+            $this->recoverExpiredClaim($outbox, $workerDigest);
+            if (! $this->outboxDueForClaim($outbox)) {
+                return null;
+            }
+
+            $claimedAt = now();
+            $attempt = PatientNotificationDeliveryAttempt::query()->create([
+                'delivery_attempt_uuid' => (string) Str::uuid7(),
+                'notification_outbox_id' => $outbox->getKey(),
+                'attempt_number' => $this->nextAttemptNumber($outbox),
+                'status' => 'claimed',
+                'worker_ref' => Str::limit($workerDigest, 190, ''),
+                'next_attempt_at' => $claimedAt->copy()->addSeconds($this->claimLeaseSeconds()),
+                'metadata' => [
+                    'schema_version' => 1,
+                    'content_included' => false,
+                    'destination' => 'staff_inbox',
+                    'claim_lease_seconds' => $this->claimLeaseSeconds(),
+                ],
+                'occurred_at' => $claimedAt,
+            ]);
+
+            return [
+                'outbox_id' => (int) $outbox->getKey(),
+                'attempt_number' => (int) $attempt->attempt_number,
+                'attempt_uuid' => (string) $attempt->delivery_attempt_uuid,
+            ];
+        }, 3);
+    }
+
+    /** @param array{outbox_id: int, attempt_number: int, attempt_uuid: string} $claim */
+    private function consumeOne(array $claim, string $workerDigest): bool
+    {
+        return DB::transaction(function () use ($claim, $workerDigest): bool {
+            $outbox = PatientNotificationOutbox::query()->lockForUpdate()->find($claim['outbox_id']);
+            if ($outbox === null || ! $this->claimIsCurrent($outbox, $claim)) {
                 return false;
             }
 
@@ -455,16 +527,17 @@ class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffRead
             ->exists();
     }
 
-    private function recordFailure(int $outboxId, string $workerDigest, Throwable $exception): void
+    /** @param array{outbox_id: int, attempt_number: int, attempt_uuid: string} $claim */
+    private function recordFailure(array $claim, string $workerDigest, Throwable $exception): void
     {
-        DB::transaction(function () use ($outboxId, $workerDigest, $exception): void {
-            $outbox = PatientNotificationOutbox::query()->lockForUpdate()->find($outboxId);
-            if ($outbox === null || ! $this->outboxDueForAttempt($outbox)) {
+        DB::transaction(function () use ($claim, $workerDigest, $exception): void {
+            $outbox = PatientNotificationOutbox::query()->lockForUpdate()->find($claim['outbox_id']);
+            if ($outbox === null || ! $this->claimIsCurrent($outbox, $claim)) {
                 return;
             }
 
             $attemptNumber = $this->nextAttemptNumber($outbox);
-            $terminal = $attemptNumber >= 10;
+            $terminal = $this->nextDeliveryFailureIsTerminal($outbox);
             PatientNotificationDeliveryAttempt::query()->create([
                 'delivery_attempt_uuid' => (string) Str::uuid7(),
                 'notification_outbox_id' => $outbox->getKey(),
@@ -490,7 +563,7 @@ class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffRead
             ->exists();
     }
 
-    private function outboxDueForAttempt(PatientNotificationOutbox $outbox): bool
+    private function outboxIsAvailable(PatientNotificationOutbox $outbox): bool
     {
         if ($outbox->destination !== 'staff_inbox'
             || $outbox->available_at === null
@@ -501,11 +574,16 @@ class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffRead
             return false;
         }
 
-        $latestAttempt = $outbox->deliveryAttempts()
-            ->orderByDesc('attempt_number')
-            ->orderByDesc('notification_delivery_attempt_id')
-            ->first();
+        return true;
+    }
 
+    private function outboxDueForClaim(PatientNotificationOutbox $outbox): bool
+    {
+        if (! $this->outboxIsAvailable($outbox)) {
+            return false;
+        }
+
+        $latestAttempt = $this->latestDeliveryAttempt($outbox);
         if ($latestAttempt === null) {
             return true;
         }
@@ -515,9 +593,71 @@ class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffRead
             && ! $latestAttempt->next_attempt_at->isFuture();
     }
 
+    private function recoverExpiredClaim(PatientNotificationOutbox $outbox, string $workerDigest): void
+    {
+        $latestAttempt = $this->latestDeliveryAttempt($outbox);
+        if ($latestAttempt === null
+            || $latestAttempt->status !== 'claimed'
+            || $latestAttempt->next_attempt_at === null
+            || $latestAttempt->next_attempt_at->isFuture()
+        ) {
+            return;
+        }
+
+        $recoveredAt = now();
+        PatientNotificationDeliveryAttempt::query()->create([
+            'delivery_attempt_uuid' => (string) Str::uuid7(),
+            'notification_outbox_id' => $outbox->getKey(),
+            'attempt_number' => $this->nextAttemptNumber($outbox),
+            'status' => 'retryable_failure',
+            'worker_ref' => Str::limit($workerDigest, 190, ''),
+            'error_code' => 'handoff_claim_lease_expired',
+            'next_attempt_at' => $recoveredAt,
+            'metadata' => [
+                'schema_version' => 1,
+                'content_included' => false,
+                'destination' => 'staff_inbox',
+                'recovery' => 'expired_claim_lease',
+            ],
+            'occurred_at' => $recoveredAt,
+        ]);
+    }
+
+    /** @param array{outbox_id: int, attempt_number: int, attempt_uuid: string} $claim */
+    private function claimIsCurrent(PatientNotificationOutbox $outbox, array $claim): bool
+    {
+        if (! $this->outboxIsAvailable($outbox)) {
+            return false;
+        }
+
+        $latestAttempt = $this->latestDeliveryAttempt($outbox);
+
+        return $latestAttempt !== null
+            && $latestAttempt->status === 'claimed'
+            && (int) $latestAttempt->attempt_number === $claim['attempt_number']
+            && hash_equals((string) $latestAttempt->delivery_attempt_uuid, $claim['attempt_uuid'])
+            && $latestAttempt->next_attempt_at !== null
+            && $latestAttempt->next_attempt_at->isFuture();
+    }
+
+    private function latestDeliveryAttempt(PatientNotificationOutbox $outbox): ?PatientNotificationDeliveryAttempt
+    {
+        return $outbox->deliveryAttempts()
+            ->orderByDesc('attempt_number')
+            ->orderByDesc('notification_delivery_attempt_id')
+            ->first();
+    }
+
     private function nextAttemptNumber(PatientNotificationOutbox $outbox): int
     {
         return (int) $outbox->deliveryAttempts()->max('attempt_number') + 1;
+    }
+
+    private function nextDeliveryFailureIsTerminal(PatientNotificationOutbox $outbox): bool
+    {
+        return (int) $outbox->deliveryAttempts()
+            ->whereIn('status', ['retryable_failure', 'terminal_failure'])
+            ->count() >= self::MAX_DELIVERY_FAILURES - 1;
     }
 
     private function writeHeartbeat(
@@ -567,6 +707,11 @@ class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffRead
     private function heartbeatTtlSeconds(): int
     {
         return max(30, min(600, (int) config('hummingbird-patient.staff_messaging.heartbeat_ttl_seconds', 120)));
+    }
+
+    private function claimLeaseSeconds(): int
+    {
+        return max(30, min(900, (int) config('hummingbird-patient.staff_messaging.claim_lease_seconds', 120)));
     }
 
     private function safeErrorCode(Throwable $exception): string

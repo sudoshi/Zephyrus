@@ -950,3 +950,32 @@ This ratifies CI determinism for the existing native shared-fixture evidence. It
 the patient-context key policy, disclose source patient identifiers, enable any patient feature,
 replace the production signing key, approve a source, authorize a pilot, migrate data, or deploy
 an application.
+
+## 2026-07-25 — Durable staff-inbox handoff claim leases
+
+### Completed implementation
+
+- Strengthened the content-free staff-inbox outbox consumer with immutable, time-bounded
+  `claimed` delivery-attempt facts. An advisory candidate read is followed by an outbox row lock
+  and a second eligibility decision before a worker can claim work; processing and failure
+  recording both require that same claim UUID and attempt number to remain current.
+- A second worker cannot process an active claim. If a worker stalls past its bounded lease, the
+  next worker first appends a content-free `handoff_claim_lease_expired` recovery fact and only
+  then obtains a new immutable claim. This preserves an auditable sequence without storing message
+  content or silently mutating the original outbox fact.
+- Added configuration for the lease duration, bounded to 30–900 seconds. The default is 120
+  seconds. The aggregate heartbeat remains degraded while any unexpired staff-inbox outbox fact is
+  unresolved, including an in-flight or retrying handoff.
+
+### Verification
+
+| Boundary                                                                                  | Command / target                                                                    | Result                     |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------- |
+| Staff-inbox durable claim, duplicate-worker, expired-lease, retry, and readiness behavior | `php artisan test tests/Feature/Patient/PatientStaffMessageHandoffConsumerTest.php` | 13 passed / 125 assertions |
+| PHP syntax and diff integrity                                                             | `php -l` on consumer/config and `git diff --check`                                  | passed                     |
+
+### Remaining boundary
+
+This makes the existing staff-inbox consumer's in-flight work durable and recoverable. It does not
+implement projection or push consumers, dead-letter remediation operations, alerting/SLOs,
+production runbooks, a patient activation, a production patient, a migration, or a deployment.
