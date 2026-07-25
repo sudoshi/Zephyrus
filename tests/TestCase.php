@@ -10,10 +10,13 @@ use App\Services\Auth\AccountSessionService;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\InMemorySecretProvider;
+use Tests\Support\Scenario\CommittedScenarioState;
+use Tests\Support\Scenario\UsesCommittedAncillaryScenario;
 use Tests\Support\Timing\QueryEvidence;
 use Tests\Support\Timing\TimingEvidence;
 
@@ -39,6 +42,19 @@ abstract class TestCase extends BaseTestCase
 
     protected function setUp(): void
     {
+        // CI plan S2: a scenario class leaves a COMMITTED demo baseline
+        // behind (see UsesCommittedAncillaryScenario). Scenario classes
+        // rebuild over it idempotently, but a non-scenario class expects
+        // the clean post-migration baseline — force a fresh migration
+        // before this test's application boots. Must run before
+        // parent::setUp(), which is where RefreshDatabase consults
+        // RefreshDatabaseState::$migrated.
+        if (CommittedScenarioState::$activeClass !== null
+            && ! in_array(UsesCommittedAncillaryScenario::class, class_uses_recursive(static::class), true)) {
+            RefreshDatabaseState::$migrated = false;
+            CommittedScenarioState::reset();
+        }
+
         parent::setUp();
 
         if (filter_var(getenv('TEST_NETWORK_GUARD') ?: 'false', FILTER_VALIDATE_BOOL)) {
