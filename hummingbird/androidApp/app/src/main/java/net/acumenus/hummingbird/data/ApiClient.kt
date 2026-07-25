@@ -883,6 +883,31 @@ class ApiClient(
         parseEddyChatReply(JSONObject(text).getJSONObject("data"))
     }
 
+    /**
+     * Read the signed-in user's server-persisted Eddy history. The API contract
+     * explicitly forbids offline caching; callers retain this only in screen state.
+     */
+    suspend fun eddyConversations(bearer: String, persona: String): List<EddyConversationSummary> = withContext(Dispatchers.IO) {
+        getEnvelope(withPersona("/api/mobile/v1/eddy/conversations", persona), bearer)
+            .optJSONArray("data")
+            .objects()
+            .map(::parseEddyConversationSummary)
+    }
+
+    /** Read one server-authorized conversation without persisting it locally. */
+    suspend fun eddyConversation(
+        bearer: String,
+        conversationId: String,
+        persona: String,
+    ): EddyConversationDetail = withContext(Dispatchers.IO) {
+        parseEddyConversationDetail(
+            getData(
+                withPersona("/api/mobile/v1/eddy/conversations/${urlPart(conversationId)}", persona),
+                bearer,
+            ),
+        )
+    }
+
     suspend fun flowWindow(
         bearer: String,
         persona: String,
@@ -1119,6 +1144,7 @@ class ApiClient(
 
     private fun isSensitiveNoStorePath(path: String): Boolean =
         isPatientCommunicationPath(path) ||
+            path.startsWith("/api/mobile/v1/eddy/") ||
             path.substringBefore('?') == "/api/mobile/v1/me/sessions" ||
             path.substringBefore('?').startsWith("/api/mobile/v1/me/sessions/")
 
@@ -1638,6 +1664,32 @@ class ApiClient(
             message = message,
         )
     }
+
+    internal fun parseEddyConversationSummary(data: JSONObject): EddyConversationSummary =
+        EddyConversationSummary(
+            id = data.optString("id"),
+            title = data.optStringOrNull("title")?.ifBlank { null } ?: "Eddy conversation",
+            surface = data.optStringOrNull("surface")?.ifBlank { null } ?: "chat",
+            origin = data.optStringOrNull("origin")?.ifBlank { null } ?: "unknown",
+            updatedAt = data.optStringOrNull("updated_at"),
+        )
+
+    internal fun parseEddyConversationDetail(data: JSONObject): EddyConversationDetail =
+        EddyConversationDetail(
+            id = data.optString("id"),
+            title = data.optStringOrNull("title")?.ifBlank { null } ?: "Eddy conversation",
+            surface = data.optStringOrNull("surface")?.ifBlank { null } ?: "chat",
+            messages = data.optJSONArray("messages").objects().map(::parseEddyConversationMessage),
+        )
+
+    private fun parseEddyConversationMessage(data: JSONObject): EddyConversationMessage =
+        EddyConversationMessage(
+            role = if (data.optString("role") == "user") EddyChatRole.USER else EddyChatRole.ASSISTANT,
+            content = data.optString("content"),
+            provider = data.optStringOrNull("provider"),
+            createdAt = data.optStringOrNull("created_at"),
+            hasProposedAction = data.has("proposed_action") && !data.isNull("proposed_action"),
+        )
 
     private fun parsePersona(o: JSONObject?): PersonaData {
         val roleId = o?.optStringOrNull("role_id") ?: MobileRoleCatalog.default.id

@@ -1159,6 +1159,56 @@ struct EddyReplyMessage: Decodable, Equatable {
     let provider: String?
 }
 
+/// Server-owned staff chat metadata. Native clients keep these values only in view state.
+struct EddyConversationSummary: Decodable, Identifiable, Equatable {
+    let id: String
+    let title: String
+    let surface: String
+    let origin: String
+    let updatedAt: String?
+
+    private enum CodingKeys: String, CodingKey { case id, title, surface, origin, updatedAt }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        let decodedTitle = (try container.decodeIfPresent(String.self, forKey: .title))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let decodedSurface = (try container.decodeIfPresent(String.self, forKey: .surface))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let decodedOrigin = (try container.decodeIfPresent(String.self, forKey: .origin))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        title = decodedTitle.isEmpty ? "Eddy conversation" : decodedTitle
+        surface = decodedSurface.isEmpty ? "chat" : decodedSurface
+        origin = decodedOrigin.isEmpty ? "unknown" : decodedOrigin
+        updatedAt = try container.decodeIfPresent(String.self, forKey: .updatedAt)
+    }
+}
+
+struct EddyConversationDetail: Decodable, Equatable {
+    let id: String
+    let title: String
+    let surface: String
+    let messages: [EddyConversationMessage]
+}
+
+struct EddyConversationMessage: Decodable, Equatable, Identifiable {
+    let id = UUID()
+    let role: String
+    let content: String
+    let provider: String?
+    let createdAt: String?
+    let hasProposedAction: Bool
+
+    private enum CodingKeys: String, CodingKey { case role, content, provider, createdAt, proposedAction }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        role = (try container.decodeIfPresent(String.self, forKey: .role)) == "user" ? "user" : "assistant"
+        content = try container.decodeIfPresent(String.self, forKey: .content) ?? ""
+        provider = try container.decodeIfPresent(String.self, forKey: .provider)
+        createdAt = try container.decodeIfPresent(String.self, forKey: .createdAt)
+        hasProposedAction = (try container.decodeIfPresent(JSONValue.self, forKey: .proposedAction)) != nil
+    }
+}
+
 struct EddyContextPacket: Decodable {
     let scopeRef: String
     let scopeType: String?

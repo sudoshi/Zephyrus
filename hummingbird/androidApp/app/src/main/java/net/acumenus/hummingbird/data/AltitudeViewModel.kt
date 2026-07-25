@@ -29,6 +29,10 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
     var eddyChatTurns by mutableStateOf<List<EddyChatTurn>>(emptyList()); private set
     var eddyChatLoading by mutableStateOf(false); private set
     var eddyChatError by mutableStateOf<String?>(null); private set
+    var eddyConversationHistory by mutableStateOf<List<EddyConversationSummary>>(emptyList()); private set
+    var eddyConversationDetail by mutableStateOf<EddyConversationDetail?>(null); private set
+    var eddyHistoryLoading by mutableStateOf(false); private set
+    var eddyHistoryError by mutableStateOf<String?>(null); private set
     private var eddyConversationId: String? = null
     private var eddyScopeRef: String? = null
 
@@ -92,6 +96,7 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
         patientContext = null
         eddyContext = null
         resetEddyChat()
+        resetEddyHistory()
         error = null
     }
 
@@ -131,6 +136,52 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun loadEddyContext(bearer: String, scopeRef: String) = request {
         eddyContext = api.eddyContext(bearer, scopeRef, selectedRole.id)
+    }
+
+    fun loadEddyConversationHistory(bearer: String) {
+        if (eddyHistoryLoading) return
+        val roleId = selectedRole.id
+        eddyHistoryLoading = true
+        eddyHistoryError = null
+        viewModelScope.launch {
+            try {
+                val history = api.eddyConversations(bearer, roleId)
+                    .filter { it.id.isNotBlank() }
+                if (selectedRole.id == roleId) eddyConversationHistory = history
+            } catch (e: ApiException) {
+                if (selectedRole.id != roleId) return@launch
+                if (e.statusCode == 401) needsReauth = true
+                eddyHistoryError = e.message ?: "Eddy conversation history is unavailable right now."
+            } catch (_: Exception) {
+                if (selectedRole.id != roleId) return@launch
+                eddyHistoryError = "Eddy conversation history is unavailable right now."
+            } finally {
+                if (selectedRole.id == roleId) eddyHistoryLoading = false
+            }
+        }
+    }
+
+    fun loadEddyConversation(bearer: String, conversationId: String) {
+        if (conversationId.isBlank() || eddyHistoryLoading) return
+        val roleId = selectedRole.id
+        eddyHistoryLoading = true
+        eddyHistoryError = null
+        eddyConversationDetail = null
+        viewModelScope.launch {
+            try {
+                val conversation = api.eddyConversation(bearer, conversationId, roleId)
+                if (selectedRole.id == roleId) eddyConversationDetail = conversation
+            } catch (e: ApiException) {
+                if (selectedRole.id != roleId) return@launch
+                if (e.statusCode == 401) needsReauth = true
+                eddyHistoryError = e.message ?: "This Eddy conversation is unavailable right now."
+            } catch (_: Exception) {
+                if (selectedRole.id != roleId) return@launch
+                eddyHistoryError = "This Eddy conversation is unavailable right now."
+            } finally {
+                if (selectedRole.id == roleId) eddyHistoryLoading = false
+            }
+        }
     }
 
     /**
@@ -215,6 +266,13 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
         eddyChatError = null
         eddyConversationId = null
         eddyScopeRef = null
+    }
+
+    private fun resetEddyHistory() {
+        eddyConversationHistory = emptyList()
+        eddyConversationDetail = null
+        eddyHistoryLoading = false
+        eddyHistoryError = null
     }
 
     private fun request(block: suspend () -> Unit) {

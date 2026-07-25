@@ -1167,6 +1167,8 @@ capabilities:
     verification_evidence:
       - tests/Feature/Mobile/Eddy/EddyMobileBffTest.php
       - hummingbird/androidApp/app/src/test/java/net/acumenus/hummingbird/data/SharedDtoFixtureDecodeTest.kt
+      - hummingbird/androidApp/app/src/androidTest/java/net/acumenus/hummingbird/ui/altitude/EddyConversationHistoryUiTest.kt
+      - hummingbird/iosApp/HummingbirdTests/EddyConversationHistoryTests.swift
     web_routes: []
     staff_bff_operations:
       - POST /api/mobile/v1/eddy/chat

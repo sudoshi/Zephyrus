@@ -685,6 +685,30 @@ data class EddyChatTurn(
     val pending: Boolean = false,
 )
 
+/** Server-persisted staff conversation metadata; Hummingbird intentionally keeps no local copy. */
+data class EddyConversationSummary(
+    val id: String,
+    val title: String,
+    val surface: String,
+    val origin: String,
+    val updatedAt: String?,
+)
+
+data class EddyConversationMessage(
+    val role: EddyChatRole,
+    val content: String,
+    val provider: String?,
+    val createdAt: String?,
+    val hasProposedAction: Boolean,
+)
+
+data class EddyConversationDetail(
+    val id: String,
+    val title: String,
+    val surface: String,
+    val messages: List<EddyConversationMessage>,
+)
+
 /**
  * Carries an HTTP status so the UI can react to 401 (re-auth). `errorCode` mirrors the
  * envelope's `error.code` (e.g. "invalid_since" on a 422 delta rejection).

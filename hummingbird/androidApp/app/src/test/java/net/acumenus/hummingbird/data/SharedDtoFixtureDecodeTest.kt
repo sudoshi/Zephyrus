@@ -86,6 +86,54 @@ class SharedDtoFixtureDecodeTest {
     }
 
     @Test
+    fun decodesServerOnlyEddyConversationHistoryAndDraftActionMarker() {
+        val summary = api.parseEddyConversationSummary(JSONObject("""
+            {
+              "id": "e75d595c-7e67-49f8-b0a2-8189e1c8491d",
+              "title": "Discharge barriers",
+              "surface": "hummingbird",
+              "origin": "hummingbird",
+              "updated_at": "2026-07-24T16:00:00Z"
+            }
+        """.trimIndent()))
+        val detail = api.parseEddyConversationDetail(JSONObject("""
+            {
+              "id": "e75d595c-7e67-49f8-b0a2-8189e1c8491d",
+              "title": "Discharge barriers",
+              "surface": "hummingbird",
+              "messages": [
+                { "role": "user", "content": "What is blocking discharges?", "created_at": "2026-07-24T15:58:00Z" },
+                {
+                  "role": "assistant",
+                  "content": "Two barriers need review.",
+                  "provider": "ollama",
+                  "created_at": "2026-07-24T16:00:00Z",
+                  "proposed_action": { "action_type": "flag_barrier" }
+                }
+              ]
+            }
+        """.trimIndent()))
+
+        assertEquals("e75d595c-7e67-49f8-b0a2-8189e1c8491d", summary.id)
+        assertEquals("Discharge barriers", summary.title)
+        assertEquals("hummingbird", summary.origin)
+        assertEquals(2, detail.messages.size)
+        assertEquals(EddyChatRole.USER, detail.messages.first().role)
+        assertEquals(EddyChatRole.ASSISTANT, detail.messages.last().role)
+        assertEquals("ollama", detail.messages.last().provider)
+        assertTrue(detail.messages.last().hasProposedAction)
+    }
+
+    @Test
+    fun eddyPathsAreAlwaysNoStoreAndDisableTheHttpCache() {
+        val path = "/api/mobile/v1/eddy/conversations?persona=bed_manager"
+
+        assertEquals("no-store", api.sensitiveNoStoreHeaders(path)["Cache-Control"])
+        assertEquals("no-cache", api.sensitiveNoStoreHeaders(path)["Pragma"])
+        assertTrue(api.shouldDisableHttpCaches(path))
+    }
+
+    @Test
     fun decodesFlowWindowFixture() {
         val window = api.parseFlowWindow(fixture("mobile-flow-window.json"))
 

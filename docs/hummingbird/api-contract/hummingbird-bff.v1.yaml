@@ -2430,7 +2430,12 @@ paths:
             content:
               {
                 application/json:
-                  { schema: { $ref: "#/components/schemas/Envelope" } },
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/EddyConversationListEnvelope",
+                      },
+                  },
               },
           }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -2471,7 +2476,12 @@ paths:
             content:
               {
                 application/json:
-                  { schema: { $ref: "#/components/schemas/Envelope" } },
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/EddyConversationDetailEnvelope",
+                      },
+                  },
               },
           }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -5130,6 +5140,70 @@ components:
                 { type: "null" },
               ],
           }
+    EddyConversationSummary:
+      type: object
+      description: >
+        A server-owned, user-scoped Eddy conversation summary. Native clients may render it
+        only in transient view state and must not persist it offline.
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        surface: { type: string }
+        origin: { type: string, enum: [hummingbird, web] }
+        updated_at:
+          { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
+      required: [id, title, surface, origin]
+    EddyConversationMessage:
+      type: object
+      description: >
+        One read-only message in an authorized server transcript. A proposed action remains a
+        draft and the history route provides no decision operation.
+      properties:
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string }
+        provider: { type: [string, "null"] }
+        created_at:
+          { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
+        proposed_action:
+          {
+            oneOf:
+              [
+                { $ref: "#/components/schemas/EddyProposedAction" },
+                { type: "null" },
+              ],
+          }
+      required: [role, content]
+    EddyConversationDetail:
+      type: object
+      description: >
+        A full user-scoped Eddy transcript. This is read-only conversation history, not the
+        Eddy approval workflow.
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        surface: { type: string }
+        messages:
+          {
+            type: array,
+            items: { $ref: "#/components/schemas/EddyConversationMessage" },
+          }
+      required: [id, title, surface, messages]
+    EddyConversationListEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data:
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/EddyConversationSummary" },
+              }
+    EddyConversationDetailEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/EddyConversationDetail" }
     EddyChatEnvelope:
       allOf:
         - { $ref: "#/components/schemas/Envelope" }

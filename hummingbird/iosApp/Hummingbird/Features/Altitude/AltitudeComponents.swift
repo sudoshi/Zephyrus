@@ -278,6 +278,7 @@ struct EddyChatView: View {
     @State private var input = ""
     @State private var conversationId: String?
     @State private var isSending = false
+    @State private var showingHistory = false
     @FocusState private var inputFocused: Bool
 
     private let api = APIClient(baseURL: URL(string: AppConfig.baseURL)!)
@@ -332,11 +333,21 @@ struct EddyChatView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }.tint(Z.primary)
+                    HStack(spacing: Z.s2) {
+                        Button {
+                            showingHistory = true
+                        } label: {
+                            Image(systemName: "clock.arrow.circlepath")
+                        }
+                        .accessibilityLabel("Conversation history")
+                        Button("Done") { dismiss() }
+                    }
+                    .tint(Z.primary)
                 }
             }
         }
         .tint(Z.primary)
+        .sheet(isPresented: $showingHistory) { EddyConversationHistoryView() }
     }
 
     private var intro: some View {
@@ -476,6 +487,180 @@ struct EddyChatView: View {
         bubbles[index].text = text.isEmpty ? "…" : text
         bubbles[index].provider = provider
         bubbles[index].pending = false
+    }
+}
+
+/// Read-only access to the signed-in user's server-owned Eddy history. The app never
+/// writes conversations to a device cache, and this view has no approval controls.
+private struct EddyConversationHistoryView: View {
+    @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject var profile: ProfileStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var conversations: [EddyConversationSummary] = []
+    @State private var loading = true
+    @State private var error: String?
+
+    private let api = APIClient(baseURL: URL(string: AppConfig.baseURL)!)
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Text("Your authorized Eddy history is read from the server and is not retained offline on this device.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Z.inkMuted)
+                }
+                if let error {
+                    Section {
+                        RetryableMessage(symbol: "exclamationmark.triangle", title: "Can't load conversation history",
+                                         message: error, tone: .warning) {
+                            Task { await load() }
+                        }
+                    }
+                } else if loading {
+                    Section { HStack { Spacer(); ProgressView(); Spacer() } }
+                } else if conversations.isEmpty {
+                    Section { RetryableMessage(symbol: "bubble.left.and.bubble.right", title: "No Eddy conversations",
+                                                 message: "There are no conversations available to this account.", tone: .info) }
+                } else {
+                    Section {
+                        ForEach(conversations) { conversation in
+                            NavigationLink(value: conversation.id) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(conversation.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
+                                    Text("\(conversation.origin == "hummingbird" ? "Hummingbird" : "Zephyrus") · \(altitudeTitle(conversation.surface))\(conversation.updatedAt.map { " · \(altitudeRelativeTime($0) ?? "updated")" } ?? "")")
+                                        .font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background { HummingbirdBackdrop(dim: 0.4) }
+            .navigationTitle("Eddy history")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: String.self) { id in
+                EddyConversationDetailView(conversationID: id)
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }.tint(Z.primary)
+                }
+            }
+            .task { await load() }
+        }
+    }
+
+    private func load() async {
+        loading = true
+        error = nil
+        do {
+            conversations = try await api.eddyConversations(persona: profile.roleId, bearer: auth.accessToken ?? "")
+                .filter { !$0.id.isEmpty }
+        } catch let error as APIError {
+            self.error = error.message
+        } catch {
+            self.error = "Eddy conversation history is unavailable right now."
+        }
+        loading = false
+    }
+}
+
+private struct EddyConversationDetailView: View {
+    @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject var profile: ProfileStore
+
+    let conversationID: String
+    @State private var conversation: EddyConversationDetail?
+    @State private var loading = true
+    @State private var error: String?
+
+    private let api = APIClient(baseURL: URL(string: AppConfig.baseURL)!)
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Z.s3) {
+                if let error {
+                    RetryableMessage(symbol: "exclamationmark.triangle", title: "Can't load conversation",
+                                     message: error, tone: .warning) {
+                        Task { await load() }
+                    }
+                } else if loading {
+                    HStack { Spacer(); ProgressView(); Spacer() }.padding(.top, Z.s6)
+                } else if let conversation {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(conversation.title).font(.system(size: 18, weight: .semibold)).foregroundStyle(Z.ink)
+                        Text("Read-only server history · \(altitudeTitle(conversation.surface))")
+                            .font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                    }
+                    .padding(Z.s3)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(Z.surface))
+                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Z.border, lineWidth: 1))
+
+                    if conversation.messages.isEmpty {
+                        RetryableMessage(symbol: "bubble.left", title: "No messages available",
+                                         message: "This conversation has no messages to display.", tone: .info)
+                    } else {
+                        ForEach(conversation.messages) { message in
+                            bubble(message)
+                        }
+                    }
+                }
+            }
+            .padding(Z.s4)
+        }
+        .background { HummingbirdBackdrop(dim: 0.4) }
+        .navigationTitle("Eddy conversation")
+        .navigationBarTitleDisplayMode(.inline)
+        .task(id: conversationID) { await load() }
+    }
+
+    @ViewBuilder private func bubble(_ message: EddyConversationMessage) -> some View {
+        HStack {
+            if message.role == "user" { Spacer(minLength: Z.s6) }
+            VStack(alignment: message.role == "user" ? .trailing : .leading, spacing: 4) {
+                Text(message.content)
+                    .font(.system(size: 15))
+                    .foregroundStyle(message.role == "user" ? .white : Z.ink)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, Z.s3).padding(.vertical, Z.s2)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(message.role == "user" ? Z.primary : Z.surface))
+                    .overlay {
+                        if message.role != "user" {
+                            RoundedRectangle(cornerRadius: 14).strokeBorder(Z.border, lineWidth: 1)
+                        }
+                    }
+                Text(
+                    [
+                        message.role == "user" ? "You" : (message.provider.map { "via \($0)" } ?? "Eddy"),
+                        message.createdAt.flatMap(altitudeRelativeTime),
+                    ]
+                    .compactMap { $0 }
+                    .joined(separator: " · ")
+                )
+                    .font(.system(size: 10)).foregroundStyle(Z.inkMuted)
+                if message.hasProposedAction {
+                    Text("A draft action remains subject to separate human review; this history view cannot approve it.")
+                        .font(.system(size: 11)).foregroundStyle(Z.inkMuted).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            if message.role != "user" { Spacer(minLength: Z.s6) }
+        }
+    }
+
+    private func load() async {
+        loading = true
+        error = nil
+        do {
+            conversation = try await api.eddyConversation(id: conversationID, persona: profile.roleId, bearer: auth.accessToken ?? "")
+        } catch let error as APIError {
+            self.error = error.message
+        } catch {
+            self.error = "This Eddy conversation is unavailable right now."
+        }
+        loading = false
     }
 }
 

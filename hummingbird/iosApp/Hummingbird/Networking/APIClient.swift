@@ -779,7 +779,33 @@ struct APIClient {
 
     func eddyContext(scopeRef: String, persona: String?, bearer: String) async throws -> Envelope<EddyContextPacket> {
         let encodedRef = Self.pathComponent(scopeRef)
-        return try await getEnvelope(path: withPersona("/api/mobile/v1/eddy/context/\(encodedRef)", persona), bearer: bearer, as: EddyContextPacket.self)
+        return try await getEnvelope(
+            path: withPersona("/api/mobile/v1/eddy/context/\(encodedRef)", persona),
+            bearer: bearer,
+            as: EddyContextPacket.self,
+            noStore: true
+        )
+    }
+
+    /// The server owns conversation retention; native history is deliberately no-store.
+    func eddyConversations(persona: String?, bearer: String) async throws -> [EddyConversationSummary] {
+        try await getEnvelope(
+            path: withPersona("/api/mobile/v1/eddy/conversations", persona),
+            bearer: bearer,
+            as: [EddyConversationSummary].self,
+            noStore: true
+        ).data
+    }
+
+    /// Fetch one authorized server-side transcript without placing it in a device cache.
+    func eddyConversation(id: String, persona: String?, bearer: String) async throws -> EddyConversationDetail {
+        let encodedID = Self.pathComponent(id)
+        return try await getEnvelope(
+            path: withPersona("/api/mobile/v1/eddy/conversations/\(encodedID)", persona),
+            bearer: bearer,
+            as: EddyConversationDetail.self,
+            noStore: true
+        ).data
     }
 
     /// Send a chat turn to Eddy (persona-aware, grounded in live operations + the RAG
@@ -801,6 +827,7 @@ struct APIClient {
             method: "POST",
             body: payload,
             bearer: bearer,
+            noStore: true,
             acceptedStatusCodes: [503],
             timeoutInterval: 60
         )

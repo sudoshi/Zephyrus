@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -66,6 +68,9 @@ import net.acumenus.hummingbird.data.DisplayField
 import net.acumenus.hummingbird.data.DrillDetail
 import net.acumenus.hummingbird.data.EddyChatRole
 import net.acumenus.hummingbird.data.EddyChatTurn
+import net.acumenus.hummingbird.data.EddyConversationDetail
+import net.acumenus.hummingbird.data.EddyConversationMessage
+import net.acumenus.hummingbird.data.EddyConversationSummary
 import net.acumenus.hummingbird.data.EddyContext
 import net.acumenus.hummingbird.data.ForYouItem
 import net.acumenus.hummingbird.data.MobileRole
@@ -558,6 +563,7 @@ fun EddyContextScreen(
     bearer: String,
     scopeRef: String,
     onBack: () -> Unit,
+    onOpenHistory: () -> Unit,
 ) {
     var draft by remember(scopeRef) { mutableStateOf("") }
 
@@ -568,7 +574,13 @@ fun EddyContextScreen(
 
     Scaffold(
         containerColor = Z.bg,
-        topBar = { DetailTopBar("Eddy", onBack) },
+        topBar = {
+            DetailTopBar("Eddy", onBack) {
+                IconButton(onClick = onOpenHistory) {
+                    Icon(Icons.Filled.History, contentDescription = "Conversation history")
+                }
+            }
+        },
         bottomBar = {
             EddyChatComposer(
                 draft = draft,
@@ -681,6 +693,168 @@ private fun EddyChatBubble(turn: EddyChatTurn) {
                 if (!isUser && turn.provider != null) {
                     Text("Via ${turn.provider}", color = Z.inkMuted, fontSize = 11.sp)
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EddyConversationHistoryScreen(
+    vm: AltitudeViewModel,
+    bearer: String,
+    onBack: () -> Unit,
+    onOpenConversation: (String) -> Unit,
+) {
+    LaunchedEffect(bearer, vm.selectedRole.id) {
+        vm.loadEddyConversationHistory(bearer)
+    }
+
+    Scaffold(
+        containerColor = Z.bg,
+        topBar = {
+            DetailTopBar("Eddy history", onBack) {
+                IconButton(onClick = { vm.loadEddyConversationHistory(bearer) }) {
+                    Icon(Icons.Filled.Refresh, contentDescription = "Refresh conversation history")
+                }
+            }
+        },
+    ) { inner ->
+        EddyConversationHistoryContent(
+            history = vm.eddyConversationHistory,
+            loading = vm.eddyHistoryLoading,
+            error = vm.eddyHistoryError,
+            modifier = Modifier.padding(inner),
+            onOpenConversation = onOpenConversation,
+        )
+    }
+}
+
+/** Native presentation of the server-side-only conversation list; it writes no device cache. */
+@Composable
+internal fun EddyConversationHistoryContent(
+    history: List<EddyConversationSummary>,
+    loading: Boolean,
+    error: String?,
+    modifier: Modifier = Modifier,
+    onOpenConversation: (String) -> Unit,
+) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Text(
+                "Your authorized Eddy history is read from the server and is not retained offline on this device.",
+                color = Z.inkMuted,
+                fontSize = 13.sp,
+            )
+        }
+        error?.let { item { ErrorPanel(it) } }
+        if (loading && history.isEmpty()) {
+            item { LoadingPanel() }
+        } else if (!loading && history.isEmpty() && error == null) {
+            item { EmptyPanel("No Eddy conversations are available.") }
+        } else {
+            items(history, key = { it.id }) { conversation ->
+                EddyConversationRow(conversation, onOpen = { onOpenConversation(conversation.id) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun EddyConversationRow(conversation: EddyConversationSummary, onOpen: () -> Unit) {
+    OutlinedButton(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(conversation.title, color = Z.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            val source = if (conversation.origin == "hummingbird") "Hummingbird" else "Zephyrus"
+            Text("$source · ${humanizeLocal(conversation.surface)}${relTime(conversation.updatedAt)?.let { " · $it" } ?: ""}", color = Z.inkMuted, fontSize = 12.sp)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EddyConversationDetailScreen(
+    vm: AltitudeViewModel,
+    bearer: String,
+    conversationId: String,
+    onBack: () -> Unit,
+) {
+    LaunchedEffect(bearer, vm.selectedRole.id, conversationId) {
+        vm.loadEddyConversation(bearer, conversationId)
+    }
+
+    Scaffold(
+        containerColor = Z.bg,
+        topBar = { DetailTopBar("Eddy conversation", onBack) },
+    ) { inner ->
+        EddyConversationDetailContent(
+            conversation = vm.eddyConversationDetail,
+            loading = vm.eddyHistoryLoading,
+            error = vm.eddyHistoryError,
+            modifier = Modifier.padding(inner),
+        )
+    }
+}
+
+@Composable
+internal fun EddyConversationDetailContent(
+    conversation: EddyConversationDetail?,
+    loading: Boolean,
+    error: String?,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        error?.let { item { ErrorPanel(it) } }
+        if (conversation == null && loading) {
+            item { LoadingPanel() }
+        } else if (conversation != null) {
+            item {
+                Column(Modifier.fillMaxWidth().panel().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(conversation.title, color = Z.ink, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Read-only server history · ${humanizeLocal(conversation.surface)}", color = Z.inkMuted, fontSize = 12.sp)
+                }
+            }
+            if (conversation.messages.isEmpty()) {
+                item { EmptyPanel("No messages are available in this conversation.") }
+            } else {
+                items(conversation.messages) { message -> EddyConversationMessageBubble(message) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EddyConversationMessageBubble(message: EddyConversationMessage) {
+    val isUser = message.role == EddyChatRole.USER
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start) {
+        Column(
+            modifier = if (isUser) {
+                Modifier.fillMaxWidth(0.82f).background(Z.primary, RoundedCornerShape(16.dp)).padding(12.dp)
+            } else {
+                Modifier.fillMaxWidth(0.82f).panel().padding(12.dp)
+            },
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(message.content, color = if (isUser) Z.bg else Z.ink, fontSize = 14.sp)
+            val attribution = listOfNotNull(
+                if (isUser) "You" else message.provider?.let { "Via $it" } ?: "Eddy",
+                relTime(message.createdAt),
+            ).joinToString(" · ")
+            Text(attribution, color = if (isUser) Z.bg.copy(alpha = 0.76f) else Z.inkMuted, fontSize = 11.sp)
+            if (message.hasProposedAction) {
+                Text(
+                    "A draft action remains subject to separate human review; this history view cannot approve it.",
+                    color = if (isUser) Z.bg.copy(alpha = 0.86f) else Z.inkMuted,
+                    fontSize = 11.sp,
+                )
             }
         }
     }
@@ -1049,7 +1223,11 @@ private fun ErrorPanel(text: String, onRetry: (() -> Unit)? = null) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DetailTopBar(title: String, onBack: () -> Unit) {
+private fun DetailTopBar(
+    title: String,
+    onBack: () -> Unit,
+    actions: @Composable RowScope.() -> Unit = {},
+) {
     TopAppBar(
         title = { Text(title, fontWeight = FontWeight.SemiBold) },
         navigationIcon = {
@@ -1057,6 +1235,7 @@ private fun DetailTopBar(title: String, onBack: () -> Unit) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
         },
+        actions = actions,
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Z.bg,
             titleContentColor = Z.ink,

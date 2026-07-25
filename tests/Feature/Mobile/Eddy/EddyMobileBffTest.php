@@ -107,6 +107,58 @@ class EddyMobileBffTest extends TestCase
         $this->postJson('/api/mobile/v1/eddy/chat', ['message' => 'hi'])->assertStatus(401);
     }
 
+    public function test_conversation_history_and_detail_are_user_scoped(): void
+    {
+        $this->fakeEddy();
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+
+        Sanctum::actingAs($owner, ['mobile:read']);
+        $this->postJson('/api/mobile/v1/eddy/chat', ['message' => 'what is blocking discharge?', 'surface' => 'rtdc'])
+            ->assertOk();
+        $ownerConversation = EddyConversation::forUser($owner->id)->firstOrFail();
+
+        Sanctum::actingAs($other, ['mobile:read']);
+        $this->postJson('/api/mobile/v1/eddy/chat', ['message' => 'what is blocking transport?', 'surface' => 'transport'])
+            ->assertOk();
+        $otherConversation = EddyConversation::forUser($other->id)->firstOrFail();
+
+        $webConversation = EddyConversation::create([
+            'eddy_conversation_uuid' => (string) Str::uuid(),
+            'user_id' => $owner->id,
+            'surface' => 'chat',
+            'title' => 'Web operational review',
+            'origin' => 'web',
+        ]);
+
+        Sanctum::actingAs($owner, ['mobile:read']);
+        $this->getJson('/api/mobile/v1/eddy/conversations')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment([
+                'id' => $ownerConversation->eddy_conversation_uuid,
+                'origin' => 'hummingbird',
+            ])
+            ->assertJsonFragment([
+                'id' => $webConversation->eddy_conversation_uuid,
+                'origin' => 'web',
+            ]);
+
+        $this->getJson("/api/mobile/v1/eddy/conversations/{$ownerConversation->eddy_conversation_uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $ownerConversation->eddy_conversation_uuid)
+            ->assertJsonPath('data.messages.0.role', 'user')
+            ->assertJsonPath('data.messages.1.role', 'assistant');
+
+        $this->getJson("/api/mobile/v1/eddy/conversations/{$webConversation->eddy_conversation_uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $webConversation->eddy_conversation_uuid)
+            ->assertJsonPath('data.surface', 'chat');
+
+        $this->getJson("/api/mobile/v1/eddy/conversations/{$otherConversation->eddy_conversation_uuid}")
+            ->assertNotFound();
+    }
+
     public function test_inbox_lists_only_eddy_sourced_pending_approvals_for_the_user(): void
     {
         $user = User::factory()->create();
