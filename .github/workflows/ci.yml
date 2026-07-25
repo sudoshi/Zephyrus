@@ -26,6 +26,12 @@ jobs:
   # job below skips, the run concludes success, and the deploy gate passes
   # on the exact SHA with this job's summary pointing at the reused run.
   # Every check fails OPEN (reuse=false -> full suite runs).
+  #
+  # Plan S4(b): the same job classifies docs-only change sets (docs/ plus
+  # root-level *.md, excluding docs/hummingbird/ whose generated files are
+  # contract-verified by backend-quality). Suite jobs skip on docs_only;
+  # the Security job deliberately keeps running on every change set so
+  # gitleaks/SAST still scan documentation diffs.
   # ---------------------------------------------------------------------------
   changes:
     name: Changes (verdict-reuse gatekeeper)
@@ -37,7 +43,42 @@ jobs:
       pull-requests: read
     outputs:
       reuse: ${{ steps.verdict.outputs.reuse }}
+      docs_only: ${{ steps.docs.outputs.docs_only }}
     steps:
+      - name: Classify docs-only change sets
+        id: docs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          echo "docs_only=false" >> "$GITHUB_OUTPUT"
+          not_provable() {
+            echo "::notice::Docs-only not provable ($1) — full suite runs."
+            exit 0
+          }
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            files_json="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --paginate --jq '[.[].filename]' | jq -cs 'add')" || not_provable "PR file list failed"
+          elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/main" ]]; then
+            [[ -n "$PUSH_BEFORE" && ! "$PUSH_BEFORE" =~ ^0+$ ]] || not_provable "no push base"
+            files_json="$(gh api "repos/$GITHUB_REPOSITORY/compare/$PUSH_BEFORE...$GITHUB_SHA" --jq '[.files[].filename]')" || not_provable "compare failed"
+            # The compare API truncates at 300 files; a truncated list cannot
+            # prove the change set is docs-only.
+            [[ "$(jq 'length' <<<"$files_json")" -lt 300 ]] || not_provable "change set too large to classify"
+          else
+            exit 0
+          fi
+          if jq -e 'length > 0 and all(test("^docs/|^[^/]+[.]md$")) and (any(test("^docs/hummingbird/")) | not)' <<<"$files_json" >/dev/null; then
+            echo "docs_only=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Docs-only fast path (plan S4b)"
+              echo "- Change set: $(jq 'length' <<<"$files_json") file(s), all under \`docs/\` or root-level \`*.md\` (\`docs/hummingbird/\` excluded)"
+              echo "- Suite jobs skip; Security (gitleaks / SAST) still runs on every change set."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Docs-only change set — suite jobs skip, security still runs."
+          fi
+
       - name: Look up a green verdict for this exact tree
         id: verdict
         env:
@@ -85,8 +126,8 @@ jobs:
     name: Backend (Laravel / quality)
     runs-on: ubuntu-latest
     needs: changes
-    # Plan S4: skip when an identical tree already holds a green verdict.
-    if: needs.changes.outputs.reuse != 'true'
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 20
     env:
       APP_ENV: testing
@@ -205,8 +246,8 @@ jobs:
     name: Backend tests (${{ matrix.shard }})
     runs-on: ubuntu-latest
     needs: changes
-    # Plan S4: skip when an identical tree already holds a green verdict.
-    if: needs.changes.outputs.reuse != 'true'
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     # Matches the ratified "no shard above 30 m" budget; caps hung-shard burn.
     timeout-minutes: 30
     env:
@@ -316,8 +357,8 @@ jobs:
     name: Frontend (Vitest / Vite)
     runs-on: ubuntu-latest
     needs: changes
-    # Plan S4: skip when an identical tree already holds a green verdict.
-    if: needs.changes.outputs.reuse != 'true'
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 10
     env:
       RELEASE_EVIDENCE_DIR: artifacts/release-evidence/frontend
@@ -418,8 +459,8 @@ jobs:
     name: Arena sidecar (pytest / pm4py)
     runs-on: ubuntu-latest
     needs: changes
-    # Plan S4: skip when an identical tree already holds a green verdict.
-    if: needs.changes.outputs.reuse != 'true'
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 15
     env:
       RELEASE_EVIDENCE_DIR: artifacts/release-evidence/arena
@@ -459,8 +500,8 @@ jobs:
     name: Browser (Playwright / Chromium)
     runs-on: ubuntu-latest
     needs: changes
-    # Plan S4: skip when an identical tree already holds a green verdict.
-    if: needs.changes.outputs.reuse != 'true'
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 20
     env:
       APP_ENV: testing
@@ -564,8 +605,8 @@ jobs:
     name: DAST (OWASP ZAP baseline)
     runs-on: ubuntu-latest
     needs: changes
-    # Plan S4: skip when an identical tree already holds a green verdict.
-    if: needs.changes.outputs.reuse != 'true'
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 25
     env:
       APP_ENV: testing
@@ -655,8 +696,8 @@ jobs:
     name: Hummingbird staff (Android)
     runs-on: ubuntu-24.04
     needs: changes
-    # Plan S4: skip when an identical tree already holds a green verdict.
-    if: needs.changes.outputs.reuse != 'true'
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 35
     defaults:
       run:
@@ -742,8 +783,8 @@ jobs:
     # to Xcode 16.4, whose SDK cannot even parse those guarded symbols.
     runs-on: macos-26
     needs: changes
-    # Plan S4: skip when an identical tree already holds a green verdict.
-    if: needs.changes.outputs.reuse != 'true'
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 45
     env:
       IOS_STAFF_ROOT: hummingbird/iosApp
@@ -887,8 +928,8 @@ jobs:
     name: Hummingbird patient (Android)
     runs-on: ubuntu-24.04
     needs: changes
-    # Plan S4: skip when an identical tree already holds a green verdict.
-    if: needs.changes.outputs.reuse != 'true'
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 30
     defaults:
       run:
@@ -981,8 +1022,8 @@ jobs:
     name: Hummingbird patient (iOS)
     runs-on: macos-15
     needs: changes
-    # Plan S4: skip when an identical tree already holds a green verdict.
-    if: needs.changes.outputs.reuse != 'true'
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 40
     env:
       IOS_PATIENT_ROOT: hummingbird/iosPatientApp
