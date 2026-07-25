@@ -587,6 +587,7 @@ struct PatientVisibleMessage: Codable, Equatable, Identifiable {
     let body: String?
     let relatesToMessageUUID: String?
     let deliveryState: PatientMessageDeliveryState
+    let stateUpdatedAt: String?
     let sentAt: String
 
     var id: String { messageUUID }
@@ -598,6 +599,7 @@ struct PatientVisibleMessage: Codable, Equatable, Identifiable {
         case body
         case relatesToMessageUUID = "relates_to_message_uuid"
         case deliveryState = "delivery_state"
+        case stateUpdatedAt = "state_updated_at"
         case sentAt = "sent_at"
     }
 }

@@ -198,6 +198,11 @@ export const patientDetailSchema = z.object({
                 target_role: z.string().nullable(),
                 status: z.enum(["open", "answered", "dismissed", "expired"]),
                 due_at: z.string().nullable(),
+                patient_question_lifecycle: z
+                    .object({
+                        deferred_at: z.string().nullable(),
+                    })
+                    .nullable(),
             }),
         ),
         tasks: z.array(

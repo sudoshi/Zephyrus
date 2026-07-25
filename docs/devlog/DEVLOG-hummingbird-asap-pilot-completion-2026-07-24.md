@@ -323,3 +323,51 @@ route state machine; only explicit promotion and terminal generic resolution are
 ratified here. The released rounds-summary reader does not establish an approved
 production source, clinical-release owner, pilot responsibility pool, feature enablement,
 or a patient production deployment. All patient flags remain off.
+
+## 2026-07-25 — Accountable pre-round question lifecycle ratification
+
+### Completed implementation
+
+- The staff lifecycle now uses one accountable workflow rather than a parallel rounds
+  messaging implementation. In Patient Communications, an effective responsibility-pool
+  member claims a question to acknowledge it, sends an encrypted patient-visible reply to
+  answer it, or reroutes it only to an eligible governed destination. Those existing
+  mutations already write the capability-gated staff action, routing, and delivery-receipt
+  ledgers in one transaction.
+- Patient message serialization now exposes `state_updated_at`: the timestamp of the
+  authoritative latest patient-visible delivery receipt, falling back to the message's
+  sent time where no receipt exists. iOS and Android decode it defensively and display it
+  beside the patient-facing delivery state. No routing identifier, staff identity,
+  internal reason, or staff-only note crosses the patient boundary.
+- A staff member who can resolve the exact promoted question may now choose **Defer for
+  later review** from the authorized Virtual Rounds workspace. The question remains open.
+  A one-to-one, append-only, content-free
+  `patient_communications.round_question_promotion_deferrals` fact links only the
+  promotion, actor, policy/digests, timestamp, and encrypted generic patient status. It
+  rejects a distinct second deferral, exact-replays the original idempotency key, and
+  suppresses disclosure if the independent bridge/patient-policy checks fail closed.
+- The staff workspace deliberately links to the existing Patient Communications queue for
+  acknowledge, reply, and reroute. It does not create another staff-message API or make a
+  patient question an order, care-plan update, staff response, routing rationale, or
+  promise that a particular round will occur.
+
+### Verification
+
+| Boundary                                      | Command / target                                                                                                                                                                                     | Result                                                                                        |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Laravel lifecycle, messaging, and staff queue | `php artisan test tests/Feature/Rounds/PatientRoundQuestionPromotionTest.php tests/Feature/Patient/StaffPatientCommunicationApiTest.php tests/Feature/Patient/PatientMessagingApiTest.php --compact` | 57 passed / 1,074 assertions                                                                  |
+| Laravel regression after formatting           | `php artisan test tests/Feature/Rounds/PatientRoundQuestionPromotionTest.php tests/Feature/Patient/PatientMessagingApiTest.php --compact`                                                            | 37 passed / 620 assertions                                                                    |
+| Backend/static formatting                     | Pint on touched PHP; targeted Prettier; `git diff --check`                                                                                                                                           | passed                                                                                        |
+| iOS patient API + simulator                   | iPhone 17 Pro / iOS 26.3.1, `PatientAPIClientTests`                                                                                                                                                  | 13 passed / 0 failures                                                                        |
+| iOS reference journey                         | iPhone 17 Pro / iOS 26.3.1, `PatientReferenceJourneyUITests/testReferenceJourneyExposesCarePathTeamAndSafeMessagingLanguage`                                                                         | passed                                                                                        |
+| Android decoder                               | Debug JVM, `PatientEnvelopeDecoderTest`                                                                                                                                                              | passed                                                                                        |
+| Android patient journey                       | API 35 `hb` emulator, `connectedDebugAndroidTest --rerun-tasks`                                                                                                                                      | 15 passed / 0 failures, errors, or skips; includes the acknowledged-state timestamp assertion |
+
+### Remaining boundary
+
+This ratifies the governed, default-off application path only. It does not approve a
+patient pilot, enable any patient feature, release a clinical rounds summary, make a
+clinical statement, expose staff-only reasoning, create a production patient, or deploy
+the migration/application change. The repository-wide TypeScript compiler continues to
+stop on pre-existing `Hooks`/`hooks` and `Components`/`components` duplicate-casing
+paths; targeted changed-file formatting passed.

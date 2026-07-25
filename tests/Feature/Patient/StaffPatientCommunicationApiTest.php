@@ -526,6 +526,7 @@ class StaffPatientCommunicationApiTest extends TestCase
             ->assertJsonPath('data.thread.messages.1.body', self::STAFF_REPLY);
 
         $this->assertStringNotContainsString('other', $patientDetail->getContent());
+        $this->assertIsString($patientDetail->json('data.thread.messages.0.state_updated_at'));
         $this->assertDatabaseHas('patient_experience.message_delivery_receipts', [
             'receipt_type' => 'team_responded',
             'patient_visible_state' => 'responded',

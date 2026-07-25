@@ -14,6 +14,7 @@ import {
     useComposeContribution,
     useCreateRun,
     useAvailablePatientQuestions,
+    useDeferPatientQuestion,
     usePatientTransition,
     usePinPatient,
     usePromotePatientQuestion,
@@ -141,6 +142,7 @@ export default function VirtualRounds() {
     const pinPatient = usePinPatient();
     const compose = useComposeContribution();
     const promotePatientQuestion = usePromotePatientQuestion();
+    const deferPatientQuestion = useDeferPatientQuestion();
 
     const busy =
         createRun.isPending ||
@@ -148,7 +150,8 @@ export default function VirtualRounds() {
         patientTransition.isPending ||
         pinPatient.isPending ||
         compose.isPending ||
-        promotePatientQuestion.isPending;
+        promotePatientQuestion.isPending ||
+        deferPatientQuestion.isPending;
 
     // 409 recovery: the server sends the current projection alongside the
     // conflict — install it into the cache and tell the user what happened.
@@ -381,6 +384,14 @@ export default function VirtualRounds() {
                                                     handleMutationError(error);
                                                     throw error;
                                                 })
+                                        }
+                                        onDeferPatientQuestion={(
+                                            questionUuid,
+                                        ) =>
+                                            deferPatientQuestion.mutate(
+                                                { questionUuid },
+                                                clearConflictThen,
+                                            )
                                         }
                                     />
                                 ) : (

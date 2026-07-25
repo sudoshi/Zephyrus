@@ -378,6 +378,7 @@ data class PatientThreadMessage(
     val relatesToMessageUuid: String?,
     val deliveryState: String,
     val sentAt: String?,
+    val stateUpdatedAt: String? = null,
 )
 
 data class PatientThreadResult(val thread: PatientMessageThread)
@@ -964,6 +965,7 @@ object PatientEnvelopeDecoder {
         relatesToMessageUuid = value.nullableString("relates_to_message_uuid"),
         deliveryState = value.getString("delivery_state"),
         sentAt = value.nullableString("sent_at"),
+        stateUpdatedAt = value.nullableString("state_updated_at"),
     )
 
     private fun JSONObject.links(): Map<String, String> {

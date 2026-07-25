@@ -588,7 +588,7 @@ private struct PatientVisibleMessageCard: View {
                 Text(visibleBody)
                     .font(.body)
                 if message.senderDisplayRole == .patient {
-                    Text(message.deliveryState.patientLabel)
+                    Text(deliveryLabel)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -620,6 +620,13 @@ private struct PatientVisibleMessageCard: View {
         case .retraction: "A previous message was withdrawn. The earlier message remains in this conversation."
         case .systemStatus: "The conversation status changed."
         }
+    }
+
+    private var deliveryLabel: String {
+        guard let updatedAt = message.stateUpdatedAt else {
+            return message.deliveryState.patientLabel
+        }
+        return "\(message.deliveryState.patientLabel) \(PatientMessageDateFormatting.display(updatedAt))"
     }
 }
 

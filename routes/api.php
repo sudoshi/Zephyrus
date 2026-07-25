@@ -259,6 +259,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureRo
         Route::post('/contributions/{contributionUuid}/submit', [\App\Http\Controllers\Api\Rounds\RoundContributionController::class, 'submit']);
         Route::post('/contributions/{contributionUuid}/withdraw', [\App\Http\Controllers\Api\Rounds\RoundContributionController::class, 'withdraw']);
         Route::post('/questions/{questionUuid}/resolve', [\App\Http\Controllers\Api\Rounds\RoundQuestionController::class, 'resolve']);
+        Route::post('/questions/{questionUuid}/defer', [\App\Http\Controllers\Api\Rounds\RoundQuestionController::class, 'defer']);
         Route::post('/tasks/{taskUuid}/transition', [\App\Http\Controllers\Api\Rounds\RoundTaskController::class, 'transition']);
     });
 

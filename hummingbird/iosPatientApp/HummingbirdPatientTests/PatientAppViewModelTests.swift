@@ -986,6 +986,7 @@ private actor MockPatientAPI: PatientAPIService {
             body: input.message,
             relatesToMessageUUID: messageUUID,
             deliveryState: .sent,
+            stateUpdatedAt: "2026-07-19T15:21:00.000000Z",
             sentAt: "2026-07-19T15:21:00.000000Z"
         )
         return PatientEnvelope(
@@ -1413,6 +1414,7 @@ private enum PatientFixtures {
         body: "Could someone explain what happens before my walk?",
         relatesToMessageUUID: nil,
         deliveryState: .acknowledged,
+        stateUpdatedAt: "2026-07-19T15:00:00.000000Z",
         sentAt: "2026-07-19T14:45:00.000000Z"
     )
 
@@ -1423,6 +1425,7 @@ private enum PatientFixtures {
         body: "Is there anything I should bring?",
         relatesToMessageUUID: nil,
         deliveryState: .sent,
+        stateUpdatedAt: "2026-07-19T15:20:00.000000Z",
         sentAt: "2026-07-19T15:20:00.000000Z"
     )
 

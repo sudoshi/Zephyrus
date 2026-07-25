@@ -208,6 +208,17 @@ export async function promotePatientQuestion(
     return res.data;
 }
 
+export async function deferPatientQuestion(
+    questionUuid: string,
+): Promise<unknown> {
+    const res = await axios.post(
+        `/api/rounds/questions/${questionUuid}/defer`,
+        {},
+        { headers: idempotencyHeaders() },
+    );
+    return res.data;
+}
+
 export async function createTask(
     roundPatientUuid: string,
     body: {

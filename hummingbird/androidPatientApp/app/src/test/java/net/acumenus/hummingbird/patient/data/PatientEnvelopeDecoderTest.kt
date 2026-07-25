@@ -436,6 +436,7 @@ class PatientEnvelopeDecoderTest {
                   "body": "We will discuss your goals during rounds.",
                   "relates_to_message_uuid": null,
                   "delivery_state": "delivered",
+                  "state_updated_at": "2026-07-19T12:06:00Z",
                   "sent_at": "2026-07-19T12:05:00Z",
                   "responsibility_pool_ref_digest": "must-be-ignored"
                 }, {
@@ -455,6 +456,7 @@ class PatientEnvelopeDecoderTest {
         assertEquals("awaiting_team", thread.ownershipState)
         assertEquals(2, thread.messages.size)
         assertEquals("Care team", thread.messages.first().senderDisplayRole)
+        assertEquals("2026-07-19T12:06:00Z", thread.messages.first().stateUpdatedAt)
         assertNull(thread.messages.last().body)
         assertEquals("retraction", thread.messages.last().messageKind)
     }

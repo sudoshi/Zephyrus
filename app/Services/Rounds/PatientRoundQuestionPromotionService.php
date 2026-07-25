@@ -12,6 +12,7 @@ use App\Models\Patient\PatientMessageThread;
 use App\Models\PatientCommunication\PoolMembership;
 use App\Models\PatientCommunication\ResponsibilityPool;
 use App\Models\PatientCommunication\RoundQuestionPromotion;
+use App\Models\PatientCommunication\RoundQuestionPromotionDeferral;
 use App\Models\PatientCommunication\RoundQuestionPromotionOutcome;
 use App\Models\PatientCommunication\ThreadWorkItem;
 use App\Models\Rounds\RoundEvent;
@@ -43,6 +44,8 @@ class PatientRoundQuestionPromotionService
     private const PATIENT_STATUS_MESSAGE = 'Your question was shared with your care team for possible review. It may not be discussed in a particular round.';
 
     private const PATIENT_OUTCOME_STATUS_MESSAGE = 'Your care team has completed their review of the question you shared. If you still need help, please send a message to your care team.';
+
+    private const PATIENT_DEFERRED_STATUS_MESSAGE = 'Your question will be reviewed later by your care team. If you need help now, use your bedside call button or speak with a staff member.';
 
     public function __construct(
         private readonly RoleCapabilityService $capabilities,
@@ -528,6 +531,171 @@ class PatientRoundQuestionPromotionService
         ]);
 
         return $outcome;
+    }
+
+    /**
+     * Append one generic, patient-visible status when the staff rounds
+     * workflow explicitly defers a promoted question for later review. The
+     * question remains open: this is neither a response nor a promise about a
+     * specific round, responder, or timing. The unique content-free deferral
+     * fact makes a duplicate button press/retry an exact replay and rejects a
+     * distinct second deferral for the same promoted question.
+     */
+    public function recordDeferralOutcome(
+        Request $request,
+        User $actor,
+        RoundQuestion $roundQuestion,
+        string $idempotencyKey,
+    ): ?RoundQuestionPromotionDeferral {
+        $this->assertEnabled();
+
+        try {
+            $policy = $this->policies->contentWritePolicy();
+        } catch (PatientMessagingFailure) {
+            throw new RoundPolicyException('This patient question cannot be safely deferred right now.');
+        }
+
+        // Rounds resolution authority alone is not enough to publish a
+        // patient-visible status. Re-lock the same active capability and
+        // responsibility-pool relationship that constrained promotion.
+        $lockedActor = $this->lockedAuthorizedActor($actor, true);
+
+        $promotion = RoundQuestionPromotion::query()
+            ->where('round_question_id', $roundQuestion->getKey())
+            ->lockForUpdate()
+            ->first();
+        if (! $promotion instanceof RoundQuestionPromotion) {
+            throw new RoundPolicyException('Only a promoted patient question can be deferred for later review.');
+        }
+
+        $operationDigest = $this->hmac->digest(
+            'rounds.patient-question-deferral.idempotency',
+            (string) $lockedActor->getKey().'|'.$idempotencyKey,
+        );
+        $payloadDigest = $this->hmac->digest(
+            'rounds.patient-question-deferral.payload',
+            (string) $promotion->promotion_uuid.'|'.(string) $roundQuestion->question_uuid,
+        );
+        $existing = RoundQuestionPromotionDeferral::query()
+            ->where('round_question_promotion_id', $promotion->getKey())
+            ->lockForUpdate()
+            ->first();
+        if ($existing instanceof RoundQuestionPromotionDeferral) {
+            if (hash_equals((string) $existing->idempotency_key_digest, $operationDigest)
+                && hash_equals((string) $existing->request_payload_digest, $payloadDigest)
+            ) {
+                return $existing;
+            }
+
+            throw new RoundConflictException('This patient question has already been deferred for later review.');
+        }
+
+        $thread = PatientMessageThread::query()
+            ->whereKey($promotion->message_thread_id)
+            ->lockForUpdate()
+            ->first();
+        $roundPatient = $this->lockedRoundPatient($roundQuestion->patient, true);
+        $context = $thread instanceof PatientMessageThread
+            && $roundPatient instanceof RoundPatient
+            ? $this->promotionContext($lockedActor, $roundPatient, $thread, true)
+            : null;
+        $grant = $thread instanceof PatientMessageThread
+            ? PatientEncounterAccessGrant::query()->whereKey($thread->access_grant_id)->lockForUpdate()->first()
+            : null;
+        $encounter = $grant instanceof PatientEncounterAccessGrant
+            ? Encounter::query()->whereKey($grant->source_encounter_id)->lockForUpdate()->first()
+            : null;
+        $workItem = $thread instanceof PatientMessageThread
+            ? ThreadWorkItem::query()->where('message_thread_id', $thread->getKey())->lockForUpdate()->first()
+            : null;
+
+        if (! $thread instanceof PatientMessageThread
+            || ! $grant instanceof PatientEncounterAccessGrant
+            || ! $encounter instanceof Encounter
+            || ! $workItem instanceof ThreadWorkItem
+            || ! is_array($context)
+            || (int) $workItem->access_grant_id !== (int) $grant->getKey()
+            || $thread->topic_code !== 'rounds_question'
+            || $thread->status !== 'open'
+            || $grant->status !== 'active'
+            || $grant->valid_from === null
+            || $grant->valid_from->isFuture()
+            || ($grant->expires_at !== null && ! $grant->expires_at->isFuture())
+            || ! $grant->permits('messaging:read')
+            || $encounter->status !== 'active'
+            || $encounter->discharged_at !== null
+            || $encounter->is_deleted
+            || ! hash_equals((string) $promotion->promotion_policy_version, (string) $policy['policy_version'])
+            || ! hash_equals((string) $thread->routing_policy_version, (string) $policy['policy_version'])
+        ) {
+            throw new AuthorizationException('You are not authorized to defer this patient question.');
+        }
+        if (PatientMessage::query()
+            ->where('message_thread_id', $thread->getKey())
+            ->where('message_kind', 'retraction')
+            ->where('relates_to_message_id', $promotion->source_message_id)
+            ->sharedLock()
+            ->exists()
+        ) {
+            throw new RoundPolicyException('The patient question is no longer available for deferral.');
+        }
+
+        $occurredAt = now();
+        $statusMessageUuid = (string) Str::uuid7();
+        $patientStatusMessage = PatientMessage::query()->create([
+            'message_uuid' => $statusMessageUuid,
+            'message_thread_id' => $thread->getKey(),
+            'sender_type' => 'system',
+            'sender_actor_ref_digest' => $this->hmac->digest(
+                'messaging-actor-ref',
+                'rounds-patient-question-deferral|'.(string) $promotion->promotion_uuid,
+            ),
+            'visibility' => 'patient_visible',
+            'message_kind' => 'system_status',
+            'encrypted_body' => $this->cipher->encrypt(
+                self::PATIENT_DEFERRED_STATUS_MESSAGE,
+                (string) $policy['encryption_key_version'],
+                $this->cipher->contextFor((string) $thread->thread_uuid, $statusMessageUuid),
+            ),
+            'encryption_key_version' => (string) $policy['encryption_key_version'],
+            'body_digest' => $this->hmac->digest('messaging-body', self::PATIENT_DEFERRED_STATUS_MESSAGE),
+            'body_character_count' => mb_strlen(self::PATIENT_DEFERRED_STATUS_MESSAGE),
+            'idempotency_key_digest' => $operationDigest,
+            'request_payload_digest' => $payloadDigest,
+            'delivery_state' => 'accepted',
+            'sent_at' => $occurredAt,
+        ]);
+
+        $thread->forceFill([
+            'version' => (int) $thread->version + 1,
+            'last_message_at' => $occurredAt,
+        ])->save();
+        $workItem->forceFill([
+            'source_thread_version' => (int) $thread->version,
+            'row_version' => (int) $workItem->row_version + 1,
+            'last_message_at' => $occurredAt,
+        ])->save();
+
+        $deferral = RoundQuestionPromotionDeferral::query()->create([
+            'deferral_uuid' => (string) Str::uuid7(),
+            'round_question_promotion_id' => $promotion->getKey(),
+            'patient_status_message_id' => $patientStatusMessage->getKey(),
+            'deferred_by_user_id' => $lockedActor->getKey(),
+            'deferral_policy_version' => (string) $policy['policy_version'],
+            'idempotency_key_digest' => $operationDigest,
+            'request_payload_digest' => $payloadDigest,
+            'deferred_at' => $occurredAt,
+        ]);
+
+        $this->audit->record('rounds.patient_question_deferral_published', 'activity', 'success', [
+            'request' => $request,
+            'actor' => $lockedActor,
+            'target_type' => 'patient_message_thread',
+            'target_id' => (string) $thread->thread_uuid,
+            'metadata' => ['event_type' => 'patient_question_deferral_published'],
+        ]);
+
+        return $deferral;
     }
 
     private function lockedAuthorizedActor(User $actor, bool $forUpdate): User

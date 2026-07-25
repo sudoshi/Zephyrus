@@ -37,6 +37,9 @@ import net.acumenus.hummingbird.patient.PatientMessagingState
 import net.acumenus.hummingbird.patient.data.PatientMessageAmendmentAction
 import net.acumenus.hummingbird.patient.data.PatientMessageThread
 import net.acumenus.hummingbird.patient.data.PatientMessageTopic
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 internal fun PatientMessagingPanel(
@@ -404,7 +407,7 @@ private fun ThreadConversation(
                     },
                 )
                 Text(
-                    text = message.deliveryState.patientVisibleDeliveryState(),
+                    text = message.deliveryState.patientVisibleDeliveryStateAt(message.stateUpdatedAt),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 if (canAmend) {
@@ -567,6 +570,16 @@ private fun String.patientVisibleDeliveryState(): String = when (this) {
     "delivered" -> "Delivered"
     "acknowledged", "read" -> "Acknowledged by care team"
     else -> "Status available in this conversation"
+}
+
+private fun String.patientVisibleDeliveryStateAt(updatedAt: String?): String {
+    val label = patientVisibleDeliveryState()
+    val time = updatedAt?.let { value ->
+        runCatching {
+            OffsetDateTime.parse(value).format(DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.US))
+        }.getOrNull()
+    }
+    return if (time == null) label else "$label $time"
 }
 
 private const val MAX_MESSAGE_LENGTH = 2_000

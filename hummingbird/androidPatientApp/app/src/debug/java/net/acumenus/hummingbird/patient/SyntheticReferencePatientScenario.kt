@@ -385,6 +385,7 @@ internal object SyntheticReferencePatientScenario {
                         relatesToMessageUuid = null,
                         deliveryState = "acknowledged",
                         sentAt = "2026-07-19T09:08:00-04:00",
+                        stateUpdatedAt = "2026-07-19T09:10:00-04:00",
                     ),
                     PatientThreadMessage(
                         messageUuid = "01982e0c-709a-7ef0-9000-000000000007",

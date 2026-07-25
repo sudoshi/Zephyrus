@@ -205,13 +205,25 @@ class RoundProjectionService
                     'supersedes_uuid' => $c->supersedes?->contribution_uuid,
                     'version' => $c->version,
                 ])->values()->all();
-            $data['questions'] = $patient->questions()->orderByDesc('created_at')->get()->map(fn ($q) => [
-                'question_uuid' => $q->question_uuid,
-                'question_text' => $q->question_text,
-                'target_role' => $q->target_role,
-                'status' => $q->status,
-                'due_at' => $q->due_at?->toIso8601String(),
-            ])->values()->all();
+            $data['questions'] = $patient->questions()
+                ->with('patientPromotion.deferral')
+                ->orderByDesc('created_at')
+                ->get()
+                ->map(fn ($q) => [
+                    'question_uuid' => $q->question_uuid,
+                    'question_text' => $q->question_text,
+                    'target_role' => $q->target_role,
+                    'status' => $q->status,
+                    'due_at' => $q->due_at?->toIso8601String(),
+                    // The staff-only rounds projection may state that a question
+                    // originated in the governed patient bridge, but never carries
+                    // a message-thread identifier or any patient-realm handle.
+                    'patient_question_lifecycle' => $q->patientPromotion !== null
+                        ? [
+                            'deferred_at' => $q->patientPromotion->deferral?->deferred_at?->toIso8601String(),
+                        ]
+                        : null,
+                ])->values()->all();
             $data['tasks'] = $patient->tasks()->orderByDesc('created_at')->get()->map(fn ($t) => [
                 'task_uuid' => $t->task_uuid,
                 'title' => $t->title,
