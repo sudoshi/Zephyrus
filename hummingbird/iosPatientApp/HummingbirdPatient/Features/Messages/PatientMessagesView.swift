@@ -276,6 +276,23 @@ private struct PatientNewMessageComposer: View {
                         Text(topic.expectedResponseWindow)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PatientPalette.blue)
+
+                        if topic.code == "rounds_question" {
+                            PatientCard {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Label(
+                                        "For a nonurgent question before a care-team conversation",
+                                        systemImage: "clock.badge.questionmark"
+                                    )
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(PatientPalette.teal)
+                                    Text("Your care team may review it before a care conversation, but it may not be discussed in a particular round. For immediate help, use the urgent-help option above.")
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .accessibilityIdentifier("rounds-question-safety-notice")
+                        }
                     }
 
                     PatientMessageEditor(

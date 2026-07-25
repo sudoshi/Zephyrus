@@ -281,6 +281,33 @@ private fun NewThreadComposer(
             }
         }
     }
+    if (selectedTopicCode == "rounds_question") {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("rounds-question-safety-notice"),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ),
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "For a nonurgent question before a care-team conversation",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+                Text(
+                    text = "Your care team may review it before a care conversation, but it may not be discussed in a particular round. For immediate help, use the urgent-help guidance above.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
+        }
+    }
     OutlinedTextField(
         value = draft,
         onValueChange = onDraftChanged,

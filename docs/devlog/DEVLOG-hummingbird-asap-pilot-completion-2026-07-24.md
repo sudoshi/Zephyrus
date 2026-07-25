@@ -6,7 +6,7 @@ no patient feature enabled by this entry.
 
 ## Baseline
 
-- The governing Hummingbird plan has 183 checked and 288 unchecked checklist items
+- The governing Hummingbird plan has 186 checked and 285 unchecked checklist items
   (471 total). This is an unweighted work-item count, not a clinical-readiness
   percentage.
 - The program is reset to a controlled inpatient-pilot cutline: approved
@@ -283,3 +283,43 @@ generated clients, make every mobile read cacheable, or apply caching to patient
 This verifies and preserves the synthetic reference exercise. It does not activate the
 pending identity/grant, issue or reveal enrollment material, approve a clinical
 projection, release any draft, enable a patient flag, or authorize a pilot.
+
+## 2026-07-25 — Pre-round question and clarification journey ratification
+
+### Completed implementation
+
+- The patient `rounds_question` topic is an approved-policy, default-off composition
+  path with a fixed **nonurgent** class. Its iOS and Android composers now state that
+  a care team may review the question before a care conversation, that review does not
+  promise discussion in a particular round, and that immediate needs use the existing
+  urgent-help route.
+- The server bridge remains explicit and fail-closed: eligible patient content appears
+  in the matching authorized staff rounds workspace only after a capability-bearing
+  staff member promotes it. Promotion produces a `rounds.questions` workflow record
+  with bridge provenance and audit/event facts, not an order, care-plan mutation, or
+  patient access to the staff workspace. Withdrawal, correction, repeat promotion,
+  grant revocation, and bridge disablement preserve the same boundary.
+- A staff resolution creates one deliberately generic patient-visible outcome without
+  copying staff-rounds content into the patient message ledger. The post-round summary
+  read surface remains separately governed and patient-readable.
+- The education “teach-back” surface is intentionally a request for clarification,
+  not an attestation. The API, durable association, iOS composer, and Android dialog
+  contain no consent, comprehension, completion, clinical assessment, order, or
+  care-plan field; unreleased education cannot create a message or fact.
+
+### Verification
+
+| Boundary                                        | Command / target                                                                                                                                                                             | Result                                                                                                                            |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Laravel rounds + messaging + patient projection | `php artisan test tests/Feature/Rounds/PatientRoundQuestionPromotionTest.php tests/Feature/Patient/PatientMessagingApiTest.php tests/Feature/Patient/PatientProjectionApiTest.php --compact` | 49 passed / 1,145 assertions                                                                                                      |
+| Laravel clarification boundary                  | `php artisan test tests/Feature/Patient/PatientEducationClarificationApiTest.php --compact`                                                                                                  | 3 passed / 35 assertions                                                                                                          |
+| iOS native                                      | iPhone 17 Pro / iOS 26.3.1: `PatientRoundsQuestionTopicTests` and `PatientReferenceJourneyUITests/testReferenceJourneyExposesCarePathTeamAndSafeMessagingLanguage`                           | 3 unit tests and 1 UI journey passed / 0 failures                                                                                 |
+| Android native                                  | API 35 `hb` emulator / `connectedDebugAndroidTest --rerun-tasks`                                                                                                                             | 15 tests passed / 0 failures, errors, or skips; the journey selects the rounds topic and checks the nonurgent/no-guarantee notice |
+
+### Remaining boundary
+
+The staff lifecycle still lacks a governed patient-visible acknowledge, defer, and
+route state machine; only explicit promotion and terminal generic resolution are
+ratified here. The released rounds-summary reader does not establish an approved
+production source, clinical-release owner, pilot responsibility pool, feature enablement,
+or a patient production deployment. All patient flags remain off.

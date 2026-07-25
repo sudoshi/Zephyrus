@@ -1,7 +1,7 @@
 # Zephyrus–Hummingbird Functional Parity and Inpatient Experience Plan
 
 > **Status:** Current execution plan and capability audit
-> **Original audit date:** 2026-07-19; **implementation evidence verified through:** 2026-07-24
+> **Original audit date:** 2026-07-19; **implementation evidence verified through:** 2026-07-25
 > **Scope:** Zephyrus web, Hummingbird staff iOS, Hummingbird staff Android, the Laravel mobile BFF, and a new patient-facing Hummingbird product
 > **Supersedes for execution status:** the current-state assumptions and unfinished sequence in `PLATFORM-RECONCILIATION-TODO.md`; that document remains historical evidence
 > **Execution acceleration:** [controlled-pilot and full-program completion plan](../plans/hummingbird-asap-pilot-completion-2026-07-24.md), with its paired [evidence devlog](../devlog/DEVLOG-hummingbird-asap-pilot-completion-2026-07-24.md)
@@ -570,11 +570,11 @@ The patient product should feel reassuring without becoming juvenile, visually n
 #### Journey B: morning orientation and rounds
 
 - [ ] Today shows the date, care stage, care team, goals, expected rounds window if approved, tests/procedures, mobility/nutrition plan, and discharge focus.
-- [ ] Patient can add a question before rounds and mark its topic/urgency class.
-- [ ] The question appears in the authorized staff rounds workflow without becoming a clinical order.
+- [x] Patient can add a question before rounds and mark its topic/urgency class. _(2026-07-25: the independently feature-gated `rounds_question` topic is explicitly nonurgent. Both native compose surfaces now repeat that fixed urgency class beside the selected topic, state that review does not promise discussion in a particular round, and direct immediate needs to the governed urgent-help route. The request remains a normal encrypted patient-message creation with the approved topic and guidance-version acknowledgement; it is never an urgency self-triage or a clinical order.)_
+- [x] The question appears in the authorized staff rounds workflow without becoming a clinical order. _(2026-07-25: the default-off patient-question bridge requires an active granted encounter, matching active patient/round/unit/pool, the current approved messaging policy, and a staff `RespondPatientCommunications` capability before explicit promotion. The transaction decrypts only the eligible message, writes a `rounds.questions` record with `patient_question_bridge` provenance, records an append-only rounds event/audit fact, and returns a generic patient status rather than staff content. Discovery, withdrawal, exact replay, correction supersession, authorization, revocation, and bridge-disablement are all covered.)_
 - [ ] Staff may acknowledge, answer, defer, or route it; every state and timestamp is patient-visible.
 - [ ] After rounds, the patient sees an approved plain-language summary and updated goals/tasks.
-- [ ] Teach-back prompts record understanding or a request for clarification, not clinical consent unless a separate approved consent flow is used.
+- [x] Teach-back prompts record understanding or a request for clarification, not clinical consent unless a separate approved consent flow is used. _(2026-07-25: the patient path offers only an encrypted, accountable request for an explanation of a released education item. Its request schema and persisted association deliberately have no comprehension, completion, consent, order, care-plan, or clinician-assessment field; both native surfaces state that boundary before send. Unreleased/fabricated education fails closed and the reserved internal topic cannot be composed through the generic messaging endpoint.)_
 
 #### Journey C: test, procedure, or transport
 
