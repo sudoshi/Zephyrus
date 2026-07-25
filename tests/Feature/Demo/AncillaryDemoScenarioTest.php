@@ -11,21 +11,21 @@ use App\Services\Demo\DemoClock;
 use App\Services\Demo\DemoInvariantService;
 use App\Services\Demo\DemoRefreshCoordinator;
 use Carbon\CarbonImmutable;
-use Database\Seeders\AncillaryReferenceSeeder;
-use Database\Seeders\CaseManagementSeeder;
-use Database\Seeders\CommandCenterDemoSeeder;
-use Database\Seeders\RtdcSeeder;
-use Database\Seeders\StaffingReferenceSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use Tests\Support\Scenario\UsesCommittedAncillaryScenario;
 use Tests\TestCase;
 
 class AncillaryDemoScenarioTest extends TestCase
 {
-    use RefreshDatabase;
+    use UsesCommittedAncillaryScenario;
+
+    protected static function committedScenarioIncludesRefresh(): bool
+    {
+        return false;
+    }
 
     private CarbonImmutable $anchor;
 
@@ -34,7 +34,6 @@ class AncillaryDemoScenarioTest extends TestCase
         parent::setUp();
         $this->anchor = CarbonImmutable::parse('2026-07-11T14:00:00Z');
         CarbonImmutable::setTestNow($this->anchor);
-        $this->seed([RtdcSeeder::class, CaseManagementSeeder::class, StaffingReferenceSeeder::class, CommandCenterDemoSeeder::class, AncillaryReferenceSeeder::class]);
         $unitId = (int) DB::table('prod.units')->orderBy('unit_id')->value('unit_id');
         DB::table('prod.encounters')->insert([
             'patient_ref' => 'demo-discharge-candidate', 'unit_id' => $unitId, 'status' => 'active',

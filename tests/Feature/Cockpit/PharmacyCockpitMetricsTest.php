@@ -8,26 +8,18 @@ use App\Services\Cockpit\MetricValueWriter;
 use App\Services\Cockpit\SnapshotBuilder;
 use App\Services\Cockpit\StatusEngine;
 use App\Services\CommandCenterDataService;
-use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
-use App\Services\Demo\DemoClock;
 use App\Services\Pharmacy\PharmacyCockpitHealthService;
 use App\Services\Pharmacy\PharmacyFlowBoardService;
 use Carbon\CarbonImmutable;
-use Database\Seeders\AncillaryReferenceSeeder;
-use Database\Seeders\CaseManagementSeeder;
-use Database\Seeders\CockpitKpiDefinitionSeeder;
-use Database\Seeders\CommandCenterDemoSeeder;
-use Database\Seeders\RtdcSeeder;
-use Database\Seeders\StaffingReferenceSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Mockery\MockInterface;
+use Tests\Support\Scenario\UsesCommittedAncillaryScenario;
 use Tests\TestCase;
 
 final class PharmacyCockpitMetricsTest extends TestCase
 {
-    use RefreshDatabase;
+    use UsesCommittedAncillaryScenario;
 
     private const KEYS = [
         'flow.ancillary_rx_verification_queue',
@@ -50,15 +42,6 @@ final class PharmacyCockpitMetricsTest extends TestCase
         $this->anchor = CarbonImmutable::parse('2026-07-11T14:00:00Z');
         CarbonImmutable::setTestNow($this->anchor);
         Cache::forget(SnapshotBuilder::CACHE_KEY);
-        $this->seed([
-            RtdcSeeder::class,
-            CaseManagementSeeder::class,
-            StaffingReferenceSeeder::class,
-            CommandCenterDemoSeeder::class,
-            CockpitKpiDefinitionSeeder::class,
-            AncillaryReferenceSeeder::class,
-        ]);
-        app(AncillaryDemoScenarioService::class)->refresh(new DemoClock($this->anchor));
         $this->mock(CommandCenterDataService::class, function (MockInterface $mock): void {
             $mock->shouldReceive('build')->andReturn([
                 'generatedAtIso' => $this->anchor->toIso8601String(),
