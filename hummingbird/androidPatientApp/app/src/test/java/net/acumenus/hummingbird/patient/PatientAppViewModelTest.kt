@@ -52,6 +52,34 @@ class PatientAppViewModelTest {
     }
 
     @Test
+    fun malformedEnrollmentIsRejectedBeforeAnyNetworkRequest() = runTest {
+        val api = FakePatientApiGateway()
+        val viewModel = PatientAppViewModel(
+            apiEnabled = true,
+            coordinator = coordinator(api),
+            scope = this,
+            workDispatcher = StandardTestDispatcher(testScheduler),
+        )
+
+        viewModel.submitEnrollment(
+            PatientEnrollmentForm(
+                challengeUuid = "not-an-invitation-id",
+                challengeToken = "invalid-token",
+                verificationCode = "438201",
+                displayName = "Sample Patient",
+                email = "sample@example.test",
+                password = "patient-password",
+                passwordConfirmation = "patient-password",
+            ),
+        )
+
+        val status = (viewModel.state.session as PatientSessionState.SignedOut).status
+        assertTrue(status is PatientAuthStatus.ValidationError)
+        assertTrue((status as PatientAuthStatus.ValidationError).message.contains("invitation ID"))
+        assertEquals(0, api.enrollmentCalls)
+    }
+
+    @Test
     fun navigationIsIgnoredWhileSignedOut() {
         val signedOut = PatientAppViewModel(apiEnabled = false)
         signedOut.selectDestination(PatientDestination.CARE_TEAM)

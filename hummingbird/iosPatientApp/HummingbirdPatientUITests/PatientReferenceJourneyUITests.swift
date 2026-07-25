@@ -131,6 +131,45 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         attachScreenshot(named: "Welcome-API-Off")
     }
 
+    func testEnrollmentRequiresACompleteInvitationBeforeItCanSubmit() {
+        app.terminate()
+        app = XCUIApplication()
+        app.launchEnvironment["HBP_SYNTHETIC_REFERENCE"] = "0"
+        app.launchEnvironment["HBP_PATIENT_API_ENABLED"] = "1"
+        app.launchEnvironment["HBP_PATIENT_API_BASE_URL"] = "https://127.0.0.1:1"
+        app.launch()
+
+        let invitationMode = app.buttons["Join with invite"]
+        XCTAssertTrue(invitationMode.waitForExistence(timeout: 5))
+        invitationMode.tap()
+
+        let submit = app.buttons["Verify and join"]
+        XCTAssertTrue(submit.waitForExistence(timeout: 3))
+        XCTAssertFalse(submit.isEnabled)
+
+        app.textFields["Invitation ID"].tap()
+        app.textFields["Invitation ID"].typeText("019f0000-0000-7000-8000-000000000051")
+        app.secureTextFields["Invitation token"].tap()
+        app.secureTextFields["Invitation token"].typeText("0123456789abcdef0123456789abcdef")
+        app.textFields["Verification code"].tap()
+        app.textFields["Verification code"].typeText("438201")
+        app.textFields["Your name"].tap()
+        app.textFields["Your name"].typeText("Sample Patient")
+        app.textFields["Email"].tap()
+        app.textFields["Email"].typeText("sample@example.test")
+        let createPassword = app.secureTextFields["Create password"]
+        createPassword.tap()
+        dismissStrongPasswordSuggestionIfPresent()
+        createPassword.typeText("patient-password")
+        let confirmPassword = app.secureTextFields["Confirm password"]
+        confirmPassword.tap()
+        dismissStrongPasswordSuggestionIfPresent()
+        confirmPassword.typeText("patient-password")
+
+        XCTAssertTrue(submit.isEnabled)
+        attachScreenshot(named: "Enrollment-Validated-Without-Submission")
+    }
+
     func testPrivacyCoverHidesCareContentWithCalmBranding() {
         app.terminate()
         app = XCUIApplication()
@@ -211,5 +250,12 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         app.staticTexts
             .matching(NSPredicate(format: "label CONTAINS %@", text))
             .firstMatch
+    }
+
+    private func dismissStrongPasswordSuggestionIfPresent() {
+        let close = app.buttons["Close"]
+        if close.waitForExistence(timeout: 1) {
+            close.tap()
+        }
     }
 }

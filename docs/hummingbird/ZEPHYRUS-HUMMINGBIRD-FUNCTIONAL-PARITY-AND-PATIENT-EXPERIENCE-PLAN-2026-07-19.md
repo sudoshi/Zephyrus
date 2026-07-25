@@ -560,7 +560,7 @@ The patient product should feel reassuring without becoming juvenile, visually n
 #### Journey A: enrollment after admission
 
 - [ ] Staff offers enrollment without making care contingent on adoption.
-- [ ] Patient scans/enters a short-lived enrollment challenge tied to an active encounter.
+- [x] Patient enters a short-lived enrollment challenge tied to an active encounter. _(2026-07-25: both native apps now keep the manual-invitation submit control disabled until the client has a plausible UUID invitation ID, 32+-character invitation token, six+-character verification code, nonblank name, basic email shape, 12+-character matching password pair, and live patient API configuration. Android shares this check between the Compose form and view model, so a malformed input makes zero enrollment requests; iOS applies the equivalent gate, including whitespace-only name/email rejection. The server remains authoritative: it locks and validates the bound challenge, verified identity link, one-time use, active grant/encounter, and password policy before activation. Focused PHP lifecycle, Android JVM/API 35, and iPhone 17 Pro simulator evidence pass. This ratifies manual entry only; a camera/QR scanner is not implemented, no production patient was activated, and all patient flags remain default-off.)_
 - [ ] Identity proofing follows approved assurance level and uses an existing patient identity source where available.
 - [ ] Patient reviews privacy, communication limitations, proxy choices, language, accessibility, and notification preferences.
 - [ ] Server creates a patient principal and encounter access grant; no raw MRN is stored in the app.

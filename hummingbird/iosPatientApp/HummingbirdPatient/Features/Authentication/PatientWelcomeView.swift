@@ -163,8 +163,8 @@ struct PatientWelcomeView: View {
         return UUID(uuidString: challengeUUID) != nil
             && challengeToken.count >= 32
             && verificationCode.count >= 6
-            && !displayName.isEmpty
-            && email.contains("@")
+            && !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && email.trimmingCharacters(in: .whitespacesAndNewlines).contains("@")
             && password.count >= 12
             && password == passwordConfirmation
     }

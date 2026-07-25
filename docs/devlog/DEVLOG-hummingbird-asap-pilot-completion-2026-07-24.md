@@ -730,3 +730,48 @@ remain separate requirements.
 This closes the patient-language presentation row only. It does not activate messaging,
 change routing, persist a new receipt, create a production patient, expose operational
 metadata, approve an SLA, authorize a pilot, migrate data, or deploy an application.
+
+## 2026-07-25 — Native enrollment invitation-validation parity ratification
+
+### Completed implementation
+
+- Reconciled the pre-submission enrollment behavior across the two native patient apps.
+  Android now has one shared `clientValidationMessage` rule used by both its Compose form
+  and view model; it validates a parseable UUID invitation ID, a 32-character minimum
+  invitation token, six-character minimum verification code, nonblank display name,
+  basic email shape, and a matching 12-character minimum password pair. The sign-in
+  control now has the same basic email-and-nonempty-password guard as iOS.
+- The Android **Continue securely** action and its IME path are disabled/short-circuited
+  until that check succeeds. The test-only gateway proves a malformed invitation causes
+  zero enrollment network calls. Field test tags make the rendered gate explicit rather
+  than relying on position or copy alone.
+- iOS now also trims the name and email before enabling **Verify and join**, preventing a
+  whitespace-only display name from passing the visual gate. Its rendered test exercises
+  the disabled initial state and the enabled plausible-invitation state. The test dismisses
+  the iOS simulator's native strong-password suggestion before entering its synthetic
+  password; that system sheet otherwise consumes the automated first keystroke.
+- These are deliberately client-side plausibility checks, not authorization. The existing
+  server enrollment transaction remains the authority for the challenge hash and lock,
+  verified identity link, active encounter grant, one-time use, retry/lock behavior, and
+  password policy. Manual invitation entry is available; a camera or QR-scanning workflow
+  is not claimed or implemented.
+
+### Verification
+
+| Boundary                    | Command / target                                                                                                        | Result                                                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Server enrollment authority | `php artisan test tests/Feature/Patient/PatientAuthLifecycleTest.php`                                                   | 6 passed / 74 assertions; covers challenge-bound activation, locking, and invalid-attempt audit behavior        |
+| Android client gate         | Debug JVM: `PatientAppViewModelTest`                                                                                    | 22 passed / 0 failures; includes malformed invitation with zero enrollment calls                                |
+| Android rendered form       | API 35 `hb` emulator: `PatientAuthenticationSmokeTest`                                                                  | 2 passed / 0 failures, errors, or skips; begins disabled and enables only after a plausible complete invitation |
+| Android static analysis     | `:app:lintDebug`                                                                                                        | passed                                                                                                          |
+| iOS rendered form           | iPhone 17 Pro / iOS 26.3.1: `PatientReferenceJourneyUITests/testEnrollmentRequiresACompleteInvitationBeforeItCanSubmit` | 1 passed / 0 failures or skips                                                                                  |
+
+### Remaining boundary
+
+This closes the manual native-entry parity item only. It does not deliver an enrollment
+challenge, perform approved identity proofing, confirm the patient/encounter before
+activation, create or activate a production patient, enable a patient flag, scan a QR
+code, approve a clinical/patient content source, authorize a pilot, migrate data, or
+deploy an application. Secure challenge delivery, proofing assurance, wrong-patient
+prevention confirmation, accessibility/usability review, clinical governance, and
+independent activation authority remain separate required gates.

@@ -99,9 +99,9 @@ internal class PatientAppViewModel(
     fun submitSignIn(email: String, password: String) {
         val signedOut = state.session as? PatientSessionState.SignedOut ?: return
         when {
-            email.isBlank() || password.isBlank() -> {
+            !email.isLikelyPatientEmail() || password.isBlank() -> {
                 state = state.copy(session = signedOut.copy(
-                    status = PatientAuthStatus.ValidationError("Enter both your email and password."),
+                    status = PatientAuthStatus.ValidationError("Enter a valid email address and password."),
                 ))
             }
             !apiEnabled -> unavailable(
@@ -127,20 +127,7 @@ internal class PatientAppViewModel(
 
     fun submitEnrollment(form: PatientEnrollmentForm) {
         val signedOut = state.session as? PatientSessionState.SignedOut ?: return
-        val validation = when {
-            listOf(
-                form.challengeUuid,
-                form.challengeToken,
-                form.verificationCode,
-                form.displayName,
-                form.email,
-                form.password,
-                form.passwordConfirmation,
-            ).any(String::isBlank) -> "Complete every invitation and account field."
-            form.password != form.passwordConfirmation -> "The passwords do not match."
-            form.password.length < 12 -> "Use a password with at least 12 characters."
-            else -> null
-        }
+        val validation = form.clientValidationMessage()
         when {
             validation != null -> {
                 state = state.copy(session = signedOut.copy(

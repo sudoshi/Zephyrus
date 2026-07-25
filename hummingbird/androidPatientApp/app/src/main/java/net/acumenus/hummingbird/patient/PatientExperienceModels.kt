@@ -6,6 +6,7 @@ import net.acumenus.hummingbird.patient.data.PatientMessageThread
 import net.acumenus.hummingbird.patient.data.PatientMessageTopic
 import net.acumenus.hummingbird.patient.data.PatientPreferences
 import net.acumenus.hummingbird.patient.data.PatientPreferencesUpdate
+import java.util.UUID
 
 enum class PatientDestination(val label: String) {
     TODAY("Today"),
@@ -164,6 +165,26 @@ data class PatientEnrollmentForm(
     val password: String,
     val passwordConfirmation: String,
 )
+
+/**
+ * Local plausibility checks shared by the Android enrollment form and its
+ * view model. They prevent avoidable requests, while the server remains the
+ * authority for challenge validity, identity, grant state, one-time use,
+ * password policy, and enrollment.
+ */
+internal fun PatientEnrollmentForm.clientValidationMessage(): String? = when {
+    challengeUuid.length != 36 || runCatching { UUID.fromString(challengeUuid) }.isFailure ->
+        "Enter the complete invitation ID."
+    challengeToken.length < 32 -> "Enter the complete invitation token."
+    verificationCode.length < 6 -> "Enter the complete verification code."
+    displayName.trim().isEmpty() -> "Enter your name."
+    !email.isLikelyPatientEmail() -> "Enter a valid email address."
+    password.length < 12 -> "Use a password with at least 12 characters."
+    password != passwordConfirmation -> "The passwords do not match."
+    else -> null
+}
+
+internal fun String.isLikelyPatientEmail(): Boolean = trim().contains("@")
 
 data class PatientTodayItem(
     val title: String,
