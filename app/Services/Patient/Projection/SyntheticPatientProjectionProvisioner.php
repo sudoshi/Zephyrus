@@ -158,12 +158,27 @@ class SyntheticPatientProjectionProvisioner
                 'schedule' => [[
                     'item_uuid' => $this->uuid($seed.'/today/rounds'),
                     'label' => 'Care team rounds',
+                    'category' => 'other',
                     'status' => 'planned',
                     'time_window' => 'This morning',
                     'timing_confidence' => 'estimated',
                     'can_change' => true,
                 ]],
+                'care_location' => [
+                    'facility_display_name' => 'Synthetic Reference Hospital',
+                    'unit_display_name' => 'Reference inpatient unit',
+                    'room_display_name' => 'Reference room',
+                    'status' => 'current',
+                ],
+                'discharge_outlook' => [
+                    'estimated_range' => 'In the next day or two',
+                    'confidence' => 'estimated',
+                    'readiness_topics' => ['Your team will review the next safe step with you.'],
+                    'remaining_steps' => ['Ask what still needs to happen before you leave.'],
+                    'can_change' => true,
+                ],
                 'next_steps' => ['Ask questions during rounds or speak with bedside staff.'],
+                'questions' => ['Tell your care team what you would like explained today.'],
                 'notices' => ['For urgent help, use your call button or speak with bedside staff.'],
             ],
             'pathway' => [

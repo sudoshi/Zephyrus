@@ -95,6 +95,10 @@ final class PatientAppViewModelTests: XCTestCase {
         XCTAssertEqual(store.refreshToken, "rotated-refresh")
         XCTAssertEqual(viewModel.snapshot?.patientName, "Sam Example")
         XCTAssertEqual(viewModel.snapshot?.todayItems.first?.title, "Care team rounds")
+        XCTAssertTrue(viewModel.snapshot?.todayItems.first?.detail.contains("Type: Care update.") == true)
+        XCTAssertEqual(viewModel.snapshot?.todayItems.last?.title, "Planning for leaving the hospital")
+        XCTAssertEqual(viewModel.snapshot?.encounterLabel, "5 East · Room 512 · Example Hospital")
+        XCTAssertTrue(viewModel.snapshot?.todayNextSteps.contains("Tell your care team what you would like explained today.") == true)
         XCTAssertEqual(viewModel.snapshot?.pathwayStages.first?.title, "Getting stronger")
         XCTAssertEqual(viewModel.snapshot?.pathwayMilestones.first?.title, "Review medicines before discharge")
         XCTAssertEqual(viewModel.snapshot?.pathwayGoals.first?.authorType, "care_team")
@@ -1120,6 +1124,7 @@ private enum PatientFixtures {
                         itemUUID: "019f0000-0000-7000-8000-000000000021",
                         label: "Care team rounds",
                         detail: "Bring your questions.",
+                        category: .other,
                         status: "planned",
                         timeWindow: "This morning",
                         timingConfidence: "estimated",
@@ -1132,10 +1137,16 @@ private enum PatientFixtures {
                     facilityDisplayName: "Example Hospital",
                     unitDisplayName: "5 East",
                     roomDisplayName: "Room 512",
-                    status: "inpatient"
+                    status: "current"
                 ),
-                dischargeOutlook: nil,
-                questions: [],
+                dischargeOutlook: PatientDischargeOutlook(
+                    estimatedRange: "In the next day or two",
+                    confidence: "estimated",
+                    readinessTopics: ["Your team will review the next safe step with you."],
+                    remainingSteps: ["Ask what still needs to happen before you leave."],
+                    canChange: true
+                ),
+                questions: ["Tell your care team what you would like explained today."],
                 notices: ["Timing can change."]
             ),
             uncertainty: uncertainty,

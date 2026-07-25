@@ -21,11 +21,20 @@ class PatientSessionCoordinatorTest {
         assertEquals("new-access", store.current?.accessToken)
         assertEquals("new-refresh", store.current?.refreshToken)
         assertEquals("Sample Patient", ready.snapshot.patientDisplayName)
-        assertEquals("Care team rounds", ready.snapshot.todayItems.single().title)
+        assertEquals("Care team rounds", ready.snapshot.todayItems.first().title)
+        assertEquals("Care update", ready.snapshot.todayItems.first().explanation.substringAfter("Type: ").substringBefore('.'))
+        assertEquals("Planning for leaving the hospital", ready.snapshot.todayItems.last().title)
+        assertEquals("Reference Hospital · Reference inpatient unit · Reference room", ready.snapshot.todayCareLocationLabel)
         assertEquals("Monitoring and treatment", ready.snapshot.pathway.single().title)
         assertEquals("Care Coordinator", ready.snapshot.careTeam.single().name)
         assertEquals("Released summary.", ready.snapshot.todaySummary)
-        assertEquals(listOf("Ask questions during rounds."), ready.snapshot.todayNextSteps)
+        assertEquals(
+            listOf(
+                "Ask questions during rounds.",
+                "Tell your care team what you would like explained today.",
+            ),
+            ready.snapshot.todayNextSteps,
+        )
         assertEquals("Monitoring and treatment", ready.snapshot.pathwayCurrentStage)
         assertEquals("Safe next step", ready.snapshot.pathwayMilestones.single().title)
         assertEquals("Care-team goal", ready.snapshot.pathwayGoals.single().authorLabel)
@@ -589,10 +598,11 @@ internal class FakePatientApiGateway(
                     summary = "Released summary.",
                     schedule = listOf(
                         PatientScheduleItem(
-                            itemUuid = "019f4d7a-3200-7000-8000-000000000011",
-                            label = "Care team rounds",
-                            detail = "Review today’s care plan.",
-                            status = "planned",
+                        itemUuid = "019f4d7a-3200-7000-8000-000000000011",
+                        label = "Care team rounds",
+                        detail = "Review today’s care plan.",
+                        category = "other",
+                        status = "planned",
                             timeWindow = "This morning",
                             timingConfidence = "estimated",
                             preparation = null,
@@ -600,6 +610,20 @@ internal class FakePatientApiGateway(
                         ),
                     ),
                     nextSteps = listOf("Ask questions during rounds."),
+                    careLocation = PatientCareLocation(
+                        facilityDisplayName = "Reference Hospital",
+                        unitDisplayName = "Reference inpatient unit",
+                        roomDisplayName = "Reference room",
+                        status = "current",
+                    ),
+                    dischargeOutlook = PatientDischargeOutlook(
+                        estimatedRange = "In the next day or two",
+                        confidence = "estimated",
+                        readinessTopics = emptyList(),
+                        remainingSteps = listOf("Ask what still needs to happen before you leave."),
+                        canChange = true,
+                    ),
+                    questions = listOf("Tell your care team what you would like explained today."),
                     notices = listOf("Use the call button for urgent help."),
                 ),
             ),

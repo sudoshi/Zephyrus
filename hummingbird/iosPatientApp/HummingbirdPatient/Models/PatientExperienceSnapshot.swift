@@ -86,11 +86,14 @@ struct PatientExperienceSnapshot: Equatable {
 
         let todayContent = today?.data.content
         var todayItems = (todayContent?.schedule ?? []).map { item in
-            PatientPlanItem(
+            let category = item.category.map {
+                PatientStateVocabulary.label(for: $0.rawValue, domain: .scheduleCategory)
+            }
+            return PatientPlanItem(
                 id: UUID(uuidString: item.itemUUID) ?? UUID(),
                 title: item.label,
                 timeLabel: item.timeWindow,
-                detail: [item.detail, item.preparation]
+                detail: [category.map { "Type: \($0)." }, item.detail, item.preparation]
                     .compactMap { $0 }
                     .filter { !$0.isEmpty }
                     .joined(separator: " ")

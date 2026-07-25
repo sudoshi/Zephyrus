@@ -141,6 +141,7 @@ class PatientEnvelopeDecoderTest {
                     "item_uuid": "019f4d7a-3200-7000-8000-000000000011",
                     "label": "Care team rounds",
                     "detail": "Review your plan.",
+                    "category": "other",
                     "status": "planned",
                     "time_window": "This morning",
                     "timing_confidence": "estimated",
@@ -148,6 +149,19 @@ class PatientEnvelopeDecoderTest {
                     "can_change": true
                   }],
                   "next_steps": ["Ask questions during rounds."],
+                  "care_location": {
+                    "facility_display_name": "Reference Hospital",
+                    "unit_display_name": "Reference inpatient unit",
+                    "room_display_name": "Reference room",
+                    "status": "current"
+                  },
+                  "discharge_outlook": {
+                    "estimated_range": "In the next day or two",
+                    "confidence": "estimated",
+                    "remaining_steps": ["Ask what still needs to happen before you leave."],
+                    "can_change": true
+                  },
+                  "questions": ["Tell your care team what you would like explained today."],
                   "notices": ["Timing can change."]
                 }
                 """.trimIndent(),
@@ -156,7 +170,14 @@ class PatientEnvelopeDecoderTest {
 
         assertEquals("today", envelope.data.kind)
         assertEquals("Care team rounds", envelope.data.content.schedule.single().label)
+        assertEquals("other", envelope.data.content.schedule.single().category)
         assertNull(envelope.data.content.schedule.single().preparation)
+        assertEquals("Reference inpatient unit", envelope.data.content.careLocation?.unitDisplayName)
+        assertEquals("In the next day or two", envelope.data.content.dischargeOutlook?.estimatedRange)
+        assertEquals(
+            listOf("Tell your care team what you would like explained today."),
+            envelope.data.content.questions,
+        )
         assertEquals("medium", envelope.data.uncertainty.level)
         assertEquals("clinically_reviewed", envelope.data.provenance.reviewState)
         assertEquals("correction", envelope.data.revisionNotice?.kind)

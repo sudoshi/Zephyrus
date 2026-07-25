@@ -67,6 +67,12 @@ class PatientPrimaryJourneyInstrumentedTest {
             composeRule.onNodeWithTag("patient-content")
                 .performScrollToNode(hasText("Morning medicines"))
             composeRule.onNodeWithText("Morning medicines").assertIsDisplayed()
+            composeRule.onNodeWithTag("patient-content")
+                .performScrollToNode(hasText("Your care location"))
+            composeRule.onNodeWithText("Your care location").assertIsDisplayed()
+            composeRule.onNodeWithTag("patient-content")
+                .performScrollToNode(hasText("Planning for leaving the hospital"))
+            composeRule.onNodeWithText("Planning for leaving the hospital").assertIsDisplayed()
 
             composeRule.onNodeWithText("My Path").performClick()
             composeRule.onNodeWithText("Information updated").assertIsDisplayed()

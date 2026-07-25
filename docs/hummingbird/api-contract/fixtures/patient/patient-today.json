@@ -13,15 +13,36 @@
                 {
                     "label": "Care team rounds",
                     "status": "planned",
+                    "category": "other",
                     "item_uuid": "afad5677-d9d4-54a3-9ce5-e0baa5d31cef",
                     "can_change": true,
                     "time_window": "This morning",
                     "timing_confidence": "estimated"
                 }
             ],
+            "questions": [
+                "Tell your care team what you would like explained today."
+            ],
             "next_steps": [
                 "Ask questions during rounds or speak with bedside staff."
-            ]
+            ],
+            "care_location": {
+                "status": "current",
+                "room_display_name": "Reference room",
+                "unit_display_name": "Reference inpatient unit",
+                "facility_display_name": "Synthetic Reference Hospital"
+            },
+            "discharge_outlook": {
+                "can_change": true,
+                "confidence": "estimated",
+                "estimated_range": "In the next day or two",
+                "remaining_steps": [
+                    "Ask what still needs to happen before you leave."
+                ],
+                "readiness_topics": [
+                    "Your team will review the next safe step with you."
+                ]
+            }
         },
         "uncertainty": {
             "level": "low",
@@ -32,10 +53,7 @@
         "provenance": {
             "review_state": "automated_test_only",
             "source_class": "synthetic_clinical_record",
-            "input_classes": [
-                "synthetic_schedule",
-                "synthetic_care_plan"
-            ],
+            "input_classes": ["synthetic_schedule", "synthetic_care_plan"],
             "producer_version": "fixture-v1",
             "projection_method": "deterministic_fixture"
         },

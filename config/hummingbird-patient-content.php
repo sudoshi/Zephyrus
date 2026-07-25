@@ -31,6 +31,12 @@ return [
                     'delayed' => 'Delayed',
                     'canceled' => 'No longer planned',
                 ],
+                'schedule_category' => [
+                    'test' => 'Test',
+                    'procedure' => 'Procedure',
+                    'transport' => 'Transportation',
+                    'other' => 'Care update',
+                ],
                 'stage_status' => [
                     'planned' => 'Planned',
                     'current' => 'Happening now',

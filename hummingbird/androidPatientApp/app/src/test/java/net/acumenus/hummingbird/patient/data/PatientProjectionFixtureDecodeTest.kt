@@ -14,6 +14,10 @@ class PatientProjectionFixtureDecodeTest {
 
         assertEquals("today", today.data.kind)
         assertEquals("planned", today.data.content.schedule.single().status)
+        assertEquals("other", today.data.content.schedule.single().category)
+        assertEquals("Reference inpatient unit", today.data.content.careLocation?.unitDisplayName)
+        assertEquals("In the next day or two", today.data.content.dischargeOutlook?.estimatedRange)
+        assertEquals("Tell your care team what you would like explained today.", today.data.content.questions.single())
         assertTrue(today.data.content.schedule.single().canChange)
         assertEquals("patient-state-vocabulary.v1-draft", today.meta.stateVocabularyVersion)
     }

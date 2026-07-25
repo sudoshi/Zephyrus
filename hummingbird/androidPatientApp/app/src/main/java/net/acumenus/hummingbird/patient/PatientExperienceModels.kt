@@ -126,6 +126,7 @@ data class PatientSnapshot(
     val careTeam: List<PatientCareTeamMember>,
     val contexts: Map<PatientDestination, PatientDataContext> = emptyMap(),
     val todaySummary: String? = null,
+    val todayCareLocationLabel: String? = null,
     val todayNextSteps: List<String> = emptyList(),
     val todayNotices: List<String> = emptyList(),
     val pathwaySummary: String? = null,

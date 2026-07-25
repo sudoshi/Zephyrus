@@ -72,7 +72,12 @@ class PatientProjectionFixtureRegenerationTest extends TestCase
                 if (env('HUMMINGBIRD_PATIENT_FIXTURE_DUMP')) {
                     $this->writeFixture($filename, $serialized);
                 } else {
-                    $this->assertSame(
+                    // Fixtures are documentation as well as decoder inputs, so
+                    // repository formatting must not look like a BFF contract
+                    // change. Compare the complete JSON value rather than its
+                    // whitespace, as we already do for the forward-compatible
+                    // fixture below.
+                    $this->assertJsonStringEqualsJsonString(
                         file_get_contents(base_path(self::FIXTURE_DIR.'/'.$filename)),
                         $serialized,
                         "{$filename} is stale. Review the deterministic BFF change, then run HUMMINGBIRD_PATIENT_FIXTURE_DUMP=1 to regenerate it.",

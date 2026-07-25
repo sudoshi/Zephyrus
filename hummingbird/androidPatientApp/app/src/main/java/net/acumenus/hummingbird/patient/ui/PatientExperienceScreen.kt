@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.DevicesOther
@@ -36,6 +37,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -110,6 +112,12 @@ internal fun PatientExperienceScreen(
         },
         stale = true,
     )
+    val contentListState = rememberLazyListState()
+    LaunchedEffect(selectedDestination) {
+        // Each top-level patient destination is a separate care surface. Do
+        // not leave someone at a deep vertical offset from a different one.
+        contentListState.scrollToItem(0)
+    }
     PatientScenicBackground(scene = scene) {
         Scaffold(
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -168,6 +176,7 @@ internal fun PatientExperienceScreen(
             },
         ) { contentPadding ->
             LazyColumn(
+                state = contentListState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(contentPadding)
@@ -255,6 +264,15 @@ private fun androidx.compose.foundation.lazy.LazyListScope.todayContent(snapshot
             subtitle = snapshot.todaySummary
                 ?: "What is completed, planned, or still uncertain in your care today.",
         )
+    }
+    snapshot.todayCareLocationLabel?.let { location ->
+        item {
+            GuidanceCard(
+                title = "Your care location",
+                body = location,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
     }
     items(snapshot.todayItems, key = { it.title }) { item ->
         TodayItemCard(item = item, modifier = Modifier.padding(horizontal = 16.dp))

@@ -8,7 +8,11 @@ final class PatientAPIModelTests: XCTestCase {
         let today = try decodeFixture("patient-today.json", as: PatientEnvelope<PatientProjectionData<PatientTodayContent>>.self)
         XCTAssertEqual(today.data.kind, "today")
         XCTAssertEqual(today.data.content.schedule?.first?.status, "planned")
+        XCTAssertEqual(today.data.content.schedule?.first?.category, .other)
         XCTAssertTrue(today.data.content.schedule?.first?.canChange == true)
+        XCTAssertEqual(today.data.content.careLocation?.unitDisplayName, "Reference inpatient unit")
+        XCTAssertEqual(today.data.content.dischargeOutlook?.estimatedRange, "In the next day or two")
+        XCTAssertEqual(today.data.content.questions?.first, "Tell your care team what you would like explained today.")
         XCTAssertEqual(today.meta.stateVocabularyVersion, "patient-state-vocabulary.v1-draft")
 
         let pathway = try decodeFixture("patient-pathway.json", as: PatientEnvelope<PatientProjectionData<PatientPathwayContent>>.self)

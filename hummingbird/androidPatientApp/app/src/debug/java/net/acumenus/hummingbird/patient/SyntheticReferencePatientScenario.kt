@@ -38,6 +38,7 @@ internal object SyntheticReferencePatientScenario {
         asOfLabel = "Updated today at 8:42 AM",
         sourceLabel = "Source: inpatient care plan and care-team directory",
         uncertaintyNotice = "Some times and next steps are estimates. Your care team may update them as your needs change.",
+        todayCareLocationLabel = "Example Hospital · 5 East · Room 512",
         todayItems = listOf(
             PatientTodayItem(
                 title = "Morning medicines",
@@ -59,6 +60,13 @@ internal object SyntheticReferencePatientScenario {
                 status = "Planned",
                 explanation = "The timing depends on staff availability and how you are feeling.",
                 provenance = "Source: current inpatient care plan • updated 8:40 AM",
+            ),
+            PatientTodayItem(
+                title = "Planning for leaving the hospital",
+                timing = "In the next day or two",
+                status = "Estimated",
+                explanation = "Your team will review what still needs to happen before you leave.",
+                provenance = "Source: released discharge-planning outlook • updated 8:42 AM",
             ),
         ),
         pathway = listOf(

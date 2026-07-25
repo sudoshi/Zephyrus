@@ -172,16 +172,35 @@ data class PatientTodayContent(
     val schedule: List<PatientScheduleItem>,
     val nextSteps: List<String>,
     val notices: List<String>,
+    val careLocation: PatientCareLocation? = null,
+    val dischargeOutlook: PatientDischargeOutlook? = null,
+    val questions: List<String> = emptyList(),
 )
 
 data class PatientScheduleItem(
     val itemUuid: String,
     val label: String,
     val detail: String?,
+    val category: String? = null,
     val status: String,
     val timeWindow: String,
     val timingConfidence: String?,
     val preparation: String?,
+    val canChange: Boolean,
+)
+
+data class PatientCareLocation(
+    val facilityDisplayName: String?,
+    val unitDisplayName: String?,
+    val roomDisplayName: String?,
+    val status: String,
+)
+
+data class PatientDischargeOutlook(
+    val estimatedRange: String,
+    val confidence: String,
+    val readinessTopics: List<String>,
+    val remainingSteps: List<String>,
     val canChange: Boolean,
 )
 
@@ -632,6 +651,7 @@ object PatientEnvelopeDecoder {
                         itemUuid = item.getString("item_uuid"),
                         label = item.getString("label"),
                         detail = item.nullableString("detail"),
+                        category = item.nullableString("category"),
                         status = item.getString("status"),
                         timeWindow = item.getString("time_window"),
                         timingConfidence = item.nullableString("timing_confidence"),
@@ -641,6 +661,24 @@ object PatientEnvelopeDecoder {
                 },
                 nextSteps = content.stringList("next_steps"),
                 notices = content.stringList("notices"),
+                careLocation = content.optJSONObject("care_location")?.let { location ->
+                    PatientCareLocation(
+                        facilityDisplayName = location.nullableString("facility_display_name"),
+                        unitDisplayName = location.nullableString("unit_display_name"),
+                        roomDisplayName = location.nullableString("room_display_name"),
+                        status = location.getString("status"),
+                    )
+                },
+                dischargeOutlook = content.optJSONObject("discharge_outlook")?.let { outlook ->
+                    PatientDischargeOutlook(
+                        estimatedRange = outlook.getString("estimated_range"),
+                        confidence = outlook.getString("confidence"),
+                        readinessTopics = outlook.stringList("readiness_topics"),
+                        remainingSteps = outlook.stringList("remaining_steps"),
+                        canChange = outlook.optBoolean("can_change", true),
+                    )
+                },
+                questions = content.stringList("questions"),
             )
         }
 

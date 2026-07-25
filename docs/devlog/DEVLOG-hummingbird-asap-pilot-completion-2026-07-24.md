@@ -371,3 +371,46 @@ clinical statement, expose staff-only reasoning, create a production patient, or
 the migration/application change. The repository-wide TypeScript compiler continues to
 stop on pre-existing `Hooks`/`hooks` and `Components`/`components` duplicate-casing
 paths; targeted changed-file formatting passed.
+
+## 2026-07-25 — Governed Today-projection contract parity ratification
+
+### Completed implementation
+
+- Reconciled the actual patient BFF, release guard, and native consumers for the
+  existing optional Today fields. `PatientScheduleItem.category` was documented in
+  the patient OpenAPI but could not cross the backend content guard; the guard now
+  accepts only the versioned patient-language category registry (`test`, `procedure`,
+  `transport`, or `other`) and rejects unrecognized/internal values before release.
+- The deterministic test-only reference BFF now emits a category, released care
+  location, bounded discharge outlook, and patient-visible question. No production
+  source, patient content, clinical approval, or feature flag was introduced.
+- The fixture-regeneration gate now compares the complete JSON value rather than
+  whitespace. This preserves deterministic BFF-content drift detection while allowing
+  the checked-in patient-contract fixture to use the repository's formatter.
+- Android now decodes the full existing Today shape instead of silently dropping
+  `care_location`, `discharge_outlook`, and `questions`. It renders a released care
+  location, an uncertainty-labelled discharge-planning card, safe schedule category
+  wording, and combines released questions with released next steps. iOS decodes the
+  typed schedule category and displays its approved generic label in the released plan
+  detail; its existing location and discharge-outlook behavior is now fixture-covered.
+- Android top-level destination changes reset the scroll position to the selected
+  surface header. The API 35 emulator exposed this after navigating deep into Today
+  and then opening My Path; without the reset, an information-updated notice at the
+  Path header was present but off-screen. This prevents a patient from arriving in a
+  different care surface at an unrelated deep offset.
+
+### Verification
+
+| Boundary                                                                                     | Command / target                                                                                                                                                                                                                                                                                                           | Result                                                                                                                               |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Laravel release guard, deterministic BFF, fixtures, DTO evidence, and patient projection API | `php artisan test tests/Unit/Patient/PatientProjectionStateVocabularyTest.php tests/Feature/Patient/PatientProjectionKernelTest.php tests/Feature/Patient/PatientProjectionFixtureRegenerationTest.php tests/Feature/Patient/PatientSharedDtoFixtureTest.php tests/Feature/Patient/PatientProjectionApiTest.php --compact` | 29 passed / 879 assertions                                                                                                           |
+| iOS contract and view model                                                                  | iPhone 17 Pro / iOS 26.3.1: `PatientAPIModelTests`, `PatientStateVocabularyTests`, and `PatientAppViewModelTests`                                                                                                                                                                                                          | 38 passed / 0 failures                                                                                                               |
+| Android contract and view model                                                              | Debug JVM: `PatientEnvelopeDecoderTest`, `PatientProjectionFixtureDecodeTest`, `PatientSessionCoordinatorTest`, and `PatientStateVocabularyTest`                                                                                                                                                                           | passed                                                                                                                               |
+| Android patient journey                                                                      | API 35 `hb` emulator: `connectedDebugAndroidTest --rerun-tasks`                                                                                                                                                                                                                                                            | 15 passed / 0 failures, errors, or skips; includes the newly visible Today location/discharge content and cross-surface scroll reset |
+
+### Remaining boundary
+
+This ratifies contract and UI parity for information that has already crossed the
+separate governed patient projection release boundary. It does not create a patient
+record, source adapter, clinical release, exact clinical schedule/result, message
+routing change, feature enablement, pilot authorization, migration, or deployment.

@@ -6,6 +6,7 @@ import Foundation
 /// registry must preserve the codes and replace only this approved copy.
 enum PatientStateDomain: CaseIterable {
     case schedule
+    case scheduleCategory
     case pathway
     case milestone
     case pathwayEvent
@@ -27,6 +28,12 @@ enum PatientStateVocabulary {
             "completed": "Completed",
             "delayed": "Delayed",
             "canceled": "No longer planned",
+        ],
+        .scheduleCategory: [
+            "test": "Test",
+            "procedure": "Procedure",
+            "transport": "Transportation",
+            "other": "Care update",
         ],
         .pathway: [
             "planned": "Planned",

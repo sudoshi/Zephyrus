@@ -16,6 +16,7 @@ class PatientProjectionStateVocabularyTest extends TestCase
 
         $this->assertSame('patient-state-vocabulary.v1-draft', $registry['state_vocabulary']['version']);
         $this->assertSame('Happening now', $vocabulary->label('stage_status', 'current'));
+        $this->assertSame('Transportation', $vocabulary->label('schedule_category', 'transport'));
         $this->assertSame('No longer planned', $vocabulary->label('goal_status', 'canceled'));
         $this->assertSame('Needs attention', $vocabulary->label('discharge_criteria_status', 'at_risk'));
         $this->assertSame('Use your bedside call button for urgent help', $vocabulary->label(

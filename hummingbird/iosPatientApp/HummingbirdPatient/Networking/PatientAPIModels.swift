@@ -768,6 +768,7 @@ struct PatientScheduleItem: Codable, Equatable, Identifiable {
     let itemUUID: String
     let label: String
     let detail: String?
+    let category: PatientScheduleCategory?
     let status: String
     let timeWindow: String
     let timingConfidence: String?
@@ -780,11 +781,32 @@ struct PatientScheduleItem: Codable, Equatable, Identifiable {
         case itemUUID = "item_uuid"
         case label
         case detail
+        case category
         case status
         case timeWindow = "time_window"
         case timingConfidence = "timing_confidence"
         case preparation
         case canChange = "can_change"
+    }
+}
+
+/// A released patient-facing class for a Today schedule item. This is not an
+/// internal operational queue type and an unknown future value intentionally
+/// falls back to a generic care update rather than exposing a raw code.
+enum PatientScheduleCategory: String, Codable, Equatable {
+    case test
+    case procedure
+    case transport
+    case other
+
+    init(from decoder: Decoder) throws {
+        let rawValue = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: rawValue) ?? .other
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 

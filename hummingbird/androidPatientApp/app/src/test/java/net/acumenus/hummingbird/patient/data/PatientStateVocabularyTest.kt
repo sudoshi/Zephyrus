@@ -20,6 +20,15 @@ class PatientStateVocabularyTest {
             ),
             PatientStateVocabulary.labels(PatientStateDomain.SCHEDULE),
         )
+        assertEquals(
+            mapOf(
+                "test" to "Test",
+                "procedure" to "Procedure",
+                "transport" to "Transportation",
+                "other" to "Care update",
+            ),
+            PatientStateVocabulary.labels(PatientStateDomain.SCHEDULE_CATEGORY),
+        )
         val pathwayLabels = mapOf(
             "planned" to "Planned",
             "current" to "Happening now",

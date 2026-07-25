@@ -8,6 +8,7 @@ package net.acumenus.hummingbird.patient.data
  */
 internal enum class PatientStateDomain {
     SCHEDULE,
+    SCHEDULE_CATEGORY,
     PATHWAY,
     MILESTONE,
     PATHWAY_EVENT,
@@ -30,6 +31,12 @@ internal object PatientStateVocabulary {
             "completed" to "Completed",
             "delayed" to "Delayed",
             "canceled" to "No longer planned",
+        ),
+        PatientStateDomain.SCHEDULE_CATEGORY to mapOf(
+            "test" to "Test",
+            "procedure" to "Procedure",
+            "transport" to "Transportation",
+            "other" to "Care update",
         ),
         PatientStateDomain.PATHWAY to mapOf(
             "planned" to "Planned",
