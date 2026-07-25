@@ -180,6 +180,9 @@ jobs:
       - name: Prove test resource isolation
         run: php scripts/assert-test-environment.php
 
+      - name: Verify shard manifest covers every feature test exactly once
+        run: bash scripts/ci/verify-shard-manifest.sh
+
       - name: Run Pint (code style)
         run: ./vendor/bin/pint --test
 

@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 
 readonly SHARD="${1:-}"
-readonly FEATURE_SHARD_COUNT=8
+readonly MANIFEST="tests/ci/shard-manifest.json"
 
 phpunit_evidence_args=()
 if [[ -n "${RELEASE_EVIDENCE_DIR:-}" ]]; then
@@ -22,25 +22,30 @@ fi
 
 readonly FEATURE_SHARD_INDEX="${BASH_REMATCH[1]}"
 
-mapfile -t all_feature_tests < <(
+# Shard membership comes from the committed LPT manifest (weights = per-file
+# medians of the Q6 timing evidence; plan S1), not from a filename-modulo
+# deal: adding one test file must never reshuffle the heavy classes onto a
+# different shard. Files missing from the manifest (new tests) are slotted
+# deterministically at runtime; stale manifest entries fail hard — see
+# scripts/ci/resolve-shard-files.py.
+# Captured via command substitution (not process substitution) so a resolver
+# failure — e.g. manifest drift, exit 4 — aborts with its own exit code under
+# pipefail instead of masquerading as an empty shard.
+resolved_files="$(
     find tests/Feature -type f -name '*Test.php' \
         ! -path 'tests/Feature/Api/ProcessAnalysisTest.php' \
         ! -path 'tests/Feature/Auth/AuthenticationFlowTest.php' \
         -print \
-        | LC_ALL=C sort
-)
+        | LC_ALL=C sort \
+        | python3 scripts/ci/resolve-shard-files.py --manifest "$MANIFEST" --shard "$FEATURE_SHARD_INDEX"
+)"
 
-feature_tests=()
-for index in "${!all_feature_tests[@]}"; do
-    if (( index % FEATURE_SHARD_COUNT == FEATURE_SHARD_INDEX )); then
-        feature_tests+=("${all_feature_tests[$index]}")
-    fi
-done
-
-if (( ${#feature_tests[@]} == 0 )); then
+if [[ -z "$resolved_files" ]]; then
     echo "No tests resolved for shard $SHARD" >&2
     exit 3
 fi
+
+mapfile -t feature_tests <<< "$resolved_files"
 
 if [[ "${SHARD_LIST_ONLY:-0}" == "1" ]]; then
     printf '%s\n' "${feature_tests[@]}"
