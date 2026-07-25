@@ -10,10 +10,13 @@ use App\Services\Auth\AccountSessionService;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\InMemorySecretProvider;
+use Tests\Support\Scenario\CommittedScenarioState;
+use Tests\Support\Scenario\UsesCommittedAncillaryScenario;
 use Tests\Support\Timing\QueryEvidence;
 use Tests\Support\Timing\TimingEvidence;
 
@@ -39,12 +42,44 @@ abstract class TestCase extends BaseTestCase
 
     protected function setUp(): void
     {
+        // CI plan S2: a scenario class leaves a COMMITTED demo baseline
+        // behind (see UsesCommittedAncillaryScenario). Scenario classes
+        // rebuild over it idempotently, but a non-scenario class expects
+        // the clean post-migration baseline — force a fresh migration
+        // before this test's application boots. Must run before
+        // parent::setUp(), which is where RefreshDatabase consults
+        // RefreshDatabaseState::$migrated.
+        if (CommittedScenarioState::$activeClass !== null
+            && ! in_array(UsesCommittedAncillaryScenario::class, class_uses_recursive(static::class), true)) {
+            // migrate:fresh only drops search_path tables while this app
+            // spans many PG schemas — wipe them all so the re-migration
+            // reproduces a freshly provisioned database.
+            Support\IsolatedTestDatabase::resetAllSchemas();
+            RefreshDatabaseState::$migrated = false;
+            CommittedScenarioState::reset();
+        }
+
         parent::setUp();
 
         if (filter_var(getenv('TEST_NETWORK_GUARD') ?: 'false', FILTER_VALIDATE_BOOL)) {
             Http::preventStrayRequests();
         }
 
+        $this->wireClinicalPayloadTestStore();
+
+        $this->withoutVite();
+    }
+
+    /**
+     * Test wiring for the encrypted clinical-payload store (in-memory
+     * secret providers + local disk). Applied on every test in setUp();
+     * also applied by UsesCommittedAncillaryScenario BEFORE the class-
+     * scoped scenario build, which runs during parent::setUp() — earlier
+     * than this method's setUp() invocation — and writes payloads
+     * through CanonicalEventWriter.
+     */
+    protected function wireClinicalPayloadTestStore(): void
+    {
         $this->app->singleton(SecretProviderRegistry::class, fn ($app) => new SecretProviderRegistry([
             $app->make(FileSecretProvider::class),
             new InMemorySecretProvider('vault'),
@@ -67,8 +102,6 @@ abstract class TestCase extends BaseTestCase
                 'report' => false,
             ],
         ]);
-
-        $this->withoutVite();
     }
 
     public function actingAs(Authenticatable $user, $guard = null)

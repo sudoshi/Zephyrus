@@ -4,19 +4,12 @@ namespace Tests\Feature\Ancillary;
 
 use App\Models\User;
 use App\Services\Ancillary\AncillaryReadinessService;
-use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
-use App\Services\Demo\DemoClock;
 use App\Services\Lab\AmReadiness\LabMorningReadinessService;
 use App\Services\Lab\LabDecisionPendingService;
 use App\Services\Rtdc\ServiceHuddleService;
 use Carbon\CarbonImmutable;
-use Database\Seeders\AncillaryReferenceSeeder;
-use Database\Seeders\CaseManagementSeeder;
-use Database\Seeders\CommandCenterDemoSeeder;
-use Database\Seeders\RtdcSeeder;
-use Database\Seeders\StaffingReferenceSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\Scenario\UsesCommittedAncillaryScenario;
 use Tests\TestCase;
 
 /**
@@ -29,7 +22,7 @@ use Tests\TestCase;
  */
 class LabAmReadinessForecastTest extends TestCase
 {
-    use RefreshDatabase;
+    use UsesCommittedAncillaryScenario;
 
     private CarbonImmutable $anchor;
 
@@ -39,8 +32,6 @@ class LabAmReadinessForecastTest extends TestCase
         // Anchor before the 08:00 rounds cutoff so the cutoff is in the future.
         $this->anchor = CarbonImmutable::parse('2026-07-11T06:00:00Z');
         CarbonImmutable::setTestNow($this->anchor);
-        $this->seed([RtdcSeeder::class, CaseManagementSeeder::class, StaffingReferenceSeeder::class, CommandCenterDemoSeeder::class, AncillaryReferenceSeeder::class]);
-        app(AncillaryDemoScenarioService::class)->refresh(new DemoClock($this->anchor));
     }
 
     protected function tearDown(): void
