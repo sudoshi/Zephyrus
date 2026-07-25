@@ -29,6 +29,7 @@ private struct PatientPrivacyProtectedRoot: View {
     @ObservedObject var viewModel: PatientAppViewModel
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shouldRevalidateAccessOnActivation = false
 
     private var presentationPreferences: PatientPresentationPreferences {
         PatientPresentationPreferences(viewModel.patientPreferences)
@@ -52,6 +53,12 @@ private struct PatientPrivacyProtectedRoot: View {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background {
                 viewModel.protectPatientSessionRowsForBackground()
+                shouldRevalidateAccessOnActivation = true
+            } else if newPhase == .active, shouldRevalidateAccessOnActivation {
+                Task {
+                    await viewModel.revalidateCurrentCareAccessAfterForeground()
+                    shouldRevalidateAccessOnActivation = false
+                }
             }
         }
     }
@@ -59,9 +66,13 @@ private struct PatientPrivacyProtectedRoot: View {
     private var privacyCoverVisible: Bool {
         #if DEBUG
         scenePhase != .active
+            || shouldRevalidateAccessOnActivation
+            || viewModel.isForegroundAccessValidationInProgress
             || ProcessInfo.processInfo.environment["HBP_SHOW_PRIVACY_COVER"] == "1"
         #else
         scenePhase != .active
+            || shouldRevalidateAccessOnActivation
+            || viewModel.isForegroundAccessValidationInProgress
         #endif
     }
 

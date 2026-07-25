@@ -47,7 +47,7 @@ private struct PatientNoActiveEncounterView: View {
                 PatientScreenHeader(
                     eyebrow: "Care access",
                     title: "Hello, \(firstName)",
-                    subtitle: "No active hospital stay"
+                    subtitle: state.title
                 )
                 PatientCard {
                     VStack(alignment: .leading, spacing: 10) {
@@ -56,16 +56,18 @@ private struct PatientNoActiveEncounterView: View {
                             .foregroundStyle(PatientPalette.blue)
                         Text(state.message)
                             .font(.body)
-                        Text("No care information is shown while your account has no active hospital stay.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                        if state.availability == .noActiveEncounter {
+                            Text("No care information is shown while your account has no active hospital stay.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 PatientUrgentHelpNotice()
-                Button("Check again", action: onRetry)
+                Button(state.actionLabel, action: onRetry)
                     .buttonStyle(.borderedProminent)
                     .frame(maxWidth: .infinity)
-                    .accessibilityHint("Checks whether a current hospital stay is available. No patient message is sent.")
+                    .accessibilityHint("Checks whether current care access is available. No patient message is sent.")
                 Button("Exit securely", action: onExit)
                     .buttonStyle(.bordered)
                     .frame(maxWidth: .infinity)
@@ -79,7 +81,11 @@ private struct PatientNoActiveEncounterView: View {
         }
         .navigationTitle("Patient access")
         .navigationBarTitleDisplayMode(.inline)
-        .accessibilityIdentifier("patient-no-active-encounter")
+        .accessibilityIdentifier(
+            state.availability == .noActiveEncounter
+                ? "patient-no-active-encounter"
+                : "patient-care-access-unavailable"
+        )
     }
 
     private var firstName: String {

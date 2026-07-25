@@ -345,6 +345,7 @@ class PatientPrimaryJourneyInstrumentedTest {
         val expectedStates = mapOf(
             "loading" to "Checking your secure patient session",
             "empty" to "No active hospital stay is available",
+            "access-verification-unavailable" to "We can’t confirm your care access",
             "unavailable" to "Patient access is temporarily unavailable",
             "recoverable-error" to "Hummingbird Patient could not connect securely",
         )

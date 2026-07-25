@@ -139,6 +139,62 @@ class PatientAppViewModelTest {
     }
 
     @Test
+    fun foregroundRevalidationPurgesCareWhenTheActiveEncounterIsNoLongerAvailable() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val api = FakePatientApiGateway(noActiveEncounterAfterFirstLoad = true)
+        val store = MemoryPatientCredentialStore()
+        val viewModel = PatientAppViewModel(
+            apiEnabled = true,
+            coordinator = coordinator(api, store),
+            scope = this,
+            workDispatcher = dispatcher,
+        )
+
+        viewModel.submitSignIn("patient@example.test", "test-password")
+        advanceUntilIdle()
+        assertTrue(viewModel.state.session is PatientSessionState.Ready)
+
+        var completed = false
+        viewModel.revalidateCurrentCareAccessAfterForeground { completed = true }
+        assertTrue(viewModel.state.session is PatientSessionState.Loading)
+        advanceUntilIdle()
+
+        val empty = viewModel.state.session as PatientSessionState.Empty
+        assertTrue(empty.message.contains("No active hospital stay"))
+        assertTrue(viewModel.state.messaging is PatientMessagingState.Hidden)
+        assertEquals(2, api.profileCalls)
+        assertEquals(2, api.encounterCalls)
+        assertTrue(completed)
+        assertTrue(store.current != null)
+    }
+
+    @Test
+    fun foregroundRevalidationFailsClosedWhenCareAccessCannotBeVerified() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val api = FakePatientApiGateway(profileTransportAfterFirstLoad = true)
+        val store = MemoryPatientCredentialStore()
+        val viewModel = PatientAppViewModel(
+            apiEnabled = true,
+            coordinator = coordinator(api, store),
+            scope = this,
+            workDispatcher = dispatcher,
+        )
+
+        viewModel.submitSignIn("patient@example.test", "test-password")
+        advanceUntilIdle()
+        assertTrue(viewModel.state.session is PatientSessionState.Ready)
+
+        viewModel.revalidateCurrentCareAccessAfterForeground()
+        advanceUntilIdle()
+
+        val unavailable = viewModel.state.session as PatientSessionState.AccessVerificationUnavailable
+        assertTrue(unavailable.message.contains("No care information is shown"))
+        assertTrue(viewModel.state.messaging is PatientMessagingState.Hidden)
+        assertEquals(2, api.profileCalls)
+        assertTrue(store.current != null)
+    }
+
+    @Test
     fun messagingLoadsServerGuidanceAndSendsANewThreadWithoutAnOfflineQueue() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val api = FakePatientApiGateway(

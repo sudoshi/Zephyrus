@@ -845,3 +845,42 @@ This closes the already-implemented principal/grant and opaque mobile-handle che
 row. It does not perform approved identity proofing, show a sufficient wrong-patient
 confirmation, create or activate a production patient, enable a flag, authorize a pilot,
 migrate data, or deploy an application.
+
+## 2026-07-25 — Foreground patient-access revalidation parity
+
+### Completed implementation
+
+- Both native patient apps now keep their privacy cover in place when returning from the
+  background while they revalidate the protected session and active encounter grant. The
+  prior care snapshot is not made visible during that check.
+- A confirmed empty encounter collection removes the entire local care surface: snapshot,
+  messages, device-session view, and account preferences. The patient sees only a generic
+  **No active hospital stay** screen, immediate-help guidance, **Check again**, and
+  **Exit securely**. The protected token is retained only for the patient's explicit
+  recheck; exit clears it.
+- A transient foreground verification failure is deliberately fail-closed rather than
+  showing potentially stale care content. Both apps use a distinct, generic **We can’t
+  confirm your care access** state with the same urgent-help and explicit retry/exit
+  controls. It does not disclose a technical failure, encounter history, or a reason an
+  access grant may be absent.
+- iOS uses a scene-phase gate and Android uses an activity-lifecycle gate. Debug-only,
+  no-network previews make the withheld-content state renderable in native automation;
+  the Android hook is compiled from its Debug source set and the iOS preview is enclosed
+  in `#if DEBUG`.
+
+### Verification
+
+| Boundary                                | Command / target                                                                                                                         | Result                                                                                                                            |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| iOS model access boundary               | iPhone 17 Pro / iOS 26.3.1: `PatientAppViewModelTests`                                                                                   | 27 passed / 0 failures; empty-grant and transport-failure rechecks purge the care surface while retaining retry-only tokens       |
+| iOS rendered/accessibility boundary     | iPhone 17 Pro / iOS 26.3.1: `testForegroundAccessVerificationFailureHidesAllCareTabsAndKeepsUrgentHelpVisible` and no-active counterpart | 2 passed / 0 failures; reviewed capture shows opaque readable cards, urgent help, decorative imagery, retry/exit, and no tabs     |
+| Android model access boundary           | Debug JVM: `PatientAppViewModelTest`, `PatientSessionCoordinatorTest`, and `PatientLaunchHooksTest`                                      | 46 passed / 0 failures; vanished-grant and verification-unavailable states leave no care snapshot, messaging, or preference state |
+| Android rendered/accessibility boundary | API 35 `hb` emulator: `PatientPrimaryJourneyInstrumentedTest`                                                                            | 7 passed / 0 failures; explicit empty and access-verification-unavailable states render without care content                      |
+| Android static analysis                 | `:app:lintDebug`                                                                                                                         | passed                                                                                                                            |
+
+### Remaining boundary
+
+This ratifies strict client-side revalidation on foreground return. It does not establish
+an approved patient-data retention rule after discharge, source-driven transfer/merge/
+correction semantics, active-session revocation push or polling, identity proofing, a
+production patient, feature activation, pilot authorization, migration, or deployment.

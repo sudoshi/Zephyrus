@@ -151,6 +151,26 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         attachScreenshot(named: "No-Active-Encounter")
     }
 
+    func testForegroundAccessVerificationFailureHidesAllCareTabsAndKeepsUrgentHelpVisible() {
+        app.terminate()
+        app = XCUIApplication()
+        app.launchEnvironment["HBP_SYNTHETIC_REFERENCE"] = "0"
+        app.launchEnvironment["HBP_ACCESS_VERIFICATION_UNAVAILABLE_PREVIEW"] = "1"
+        app.launch()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["patient-care-access-unavailable"]
+                .waitForExistence(timeout: 5)
+        )
+        XCTAssertTrue(app.staticTexts["We can’t confirm your care access"].exists)
+        XCTAssertTrue(app.staticTexts["Your care view is not available"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["urgent-help-notice"].exists)
+        XCTAssertTrue(app.buttons["Try again"].exists)
+        XCTAssertTrue(app.buttons["Exit securely"].exists)
+        XCTAssertFalse(app.tabBars.buttons["Today"].exists)
+        attachScreenshot(named: "Foreground-Access-Verification-Unavailable")
+    }
+
     func testEnrollmentRequiresACompleteInvitationBeforeItCanSubmit() {
         app.terminate()
         app = XCUIApplication()

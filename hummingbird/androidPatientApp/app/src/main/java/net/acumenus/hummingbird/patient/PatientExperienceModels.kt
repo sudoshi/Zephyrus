@@ -37,6 +37,15 @@ sealed interface PatientSessionState {
         val patientDisplayName: String,
         val message: String,
     ) : PatientSessionState
+
+    /**
+     * The app removed its prior snapshot because it could not confirm that the
+     * current protected session still has care access after returning to foreground.
+     */
+    data class AccessVerificationUnavailable(
+        val patientDisplayName: String,
+        val message: String,
+    ) : PatientSessionState
 }
 
 sealed interface PatientAuthStatus {

@@ -475,10 +475,12 @@ internal class MemoryPatientCredentialStore(
 
 internal class FakePatientApiGateway(
     private val encounters: List<PatientEncounter> = listOf(patientEncounter()),
+    private val noActiveEncounterAfterFirstLoad: Boolean = false,
     private val todayUnavailable: Boolean = false,
     private val revokeFailure: Boolean = false,
     private val passwordFailureStatus: Int? = null,
     private val refreshFailureStatus: Int? = null,
+    private val profileTransportAfterFirstLoad: Boolean = false,
     sendFailureCode: String? = null,
     private val messageUnauthorizedOnce: Boolean = false,
     private val refetchedThreadVersion: Int = 2,
@@ -490,6 +492,7 @@ internal class FakePatientApiGateway(
     var passwordExchangeCalls = 0
     var enrollmentCalls = 0
     var profileCalls = 0
+    var encounterCalls = 0
     var refreshCalls = 0
     var revokeCalls = 0
     var todayCalls = 0
@@ -539,6 +542,9 @@ internal class FakePatientApiGateway(
 
     override fun profile(accessToken: CharArray): PatientEnvelope<PatientProfile> {
         profileCalls += 1
+        if (profileTransportAfterFirstLoad && profileCalls > 1) {
+            throw PatientApiException(503, "patient_service_unavailable", "Unavailable")
+        }
         if (accessToken.concatToString() == "expired-access") {
             throw PatientApiException(401, "invalid_access_token", "Unauthorized")
         }
@@ -602,8 +608,14 @@ internal class FakePatientApiGateway(
         )
     }
 
-    override fun encounters(accessToken: CharArray): PatientEnvelope<PatientEncounterCollection> =
-        patientEnvelope(PatientEncounterCollection(encounters))
+    override fun encounters(accessToken: CharArray): PatientEnvelope<PatientEncounterCollection> {
+        encounterCalls += 1
+        return patientEnvelope(
+            PatientEncounterCollection(
+                if (noActiveEncounterAfterFirstLoad && encounterCalls > 1) emptyList() else encounters,
+            ),
+        )
+    }
 
     override fun today(
         accessToken: CharArray,

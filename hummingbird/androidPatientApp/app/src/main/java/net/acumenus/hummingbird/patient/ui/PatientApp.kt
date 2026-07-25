@@ -101,7 +101,19 @@ internal fun PatientApp(
 
             is PatientSessionState.Empty -> PatientEmptyScreen(
                 displayName = session.patientDisplayName,
+                title = "No active hospital stay",
                 message = session.message,
+                retryLabel = "Check again",
+                onRetry = viewModel::retryCurrentCareAccess,
+                onExit = viewModel::signOut,
+            )
+
+            is PatientSessionState.AccessVerificationUnavailable -> PatientEmptyScreen(
+                displayName = session.patientDisplayName,
+                title = "We can’t confirm your care access",
+                message = session.message,
+                retryLabel = "Try again",
+                onRetry = viewModel::retryCurrentCareAccess,
                 onExit = viewModel::signOut,
             )
         }
@@ -155,7 +167,10 @@ private fun PatientLoadingScreen(message: String) {
 @Composable
 private fun PatientEmptyScreen(
     displayName: String,
+    title: String,
     message: String,
+    retryLabel: String,
+    onRetry: () -> Unit,
     onExit: () -> Unit,
 ) {
     PatientScenicBackground(scene = PatientScene.LOADING_OR_EMPTY) {
@@ -172,6 +187,12 @@ private fun PatientEmptyScreen(
                 modifier = Modifier.semantics { heading() },
             )
             Text(
+                text = title,
+                modifier = Modifier.padding(top = 8.dp),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
                 text = message,
                 modifier = Modifier.padding(top = 12.dp),
                 style = MaterialTheme.typography.bodyLarge,
@@ -182,8 +203,14 @@ private fun PatientEmptyScreen(
                 style = MaterialTheme.typography.bodyMedium,
             )
             Button(
-                onClick = onExit,
+                onClick = onRetry,
                 modifier = Modifier.padding(top = 24.dp),
+            ) {
+                Text(retryLabel)
+            }
+            Button(
+                onClick = onExit,
+                modifier = Modifier.padding(top = 12.dp),
             ) {
                 Text("Exit securely")
             }

@@ -20,6 +20,11 @@ internal object SyntheticReferencePatientScenario {
             patientDisplayName = "Sample inpatient",
             message = "No active hospital stay is available in Hummingbird Patient.",
         )
+        PatientLaunchPreview.ACCESS_VERIFICATION_UNAVAILABLE ->
+            PatientSessionState.AccessVerificationUnavailable(
+                patientDisplayName = "Sample inpatient",
+                message = "We cannot confirm your current care access right now. No care information is shown until access is confirmed. Check your connection and try again.",
+            )
         PatientLaunchPreview.UNAVAILABLE -> PatientSessionState.SignedOut(
             status = PatientAuthStatus.Unavailable(
                 "Patient access is temporarily unavailable. Ask your care team for current information.",

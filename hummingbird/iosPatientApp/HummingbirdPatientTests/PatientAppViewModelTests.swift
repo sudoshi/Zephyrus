@@ -199,6 +199,58 @@ final class PatientAppViewModelTests: XCTestCase {
         XCTAssertTrue(calls.careTeamTokens.isEmpty)
     }
 
+    func testForegroundRevalidationPurgesCareWhenTheEncounterGrantIsNoLongerAvailable() async {
+        let api = MockPatientAPI(noActiveEncounterAfterInitialLoad: true)
+        let store = InMemoryPatientTokenStore(accessToken: "valid-access", refreshToken: "valid-refresh")
+        let viewModel = PatientAppViewModel(
+            configuration: .enabled,
+            api: api,
+            tokenStore: store
+        )
+
+        await viewModel.bootstrap()
+        XCTAssertNotNil(viewModel.snapshot)
+
+        await viewModel.revalidateCurrentCareAccessAfterForeground()
+
+        XCTAssertNil(viewModel.snapshot)
+        XCTAssertEqual(viewModel.noActiveEncounter?.availability, .noActiveEncounter)
+        XCTAssertEqual(viewModel.messagingState, .notGranted)
+        XCTAssertTrue(viewModel.patientSessions.isEmpty)
+        XCTAssertEqual(store.accessToken, "valid-access")
+        XCTAssertEqual(store.refreshToken, "valid-refresh")
+
+        let calls = await api.recordedCalls()
+        XCTAssertEqual(calls.profileTokens, ["valid-access", "valid-access"])
+        XCTAssertEqual(calls.encounterTokens, ["valid-access", "valid-access"])
+        XCTAssertEqual(calls.todayTokens.count, 1)
+    }
+
+    func testForegroundRevalidationFailsClosedWhenCareAccessCannotBeVerified() async {
+        let api = MockPatientAPI(profileTransportAfterInitialLoad: true)
+        let store = InMemoryPatientTokenStore(accessToken: "valid-access", refreshToken: "valid-refresh")
+        let viewModel = PatientAppViewModel(
+            configuration: .enabled,
+            api: api,
+            tokenStore: store
+        )
+
+        await viewModel.bootstrap()
+        XCTAssertNotNil(viewModel.snapshot)
+
+        await viewModel.revalidateCurrentCareAccessAfterForeground()
+
+        XCTAssertNil(viewModel.snapshot)
+        XCTAssertEqual(viewModel.noActiveEncounter?.availability, .unableToConfirm)
+        XCTAssertEqual(
+            viewModel.noActiveEncounter?.message,
+            "We cannot confirm your current care access right now. No care information is shown until access is confirmed. Check your connection and try again."
+        )
+        XCTAssertEqual(viewModel.messagingState, .notGranted)
+        XCTAssertEqual(store.accessToken, "valid-access")
+        XCTAssertEqual(store.refreshToken, "valid-refresh")
+    }
+
     func testLoginStoresPatientTokenPairAndLoadsThePatientExperience() async {
         let api = MockPatientAPI()
         let store = InMemoryPatientTokenStore()
@@ -760,6 +812,8 @@ private actor MockPatientAPI: PatientAPIService {
     private let sessionRevocationTransportFailure: Bool
     private let sessionRevocationServerFailure: Bool
     private let noActiveEncounter: Bool
+    private let noActiveEncounterAfterInitialLoad: Bool
+    private let profileTransportAfterInitialLoad: Bool
     private var revokedPatientSessionUUIDs: Set<String> = []
 
     init(
@@ -774,7 +828,9 @@ private actor MockPatientAPI: PatientAPIService {
         sessionManagementUnavailable: Bool = false,
         sessionRevocationTransportFailure: Bool = false,
         sessionRevocationServerFailure: Bool = false,
-        noActiveEncounter: Bool = false
+        noActiveEncounter: Bool = false,
+        noActiveEncounterAfterInitialLoad: Bool = false,
+        profileTransportAfterInitialLoad: Bool = false
     ) {
         shouldRejectNextProfile = profileUnauthorizedOnce
         self.missingToday = missingToday
@@ -788,6 +844,8 @@ private actor MockPatientAPI: PatientAPIService {
         self.sessionRevocationTransportFailure = sessionRevocationTransportFailure
         self.sessionRevocationServerFailure = sessionRevocationServerFailure
         self.noActiveEncounter = noActiveEncounter
+        self.noActiveEncounterAfterInitialLoad = noActiveEncounterAfterInitialLoad
+        self.profileTransportAfterInitialLoad = profileTransportAfterInitialLoad
     }
 
     func recordedCalls() -> Calls { calls }
@@ -823,6 +881,9 @@ private actor MockPatientAPI: PatientAPIService {
 
     func profile(accessToken: String) async throws -> PatientEnvelope<PatientProfile> {
         calls.profileTokens.append(accessToken)
+        if profileTransportAfterInitialLoad, calls.profileTokens.count > 1 {
+            throw PatientAPIError.transport
+        }
         if shouldRejectNextProfile {
             shouldRejectNextProfile = false
             throw PatientAPIError.unauthorized(code: "access_expired", message: "Access token expired.")
@@ -885,7 +946,7 @@ private actor MockPatientAPI: PatientAPIService {
 
     func encounters(accessToken: String) async throws -> PatientEnvelope<PatientEncounterCollection> {
         calls.encounterTokens.append(accessToken)
-        if noActiveEncounter {
+        if noActiveEncounter || (noActiveEncounterAfterInitialLoad && calls.encounterTokens.count > 1) {
             return PatientEnvelope(
                 data: PatientEncounterCollection(encounters: []),
                 meta: PatientFixtures.meta,
