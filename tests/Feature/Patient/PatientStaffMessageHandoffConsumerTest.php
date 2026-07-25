@@ -19,8 +19,10 @@ use App\Models\PatientCommunication\ThreadWorkItem;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Patient\Messaging\DatabasePatientMessageHandoffConsumer;
+use App\Services\Patient\Messaging\PatientMessageHandoffHealthReporter;
 use App\Services\Patient\PatientHmac;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -489,6 +491,65 @@ class PatientStaffMessageHandoffConsumerTest extends TestCase
         $this->assertSame('handoff_thread_unavailable', $attempts[3]->error_code);
         $this->assertTrue($attempts[3]->next_attempt_at->isFuture());
         $this->assertFalse($consumer->readyForPolicy(self::POLICY_VERSION));
+    }
+
+    public function test_operational_health_report_is_content_free_and_escalates_terminal_handoffs(): void
+    {
+        [$unit, $staff] = $this->operationalUnitAndResponder();
+        $this->configureMessaging($unit);
+        $pool = $this->createPool($unit);
+        $this->createMembership($pool, $staff);
+        $consumer = $this->app->make(DatabasePatientMessageHandoffConsumer::class);
+        $consumer->consumeBatch('test-health-bootstrap-worker');
+
+        $retryingOutbox = $this->createUnresolvableOutbox();
+        $this->assertSame(
+            ['selected' => 1, 'delivered' => 0, 'failed' => 1],
+            $consumer->consumeBatch('test-health-retry-worker'),
+        );
+
+        $reporter = $this->app->make(PatientMessageHandoffHealthReporter::class);
+        $report = $reporter->report();
+
+        $this->assertSame('active', $report['activation_state']);
+        $this->assertSame('warning', $report['status']);
+        $this->assertTrue($report['schema_ready']);
+        $this->assertTrue($report['consumer']['heartbeat_present']);
+        $this->assertTrue($report['consumer']['heartbeat_fresh']);
+        $this->assertSame(1, $report['outbox']['total_unexpired']);
+        $this->assertSame(1, $report['outbox']['retry_scheduled']);
+        $this->assertSame(0, $report['outbox']['terminal_failure']);
+        $this->assertStringNotContainsString((string) $retryingOutbox->outbox_uuid, json_encode($report, JSON_THROW_ON_ERROR));
+        foreach (['principal_id', 'access_grant_id', 'aggregate_uuid', 'worker_ref', 'message', 'body'] as $forbiddenKey) {
+            $this->assertArrayNotHasKey($forbiddenKey, $report);
+        }
+
+        $this->assertSame(0, Artisan::call('hummingbird:patient-message-handoff-health', ['--json' => true]));
+        $commandReport = json_decode(Artisan::output(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('warning', $commandReport['status']);
+        $this->assertStringNotContainsString((string) $retryingOutbox->outbox_uuid, Artisan::output());
+
+        $terminalOutbox = $this->createUnresolvableOutbox();
+        PatientNotificationDeliveryAttempt::query()->create([
+            'delivery_attempt_uuid' => (string) Str::uuid7(),
+            'notification_outbox_id' => $terminalOutbox->getKey(),
+            'attempt_number' => 1,
+            'status' => 'terminal_failure',
+            'worker_ref' => 'test-terminal-worker',
+            'error_code' => 'handoff_thread_unavailable',
+            'metadata' => [
+                'schema_version' => 1,
+                'content_included' => false,
+                'destination' => 'staff_inbox',
+            ],
+            'occurred_at' => now(),
+        ]);
+
+        $criticalReport = $reporter->report();
+        $this->assertSame('critical', $criticalReport['status']);
+        $this->assertTrue($criticalReport['requires_operator_action']);
+        $this->assertSame(1, $criticalReport['outbox']['terminal_failure']);
+        $this->assertSame(1, Artisan::call('hummingbird:patient-message-handoff-health'));
     }
 
     public function test_post_batch_heartbeat_stays_degraded_until_every_unexpired_outbox_is_resolved(): void

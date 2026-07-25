@@ -979,3 +979,33 @@ an application.
 This makes the existing staff-inbox consumer's in-flight work durable and recoverable. It does not
 implement projection or push consumers, dead-letter remediation operations, alerting/SLOs,
 production runbooks, a patient activation, a production patient, a migration, or a deployment.
+
+## 2026-07-25 — Content-free staff-handoff health and incident boundary
+
+### Completed implementation
+
+- Added `hummingbird:patient-message-handoff-health`, a read-only aggregate report for the
+  staff-inbox delivery ledger. It reports only activation state, schema readiness, consumer
+  heartbeat freshness, and counts for pending, active-lease, expired-lease, retry, terminal,
+  delivered, and unknown delivery states; it does not emit patient, encounter, thread, outbox,
+  worker, routing, or message data.
+- The reporter distinguishes a fresh-but-degraded consumer from a missing/stale heartbeat. A
+  scheduled retry is a warning; missing schema/heartbeat, terminal delivery failure, or an
+  unrecognized immutable attempt state is critical and returns a nonzero command exit code.
+- Added the draft [patient-message handoff operator runbook](../operations/HUMMINGBIRD-PATIENT-MESSAGE-HANDOFF-RUNBOOK.md).
+  It makes the current boundary explicit: investigate through approved operations, never mutate
+  append-only delivery facts or create a duplicate outbox item, and do not treat the report as a
+  patient-messaging activation or terminal-requeue capability.
+
+### Verification
+
+| Boundary                                                                                          | Command / target                                                                                       | Result                                        |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| Handoff ledger, claim lease, aggregate report, warning/critical exit codes, and content exclusion | `php artisan test tests/Feature/Patient/PatientStaffMessageHandoffConsumerTest.php`                    | 14 passed / 146 assertions                    |
+| Native patient revalidation on exact branch                                                       | Android API 35 `connectedDebugAndroidTest --rerun-tasks`; iPhone 17 Pro / iOS 26.3.1 `xcodebuild test` | Android 16 passed; iOS 81 passed / 0 failures |
+
+### Remaining boundary
+
+This supplies read-only visibility and a safe incident boundary. It does not implement an approved
+terminal-failure supersession/requeue workflow, alert routing/SLOs, projection/push consumers,
+production rehearsal, patient activation, a production patient, a migration, or deployment.
