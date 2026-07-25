@@ -21,8 +21,14 @@ internal data class PatientPresentationAccessibility(
     val reducedMotion: Boolean = false,
 ) {
     val accessibilityTag: String
-        get() = "patient-presentation-" +
-            if (highContrast) "high-contrast" else "standard-contrast"
+        get() = "patient-presentation-${normalizedTextSizePreference}-" +
+            (if (highContrast) "high-contrast" else "standard-contrast")
+
+    private val normalizedTextSizePreference: String
+        get() = when (textSizePreference) {
+            "large", "extra_large" -> textSizePreference
+            else -> "standard"
+        }
 }
 
 internal val LocalPatientPresentationAccessibility = staticCompositionLocalOf {

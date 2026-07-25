@@ -45,7 +45,7 @@ class PatientPrimaryJourneyInstrumentedTest {
                 .performScrollToNode(hasText("Save preferences"))
             composeRule.onNodeWithTag("save-patient-preferences").performClick()
             composeRule.onNodeWithContentDescription("Back to Hummingbird").performClick()
-            composeRule.onNodeWithTag("patient-presentation-high-contrast").assertIsDisplayed()
+            composeRule.onNodeWithTag("patient-presentation-extra_large-high-contrast").assertIsDisplayed()
             composeRule.onNodeWithTag("patient-content")
                 .performScrollToNode(hasText("Your reading preferences"))
             composeRule.onNodeWithTag("patient-presentation-preference-notice").assertIsDisplayed()

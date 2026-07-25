@@ -1052,3 +1052,33 @@ This makes the saved high-contrast choice deterministic for patient explanatory 
 device evidence for the synthetic reference scenario. It does not establish WCAG 2.2 AA
 conformance, complete VoiceOver/TalkBack or language-access validation, ratify a clinical release,
 activate any feature, create a production patient, migrate data, or deploy an application.
+
+## 2026-07-25 — Android/iOS persisted-presentation state parity
+
+### Completed implementation
+
+- Corrected the Android patient root test tag so it carries both normalized saved dimensions:
+  text size (`standard`, `large`, or `extra_large`) and contrast
+  (`standard-contrast` or `high-contrast`). The prior tag encoded only contrast, which made the
+  Android emulator proof weaker than the corresponding iOS accessibility identifier.
+- Unknown text-size values fail safely to the `standard` tag rather than creating an arbitrary
+  automation state. The Android unit test covers standard, Extra Large/high-contrast, and unknown
+  text-size inputs.
+- Updated the synthetic API 35 journey to save Extra Large plus high contrast, close the
+  preferences screen, and require `patient-presentation-extra_large-high-contrast` before it
+  checks the visible in-care reading-preferences notice. This is an evidence/semantics correction;
+  Android's existing high-contrast Material palette and no-scenery policy are unchanged.
+
+### Verification
+
+| Boundary                                 | Command / target                                                                                     | Result                                                                          |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Android presentation-state unit boundary | `testDebugUnitTest --tests net.acumenus.hummingbird.patient.ui.PatientPresentationAccessibilityTest` | 2 passed / 0 failures                                                           |
+| Android connected patient regression     | API 35 `hb` emulator: `connectedDebugAndroidTest --rerun-tasks`                                      | 16 passed / 0 failures                                                          |
+| iOS cross-platform comparator            | iPhone 17 Pro / iOS 26.3.1 suite from the preceding high-contrast change                             | 81 passed / 0 failures; iOS source was unchanged by this Android-only increment |
+
+### Remaining boundary
+
+This aligns native persisted-presentation evidence. It does not complete a system accessibility
+matrix, formal contrast measurement, VoiceOver/TalkBack review, localization, clinical content
+approval, production enrollment, a production patient, migration, or deployment.
