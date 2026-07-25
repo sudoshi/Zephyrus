@@ -45,7 +45,10 @@ if [[ -z "$resolved_files" ]]; then
     exit 3
 fi
 
-mapfile -t feature_tests <<< "$resolved_files"
+feature_tests=()
+while IFS= read -r feature_test; do
+    [[ -n "$feature_test" ]] && feature_tests+=("$feature_test")
+done <<< "$resolved_files"
 
 if [[ "${SHARD_LIST_ONLY:-0}" == "1" ]]; then
     printf '%s\n' "${feature_tests[@]}"
