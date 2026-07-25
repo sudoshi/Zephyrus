@@ -1002,7 +1002,7 @@ production runbooks, a patient activation, a production patient, a migration, or
 | Boundary                                                                                                                   | Command / target                                                                                       | Result                                        |
 | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
 | Handoff ledger, claim lease, aggregate report, warning/critical exit codes, disabled-state liveness, and content exclusion | `php artisan test tests/Feature/Patient/PatientStaffMessageHandoffConsumerTest.php`                    | 15 passed / 154 assertions                    |
-| Native patient revalidation on exact branch                                                                                | Android API 35 `connectedDebugAndroidTest --rerun-tasks`; iPhone 17 Pro / iOS 26.3.1 `xcodebuild test` | Android 16 passed; iOS 81 passed / 0 failures |
+| Native patient revalidation before this backend-only slice (`a87662e1`; native sources unchanged)                          | Android API 35 `connectedDebugAndroidTest --rerun-tasks`; iPhone 17 Pro / iOS 26.3.1 `xcodebuild test` | Android 16 passed; iOS 81 passed / 0 failures |
 
 ### Remaining boundary
 
