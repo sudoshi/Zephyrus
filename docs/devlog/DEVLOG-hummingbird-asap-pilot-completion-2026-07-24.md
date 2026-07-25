@@ -1150,3 +1150,34 @@ approval, production enrollment, a production patient, migration, or deployment.
 This hardens local test isolation only. It does not inspect, create, activate, or enroll a patient
 in production; issue a production credential; publish a draft; enable a feature; migrate data; or
 deploy an application.
+
+## 2026-07-25 — Explicit cross-platform patient-background crop contract
+
+### Completed implementation
+
+- Replaced reliance on the native image-view defaults with named, static centered aspect-fill
+  policies in both patient renderers. Android supplies `ContentScale.Crop` plus
+  `Alignment.Center`; iOS supplies `.fill` plus `.center`. The photography remains decorative,
+  static, and clipped to the viewport — it does not pan, parallax-scroll, or animate behind care
+  content.
+- Added Android JVM and iOS XCTest assertions for the crop policy. This makes a refactor that
+  changes the focal-point behavior visible before it reaches a patient build.
+- Re-ran the Android API 35 patient suite after the renderer change, including the scenic surface
+  at 200% font scale. The full suite passed with 16 tests and no failures.
+
+### Verification
+
+| Boundary                                      | Command / target                                                                                                                                                                                                         | Result                           |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| Android crop-policy unit boundary             | `./gradlew testDebugUnitTest --tests net.acumenus.hummingbird.patient.ui.PatientVisualAssetPolicyTest --rerun-tasks`                                                                                                     | 4 passed / 0 failures            |
+| Android release crop-policy unit boundary     | `./gradlew testReleaseUnitTest --tests net.acumenus.hummingbird.patient.ui.PatientVisualAssetPolicyTest --rerun-tasks`                                                                                                   | 4 passed / 0 failures            |
+| Android patient scenic surface and regression | API 35 `hb` emulator: `./gradlew connectedDebugAndroidTest --rerun-tasks`                                                                                                                                                | 16 passed / 0 failures / 0 skips |
+| iOS crop-policy unit boundary                 | iPhone 17 Pro: `xcodebuild -project HummingbirdPatient.xcodeproj -scheme HummingbirdPatient -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:HummingbirdPatientTests/PatientAPIBoundaryTests test` | 13 passed / 0 failures           |
+| iOS patient regression                        | iPhone 17 Pro / iOS 26.3.1: `xcodebuild -project HummingbirdPatient.xcodeproj -scheme HummingbirdPatient -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test`                                                  | 83 passed / 0 failures / 0 skips |
+
+### Remaining boundary
+
+This removes framework-default ambiguity from the runtime crop policy. It does not establish
+asset rights, approve the visible focal point on every supported viewport, prove contrast against
+every composited region, exercise an unavailable-image path, complete independent accessibility
+review, activate a patient feature, create a production patient, migrate data, or deploy.

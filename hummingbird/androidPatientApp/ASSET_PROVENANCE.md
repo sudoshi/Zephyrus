@@ -23,9 +23,10 @@ safety state remain complete if an image cannot be perceived.
 
 - The full source aspect ratio is retained in each derivative; there is no
   destructive pre-crop.
-- `ContentScale.Crop` preserves aspect ratio and center alignment. Extra width
-  is cropped symmetrically on tall phones; no screen applies pan, parallax, or
-  animation.
+- An explicit `ContentScale.Crop` plus `Alignment.Center` policy preserves
+  aspect ratio and center alignment; the Android JVM test pins both values.
+  Extra width is cropped symmetrically on tall phones; no screen applies pan,
+  parallax, or animation.
 - The scrim uses the active Material surface color, so the same deterministic
   treatment works in light and dark appearance. Cards use opaque Material
   semantic containers above the scrim.

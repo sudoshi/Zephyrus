@@ -1,11 +1,19 @@
 package net.acumenus.hummingbird.patient.ui
 
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.ContentScale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PatientVisualAssetPolicyTest {
+    @Test
+    fun scenicPhotographyUsesAnExplicitStaticCenteredAspectFillCrop() {
+        assertEquals(ContentScale.Crop, PatientScenicImageCropPolicy.contentScale)
+        assertEquals(Alignment.Center, PatientScenicImageCropPolicy.alignment)
+    }
+
     @Test
     fun eachPatientMomentUsesAnExplicitStaticHummingbirdScene() {
         assertTrue(PatientScene.entries.all { it.drawable != 0 })

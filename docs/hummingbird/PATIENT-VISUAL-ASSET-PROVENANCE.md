@@ -38,8 +38,10 @@ attribution review required**.
 - iOS suppresses the photography when Reduce Transparency is enabled. The
   screen remains complete against an opaque system background.
 - Runtime aspect-fill is presentation behavior, not a new derivative asset.
-  Product Design must approve focal-point crops on every supported viewport
-  before the release hold can be lifted.
+  Both native renderers explicitly use a static centered aspect-fill policy;
+  native tests pin that policy rather than relying on a framework default.
+  Product Design must still approve the resulting focal-point crops on every
+  supported viewport before the release hold can be lifted.
 - The first tracked repository commit currently discoverable for these source
   paths is `cd6d1b048ad44763f88e7f1a3474657645a8559b` (2026-07-02,
   “Beautify login with hummingbird slideshow”). That commit is a repository

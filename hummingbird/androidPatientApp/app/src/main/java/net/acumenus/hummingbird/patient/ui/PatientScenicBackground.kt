@@ -8,10 +8,11 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import net.acumenus.hummingbird.patient.R
 
@@ -36,6 +37,18 @@ internal data class PatientSceneAccessibilityPolicy(
     val imageAlpha: Float,
     val scrimAlphas: List<Float>,
 )
+
+/**
+ * Decorative patient photography always fills the viewport from its center.
+ *
+ * Keeping this policy in one named value prevents an incidental Compose default
+ * from changing the clinical surface's visual treatment when the renderer is
+ * refactored. No patient screen pans, parallax-scrolls, or animates the image.
+ */
+internal object PatientScenicImageCropPolicy {
+    val contentScale = ContentScale.Crop
+    val alignment = Alignment.Center
+}
 
 internal fun patientSceneAccessibilityPolicy(
     fontScale: Float,
@@ -77,7 +90,8 @@ internal fun PatientScenicBackground(
         Image(
             painter = painterResource(scene.drawable),
             contentDescription = null,
-            contentScale = ContentScale.Crop,
+            contentScale = PatientScenicImageCropPolicy.contentScale,
+            alignment = PatientScenicImageCropPolicy.alignment,
             alpha = accessibilityPolicy.imageAlpha,
             modifier = Modifier.fillMaxSize(),
         )

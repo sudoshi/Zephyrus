@@ -21,6 +21,14 @@ enum PatientPhotoScene: String, CaseIterable {
     }
 }
 
+/// Decorative patient photography always fills the viewport from its center.
+/// The policy is static: care surfaces never pan, parallax-scroll, or animate
+/// a Hummingbird image behind clinical content.
+enum PatientPhotoCropPolicy {
+    static let contentMode: ContentMode = .fill
+    static let alignment: Alignment = .center
+}
+
 struct PatientPhotoBackground: View {
     let scene: PatientPhotoScene
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
@@ -36,8 +44,12 @@ struct PatientPhotoBackground: View {
                 } else {
                     Image(scene.assetName)
                         .resizable()
-                        .scaledToFill()
-                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .aspectRatio(contentMode: PatientPhotoCropPolicy.contentMode)
+                        .frame(
+                            width: proxy.size.width,
+                            height: proxy.size.height,
+                            alignment: PatientPhotoCropPolicy.alignment
+                        )
                         .clipped()
                         .saturation(colorScheme == .dark ? 0.72 : 0.88)
 
