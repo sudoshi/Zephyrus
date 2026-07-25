@@ -44,10 +44,9 @@ final class PatientMessageHandoffHealthReporter
         $heartbeat = $schemaReady
             ? ConsumerHeartbeat::query()->find($this->consumerKey())
             : null;
-        $heartbeatFresh = $activationState !== 'active'
-            || ($heartbeat !== null
-                && $heartbeat->last_seen_at !== null
-                && $heartbeat->last_seen_at->gte($observedAt->copy()->subSeconds($ttlSeconds)));
+        $heartbeatFresh = $heartbeat !== null
+            && $heartbeat->last_seen_at !== null
+            && $heartbeat->last_seen_at->gte($observedAt->copy()->subSeconds($ttlSeconds));
         $outbox = $schemaReady ? $this->outboxSummary($observedAt) : $this->emptyOutboxSummary();
 
         $status = $this->status(
