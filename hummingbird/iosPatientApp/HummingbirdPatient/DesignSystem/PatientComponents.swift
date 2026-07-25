@@ -30,6 +30,7 @@ struct PatientScreenHeader: View {
     let eyebrow: String
     let title: String
     let subtitle: String
+    let headingIdentifier: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -40,11 +41,22 @@ struct PatientScreenHeader: View {
             Text(title)
                 .font(.largeTitle.bold())
                 .foregroundStyle(PatientPalette.ink)
+                .patientAccessibilityHeading(identifier: headingIdentifier)
             Text(subtitle)
                 .font(.body)
                 .patientSecondaryText()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+extension View {
+    /// Gives a visible patient-care landmark a stable identifier and the native
+    /// VoiceOver heading trait. The identifier is test evidence only; it does
+    /// not replace device-level VoiceOver navigation validation.
+    func patientAccessibilityHeading(identifier: String) -> some View {
+        accessibilityAddTraits(.isHeader)
+            .accessibilityIdentifier(identifier)
     }
 }
 

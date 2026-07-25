@@ -47,7 +47,8 @@ private struct PatientNoActiveEncounterView: View {
                 PatientScreenHeader(
                     eyebrow: "Care access",
                     title: "Hello, \(firstName)",
-                    subtitle: state.title
+                    subtitle: state.title,
+                    headingIdentifier: "patient-heading-care-access"
                 )
                 PatientCard {
                     VStack(alignment: .leading, spacing: 10) {

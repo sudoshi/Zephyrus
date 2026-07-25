@@ -14,6 +14,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.lifecycle.Lifecycle
@@ -26,6 +28,8 @@ import org.junit.Test
 class PatientPrimaryJourneyInstrumentedTest {
     @get:Rule
     val composeRule = createEmptyComposeRule()
+
+    private val hasHeadingSemantics = SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)
 
     @Test
     fun syntheticPreferencesAreVisiblePatientSafeAndNeverClaimToChangeCare() {
@@ -62,7 +66,9 @@ class PatientPrimaryJourneyInstrumentedTest {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         ActivityScenario.launch<MainActivity>(intent).use { scenario ->
-            composeRule.onNodeWithText("Hummingbird Patient").assertIsDisplayed()
+            composeRule.onNodeWithText("Hummingbird Patient")
+                .assertIsDisplayed()
+                .assert(hasHeadingSemantics)
             composeRule.onNodeWithText("Synthetic reference scenario — not a real patient record")
                 .performScrollTo()
                 .assertIsDisplayed()
@@ -139,7 +145,9 @@ class PatientPrimaryJourneyInstrumentedTest {
             composeRule.onNodeWithText("Information updated").assertIsDisplayed()
             composeRule.onNodeWithTag("patient-content")
                 .performScrollToNode(hasText("Learning and preparation"))
-            composeRule.onNodeWithText("Learning and preparation").assertIsDisplayed()
+            composeRule.onNodeWithText("Learning and preparation")
+                .assertIsDisplayed()
+                .assert(hasHeadingSemantics)
             composeRule.onNodeWithTag("patient-content")
                 .performScrollToNode(hasText("Preparing for the next setting"))
             composeRule.onNodeWithText("Preparing for the next setting").assertIsDisplayed()
@@ -206,11 +214,15 @@ class PatientPrimaryJourneyInstrumentedTest {
             composeRule.onNodeWithText("How to reach your team").assertIsDisplayed()
 
             composeRule.onNodeWithText("Messages").performClick()
+            composeRule.onNodeWithText("Hummingbird Patient").assert(hasHeadingSemantics)
             composeRule.onNodeWithTag("patient-content")
                 .performScrollToNode(hasText("Message your care team"))
             composeRule.onNodeWithText("Message your care team").assertIsDisplayed()
             composeRule.onNodeWithText("Messages go to the responsible care-team pool", substring = true)
                 .assertIsDisplayed()
+            composeRule.onNodeWithTag("patient-content")
+                .performScrollToNode(hasText("Your conversations"))
+            composeRule.onNodeWithText("Your conversations").assert(hasHeadingSemantics)
 
             scenario.onActivity { activity ->
                 assertTrue(

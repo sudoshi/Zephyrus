@@ -12,7 +12,8 @@ struct PatientMessagesView: View {
                 PatientScreenHeader(
                     eyebrow: "Nonurgent care questions",
                     title: "Messages",
-                    subtitle: "Ask a question about your care and follow the conversation with your care team. Messages are not live chat."
+                    subtitle: "Ask a question about your care and follow the conversation with your care team. Messages are not live chat.",
+                    headingIdentifier: "patient-heading-messages"
                 )
 
                 #if DEBUG
@@ -97,6 +98,7 @@ struct PatientMessagesView: View {
             Text("Your conversations")
                 .font(.title2.bold())
                 .foregroundStyle(PatientPalette.ink)
+                .patientAccessibilityHeading(identifier: "patient-heading-your-conversations")
 
             if overview.threads.isEmpty {
                 PatientPhotoStateCard(

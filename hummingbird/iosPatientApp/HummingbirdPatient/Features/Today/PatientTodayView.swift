@@ -9,7 +9,8 @@ struct PatientTodayView: View {
                 PatientScreenHeader(
                     eyebrow: "Your day",
                     title: "Hello, \(firstName)",
-                    subtitle: snapshot.encounterLabel
+                    subtitle: snapshot.encounterLabel,
+                    headingIdentifier: "patient-heading-today"
                 )
 
                 #if DEBUG
@@ -29,6 +30,7 @@ struct PatientTodayView: View {
                 Text("Today’s plan")
                     .font(.title2.bold())
                     .foregroundStyle(PatientPalette.ink)
+                    .patientAccessibilityHeading(identifier: "patient-heading-todays-plan")
                     .padding(.top, 4)
 
                 if let currentStage = snapshot.pathwayStages.first(where: { $0.state == .current }) {

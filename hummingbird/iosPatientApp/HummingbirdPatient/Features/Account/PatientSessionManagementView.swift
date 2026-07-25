@@ -15,7 +15,8 @@ struct PatientSessionManagementView: View {
                         PatientScreenHeader(
                             eyebrow: "Account security",
                             title: "Manage devices",
-                            subtitle: "Review the devices currently signed in to Hummingbird Patient."
+                            subtitle: "Review the devices currently signed in to Hummingbird Patient.",
+                            headingIdentifier: "patient-heading-manage-devices"
                         )
 
                         content

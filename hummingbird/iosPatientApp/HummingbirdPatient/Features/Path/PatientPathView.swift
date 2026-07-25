@@ -12,7 +12,8 @@ struct PatientPathView: View {
                 PatientScreenHeader(
                     eyebrow: "Your care pathway",
                     title: "My Path",
-                    subtitle: "A plain-language view of what is complete, what is happening, and what remains uncertain."
+                    subtitle: "A plain-language view of what is complete, what is happening, and what remains uncertain.",
+                    headingIdentifier: "patient-heading-my-path"
                 )
                 #if DEBUG
                 if snapshot.isSynthetic { SyntheticReferenceBanner() }
@@ -110,6 +111,7 @@ struct PatientPathView: View {
                     Text("Learning and preparation")
                         .font(.title2.bold())
                         .foregroundStyle(PatientPalette.ink)
+                        .patientAccessibilityHeading(identifier: "patient-heading-learning-and-preparation")
                     ForEach(snapshot.pathwayEducation) { education in
                         PatientCard {
                             VStack(alignment: .leading, spacing: 10) {

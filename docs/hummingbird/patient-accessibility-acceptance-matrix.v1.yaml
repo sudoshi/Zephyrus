@@ -1,5 +1,5 @@
 version: 1
-as_of: 2026-07-22
+as_of: 2026-07-25
 governance_status: draft_requires_multidisciplinary_approval
 release_status: not_pilot_ready
 
@@ -175,8 +175,17 @@ criteria:
       preferences, and session-management journeys in a logical order with
       descriptive controls, headings, grouped context, and restrained status
       announcements.
-    automation_status: manual_validation_required
-    automated_evidence: []
+    automation_status: automated_evidence_exists
+    automated_evidence:
+      - hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientComponents.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/Today/PatientTodayView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/Path/PatientPathView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/CareTeam/PatientCareTeamView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/Messages/PatientMessagesView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientReferenceJourneyUITests.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientExperienceScreen.kt
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientMessagingPanel.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientPrimaryJourneyInstrumentedTest.kt
     human_validation_required:
       - Run VoiceOver rotor and swipe navigation across every primary journey, modal, alert, confirmation, and error state.
       - Run TalkBack linear navigation and action menus across the same journeys, including a message correction and current-device sign-out.

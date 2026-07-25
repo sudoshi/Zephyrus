@@ -118,6 +118,29 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         attachScreenshot(named: "Rounds-Question-Read-Only")
     }
 
+    func testPrimaryCareLandmarksRemainDiscoverableAcrossEveryPatientTab() {
+        XCTAssertTrue(app.tabBars.buttons["Today"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["patient-heading-today"].exists)
+        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["patient-heading-todays-plan"]))
+
+        app.tabBars.buttons["My Path"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["patient-heading-my-path"].waitForExistence(timeout: 2))
+        XCTAssertTrue(
+            scrollUntilExists(
+                app.descendants(matching: .any)["patient-heading-learning-and-preparation"]
+            )
+        )
+
+        app.tabBars.buttons["Care Team"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["patient-heading-care-team"].waitForExistence(timeout: 2))
+        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["patient-heading-your-team"]))
+
+        app.tabBars.buttons["Messages"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["patient-heading-messages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["patient-heading-your-conversations"]))
+        attachScreenshot(named: "Primary-Care-Heading-Landmarks")
+    }
+
     func testDefaultBuildFailsClosedWithAReadableWelcomeAndNoPatientRequest() {
         app.terminate()
         app = XCUIApplication()

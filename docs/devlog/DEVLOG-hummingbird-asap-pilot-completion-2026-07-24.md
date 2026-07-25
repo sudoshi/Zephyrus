@@ -39,6 +39,49 @@ Each subsequent entry must cite the exact commit SHA, command output/test count,
 simulator or emulator target, feature-flag state, decision record, and unresolved
 blocker. Narrative progress without those artifacts is not an accepted update.
 
+## 2026-07-25 — Patient screen-reader heading landmark increment
+
+### Completed implementation
+
+- Added a shared iOS `patientAccessibilityHeading` modifier. It applies the native
+  VoiceOver heading trait and a non-clinical stable identifier to a visible care
+  landmark; the identifier supports regression evidence and is not exposed as care
+  content.
+- Applied the marker to all primary iOS patient surfaces (Today, My Path, Care
+  Team, Messages), the no-active-care state, and device-management. It also marks
+  the key Today’s plan, Learning and preparation, Your team, and Your conversations
+  sections. The marker deliberately does not change patient content, navigation,
+  authorization, scenario data, feature flags, or urgent-help wording.
+- Marked the Android Hummingbird Patient application title as a Compose heading,
+  matching the existing Android section-heading pattern. The Android API 35
+  journey now asserts heading semantics for the application title, Learning and
+  preparation, and Your conversations; the iOS journey asserts that the stable
+  landmarks remain discoverable through every primary tab.
+- Updated the draft acceptance matrix from no automated evidence to limited
+  automated landmark evidence for the critical screen-reader criterion. The
+  criterion remains subject to every listed human validation and the matrix remains
+  `draft_requires_multidisciplinary_approval` / `not_pilot_ready`.
+
+### Verification
+
+| Boundary                    | Command / target                                                                                                                                                                                                                                                                                               | Result                                                                                                        |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| iOS heading landmarks       | `xcodebuild -project HummingbirdPatient.xcodeproj -scheme HummingbirdPatient -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:HummingbirdPatientUITests/PatientReferenceJourneyUITests/testPrimaryCareLandmarksRemainDiscoverableAcrossEveryPatientTab test` on iPhone 17 Pro / iOS 26.3 | 1 UI test, 0 failures; Today, My Path, Care Team, Messages, and each named key section were discoverable      |
+| Android heading semantics   | `./gradlew connectedDebugAndroidTest --rerun-tasks --console=plain -Pandroid.testInstrumentationRunnerArguments.class=net.acumenus.hummingbird.patient.PatientPrimaryJourneyInstrumentedTest` on `hb(AVD)` / API 35                                                                                            | 7 instrumentation tests, 0 failures/errors/skips; Compose `Heading` semantics asserted on the named landmarks |
+| Full native regression      | `xcodebuild ... test` on iPhone 17 Pro / iOS 26.3; `./gradlew connectedDebugAndroidTest --rerun-tasks --console=plain` on `hb(AVD)` / API 35                                                                                                                                                                   | iOS: 85 tests, 0 failures (73 unit plus 12 UI); Android: 16 instrumentation tests, 0 failures/errors/skips    |
+| Acceptance-matrix integrity | `php scripts/verify-hummingbird-patient-accessibility-matrix.php`                                                                                                                                                                                                                                              | 12 criteria: 8 automated-evidence, 2 human-validation, 2 not-started; draft and not pilot-ready               |
+
+### Explicit remaining boundary
+
+This increment proves only that the named native semantic markers remain present
+in the synthetic regression journeys. It does not prove VoiceOver rotor order,
+TalkBack linear focus order/action menus, accessible names and hints throughout
+the app, modal/error-state announcements, switch-control behavior, language
+access, or patient comprehension. Those reviews require the named qualified
+accessibility evaluator and patient advisor before pilot enrollment. No patient
+was created or activated; no release, production database, feature flag, or
+deployment changed.
+
 ## 2026-07-25 — Patient scenic-background parity and integrity guard
 
 ### Completed implementation

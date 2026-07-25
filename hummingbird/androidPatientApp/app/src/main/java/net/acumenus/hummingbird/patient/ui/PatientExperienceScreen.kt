@@ -129,6 +129,7 @@ internal fun PatientExperienceScreen(
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.semantics { heading() },
                         )
                     },
                     actions = {
