@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Security\ClinicalPayloads\ClinicalContentGuard;
 use App\Services\Alerting\OperationalAlert;
 use App\Services\Alerting\OperationalAlertDispatcher;
+use App\Services\Patient\Messaging\PatientMessageHandoffHealthReporter;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,7 @@ final class SystemHealthService
     public function __construct(
         private readonly OperationalAlertDispatcher $alertDispatcher,
         private readonly ClinicalContentGuard $contentGuard,
+        private readonly PatientMessageHandoffHealthReporter $patientMessageHandoff,
     ) {}
 
     /** @return array<string, mixed> */
@@ -342,6 +344,7 @@ final class SystemHealthService
             'sessions' => $this->probeSessions(),
             'integration_runtime' => $this->probeIntegrationRuntime(),
             'patient_projection_pipeline' => $this->probePatientProjectionPipeline(),
+            'patient_message_handoff' => $this->probePatientMessageHandoff(),
             'realtime' => $this->probeRealtime(),
             'object_storage' => $this->probeObjectStorage(),
             'disk_capacity' => $this->probeDiskCapacity(),
@@ -751,6 +754,123 @@ final class SystemHealthService
             'summary' => 'Enabled patient pathway projections have current bounded freshness and no recent failures.',
             'details' => $details,
         ];
+    }
+
+    /**
+     * The handoff reporter owns its own content-free, aggregate-only query.
+     * This adapter deliberately copies only stable booleans, statuses, and
+     * counts into the system-health evidence/alert path.
+     *
+     * @return array{status:string, summary:string, errorCode?:string|null, details:array<string, mixed>}
+     */
+    private function probePatientMessageHandoff(): array
+    {
+        $gates = [
+            'staffMessaging' => (bool) config('hummingbird-patient.staff_messaging.enabled', false),
+            'governanceApproved' => config('hummingbird-patient.staff_messaging.governance_status') === 'approved',
+        ];
+        $enabledGateCount = collect($gates)->filter()->count();
+        $requiredGateCount = count($gates);
+        $activationState = ! $gates['staffMessaging']
+            ? 'disabled'
+            : ($gates['governanceApproved'] ? 'active' : 'governance_unapproved');
+        $baseDetails = [
+            'monitoringEnabled' => $enabledGateCount === $requiredGateCount,
+            'enabledGateCount' => $enabledGateCount,
+            'requiredGateCount' => $requiredGateCount,
+            'activationState' => $activationState,
+            'schemaReady' => null,
+            'consumer' => [
+                'heartbeatPresent' => null,
+                'heartbeatFresh' => null,
+                'heartbeatStatus' => null,
+                'heartbeatTtlSeconds' => null,
+            ],
+            'outbox' => [
+                'totalUnexpired' => null,
+                'pendingReady' => null,
+                'pendingScheduled' => null,
+                'inFlight' => null,
+                'expiredClaimLease' => null,
+                'retryDue' => null,
+                'retryScheduled' => null,
+                'terminalFailure' => null,
+                'delivered' => null,
+                'expired' => null,
+                'unknownState' => null,
+            ],
+        ];
+
+        if ($enabledGateCount === 0) {
+            return [
+                'status' => 'healthy',
+                'summary' => 'Patient message handoff monitoring is disabled by the current governance gates.',
+                'details' => $baseDetails,
+            ];
+        }
+
+        if ($enabledGateCount !== $requiredGateCount) {
+            return [
+                'status' => 'warning',
+                'summary' => 'Patient message handoff monitoring has incomplete governance prerequisites.',
+                'errorCode' => 'patient_message_handoff_monitoring_prerequisites_incomplete',
+                'details' => $baseDetails,
+            ];
+        }
+
+        $report = $this->patientMessageHandoff->report();
+        $outbox = $report['outbox'];
+        $details = [
+            ...$baseDetails,
+            'monitoringEnabled' => true,
+            'activationState' => $report['activation_state'],
+            'schemaReady' => $report['schema_ready'],
+            'consumer' => [
+                'heartbeatPresent' => $report['consumer']['heartbeat_present'],
+                'heartbeatFresh' => $report['consumer']['heartbeat_fresh'],
+                'heartbeatStatus' => $report['consumer']['heartbeat_status'],
+                'heartbeatTtlSeconds' => $report['consumer']['heartbeat_ttl_seconds'],
+            ],
+            'outbox' => [
+                'totalUnexpired' => $outbox['total_unexpired'],
+                'pendingReady' => $outbox['pending_ready'],
+                'pendingScheduled' => $outbox['pending_scheduled'],
+                'inFlight' => $outbox['in_flight'],
+                'expiredClaimLease' => $outbox['expired_claim_lease'],
+                'retryDue' => $outbox['retry_due'],
+                'retryScheduled' => $outbox['retry_scheduled'],
+                'terminalFailure' => $outbox['terminal_failure'],
+                'delivered' => $outbox['delivered'],
+                'expired' => $outbox['expired'],
+                'unknownState' => $outbox['unknown_state'],
+            ],
+        ];
+
+        return match ($report['status']) {
+            'healthy' => [
+                'status' => 'healthy',
+                'summary' => 'Enabled patient message handoff has a fresh ready consumer and no unresolved delivery state.',
+                'details' => $details,
+            ],
+            'warning' => [
+                'status' => 'warning',
+                'summary' => 'Enabled patient message handoff requires operator review.',
+                'errorCode' => 'patient_message_handoff_degraded',
+                'details' => $details,
+            ],
+            'critical' => [
+                'status' => 'critical',
+                'summary' => 'Enabled patient message handoff cannot safely accept new patient communication work.',
+                'errorCode' => 'patient_message_handoff_critical',
+                'details' => $details,
+            ],
+            default => [
+                'status' => 'critical',
+                'summary' => 'Enabled patient message handoff returned an unrecognized health state.',
+                'errorCode' => 'patient_message_handoff_health_unknown',
+                'details' => $details,
+            ],
+        };
     }
 
     private function patientPathwayObservationSummary(CarbonImmutable $observedAt): object

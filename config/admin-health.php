@@ -70,6 +70,10 @@ return [
         'sessions' => ['label' => 'Session security', 'category' => 'Security', 'required' => true, 'owner' => 'Security Engineering', 'runbook' => 'sessions'],
         'integration_runtime' => ['label' => 'Integration runtime', 'category' => 'Interoperability', 'required' => true, 'owner' => 'Integration Operations', 'runbook' => 'integration-runtime'],
         'patient_projection_pipeline' => ['label' => 'Patient pathway projections', 'category' => 'Patient experience', 'required' => true, 'owner' => 'Clinical Integration Operations', 'runbook' => 'hummingbird-patient-projection-pipeline'],
+        // Reuses a dedicated aggregate-only reporter. The probe is healthy while
+        // both staff-handoff gates are off and only becomes a readiness signal
+        // after intentional enablement plus governance approval.
+        'patient_message_handoff' => ['label' => 'Patient message handoff', 'category' => 'Patient experience', 'required' => true, 'owner' => 'Clinical Response Operations', 'runbook' => 'hummingbird-patient-message-handoff'],
         'realtime' => ['label' => 'Realtime broadcasting', 'category' => 'Application runtime', 'required' => false, 'owner' => 'Platform Engineering', 'runbook' => 'realtime'],
         'object_storage' => ['label' => 'Object storage', 'category' => 'Data plane', 'required' => true, 'owner' => 'Platform Engineering', 'runbook' => 'object-storage'],
         'disk_capacity' => ['label' => 'Local disk capacity', 'category' => 'Infrastructure', 'required' => true, 'owner' => 'Platform Engineering', 'runbook' => 'disk-capacity'],

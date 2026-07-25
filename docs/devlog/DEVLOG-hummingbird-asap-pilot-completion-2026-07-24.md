@@ -992,6 +992,11 @@ production runbooks, a patient activation, a production patient, a migration, or
 - The reporter distinguishes a fresh-but-degraded consumer from a missing/stale heartbeat. A
   scheduled retry is a warning; missing schema/heartbeat, terminal delivery failure, or an
   unrecognized immutable attempt state is critical and returns a nonzero command exit code.
+- Registered the same aggregate reporter as the required `patient_message_handoff` Admin System
+  Health component. It is healthy while both staff-handoff governance gates are off, warns for a
+  partial activation, and, once active, records only content-free counts/statuses in the
+  append-only health ledger. A transition into critical emits exactly one existing operational
+  alert; a persistent critical state does not re-page.
 - Added the draft [patient-message handoff operator runbook](../operations/HUMMINGBIRD-PATIENT-MESSAGE-HANDOFF-RUNBOOK.md).
   It makes the current boundary explicit: investigate through approved operations, never mutate
   append-only delivery facts or create a duplicate outbox item, and do not treat the report as a
@@ -999,13 +1004,14 @@ production runbooks, a patient activation, a production patient, a migration, or
 
 ### Verification
 
-| Boundary                                                                                                                   | Command / target                                                                                       | Result                                        |
-| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
-| Handoff ledger, claim lease, aggregate report, warning/critical exit codes, disabled-state liveness, and content exclusion | `php artisan test tests/Feature/Patient/PatientStaffMessageHandoffConsumerTest.php`                    | 15 passed / 154 assertions                    |
-| Native patient revalidation before this backend-only slice (`a87662e1`; native sources unchanged)                          | Android API 35 `connectedDebugAndroidTest --rerun-tasks`; iPhone 17 Pro / iOS 26.3.1 `xcodebuild test` | Android 16 passed; iOS 81 passed / 0 failures |
+| Boundary                                                                                                                                          | Command / target                                                                                       | Result                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| Handoff ledger, claim lease, aggregate report, disabled-state liveness, Admin System Health alert transition/deduplication, and content exclusion | `php artisan test tests/Feature/Patient/PatientStaffMessageHandoffConsumerTest.php`                    | 16 passed / 170 assertions                    |
+| Native patient revalidation before this backend-only slice (`a87662e1`; native sources unchanged)                                                 | Android API 35 `connectedDebugAndroidTest --rerun-tasks`; iPhone 17 Pro / iOS 26.3.1 `xcodebuild test` | Android 16 passed; iOS 81 passed / 0 failures |
 
 ### Remaining boundary
 
-This supplies read-only visibility and a safe incident boundary. It does not implement an approved
-terminal-failure supersession/requeue workflow, alert routing/SLOs, projection/push consumers,
-production rehearsal, patient activation, a production patient, a migration, or deployment.
+This supplies read-only visibility, transition-deduplicated critical alert evidence, and a safe
+incident boundary. It does not implement an approved terminal-failure supersession/requeue
+workflow, numeric SLO/response-time ownership, projection/push consumers, production rehearsal,
+patient activation, a production patient, a migration, or deployment.

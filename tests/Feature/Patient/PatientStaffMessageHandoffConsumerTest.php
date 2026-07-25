@@ -18,11 +18,13 @@ use App\Models\PatientCommunication\StaffActionEvent;
 use App\Models\PatientCommunication\ThreadWorkItem;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Admin\SystemHealthService;
 use App\Services\Patient\Messaging\DatabasePatientMessageHandoffConsumer;
 use App\Services\Patient\Messaging\PatientMessageHandoffHealthReporter;
 use App\Services\Patient\PatientHmac;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -562,6 +564,71 @@ class PatientStaffMessageHandoffConsumerTest extends TestCase
         $this->assertFalse($report['consumer']['heartbeat_fresh']);
         $this->assertFalse($report['requires_operator_action']);
         $this->assertSame(0, Artisan::call('hummingbird:patient-message-handoff-health', ['--json' => true]));
+    }
+
+    public function test_system_health_routes_content_free_handoff_critical_evidence_once_after_activation(): void
+    {
+        $disabledSnapshot = $this->app->make(SystemHealthService::class)->collect('scheduled');
+        $disabledComponent = collect($disabledSnapshot['observations'])->firstWhere('key', 'patient_message_handoff');
+
+        $this->assertSame('healthy', $disabledComponent['status']);
+        $this->assertFalse($disabledComponent['details']['monitoringEnabled']);
+        $this->assertSame(0, $disabledComponent['details']['enabledGateCount']);
+        $this->assertSame(2, $disabledComponent['details']['requiredGateCount']);
+
+        [$unit, $staff] = $this->operationalUnitAndResponder();
+        $this->configureMessaging($unit);
+        $pool = $this->createPool($unit);
+        $this->createMembership($pool, $staff);
+        $consumer = $this->app->make(DatabasePatientMessageHandoffConsumer::class);
+        $consumer->consumeBatch('test-system-health-bootstrap-worker');
+
+        $outbox = $this->createUnresolvableOutbox();
+        PatientNotificationDeliveryAttempt::query()->create([
+            'delivery_attempt_uuid' => (string) Str::uuid7(),
+            'notification_outbox_id' => $outbox->getKey(),
+            'attempt_number' => 1,
+            'status' => 'terminal_failure',
+            'worker_ref' => 'test-system-health-terminal-worker',
+            'error_code' => 'handoff_thread_unavailable',
+            'metadata' => [
+                'schema_version' => 1,
+                'content_included' => false,
+                'destination' => 'staff_inbox',
+            ],
+            'occurred_at' => now(),
+        ]);
+
+        $snapshot = $this->app->make(SystemHealthService::class)->collect('scheduled');
+        $component = collect($snapshot['observations'])->firstWhere('key', 'patient_message_handoff');
+
+        $this->assertSame('critical', $component['status']);
+        $this->assertSame('patient_message_handoff_critical', $component['errorCode']);
+        $this->assertTrue($component['details']['monitoringEnabled']);
+        $this->assertSame('active', $component['details']['activationState']);
+        $this->assertTrue($component['details']['schemaReady']);
+        $this->assertTrue($component['details']['consumer']['heartbeatPresent']);
+        $this->assertTrue($component['details']['consumer']['heartbeatFresh']);
+        $this->assertSame(1, $component['details']['outbox']['terminalFailure']);
+        $this->assertStringNotContainsString((string) $outbox->outbox_uuid, json_encode($component, JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('test-system-health-terminal-worker', json_encode($component, JSON_THROW_ON_ERROR));
+        $this->assertDatabaseHas('integration.operational_alert_deliveries', [
+            'alert_domain' => 'system_health',
+            'alert_code' => 'system_health_component_critical',
+            'subject_type' => 'system_health_component',
+            'subject_reference' => 'patient_message_handoff',
+        ]);
+
+        $alertCount = DB::table('integration.operational_alert_deliveries')
+            ->where('subject_reference', 'patient_message_handoff')
+            ->count();
+        $this->app->make(SystemHealthService::class)->collect('scheduled');
+        $this->assertSame(
+            $alertCount,
+            DB::table('integration.operational_alert_deliveries')
+                ->where('subject_reference', 'patient_message_handoff')
+                ->count(),
+        );
     }
 
     public function test_post_batch_heartbeat_stays_degraded_until_every_unexpired_outbox_is_resolved(): void

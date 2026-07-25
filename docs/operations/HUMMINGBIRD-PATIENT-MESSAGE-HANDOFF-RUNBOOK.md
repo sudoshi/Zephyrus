@@ -31,6 +31,13 @@ state. Preserve the command output with the incident record only if the receivin
 system is approved for operational metadata; do not add identifiers or message text
 to a ticket.
 
+The scheduled Admin System Health collector also records the same aggregate values
+under `patient_message_handoff`. With both handoff governance gates off it is
+intentionally healthy; a partial activation warns; and an active critical transition
+creates one deduplicated, content-free operational alert. Inspect that authorized
+surface before acknowledging an incident. Do not use it to activate messaging or
+manually replay delivery.
+
 ## Interpreting the report
 
 | Field / state                   | Meaning                                                                                                                                             | Immediate safe action                                                                                                                              |
@@ -67,7 +74,7 @@ to a ticket.
 
 ## Pilot prerequisites still open
 
-- Named alert routing, service-level objectives, response times, and escalation owners.
+- Numeric SLO targets, response times, and named escalation owners for the approved pilot.
 - An approved terminal-failure remediation/supersession workflow; no requeue exists today.
 - Projection and push outbox consumers with their own delivery policy and runbooks.
 - Approved patient identity/enrollment, source/release, responsibility-pool, and pilot
