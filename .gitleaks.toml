@@ -56,6 +56,18 @@ paths = ['''^tests/Feature/Rounds/PatientRoundQuestionPromotionTest\.php$''']
 regexes = ['''test-rounds-question-key-v1''']
 
 [[allowlists]]
+# Hummingbird Android DTO fixture: a literal UUID used as the POST replay/
+# idempotency key in a unit test — the variable name (replayKey) trips the
+# generic-api-key rule. A UUID echoed through request-header assertions is
+# not credential material. Scoped to the exact file and exact fixture value;
+# the full-history scan also sees this on in-flight feature branches, so the
+# allowlist must live here rather than only on the branch that adds the test.
+description = "Hummingbird Android fixture replay-key UUID"
+condition = "AND"
+paths = ['''^hummingbird/androidApp/app/src/test/java/net/acumenus/hummingbird/data/SharedDtoFixtureDecodeTest\.kt$''']
+regexes = ['''5ac78f64-66f8-4db3-a871-6f143e14ea34''']
+
+[[allowlists]]
 # Care-pathway governance fixtures: captured real API envelopes whose
 # `"key"` field is the public stable pathway identifier (drgcp-<slug>-<hex12>
 # from care_pathways.definitions.pathway_key), not credential material. The
