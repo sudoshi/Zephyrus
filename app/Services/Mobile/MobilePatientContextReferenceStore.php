@@ -19,11 +19,7 @@ class MobilePatientContextReferenceStore
 
     public function issue(string $patientRef): string
     {
-        if (trim($patientRef) === '') {
-            throw new RuntimeException('A patient context handle requires a non-empty internal reference.');
-        }
-
-        $contextRef = 'ptok_'.substr(hash_hmac('sha256', $patientRef, $this->signingKey()), 0, 24);
+        $contextRef = $this->preview($patientRef);
 
         if (! Schema::hasTable(self::TABLE)) {
             throw new RuntimeException('The mobile patient context reference store is not available.');
@@ -42,6 +38,21 @@ class MobilePatientContextReferenceStore
         );
 
         return $contextRef;
+    }
+
+    /**
+     * Derive the opaque handle without creating or refreshing its resolver row.
+     *
+     * This is deliberately suitable for dry-run output only. A caller must use
+     * issue() before presenting the handle as resolvable operational context.
+     */
+    public function preview(string $patientRef): string
+    {
+        if (trim($patientRef) === '') {
+            throw new RuntimeException('A patient context handle requires a non-empty internal reference.');
+        }
+
+        return 'ptok_'.substr(hash_hmac('sha256', $patientRef, $this->signingKey()), 0, 24);
     }
 
     public function resolve(string $contextRef): ?string

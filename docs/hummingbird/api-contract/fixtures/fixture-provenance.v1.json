@@ -1,0 +1,62 @@
+{
+    "schema_version": 1,
+    "purpose": "Shared PHI-minimized mobile BFF fixture provenance. Every JSON fixture is captured from a real factory-seeded Laravel BFF response; it is never a hand-authored client payload.",
+    "regeneration": {
+        "command": "HUMMINGBIRD_FIXTURE_DUMP=1 php artisan test --filter='(FlowFixtureRegenerationTest|SharedDtoFixtureRegenerationTest)'",
+        "post_generation_checks": [
+            "php artisan test tests/Feature/MobileSharedDtoFixtureTest.php --compact",
+            "hummingbird/iosApp/scripts/decode-shared-fixtures.swift",
+            "./gradlew testDebugUnitTest --tests net.acumenus.hummingbird.data.SharedDtoFixtureDecodeTest"
+        ]
+    },
+    "fixtures": [
+        {
+            "filename": "mobile-altitude-home.json",
+            "endpoint": "/api/mobile/v1/altitude/home?persona=bed_manager",
+            "generator": "SharedDtoFixtureRegenerationTest",
+            "source": "factory_seeded_bff"
+        },
+        {
+            "filename": "mobile-for-you.json",
+            "endpoint": "/api/mobile/v1/for-you?persona=bed_manager",
+            "generator": "SharedDtoFixtureRegenerationTest",
+            "source": "factory_seeded_bff"
+        },
+        {
+            "filename": "mobile-activity-feed.json",
+            "endpoint": "/api/mobile/v1/activity?persona=bed_manager",
+            "generator": "SharedDtoFixtureRegenerationTest",
+            "source": "factory_seeded_bff"
+        },
+        {
+            "filename": "mobile-patient-operational-context.json",
+            "endpoint": "/api/mobile/v1/patients/{contextRef}/operational-context?persona=bed_manager",
+            "generator": "SharedDtoFixtureRegenerationTest",
+            "source": "factory_seeded_bff"
+        },
+        {
+            "filename": "mobile-flow-window.json",
+            "endpoint": "/api/mobile/v1/flow/window?persona=bed_manager",
+            "generator": "FlowFixtureRegenerationTest",
+            "source": "factory_seeded_bff"
+        },
+        {
+            "filename": "mobile-flow-window-evs.json",
+            "endpoint": "/api/mobile/v1/flow/window?persona=evs&scope=floor:{floor}",
+            "generator": "FlowFixtureRegenerationTest",
+            "source": "factory_seeded_bff"
+        },
+        {
+            "filename": "mobile-flow-floors.json",
+            "endpoint": "/api/mobile/v1/flow/floors",
+            "generator": "FlowFixtureRegenerationTest",
+            "source": "factory_seeded_bff"
+        },
+        {
+            "filename": "mobile-transport-queue.json",
+            "endpoint": "/api/mobile/v1/transport/queue?persona=transport",
+            "generator": "SharedDtoFixtureRegenerationTest",
+            "source": "factory_seeded_bff"
+        }
+    ]
+}

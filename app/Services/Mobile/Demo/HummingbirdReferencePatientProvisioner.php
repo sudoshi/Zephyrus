@@ -128,7 +128,12 @@ final class HummingbirdReferencePatientProvisioner
         return [
             'committed' => $committed,
             'action' => $action,
-            'patient_context_ref' => $this->patientContext->contextRefFor($patientRef),
+            // A dry run may describe the eventual opaque handle but must never
+            // create a resolver/cache entry as a side effect of inspection.
+            'patient_context_ref' => $committed
+                ? $this->patientContext->contextRefFor($patientRef)
+                : $this->patientContext->previewContextRefFor($patientRef),
+            'patient_context_ref_issued' => $committed,
             'encounter_id' => $encounter?->encounter_id,
             'unit_id' => $unit->unit_id,
             'unit' => $unit->name,

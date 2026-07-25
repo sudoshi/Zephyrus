@@ -12,6 +12,8 @@ class MobileSharedDtoFixtureTest extends TestCase
 
     private const ANDROID_DECODE_TEST = 'hummingbird/androidApp/app/src/test/java/net/acumenus/hummingbird/data/SharedDtoFixtureDecodeTest.kt';
 
+    private const PROVENANCE = 'docs/hummingbird/api-contract/fixtures/fixture-provenance.v1.json';
+
     private const FIXTURES = [
         'mobile-altitude-home.json',
         'mobile-for-you.json',
@@ -79,6 +81,30 @@ class MobileSharedDtoFixtureTest extends TestCase
         $this->assertStringContainsString('parseFlowWindow', $android);
         $this->assertStringContainsString('parseFlowFloors', $android);
         $this->assertStringContainsString('parseTransportQueue', $android);
+    }
+
+    public function test_every_shared_fixture_has_factory_backed_bff_provenance(): void
+    {
+        $provenance = json_decode(
+            file_get_contents(base_path(self::PROVENANCE)),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+
+        $this->assertSame(1, $provenance['schema_version'] ?? null);
+        $this->assertStringContainsString('HUMMINGBIRD_FIXTURE_DUMP=1', $provenance['regeneration']['command'] ?? '');
+
+        $declared = collect($provenance['fixtures'] ?? [])
+            ->mapWithKeys(fn (array $fixture): array => [$fixture['filename'] ?? '' => $fixture])
+            ->all();
+
+        $this->assertSame(self::FIXTURES, array_keys($declared), 'Fixture provenance must declare each shared fixture exactly once and in contract order.');
+
+        foreach ($declared as $name => $fixture) {
+            $this->assertSame('factory_seeded_bff', $fixture['source'] ?? null, "{$name} must be captured from a factory-seeded BFF response.");
+            $this->assertIsString($fixture['endpoint'] ?? null, "{$name} must retain its source endpoint.");
+            $this->assertMatchesRegularExpression('/FixtureRegenerationTest$/', $fixture['generator'] ?? '', "{$name} must name its regeneration test.");
+        }
     }
 
     /**

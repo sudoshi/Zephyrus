@@ -29,21 +29,21 @@ class SharedDtoFixtureDecodeTest {
         val first = api.parseForYouItem(data.getJSONObject(0))
         val second = api.parseForYouItem(data.getJSONObject(1))
 
-        assertEquals("transport-17", first.id)
-        assertEquals(CapacityStatus.WARNING, first.capacity)
-        assertEquals("evs-23", second.id)
-        assertEquals(CapacityStatus.INFO, second.capacity)
+        assertTrue(first.id.startsWith("bedreq-"))
+        assertEquals(CapacityStatus.CRITICAL, first.capacity)
+        assertTrue(second.id.startsWith("transport-"))
+        assertEquals(CapacityStatus.CRITICAL, second.capacity)
     }
 
     @Test
     fun decodesActivityFixture() {
         val event = api.parseActivityEvent(fixture("mobile-activity-feed.json").getJSONArray("data").getJSONObject(0))
 
-        assertEquals("transport.progressed", event.eventType)
-        assertEquals("transport", event.domain)
-        assertEquals("ptok_transport_17", event.patientContextRef)
+        assertEquals("bed_request.created", event.eventType)
+        assertEquals("rtdc", event.domain)
+        assertTrue(event.patientContextRef?.startsWith("ptok_") == true)
         assertEquals("warning", event.statusValue)
-        assertEquals("At risk", event.statusLabel)
+        assertEquals("Warning", event.statusLabel)
     }
 
     @Test
@@ -51,12 +51,12 @@ class SharedDtoFixtureDecodeTest {
         val context = api.parsePatientContext(fixture("mobile-patient-operational-context.json").getJSONObject("data"))
 
         assertEquals("A2P", context.altitude)
-        assertEquals("ptok_demo_flow_42", context.patient.patientContextRef)
+        assertTrue(context.patient.patientContextRef?.startsWith("ptok_") == true)
         assertTrue(context.patient.phiMinimized)
         assertEquals(2, context.statusSpine.size)
         assertEquals(2, context.timeline.size)
         assertEquals(2, context.dependencies.size)
-        assertEquals(1, context.actions.size)
+        assertEquals(2, context.actions.size)
     }
 
     @Test
@@ -232,7 +232,7 @@ class SharedDtoFixtureDecodeTest {
         val doc = api.parseFlowFloors(fixture("mobile-flow-floors.json"))
 
         assertTrue(doc.floors.isNotEmpty())
-        assertEquals("v1-a8f91dc9a9e4", doc.version)
+        assertTrue(Regex("^v1-[0-9a-f]{12}$").matches(doc.version))
         val floor3 = doc.floors.first { it.floor == 3 }
         assertEquals(4, floor3.bounds.size)
         assertEquals(4, floor3.spaces.size)
@@ -304,12 +304,12 @@ class SharedDtoFixtureDecodeTest {
         val queue = api.parseTransportQueue(fixture("mobile-transport-queue.json"))
 
         val job = queue.jobs.single()
-        assertTrue(job.claimedByMe)
-        assertTrue(job.handoffRequired)
-        assertEquals(listOf("dispatched", "escalated", "failed"), job.allowedTransitions)
-        assertEquals(3, job.lifecycleVersion)
-        assertTrue(queue.nextCursor!!.isNotBlank())
-        assertTrue(queue.hasMore)
+        assertEquals(false, job.claimedByMe)
+        assertTrue(job.availableToClaim)
+        assertEquals(listOf("assigned"), job.allowedTransitions)
+        assertEquals(1, job.lifecycleVersion)
+        assertNull(queue.nextCursor)
+        assertEquals(false, queue.hasMore)
     }
 
     private fun fixture(filename: String): JSONObject =

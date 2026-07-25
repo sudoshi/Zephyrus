@@ -28,15 +28,20 @@ enum DecodeSharedFixtures {
 
         let forYou = try decode("mobile-for-you.json", as: Envelope<[ForYouItem]>.self, root: root, decoder: decoder)
         try require(forYou.data.count == 2, "For You fixture item count drifted.")
-        try require(forYou.data.first?.capacity == .warning, "For You fixture visual_status was not preferred over legacy tier.")
+        try require(forYou.data.first?.id.hasPrefix("bedreq-") == true && forYou.data.first?.capacity == .critical,
+                    "For You fixture did not decode the factory-seeded critical bed-placement item.")
+        try require(forYou.data.last?.id.hasPrefix("transport-") == true && forYou.data.last?.capacity == .critical,
+                    "For You fixture did not decode the factory-seeded critical transport item.")
 
         let activity = try decode("mobile-activity-feed.json", as: Envelope<[ActivityEvent]>.self, root: root, decoder: decoder)
-        try require(activity.data.first?.eventType == "transport.progressed", "Activity fixture event type drifted.")
+        try require(activity.data.first?.eventType == "bed_request.created", "Activity fixture event type drifted.")
         try require(activity.data.first?.severity == .warning, "Activity fixture severity did not decode from status.severity.")
+        try require(activity.data.first?.patientContextRef?.hasPrefix("ptok_") == true,
+                    "Activity fixture exposed an invalid patient context reference.")
 
         let patient = try decode("mobile-patient-operational-context.json", as: Envelope<PatientOperationalContext>.self, root: root, decoder: decoder)
         try require(patient.data.altitude == "A2P", "Patient context fixture did not decode A2P.")
-        try require(patient.data.patient.patientContextRef == "ptok_demo_flow_42", "Patient context ref drifted.")
+        try require(patient.data.patient.patientContextRef?.hasPrefix("ptok_") == true, "Patient context ref drifted.")
         try require(patient.data.statusSpine.count == 2, "Patient status spine fixture count drifted.")
         try require(patient.data.dependencies.count == 2, "Patient dependency fixture count drifted.")
 
@@ -69,18 +74,20 @@ enum DecodeSharedFixtures {
                     "EVS flow window bed status vocabulary drifted.")
 
         let flowFloors = try decode("mobile-flow-floors.json", as: Envelope<FlowFloorsDocument>.self, root: root, decoder: decoder)
-        try require(flowFloors.data.version == "v1-a8f91dc9a9e4", "Flow floors plates version drifted.")
+        try require(flowFloors.data.version.range(of: "^v1-[0-9a-f]{12}$", options: .regularExpression) != nil,
+                    "Flow floors plates version must retain the v1 content-hash grammar.")
         try require(flowFloors.data.floors.first?.spaces.count == 4, "Flow floors plate count drifted.")
         try require(flowFloors.data.floors.first?.bounds.count == 4, "Flow floors bounds shape drifted.")
         try require(flowFloors.data.floors.contains { floor in floor.spaces.contains { $0.bedId == 693 && $0.rect.count == 4 } },
                     "Flow floors bed plate bridge (bed_id + rect) drifted.")
 
         let transport = try decode("mobile-transport-queue.json", as: Envelope<TransportQueue>.self, root: root, decoder: decoder)
-        try require(transport.data.jobs.first?.claimedByMe == true, "Transport assignment ownership did not decode.")
-        try require(transport.data.jobs.first?.allowedTransitions == ["dispatched", "escalated", "failed"],
+        try require(transport.data.jobs.first?.claimedByMe == false && transport.data.jobs.first?.availableToClaim == true,
+                    "Transport claim availability did not decode.")
+        try require(transport.data.jobs.first?.allowedTransitions == ["assigned"],
                     "Transport server-authorized transitions drifted.")
-        try require(transport.data.jobs.first?.lifecycleVersion == 3, "Transport lifecycle version drifted.")
-        try require(transport.meta?.hasMore == true && transport.meta?.nextCursor?.isEmpty == false,
+        try require(transport.data.jobs.first?.lifecycleVersion == 1, "Transport lifecycle version drifted.")
+        try require(transport.meta?.hasMore == false && transport.meta?.nextCursor == nil,
                     "Transport cursor metadata did not decode.")
 
         print("Decoded 8 shared Hummingbird DTO fixtures.")

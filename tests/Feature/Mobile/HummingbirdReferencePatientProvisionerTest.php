@@ -15,12 +15,20 @@ class HummingbirdReferencePatientProvisionerTest extends TestCase
     public function test_command_is_dry_run_by_default_and_commit_is_idempotent(): void
     {
         $unit = $this->unit('Reference Unit');
+        $preview = app(HummingbirdReferencePatientProvisioner::class)->preview((int) $unit->unit_id);
+
+        $this->assertFalse($preview['committed']);
+        $this->assertFalse($preview['patient_context_ref_issued']);
+        $this->assertMatchesRegularExpression('/^ptok_[a-f0-9]{24}$/D', (string) $preview['patient_context_ref']);
 
         $this->artisan('hummingbird:seed-reference-patient', [
             '--unit-id' => $unit->unit_id,
         ])->assertSuccessful();
 
         $this->assertDatabaseMissing('prod.encounters', [
+            'patient_ref' => HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
+        ]);
+        $this->assertDatabaseMissing('ops.patient_operational_context_cache', [
             'patient_ref' => HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
         ]);
 

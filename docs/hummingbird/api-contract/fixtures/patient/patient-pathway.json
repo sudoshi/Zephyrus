@@ -1,0 +1,129 @@
+{
+    "data": {
+        "projection_uuid": "b8a1bc23-e2c9-5dc9-9bab-960d437c38bd",
+        "encounter_uuid": "d941e97f-9db3-5a3b-af7d-2cc68096d159",
+        "kind": "pathway",
+        "content": {
+            "goals": [
+                {
+                    "label": "Stay active and moving each day",
+                    "status": "in_progress",
+                    "goal_uuid": "0d88a7c6-a218-596e-ba52-d4d5b6985bba",
+                    "author_type": "care_team",
+                    "explanation": "Gentle movement helps recovery and lowers the risk of complications."
+                },
+                {
+                    "label": "Understand my medicines before I go home",
+                    "status": "planned",
+                    "goal_uuid": "e984d243-7ee3-5bfd-93f2-d0dcd86b8a61",
+                    "author_type": "patient"
+                }
+            ],
+            "stages": [
+                {
+                    "title": "Arriving and getting settled",
+                    "status": "completed",
+                    "summary": "You were admitted and your care team reviewed your history.",
+                    "can_change": false,
+                    "stage_uuid": "f9112b8c-123c-53d4-b452-f51f5a0e7c1c"
+                },
+                {
+                    "title": "Understanding what is going on",
+                    "status": "completed",
+                    "summary": "Your team ran initial tests and started treatment.",
+                    "can_change": false,
+                    "stage_uuid": "4028e968-03f1-551c-a4ba-bf0539787d60"
+                },
+                {
+                    "title": "Monitoring and treatment",
+                    "status": "current",
+                    "summary": "Your team is checking how you respond to treatment.",
+                    "can_change": true,
+                    "stage_uuid": "88206b5d-eeb4-521e-adfe-0ca1e741b4e1",
+                    "expected_range": "The next day or two",
+                    "timing_confidence": "estimated"
+                },
+                {
+                    "title": "Preparing to leave the hospital",
+                    "status": "planned",
+                    "summary": "When you are ready, your team will help you plan a safe discharge.",
+                    "can_change": true,
+                    "stage_uuid": "f1baf99b-958b-5152-bb0f-60633e21015c",
+                    "timing_confidence": "unknown"
+                }
+            ],
+            "notices": [
+                "Expected timing is an estimate, not a promise."
+            ],
+            "summary": "This pathway explains the expected sequence of your hospital stay. Timing can change as your care needs change.",
+            "headline": "My Path",
+            "education": [
+                {
+                    "title": "Understanding your treatment",
+                    "summary": "A plain-language overview of what your treatment does and what to expect.",
+                    "item_uuid": "b9979b98-2d6d-59a7-affa-7854b73a95f5"
+                }
+            ],
+            "milestones": [
+                {
+                    "title": "Admitted and settled into your room",
+                    "detail": "Your care team introduced themselves and reviewed your plan.",
+                    "status": "completed",
+                    "can_change": false,
+                    "milestone_uuid": "845b45dc-8318-5580-bfa1-aad86cd4ce26"
+                },
+                {
+                    "title": "Responding to treatment",
+                    "detail": "Your team is watching how your symptoms improve.",
+                    "status": "current",
+                    "timing": "Being checked each day",
+                    "can_change": true,
+                    "milestone_uuid": "f5c35aa0-30f8-54bf-8b47-a1d67972d844",
+                    "timing_confidence": "estimated"
+                },
+                {
+                    "title": "A safe plan for leaving the hospital",
+                    "detail": "Includes medicines, follow-up, and who to contact.",
+                    "status": "planned",
+                    "can_change": true,
+                    "milestone_uuid": "449a0cdf-0a45-5818-b969-36adc3832d64",
+                    "timing_confidence": "unknown"
+                }
+            ],
+            "current_stage": "Monitoring and treatment"
+        },
+        "uncertainty": {
+            "level": "low",
+            "can_change": true,
+            "explanation": "Plans can change as your care needs change.",
+            "reviewed_at": "2026-01-15T12:08:00.000000Z"
+        },
+        "provenance": {
+            "review_state": "automated_test_only",
+            "source_class": "synthetic_clinical_record",
+            "input_classes": [
+                "synthetic_schedule",
+                "synthetic_care_plan"
+            ],
+            "producer_version": "fixture-v1",
+            "projection_method": "deterministic_fixture"
+        },
+        "observed_at": "2026-01-15T12:08:00.000000Z",
+        "generated_at": "2026-01-15T12:08:00.000000Z",
+        "released_at": "2026-01-15T12:08:00.000000Z"
+    },
+    "meta": {
+        "request_id": "3e6897d2-d536-5921-b3ea-1237952464eb",
+        "generated_at": "2026-07-25T14:00:00.000000Z",
+        "source_freshness": {
+            "status": "current",
+            "observed_at": "2026-01-15T12:08:00.000000Z"
+        },
+        "policy_version": "patient-disclosure-v1-test",
+        "state_vocabulary_version": "patient-state-vocabulary.v1-draft",
+        "as_of": "2026-01-15T12:08:00.000000Z",
+        "stale": false,
+        "version": 1
+    },
+    "links": {}
+}

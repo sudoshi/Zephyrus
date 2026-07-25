@@ -1,6 +1,6 @@
 # Hummingbird ASAP Pilot-Completion Plan — 2026-07-24
 
-**Status:** proposed execution reset
+**Status:** active execution reset; no patient feature is enabled
 **Execution log:** [DEVLOG-hummingbird-asap-pilot-completion-2026-07-24.md](../devlog/DEVLOG-hummingbird-asap-pilot-completion-2026-07-24.md)
 **Governing scope:** [Hummingbird functional parity and patient experience plan](../hummingbird/ZEPHYRUS-HUMMINGBIRD-FUNCTIONAL-PARITY-AND-PATIENT-EXPERIENCE-PLAN-2026-07-19.md)
 **Decision needed:** approve the controlled-pilot cutline in section 2 within one business day.
@@ -13,7 +13,7 @@ communications, and production readiness. That is not one feature. It is a
 multi-release healthcare program with several decisions that engineering cannot
 make on its own.
 
-The governing checklist currently contains **172 completed and 291 open items**
+The governing checklist currently contains **173 completed and 290 open items**
 (463 total). This is an unweighted execution count, not a claim that the product is
 37% clinically or operationally ready. A single unresolved source-release or
 identity decision can block a patient pilot regardless of how many code items are
@@ -101,22 +101,22 @@ operational workflows first, then P2/P3 glance/deep-link surfaces.
    tests, emulator/simulator result, changed flags, unresolved decision, and next
    smallest blocker in the execution log.
 
-## 4. Day-0 gate: finish and isolate the active staff increment
+## 4. Completed staff increments: isolate them from the pilot critical path
 
-The current native Eddy streaming work is a bounded staff-parity increment. It is
-not a dependency of the patient pilot, but it must be closed cleanly rather than
-remain a source of worktree churn.
+The native staff Eddy streaming increment and the server-governed staff
+communication-action increment are both bounded staff-parity work. They are not
+dependencies of the patient pilot. They are accepted locally, documented in the
+companion devlog, and must stay out of the patient release train until their own
+review/release gate is met.
 
-| Deliverable                                                                            | Acceptance evidence                                                                                 | Safety boundary                                                             |
-| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| iOS and Android consume the existing staff Eddy SSE endpoint                           | focused Laravel, Android JVM + API 35 emulator, and iOS Simulator tests pass                        | raw proposal payload is never rendered as an executable action              |
-| Stream transport uses no-store, cancellation, and no automatic mutation/retry behavior | request/header tests and cancellation/non-completion tests                                          | no transcript persistence and no replay after token refresh/failure         |
-| Incremental response is visibly useful                                                 | token text updates one pending bubble; terminal clean reply replaces it                             | action approval remains the existing fetch-on-open, explicit-human workflow |
-| Documentation is truthful                                                              | mobile reference and parity checklist state streaming is implemented; history deletion remains open | no claim of patient Eddy or autonomous action                               |
+| Deliverable                            | Accepted evidence                                                                                                     | Safety boundary                                                                                                  |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Native staff Eddy SSE                  | Laravel, Android JVM/API 35, and iOS Simulator evidence recorded in the devlog at commit `2c60052b`                   | Raw proposal payload is never rendered as an executable action; no transcript persistence or replay.             |
+| Staff communication-action affordances | PHP feature suite, web tests/build, Android API 35 emulator, and iOS Simulator evidence recorded at commit `7764bde1` | The server calculates per-user actions; clients fail closed and mutations independently re-authorize under lock. |
 
-**Exit:** run the full focused server/native suite, update the two checklists, create
-one scoped commit, and leave deployment disabled. If a test exposes a contract issue,
-fix it or revert this increment; do not carry it into the patient release train.
+**Rule:** do not reopen or expand either increment while a pilot-critical Wave 1–5
+blocker is active. New staff work enters the post-pilot ledger queue unless it fixes a
+pilot safety defect.
 
 ## 5. Critical path to pilot
 
@@ -180,6 +180,12 @@ authorized projection.
 ### Wave 3 — patient mobile vertical slice (days 3–8, in parallel with Wave 2)
 
 **Critical path owner:** native lead.
+
+**Current local foundation (2026-07-25):** the same six patient-care DTOs are
+captured through the testing-only patient BFF and decoded by the production iOS and
+Android model layers. Focused iPhone 17 Pro and Android API 35 journeys are green.
+This closes local contract ratification only; the Wave 3 exit still requires the
+approved-source release responses and all listed release-mode/accessibility evidence.
 
 1. Bind the already separate iOS and Android patient binaries to the approved pilot
    enrollment and session lifecycle, including expired/revoked access and a generic
@@ -302,22 +308,24 @@ evidence, or dependency due time is removed from active work.
 
 ## 8. First 48 hours: exact execution order
 
-1. Finish, test, document, and locally commit the active native staff Eddy
-   streaming increment; keep it out of the pilot critical path.
+1. Freeze the accepted staff increments above, confirm the worktree/release branch
+   boundary, and keep every patient and messaging flag off.
 2. Hold a 60-minute decision meeting to approve the scope lock, pilot units,
    disclosure policy, enrollment approach, source owner, message topics/SLA, and
    decision owners. Record unanswered decisions as blockers with dates.
 3. Create the pilot configuration/flag manifest and a test-environment release
    checklist. Verify every patient flag is off by default.
 4. Select and document the approved source adapter input for the four pilot patient
-   views. Create contract fixtures from that source; reject synthetic content as a
+   views. The six deterministic test-only projection fixtures now ratify the native
+   DTO boundary, but they are not an approved source release; create separate
+   release fixtures from the selected source and reject synthetic content as a
    release substitute.
 5. Start Waves 2, 3, and 4 in parallel, each with exactly one integration owner.
 6. At the end of day two, hold a hard checkpoint. If source/release or governance
    approval is still absent, stop feature expansion and escalate that dependency;
    do not pad the schedule with unrelated parity work.
 
-## 9. Completion criteria and schedule risk
+## 9. Controlled-pilot completion criteria and schedule risk
 
 With the stated decisions and inputs, the engineering and rehearsal path is **15
 working days**. This is an aggressive controlled-pilot estimate, not a guarantee:
@@ -329,3 +337,55 @@ The pilot is complete only when every Wave 5 exit artifact and the Wave 6 first-
 review are accepted. Full Zephyrus parity and general availability remain separate,
 ledger-governed releases after that controlled pilot; they should not be represented
 as complete by this plan.
+
+## 10. Fastest credible path to full program completion
+
+The controlled pilot is the first release, not a redefinition of the original
+commitment. The remaining program has two release tracks that run in parallel after
+the Wave 1 scope lock. This is the shortest credible sequence because it removes the
+shared platform and governance blockers before multiplying feature work.
+
+### 10.1 Capacity and sequencing assumption
+
+This schedule assumes a dedicated delivery pod: one backend/integration engineer,
+one iOS engineer, one Android engineer, one web/operations engineer, one QA/release
+owner, and named part-time clinical, privacy, IAM, accessibility, and patient-advisor
+reviewers. A person may cover multiple engineering roles only if that does not reduce
+the listed acceptance evidence. Workstream owners meet for a 15-minute dependency
+review every business day; blocked decisions are escalated after one business day.
+
+| Program release                        | Earliest execution window after scope lock | Completion boundary                                                                                                                        | Cannot start without                                                                        |
+| -------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Controlled inpatient pilot             | Days 1–15                                  | Waves 1–6 and first-cohort review accepted                                                                                                 | approved pilot scope, source/release owner, identity approach, response staffing            |
+| Staff P0/P1 parity release             | Days 3–35, parallel                        | contract/client seam, push/realtime, write/conflict paths, and P0/P1 role journeys accepted on both platforms                              | capability owners and production notification credentials/environments                      |
+| Patient general-availability readiness | Days 16–55, parallel after pilot evidence  | proxy policy as applicable, language/accessibility, discharge transition, retention/export, security/a11y review, scale/readiness controls | pilot evidence, legal/HIM decisions, translation/interpreter model, portal-transition owner |
+| Full multi-facility GA                 | Days 56–75                                 | Phase 7 exit evidence, load/failover drills, independent audits, facility manifests, and signed go/no-go                                   | successful pilot, remediation closure, operational support capacity                         |
+
+These are aggressive execution windows, not promises of calendar completion. They do
+not include time that external approvers, source-system owners, app-store review, or
+an independent audit take to respond. If the program needs a date rather than an
+evidence gate, the steering group must explicitly accept the residual risk; engineering
+must not convert an unanswered decision into an implicit approval.
+
+### 10.2 Post-pilot release train
+
+| Release                      | Scope in strict order                                                                                                                                                                                                   | Required acceptance evidence                                                                                                                                                   |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| S1 — shared safety platform  | Factory-derived fixtures; generated Swift/Kotlin contract artifacts; error/envelope compatibility; client request IDs; encrypted cache/outbox only for approved staff workflows; wipe/revocation; session privacy cover | PHP, Swift, Kotlin decode and compatibility gates; replay/conflict tests; simulator/emulator offline, revoke, and restore journeys                                             |
+| S2 — operational staff P0/P1 | P1 RTDC/huddle/rounds and task-owner workflows; explicit dispositions for every remaining Zephyrus capability; complete high-value write lifecycle; notification/realtime hardening                                     | Every released ledger item has owner, source, authorization, contract, two-client journey, telemetry, runbook, and role acceptance evidence                                    |
+| S3 — patient GA uplift       | Approved proxy/revocation scope; translated and interpreter-supported content; education/teach-back, discharge/home-transition, retention/export; patient push only after provider and policy approval                  | Patient/representative access matrix; translated-content review; accessibility and usability review; messaging/downtime/urgent tabletop; security and clinical-safety sign-off |
+| S4 — multi-facility GA       | Facility manifests, policy parameterization, source and responsibility-pool onboarding, load/failover/EHR-outage recovery, independent audits, support/on-call operating model                                          | Facility-readiness assessment for each launch site; recovery drill; SLO/alert evidence; signed release and rollback packet                                                     |
+
+### 10.3 Rules for declaring the program complete
+
+1. The controlled pilot is not called GA; S1/S2/S3/S4 are not called complete
+   because a route, mock screen, or local test exists.
+2. The governing capability ledger is the single staff-parity checklist. Every
+   patient field remains subject to its disclosure matrix and source/release rule.
+3. A release can close only when its exit evidence is independently reviewed and the
+   companion devlog links the exact release SHA, flags, migrations, test matrix,
+   emulator/simulator evidence, operational approval, and rollback result.
+4. The program is complete only when both definition-of-done sections in the
+   governing plan are accepted, all pilot/GA deferred items have either been
+   delivered or formally retired with owner approval, and no patient/staff feature
+   remains enabled on an unreviewed source, policy, or operational dependency.

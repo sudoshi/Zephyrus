@@ -1,29 +1,41 @@
 {
     "data": [
         {
-            "event_uuid": "22222222-2222-4222-8222-222222222222",
-            "event_type": "transport.progressed",
-            "occurred_at": "2026-07-02T14:02:00Z",
-            "actor_user_id": 11,
-            "actor_role": "transport",
+            "event_uuid": "019f0000-0000-7000-8000-000000000001",
+            "event_type": "bed_request.created",
+            "occurred_at": "2026-07-24T12:00:00.000000Z",
+            "actor_user_id": 9,
+            "actor_role": "bed_manager",
             "source_surface": "hummingbird",
-            "domain": "transport",
+            "domain": "rtdc",
             "scope": {
-                "transport_request_id": 17,
-                "origin": "ED Bay 12",
-                "destination": "6 East"
+                "bed_request_id": 2
             },
-            "patient_context_ref": "ptok_transport_17",
+            "patient_context_ref": "ptok_b7bcb2722b70379b981b528d",
             "status": {
-                "previous": "assigned",
-                "current": "in_progress",
-                "severity": "warning",
-                "label": "At risk"
+                "current": "pending",
+                "previous": "none",
+                "severity": "warning"
             },
             "recommendation": null,
             "relay": {
-                "will_notify_roles": ["charge_nurse"],
-                "activity_roles": ["bed_manager", "house_supervisor"]
+                "push_tier": "activity",
+                "notify_now": [],
+                "activity_only": [
+                    "house_supervisor",
+                    "executive",
+                    "pi_lead"
+                ],
+                "affected_roles": [
+                    "bed_manager",
+                    "charge_nurse",
+                    "evs",
+                    "transport",
+                    "capacity_lead",
+                    "house_supervisor",
+                    "executive",
+                    "pi_lead"
+                ]
             },
             "phi_policy": {
                 "list_safe": true,
@@ -32,21 +44,28 @@
             },
             "entities": [
                 {
-                    "entity_type": "transport_request",
-                    "entity_ref": "17",
-                    "patient_context_ref": "ptok_transport_17",
+                    "entity_type": "bed_request",
+                    "entity_ref": "2",
+                    "patient_context_ref": "ptok_b7bcb2722b70379b981b528d",
+                    "encounter_ref": null
+                },
+                {
+                    "entity_type": "patient",
+                    "entity_ref": "ptok_b7bcb2722b70379b981b528d",
+                    "patient_context_ref": "ptok_b7bcb2722b70379b981b528d",
                     "encounter_ref": null
                 }
             ]
         }
     ],
     "meta": {
-        "as_of": "2026-07-02T14:02:00Z",
+        "as_of": "2026-07-24T12:00:00.000000Z",
         "stale": false,
-        "version": 1,
+        "version": null,
+        "count": 1,
         "next_cursor": null
     },
     "links": {
-        "web": "http://localhost/dashboard"
+        "web": "http://zephyrus.test/ops/agent-inbox"
     }
 }

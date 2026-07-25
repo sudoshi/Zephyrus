@@ -44,11 +44,30 @@ hummingbird-bff.v1.yaml
 The accepted P1.4 decision is
 [generated platform-native contracts](../ADR-2026-07-19-generated-native-contracts.md), not
 a KMP runtime. Native DTOs are still manually maintained today; that is tracked debt, not
-the target architecture. The eight shared fixtures in [`fixtures/`](fixtures/) cover
+the target architecture. The eight shared **staff** fixtures in [`fixtures/`](fixtures/) are all
+captured from real, factory-seeded BFF responses—never hand-authored client payloads—and cover
 Altitude home, For You, activity, staff patient operational context, house Flow Window, EVS
 Flow Window, Flow floor geometry, and the governed Transport queue. PHP, Swift, and Kotlin
 decode gates run in CI so the current manual implementations cannot drift silently while
-the generated-client migration is completed.
+the generated-client migration is completed. [`fixtures/fixture-provenance.v1.json`](fixtures/fixture-provenance.v1.json)
+records the source endpoint and regeneration test for every staff artifact.
+
+The six patient-care fixtures in [`fixtures/patient/`](fixtures/patient/) are captured through
+the real patient BFF boundary, but only from the deterministic
+`SyntheticPatientProjectionProvisioner` in the testing runtime. They cover Today, My Path,
+pathway events, discharge readiness, rounds summary, and Care Team. They do **not** contain a
+real patient, a remote database response, an approved clinical source, or a release decision;
+they are contract-ratification evidence only. Their distinct
+[`fixture-provenance.v1.json`](fixtures/patient/fixture-provenance.v1.json) records that
+boundary explicitly.
+
+Regenerate staff fixtures with
+`HUMMINGBIRD_FIXTURE_DUMP=1 php artisan test --filter='(FlowFixtureRegenerationTest|SharedDtoFixtureRegenerationTest)'`
+and patient fixtures with
+`HUMMINGBIRD_PATIENT_FIXTURE_DUMP=1 php artisan test --filter=PatientProjectionFixtureRegenerationTest`.
+The same patient test runs without that flag in CI and fails on a stale checked-in
+fixture without writing to the worktree. Inspect each intentional diff and run the
+PHP, iOS XCTest, and Android JVM decode gates before committing.
 
 ## Conventions baked in
 

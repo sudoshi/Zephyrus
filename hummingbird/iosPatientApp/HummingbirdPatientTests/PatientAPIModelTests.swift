@@ -4,6 +4,55 @@ import XCTest
 final class PatientAPIModelTests: XCTestCase {
     private let decoder = JSONDecoder()
 
+    func testServerDerivedProjectionFixturesDecodeAcrossEveryCareSurface() throws {
+        let today = try decodeFixture("patient-today.json", as: PatientEnvelope<PatientProjectionData<PatientTodayContent>>.self)
+        XCTAssertEqual(today.data.kind, "today")
+        XCTAssertEqual(today.data.content.schedule?.first?.status, "planned")
+        XCTAssertTrue(today.data.content.schedule?.first?.canChange == true)
+        XCTAssertEqual(today.meta.stateVocabularyVersion, "patient-state-vocabulary.v1-draft")
+
+        let pathway = try decodeFixture("patient-pathway.json", as: PatientEnvelope<PatientProjectionData<PatientPathwayContent>>.self)
+        XCTAssertEqual(pathway.data.kind, "pathway")
+        XCTAssertEqual(pathway.data.content.stages?.count, 4)
+        XCTAssertEqual(pathway.data.content.stages?.first?.status, "completed")
+        XCTAssertTrue(pathway.data.content.goals?.contains(where: { $0.authorType == "patient" }) == true)
+
+        let pathwayEvents = try decodeFixture("patient-pathway-events.json", as: PatientEnvelope<PatientProjectionData<PatientPathwayEventsContent>>.self)
+        XCTAssertEqual(pathwayEvents.data.kind, "pathway_events")
+        XCTAssertEqual(pathwayEvents.data.content.events?.count, 4)
+        XCTAssertTrue(pathwayEvents.data.content.events?.contains(where: { $0.category == .transport }) == true)
+
+        let discharge = try decodeFixture("patient-discharge-readiness.json", as: PatientEnvelope<PatientProjectionData<PatientDischargeReadinessContent>>.self)
+        XCTAssertEqual(discharge.data.kind, "discharge_readiness")
+        XCTAssertTrue(discharge.data.content.criteria?.contains(where: { $0.status == "pending" }) == true)
+        XCTAssertEqual(discharge.data.content.contacts?.first?.route, "speak_with_bedside_staff")
+
+        let rounds = try decodeFixture("patient-rounds-summary.json", as: PatientEnvelope<PatientProjectionData<PatientRoundsSummaryContent>>.self)
+        XCTAssertEqual(rounds.data.kind, "rounds_summary")
+        XCTAssertEqual(rounds.data.content.roundWindow, "Earlier today")
+        XCTAssertTrue(rounds.data.content.topics?.contains(where: { $0.status == "current" }) == true)
+
+        let careTeam = try decodeFixture("patient-care-team.json", as: PatientEnvelope<PatientProjectionData<PatientCareTeamContent>>.self)
+        XCTAssertEqual(careTeam.data.kind, "care_team")
+        XCTAssertEqual(careTeam.data.content.members?.first?.role, "Care coordination")
+        XCTAssertTrue(careTeam.data.content.communicationOptions?.contains("call_button_for_urgent_help") == true)
+    }
+
+    private func decodeFixture<Payload: Codable & Equatable>(
+        _ filename: String,
+        as type: PatientEnvelope<Payload>.Type
+    ) throws -> PatientEnvelope<Payload> {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = (0..<4).reduce(sourceFile) { path, _ in
+            path.deletingLastPathComponent()
+        }
+        let fixtureURL = repositoryRoot
+            .appendingPathComponent("docs/hummingbird/api-contract/fixtures/patient")
+            .appendingPathComponent(filename)
+
+        return try decoder.decode(PatientEnvelope<Payload>.self, from: Data(contentsOf: fixtureURL))
+    }
+
     func testProfileEnvelopeDecodesCurrentBackendShapeAndNullVersion() throws {
         let json = #"""
         {
