@@ -622,3 +622,44 @@ real patient content, create or activate a production patient, authorize a pilot
 data, or deploy an application. Production disclosure still requires clinical review,
 source lineage, an approved release workflow, patient-advisor validation, and separate
 activation authority.
+
+## 2026-07-25 — Patient preference-and-goal Messages handoff ratification
+
+### Completed implementation
+
+- Added one explicit **Open Messages** control to the existing **Share what matters to
+  you** guidance on both native My Path views. It is a patient-controlled navigation
+  handoff only: it selects the existing Messages destination and does not preselect a
+  topic, identify a clinician or responsibility pool, create a draft, transmit a message,
+  or alter a care plan, order, consent, assessment, or goal.
+- Kept the established patient-language boundary in place directly above the handoff:
+  preferences and personal goals are discussed through the separately released,
+  non-urgent Messages topics and require team review. The Messages surface itself retains
+  its immediate-help guidance and feature/policy gating.
+- Corrected the iOS accessibility structure after simulator evidence showed that the
+  card-level test identifier had hidden the nested control. The card now explicitly
+  contains child accessibility elements; the control has an accessible patient-safe hint
+  that opening Messages creates no message. Android supplies a labelled, test-tagged
+  control in the same calm pathway card.
+- Corrected a stale Android synthetic-reference assertion so it recognizes intentionally
+  labelled synthetic provenance as distinct from a live `Source:` label. This preserves
+  the fixture's explicit nonclinical/non-live boundary rather than making it appear to
+  claim a production source.
+
+### Verification
+
+| Boundary                     | Command / target                                                                                                             | Result                                                                                                          |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| iOS rendered handoff         | iPhone 17 Pro / iOS 26.3.1: `PatientReferenceJourneyUITests/testReferenceJourneyExposesCarePathTeamAndSafeMessagingLanguage` | 1 passed / 0 failures or skips; verifies My Path → Open Messages → guarded Messages state → My Path             |
+| Android Debug JVM            | `:app:testDebugUnitTest --tests 'net.acumenus.hummingbird.patient.*'`                                                        | 100 passed / 0 failures after the synthetic-provenance assertion correction                                     |
+| Android rendered handoff     | API 35 `hb` emulator / `connectedDebugAndroidTest --rerun-tasks`                                                             | 15 passed / 0 failures, errors, or skips; verifies My Path → Open Messages → guarded Messages context → My Path |
+| Documentation and diff gates | targeted Prettier check and `git diff --check`                                                                               | passed                                                                                                          |
+
+### Remaining boundary
+
+This is a default-off navigation and accessibility increment. It does not enable patient
+messaging, approve a policy, staff a responsibility pool, expose staff routing metadata,
+authorize a pilot, create a production patient, migrate data, release clinical content,
+or deploy an application. Family/proxy delegation, staff-review workflow validation,
+production policy/source approval, patient-advisor validation, and activation authority
+remain separate requirements.

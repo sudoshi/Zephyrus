@@ -3,6 +3,7 @@ import SwiftUI
 struct PatientPathView: View {
     let snapshot: PatientExperienceSnapshot
     @ObservedObject var viewModel: PatientAppViewModel
+    let openMessages: () -> Void
     @State private var selectedEducation: PatientReleasedEducation?
 
     var body: some View {
@@ -93,8 +94,16 @@ struct PatientPathView: View {
                         Text("Sending a message does not automatically change your care plan or create a clinical order. Your team will review it with you.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
+                        Button("Open Messages", systemImage: "message.fill") {
+                            openMessages()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(PatientPalette.teal)
+                        .accessibilityIdentifier("open-messages-from-preferences")
+                        .accessibilityHint("Open Messages to review available non-urgent options. No message is created.")
                     }
                 }
+                .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("patient-preference-guidance")
 
                 if !snapshot.pathwayEducation.isEmpty {

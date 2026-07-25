@@ -37,6 +37,12 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["patient-preference-guidance"]))
         XCTAssertTrue(scrollUntilExists(app.staticTexts["Share what matters to you"]))
         XCTAssertTrue(scrollUntilExists(staticText(containing: "does not automatically change your care plan")))
+        let openMessages = app.buttons["Open Messages"]
+        XCTAssertTrue(scrollUntilHittable(openMessages))
+        openMessages.tap()
+        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["messages-read-only-state"]))
+        app.tabBars.buttons["My Path"].tap()
+        XCTAssertTrue(app.staticTexts["My Path"].waitForExistence(timeout: 2))
         XCTAssertTrue(scrollUntilExists(app.staticTexts["Learning and preparation"]))
         XCTAssertTrue(scrollUntilExists(staticText(containing: "Preparing for the next setting")))
         XCTAssertTrue(scrollUntilExists(app.staticTexts["Want to talk it through?"]))

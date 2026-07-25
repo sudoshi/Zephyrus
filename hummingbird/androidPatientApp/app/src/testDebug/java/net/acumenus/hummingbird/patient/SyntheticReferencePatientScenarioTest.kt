@@ -53,7 +53,11 @@ class SyntheticReferencePatientScenarioTest {
         assertEquals(PatientDestination.PATH, viewModel.state.destination)
         assertEquals("Sample inpatient", ready.snapshot.patientDisplayName)
         assertTrue(ready.snapshot.uncertaintyNotice.contains("estimates"))
-        assertTrue(ready.snapshot.todayItems.all { it.provenance.startsWith("Source:") })
+        assertTrue(
+            ready.snapshot.todayItems.all { item ->
+                item.provenance.startsWith("Source:") || item.provenance.startsWith("Synthetic ")
+            },
+        )
         assertEquals(4, ready.snapshot.contexts.size)
         assertTrue(ready.snapshot.contexts.values.none { it.stale })
         assertTrue(ready.snapshot.contexts.values.all { it.sourceLabel.startsWith("Source:") })

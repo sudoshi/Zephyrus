@@ -125,6 +125,16 @@ class PatientPrimaryJourneyInstrumentedTest {
                 "Sending a message does not automatically change your care plan or create a clinical order.",
                 substring = true,
             ).assertIsDisplayed()
+            composeRule.onNodeWithTag("open-messages-from-preferences")
+                .performScrollTo()
+                .performClick()
+            composeRule.onNodeWithTag("patient-content")
+                .performScrollToNode(hasText("Messages are for non-urgent questions and are not live emergency chat."))
+            composeRule.onNodeWithText(
+                "Messages are for non-urgent questions and are not live emergency chat.",
+            ).assertIsDisplayed()
+            composeRule.onNodeWithText("My Path").performClick()
+            composeRule.onNodeWithText("Information updated").assertIsDisplayed()
             composeRule.onNodeWithTag("patient-content")
                 .performScrollToNode(hasText("Learning and preparation"))
             composeRule.onNodeWithText("Learning and preparation").assertIsDisplayed()

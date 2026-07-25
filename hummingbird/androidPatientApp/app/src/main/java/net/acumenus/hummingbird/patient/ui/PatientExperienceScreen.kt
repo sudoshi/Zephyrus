@@ -205,6 +205,7 @@ internal fun PatientExperienceScreen(
                         snapshot = snapshot,
                         canRequestEducationClarification = (messagingState as? PatientMessagingState.Ready)?.canWrite == true,
                         onEducationSelected = { selectedEducation = it },
+                        onOpenMessages = { onDestinationSelected(PatientDestination.MESSAGES) },
                     )
                     PatientDestination.CARE_TEAM -> careTeamContent(
                         snapshot = snapshot,
@@ -392,6 +393,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.pathwayContent(
     snapshot: PatientSnapshot,
     canRequestEducationClarification: Boolean,
     onEducationSelected: (PatientEducation) -> Unit,
+    onOpenMessages: () -> Unit,
 ) {
     item {
         SectionHeading(
@@ -467,9 +469,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.pathwayContent(
         }
     }
     item {
-        GuidanceCard(
-            title = "Share what matters to you",
-            body = "Your experiences, needs, and personal priorities can be important to your care. If Messages is available, choose \"What matters to you\" for a preference or \"A personal goal for my stay\" for a personal goal. Sending a message does not automatically change your care plan or create a clinical order. Your team will review it with you.",
+        PatientPreferenceGuidanceCard(
+            onOpenMessages = onOpenMessages,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -1081,6 +1082,40 @@ private fun GuidanceCard(
                 fontWeight = FontWeight.SemiBold,
             )
             Text(text = body, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@Composable
+private fun PatientPreferenceGuidanceCard(
+    onOpenMessages: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = "Share what matters to you",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "Your experiences, needs, and personal priorities can be important to your care. If Messages is available, choose \"What matters to you\" for a preference or \"A personal goal for my stay\" for a personal goal. Sending a message does not automatically change your care plan or create a clinical order. Your team will review it with you.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            TextButton(
+                onClick = onOpenMessages,
+                modifier = Modifier.testTag("open-messages-from-preferences"),
+            ) {
+                Text("Open Messages")
+            }
         }
     }
 }
