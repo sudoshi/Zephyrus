@@ -16,10 +16,57 @@ if [[ ! -x "$GITLEAKS" || ! -x "$PIP_AUDIT" || ! -x "$SEMGREP" ]]; then
     bash scripts/security/install-tools.sh
 fi
 
-composer audit --locked --abandoned=fail
-npm audit --audit-level=high
-"$PIP_AUDIT" --requirement arena/requirements.txt
-"$PIP_AUDIT" --requirement eddy/requirements.txt
+# Dependency audits query live registries, so a new advisory on an untouched
+# dependency can red-flag main hours after an unrelated merge. They hard-gate
+# here only when this change set edits the corresponding manifest/lockfile;
+# the scheduled security-nightly workflow owns advisory response for
+# everything else. SECURITY_AUDIT_DEPENDENCIES=always (the nightly, or a
+# manual sweep) forces all four audits regardless of the diff.
+audit_scope="${SECURITY_AUDIT_DEPENDENCIES:-diff}"
+changed_files=""
+if [[ "$audit_scope" != "always" ]]; then
+    if ! changed_files="$(git diff --name-only origin/main...HEAD 2>/dev/null)"; then
+        # Diff base unavailable (shallow clone, missing ref): fail safe.
+        audit_scope="always"
+    fi
+fi
+
+should_run_dependency_audit() {
+    if [[ "$audit_scope" == "always" ]]; then
+        return 0
+    fi
+    local path
+    for path in "$@"; do
+        if grep -qxF "$path" <<<"$changed_files"; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+if should_run_dependency_audit composer.json composer.lock; then
+    composer audit --locked --abandoned=fail
+else
+    echo "Skipping composer audit: composer.json/composer.lock untouched (nightly sweep owns advisories)"
+fi
+
+if should_run_dependency_audit package.json package-lock.json; then
+    npm audit --audit-level=high
+else
+    echo "Skipping npm audit: package.json/package-lock.json untouched (nightly sweep owns advisories)"
+fi
+
+if should_run_dependency_audit arena/requirements.txt; then
+    "$PIP_AUDIT" --requirement arena/requirements.txt
+else
+    echo "Skipping arena pip-audit: arena/requirements.txt untouched (nightly sweep owns advisories)"
+fi
+
+if should_run_dependency_audit eddy/requirements.txt; then
+    "$PIP_AUDIT" --requirement eddy/requirements.txt
+else
+    echo "Skipping eddy pip-audit: eddy/requirements.txt untouched (nightly sweep owns advisories)"
+fi
 
 # History and working-tree scans are both required. Redaction prevents a
 # finding from echoing credential material into CI logs or retained evidence.
