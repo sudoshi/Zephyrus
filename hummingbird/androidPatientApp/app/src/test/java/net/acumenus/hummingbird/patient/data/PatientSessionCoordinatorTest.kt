@@ -500,12 +500,14 @@ internal class FakePatientApiGateway(
     var messageThreadsCalls = 0
     var messageThreadCalls = 0
     var createThreadCalls = 0
+    var educationClarificationCalls = 0
     var sendMessageCalls = 0
     var amendMessageCalls = 0
     var closeThreadCalls = 0
     var patientSessionsCalls = 0
     var revokePatientSessionCalls = 0
     val createThreadRequests = mutableListOf<PatientCreateThreadRequest>()
+    val educationClarificationRequests = mutableListOf<PatientEducationClarificationRequest>()
     val sendMessageRequests = mutableListOf<PatientSendMessageRequest>()
     val amendMessageRequests = mutableListOf<PatientAmendMessageRequest>()
     val closeThreadRequests = mutableListOf<PatientCloseThreadRequest>()
@@ -899,6 +901,17 @@ internal class FakePatientApiGateway(
     ): PatientEnvelope<PatientThreadResult> {
         createThreadCalls += 1
         createThreadRequests += request
+        return patientEnvelope(PatientThreadResult(patientMessageThread()))
+    }
+
+    override fun requestEducationClarification(
+        accessToken: CharArray,
+        encounterUuid: String,
+        educationItemUuid: String,
+        request: PatientEducationClarificationRequest,
+    ): PatientEnvelope<PatientThreadResult> {
+        educationClarificationCalls += 1
+        educationClarificationRequests += request
         return patientEnvelope(PatientThreadResult(patientMessageThread()))
     }
 

@@ -574,6 +574,7 @@ internal class PatientAppViewModel(
         }
         val encounterUuid = ready.snapshot.encounterUuid ?: return
         val availableCoordinator = coordinator ?: return
+        val originDestination = state.destination
         val trimmed = message.trim()
         state = state.copy(
             messaging = messaging.copy(
@@ -589,6 +590,9 @@ internal class PatientAppViewModel(
                         message = trimmed,
                         urgentGuidanceVersion = messaging.immediateHelp.version,
                     )
+                }
+                if (state.destination == originDestination) {
+                    state = state.copy(destination = PatientDestination.MESSAGES)
                 }
                 updateMessaging { current ->
                     current.copy(

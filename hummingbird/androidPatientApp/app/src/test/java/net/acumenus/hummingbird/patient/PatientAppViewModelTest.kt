@@ -148,6 +148,80 @@ class PatientAppViewModelTest {
     }
 
     @Test
+    fun educationClarificationOpensMessagesAfterItIsSecurelyCreated() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val api = FakePatientApiGateway(
+            encounters = listOf(
+                patientEncounter().copy(
+                    scopes = patientEncounter().scopes + listOf("messaging:read", "messaging:write"),
+                ),
+            ),
+        )
+        val viewModel = PatientAppViewModel(
+            apiEnabled = true,
+            coordinator = coordinator(api),
+            scope = this,
+            workDispatcher = dispatcher,
+        )
+
+        viewModel.submitSignIn("patient@example.test", "test-password")
+        advanceUntilIdle()
+        viewModel.selectDestination(PatientDestination.PATH)
+        val educationItemUuid = (viewModel.state.session as PatientSessionState.Ready)
+            .snapshot.pathwayEducation.single().id
+
+        viewModel.requestEducationClarification(
+            educationItemUuid,
+            "Could you explain this in simpler words?",
+        )
+        advanceUntilIdle()
+
+        val messaging = viewModel.state.messaging as PatientMessagingState.Ready
+        assertEquals(PatientDestination.MESSAGES, viewModel.state.destination)
+        assertEquals(1, api.educationClarificationCalls)
+        assertEquals(
+            "Could you explain this in simpler words?",
+            api.educationClarificationRequests.single().message,
+        )
+        assertTrue(messaging.operation is PatientMessagingOperation.Notice)
+        assertTrue(messaging.threads.isNotEmpty())
+    }
+
+    @Test
+    fun educationClarificationDoesNotOverridePatientNavigationWhileSending() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val api = FakePatientApiGateway(
+            encounters = listOf(
+                patientEncounter().copy(
+                    scopes = patientEncounter().scopes + listOf("messaging:read", "messaging:write"),
+                ),
+            ),
+        )
+        val viewModel = PatientAppViewModel(
+            apiEnabled = true,
+            coordinator = coordinator(api),
+            scope = this,
+            workDispatcher = dispatcher,
+        )
+
+        viewModel.submitSignIn("patient@example.test", "test-password")
+        advanceUntilIdle()
+        viewModel.selectDestination(PatientDestination.PATH)
+        val educationItemUuid = (viewModel.state.session as PatientSessionState.Ready)
+            .snapshot.pathwayEducation.single().id
+
+        viewModel.requestEducationClarification(
+            educationItemUuid,
+            "Could you explain this in simpler words?",
+        )
+        viewModel.selectDestination(PatientDestination.CARE_TEAM)
+        advanceUntilIdle()
+
+        assertEquals(PatientDestination.CARE_TEAM, viewModel.state.destination)
+        assertEquals(1, api.educationClarificationCalls)
+    }
+
+    @Test
     fun staleThreadVersionRefetchesBeforeAllowingAnotherReplyAndHidesDiagnostics() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val api = FakePatientApiGateway(

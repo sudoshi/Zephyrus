@@ -663,3 +663,38 @@ authorize a pilot, create a production patient, migrate data, release clinical c
 or deploy an application. Family/proxy delegation, staff-review workflow validation,
 production policy/source approval, patient-advisor validation, and activation authority
 remain separate requirements.
+
+## 2026-07-25 — Education clarification conversation handoff ratification
+
+### Completed implementation
+
+- Made the already governed **Ask for an explanation** flow complete from a patient’s
+  perspective. When the source-bound request succeeds, both native apps open the existing
+  guarded Messages surface, where the ordinary returned conversation and its
+  patient-visible status can be followed. No new route, payload field, topic, recipient,
+  service-pool disclosure, content source, or projection was introduced.
+- Preserved patient agency on Android: if a patient chooses another top-level destination
+  while the secure request is in flight, the completion does not force them into Messages.
+  The confirmed request remains in the secure conversation list for them to open later.
+- Retained the strict safety boundary. The request is only for an item in the current
+  released education projection and carries only the existing question, client UUID,
+  immediate-help guidance version, and idempotency key. It records no understanding,
+  completion, consent, clinical assessment, order, or care-plan mutation.
+
+### Verification
+
+| Boundary                | Command / target                                                                                                             | Result                                                                                                                       |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| iOS endpoint boundary   | iPhone 17 Pro / iOS 26.3.1: `PatientAPIClientTests/testEducationClarificationUsesOnlyReleasedItemPathAndContentOnlyBody`     | 1 passed / 0 failures or skips; validates the released-item path and absence of completion/consent/assessment payload fields |
+| iOS rendered regression | iPhone 17 Pro / iOS 26.3.1: `PatientReferenceJourneyUITests/testReferenceJourneyExposesCarePathTeamAndSafeMessagingLanguage` | 1 passed / 0 failures or skips                                                                                               |
+| Android state behavior  | focused `PatientAppViewModelTest` + `PatientSessionCoordinatorTest`                                                          | passed; covers success-to-Messages and preservation of an intervening patient navigation choice                              |
+| Android rendered path   | API 35 `hb` emulator / `connectedDebugAndroidTest --rerun-tasks`                                                             | 15 passed / 0 failures, errors, or skips                                                                                     |
+
+### Remaining boundary
+
+This improves discoverability of the existing default-off clarification conversation. It
+does not turn a request into a teach-back assessment, establish comprehension, enable
+messaging, approve education content, enable a source, authorize a pilot, create a
+production patient, migrate data, or deploy an application. Clinical teach-back review,
+interpreter/language accommodation, patient-advisor validation, and activation authority
+remain separate requirements.

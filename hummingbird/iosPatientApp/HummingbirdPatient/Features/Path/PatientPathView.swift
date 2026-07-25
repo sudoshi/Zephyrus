@@ -360,7 +360,8 @@ struct PatientPathView: View {
         .sheet(item: $selectedEducation) { education in
             PatientEducationClarificationComposer(
                 education: education,
-                viewModel: viewModel
+                viewModel: viewModel,
+                openMessages: openMessages
             ) {
                 selectedEducation = nil
             }
@@ -372,6 +373,7 @@ struct PatientPathView: View {
 private struct PatientEducationClarificationComposer: View {
     let education: PatientReleasedEducation
     @ObservedObject var viewModel: PatientAppViewModel
+    let openMessages: () -> Void
     let dismiss: () -> Void
     @State private var message = ""
 
@@ -411,7 +413,10 @@ private struct PatientEducationClarificationComposer: View {
                                 educationItemUUID: education.itemUUID,
                                 message: message
                             )
-                            if sent { dismiss() }
+                            if sent {
+                                dismiss()
+                                openMessages()
+                            }
                         }
                     } label: {
                         HStack {
