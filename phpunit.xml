@@ -23,6 +23,12 @@
             <exclude>tests/Feature/Auth/AuthenticationFlowTest.php</exclude>
         </testsuite>
     </testsuites>
+    <extensions>
+        <!-- §3.2.9 CI instrumentation: per-test setUp-vs-body wall-time and
+             DB query split, emitted as NDJSON into RELEASE_EVIDENCE_DIR.
+             A no-op when that env var is absent (all local runs). -->
+        <bootstrap class="Tests\Support\Timing\TestTimingEvidenceExtension"/>
+    </extensions>
     <source>
         <include>
             <directory>app</directory>

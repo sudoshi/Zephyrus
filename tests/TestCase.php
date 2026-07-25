@@ -9,14 +9,33 @@ use App\Security\Secrets\SecretProviderRegistry;
 use App\Services\Auth\AccountSessionService;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\InMemorySecretProvider;
+use Tests\Support\Timing\QueryEvidence;
+use Tests\Support\Timing\TimingEvidence;
 
 abstract class TestCase extends BaseTestCase
 {
     /** @var array<string, int|string>|null */
     private ?array $canonicalIntegrationScope = null;
+
+    protected function refreshApplication(): void
+    {
+        parent::refreshApplication();
+
+        // §3.2.9 instrumentation bridge: count queries from the moment the
+        // application exists so trait-driven migrations and seeders inside
+        // setUp() are attributed to the setup phase. Inactive (no listener
+        // at all) outside CI evidence runs.
+        if (TimingEvidence::evidencePath() !== null) {
+            DB::listen(function (QueryExecuted $query): void {
+                QueryEvidence::record((float) $query->time);
+            });
+        }
+    }
 
     protected function setUp(): void
     {
