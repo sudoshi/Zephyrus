@@ -35,19 +35,30 @@ safety state remain complete if an image cannot be perceived.
 
 ## Scenic-layer contrast verification
 
-A pixel-by-pixel pass over every optimized JPEG composited the 46% image alpha
-over the active surface and then applied the exact 68% -> 84% -> 96% vertical
-surface scrim. Because a centered runtime crop can only remove analyzed pixels,
-the full-frame minimum is conservative for every phone crop.
+`scripts/audit-hummingbird-patient-scenic-contrast.php` is a CI-enforced,
+pixel-by-pixel PHP/GD audit over every optimized JPEG. It composites the exact
+46% image alpha over the active surface and then applies the exact 68% -> 84%
+-> 96% vertical surface scrim, using the shipped Material foreground colors.
+Because a centered runtime crop can only remove analyzed pixels, the full-frame
+minimum covers every phone crop. The audit fails closed when the renderer or
+theme no longer contains the audited default literals. This numerical gate
+validates Android's default scenic layer; it does not replace native visual
+review or the separate high-contrast/large-text policies.
 
 | Foreground semantic color | Light minimum | Dark minimum | WCAG AA normal-text gate |
 | ------------------------- | ------------- | ------------ | ------------------------ |
-| `onSurface`               | 11.596:1      | 9.683:1      | Pass (>= 4.5:1)          |
-| `onSurfaceVariant`        | 6.637:1       | 7.359:1      | Pass (>= 4.5:1)          |
+| `onSurface`               | 11.591:1      | 9.727:1      | Pass (>= 4.5:1)          |
+| `onSurfaceVariant`        | 6.634:1       | 7.393:1      | Pass (>= 4.5:1)          |
 
 Opaque cards and controls use paired Material semantic container/on-container
 colors rather than the photographic layer. Status meaning is repeated in text
 and is not encoded by color or imagery alone.
+
+Run the audit locally with:
+
+```bash
+php scripts/audit-hummingbird-patient-scenic-contrast.php
+```
 
 ## Release gate
 

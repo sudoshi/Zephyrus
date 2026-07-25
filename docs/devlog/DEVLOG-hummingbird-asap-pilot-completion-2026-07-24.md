@@ -1181,3 +1181,35 @@ This removes framework-default ambiguity from the runtime crop policy. It does n
 asset rights, approve the visible focal point on every supported viewport, prove contrast against
 every composited region, exercise an unavailable-image path, complete independent accessibility
 review, activate a patient feature, create a production patient, migrate data, or deploy.
+
+## 2026-07-25 — Reproducible Android scenic-layer contrast gate
+
+### Completed implementation
+
+- Added `scripts/audit-hummingbird-patient-scenic-contrast.php`, a local-file-only PHP/GD audit
+  that scans every pixel of all four bundled Android derivatives. It reproduces the default scenic
+  composition: 46% image alpha over the active Material surface, followed by the exact 68% ->
+  84% -> 96% vertical surface scrim. The script reports the worst-case file and coordinates for
+  every evaluated semantic foreground, fails closed if the Android renderer/theme no longer
+  contain the audited literals, and exits nonzero below the WCAG AA normal-text threshold.
+- Added the audit to the Hummingbird capability/contracts CI lane and explicitly installed the
+  required GD extension in that lane. The existing checksum verifier remains the source/copy
+  integrity gate that runs immediately before this visual calculation.
+- The full-frame Android minima pass the normal-text gate: light/dark `onSurface` is
+  11.591:1/9.727:1 and light/dark `onSurfaceVariant` is 6.634:1/7.393:1. A centered runtime crop
+  can remove pixels but cannot create a lower contrast than this full-frame scan.
+
+### Verification
+
+| Boundary                        | Command / target                                               | Result                                  |
+| ------------------------------- | -------------------------------------------------------------- | --------------------------------------- |
+| PHP syntax                      | `php -l scripts/audit-hummingbird-patient-scenic-contrast.php` | passed                                  |
+| Android default scenic contrast | `php scripts/audit-hummingbird-patient-scenic-contrast.php`    | 4 semantic-color checks passed / 0 fail |
+
+### Remaining boundary
+
+This is a reproducible Android default-renderer numerical gate only. It does not test iOS
+dynamic system colors, large-text/high-contrast surfaces that intentionally use stricter veils,
+an unavailable-image scenario, focal-point suitability on supported viewports, asset licensing,
+formal accessibility conformance, patient/family usability, a patient activation, production
+data, migration, or deployment.

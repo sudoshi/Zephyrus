@@ -182,7 +182,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
-          extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip
+          extensions: pdo_pgsql, pgsql, mbstring, bcmath, gd, zip
           coverage: none
 
       - name: Cache Composer dependencies
@@ -207,6 +207,7 @@ jobs:
           php scripts/verify-hummingbird-contract-baseline.php
           php scripts/verify-hummingbird-transport-security.php
           bash scripts/verify-hummingbird-patient-visual-assets.sh
+          php scripts/audit-hummingbird-patient-scenic-contrast.php
           php scripts/generate-hummingbird-route-inventory.php --check
           bash scripts/check-no-tracking-technologies.sh
 

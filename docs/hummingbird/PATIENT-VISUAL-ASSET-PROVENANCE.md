@@ -42,6 +42,12 @@ attribution review required**.
   native tests pin that policy rather than relying on a framework default.
   Product Design must still approve the resulting focal-point crops on every
   supported viewport before the release hold can be lifted.
+- The Android default scenic composition has an independent pixel-level CI
+  gate: `scripts/audit-hummingbird-patient-scenic-contrast.php` scans all four
+  bundled derivatives with the shipped 46% image alpha, 68% -> 84% -> 96%
+  surface scrim, and light/dark semantic foreground colors. This establishes a
+  reproducible numerical contrast floor for that renderer, not asset rights,
+  iOS system-color equivalence, or a substitute for human accessibility review.
 - The first tracked repository commit currently discoverable for these source
   paths is `cd6d1b048ad44763f88e7f1a3474657645a8559b` (2026-07-02,
   “Beautify login with hummingbird slideshow”). That commit is a repository
