@@ -1,169 +1,216 @@
 <?php
 
+namespace Tests\Unit\Services;
+
+use App\Models\PdsaCycle;
 use App\Models\User;
 use App\Services\DashboardService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
+use Tests\TestCase;
 
-beforeEach(function () {
-    $this->service = new DashboardService;
-});
+class DashboardServiceTest extends TestCase
+{
+    use RefreshDatabase;
 
-describe('getImprovementStats', function () {
-    it('returns expected stat keys', function () {
+    private DashboardService $service;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->service = new DashboardService;
+    }
+
+    public function test_improvement_stats_returns_expected_keys(): void
+    {
         $stats = $this->service->getImprovementStats();
 
-        expect($stats)->toBeArray()
-            ->toHaveKeys(['total', 'activePDSA', 'opportunities', 'libraryItems']);
-    });
+        $this->assertIsArray($stats);
+        $this->assertArrayHasKey('total', $stats);
+        $this->assertArrayHasKey('activePDSA', $stats);
+        $this->assertArrayHasKey('opportunities', $stats);
+        $this->assertArrayHasKey('libraryItems', $stats);
+    }
 
-    it('returns integer values for all stats', function () {
+    public function test_improvement_stats_returns_integer_values(): void
+    {
         $stats = $this->service->getImprovementStats();
 
-        expect($stats['total'])->toBeInt();
-        expect($stats['activePDSA'])->toBeInt();
-        expect($stats['opportunities'])->toBeInt();
-        expect($stats['libraryItems'])->toBeInt();
-    });
-});
+        $this->assertIsInt($stats['total']);
+        $this->assertIsInt($stats['activePDSA']);
+        $this->assertIsInt($stats['opportunities']);
+        $this->assertIsInt($stats['libraryItems']);
+    }
 
-describe('getBottleneckStats', function () {
-    it('returns stats with expected keys', function () {
+    public function test_bottleneck_stats_returns_expected_keys(): void
+    {
         $data = $this->service->getBottleneckStats();
 
-        expect($data)->toHaveKey('stats');
-        expect($data['stats'])->toHaveKeys(['active', 'avgResolutionTime', 'patientImpact']);
-    });
+        $this->assertArrayHasKey('stats', $data);
+        $this->assertArrayHasKey('active', $data['stats']);
+        $this->assertArrayHasKey('avgResolutionTime', $data['stats']);
+        $this->assertArrayHasKey('patientImpact', $data['stats']);
+    }
 
-    it('returns numeric values', function () {
+    public function test_bottleneck_stats_returns_numeric_values(): void
+    {
         $data = $this->service->getBottleneckStats();
 
-        expect($data['stats']['active'])->toBeInt();
-        expect($data['stats']['avgResolutionTime'])->toBeNumeric();
-        expect($data['stats']['patientImpact'])->toBeNumeric();
-    });
-});
+        $this->assertIsInt($data['stats']['active']);
+        $this->assertIsNumeric($data['stats']['avgResolutionTime']);
+        $this->assertIsNumeric($data['stats']['patientImpact']);
+    }
 
-describe('getRootCauses', function () {
-    it('returns a non-empty array', function () {
-        $causes = $this->service->getRootCauses();
-
-        expect($causes)->toBeArray()->not->toBeEmpty();
-    });
-
-    it('returns items with required fields', function () {
-        $causes = $this->service->getRootCauses();
-
-        foreach ($causes as $cause) {
-            expect($cause)->toHaveKeys(['rank', 'type', 'location', 'impactedPatients', 'score']);
+    public function test_root_causes_items_have_required_fields(): void
+    {
+        foreach ($this->service->getRootCauses() as $cause) {
+            $this->assertArrayHasKey('rank', $cause);
+            $this->assertArrayHasKey('type', $cause);
+            $this->assertArrayHasKey('location', $cause);
+            $this->assertArrayHasKey('impactedPatients', $cause);
+            $this->assertArrayHasKey('score', $cause);
         }
-    });
+    }
 
-    it('returns items sorted by rank', function () {
-        $causes = $this->service->getRootCauses();
-
-        $ranks = array_column($causes, 'rank');
+    public function test_root_causes_are_sorted_by_rank(): void
+    {
+        $ranks = array_column($this->service->getRootCauses(), 'rank');
         $sorted = $ranks;
         sort($sorted);
 
-        expect($ranks)->toBe($sorted);
-    });
+        $this->assertSame($sorted, $ranks);
+    }
 
-    it('returns items with causes array', function () {
-        $causes = $this->service->getRootCauses();
-
-        foreach ($causes as $cause) {
-            expect($cause)->toHaveKey('causes');
-            expect($cause['causes'])->toBeArray()->not->toBeEmpty();
+    public function test_root_causes_items_have_causes_array(): void
+    {
+        foreach ($this->service->getRootCauses() as $cause) {
+            $this->assertArrayHasKey('causes', $cause);
+            $this->assertIsArray($cause['causes']);
+            $this->assertNotEmpty($cause['causes']);
         }
-    });
-});
+    }
 
-describe('getOpportunities', function () {
-    it('returns an array of opportunities', function () {
+    public function test_opportunities_returns_an_array(): void
+    {
+        $this->assertIsArray($this->service->getOpportunities());
+    }
+
+    public function test_opportunities_items_have_required_fields(): void
+    {
         $opportunities = $this->service->getOpportunities();
 
-        expect($opportunities)->toBeArray();
-    });
-
-    it('returns items with required fields', function () {
-        $opportunities = $this->service->getOpportunities();
+        // Empty on a fresh database — the loop asserts shape only when the
+        // underlying prod.* signals exist.
+        $this->assertIsArray($opportunities);
 
         foreach ($opportunities as $opportunity) {
-            expect($opportunity)->toHaveKeys(['title', 'description', 'department', 'priority', 'status']);
+            $this->assertArrayHasKey('title', $opportunity);
+            $this->assertArrayHasKey('description', $opportunity);
+            $this->assertArrayHasKey('department', $opportunity);
+            $this->assertArrayHasKey('priority', $opportunity);
+            $this->assertArrayHasKey('status', $opportunity);
         }
-    });
-});
+    }
 
-describe('getLibraryResources', function () {
-    it('returns an array of resources', function () {
+    public function test_library_resources_returns_an_array(): void
+    {
+        $this->assertIsArray($this->service->getLibraryResources());
+    }
+
+    public function test_library_resources_items_have_required_fields(): void
+    {
         $resources = $this->service->getLibraryResources();
 
-        expect($resources)->toBeArray();
-    });
-
-    it('returns items with required fields', function () {
-        $resources = $this->service->getLibraryResources();
+        $this->assertIsArray($resources);
 
         foreach ($resources as $resource) {
-            expect($resource)->toHaveKeys(['title', 'description', 'category', 'type', 'dateAdded']);
+            $this->assertArrayHasKey('title', $resource);
+            $this->assertArrayHasKey('description', $resource);
+            $this->assertArrayHasKey('category', $resource);
+            $this->assertArrayHasKey('type', $resource);
+            $this->assertArrayHasKey('dateAdded', $resource);
         }
-    });
-});
+    }
 
-describe('getActiveCycles', function () {
-    it('returns an array of PDSA cycles', function () {
+    public function test_active_cycles_returns_an_array(): void
+    {
+        $this->assertIsArray($this->service->getActiveCycles());
+    }
+
+    public function test_active_cycles_have_required_fields(): void
+    {
+        PdsaCycle::create([
+            'title' => 'Reduce discharge order-to-departure time',
+            'status' => 'active',
+            'started_at' => now(),
+        ]);
+
         $cycles = $this->service->getActiveCycles();
 
-        expect($cycles)->toBeArray();
-    });
-
-    it('returns cycles with required fields', function () {
-        $cycles = $this->service->getActiveCycles();
+        $this->assertNotEmpty($cycles);
 
         foreach ($cycles as $cycle) {
-            expect($cycle)->toHaveKeys([
-                'id', 'title', 'objective', 'status', 'currentPhase',
-                'startDate', 'targetDate', 'progress',
-            ]);
+            $this->assertArrayHasKey('id', $cycle);
+            $this->assertArrayHasKey('title', $cycle);
+            $this->assertArrayHasKey('status', $cycle);
+            $this->assertArrayHasKey('currentPhase', $cycle);
+            $this->assertArrayHasKey('progress', $cycle);
         }
-    });
+    }
 
-    it('returns cycles with valid progress values', function () {
-        $cycles = $this->service->getActiveCycles();
+    public function test_active_cycles_have_valid_progress_values(): void
+    {
+        PdsaCycle::create([
+            'title' => 'Reduce discharge order-to-departure time',
+            'status' => 'active',
+            'started_at' => now(),
+        ]);
 
-        foreach ($cycles as $cycle) {
-            expect($cycle['progress'])->toBeGreaterThanOrEqual(0)
-                ->toBeLessThanOrEqual(100);
+        foreach ($this->service->getActiveCycles() as $cycle) {
+            $this->assertGreaterThanOrEqual(0, $cycle['progress']);
+            $this->assertLessThanOrEqual(100, $cycle['progress']);
         }
-    });
-});
+    }
 
-describe('getPdsaCycle', function () {
-    it('returns a cycle with the given ID', function () {
+    public function test_pdsa_cycle_echoes_the_requested_id_when_not_found(): void
+    {
         $cycle = $this->service->getPdsaCycle('42');
 
-        expect($cycle)->toBeArray();
-        expect($cycle['id'])->toBe('42');
-    });
+        $this->assertIsArray($cycle);
+        $this->assertSame('42', $cycle['id']);
+    }
 
-    it('returns cycle with all PDSA phases', function () {
-        $cycle = $this->service->getPdsaCycle('1');
+    public function test_pdsa_cycle_maps_a_persisted_cycle_onto_the_show_shape(): void
+    {
+        $persisted = PdsaCycle::create([
+            'title' => 'Reduce discharge order-to-departure time',
+            'objective' => 'Cut median order-to-departure below 120 minutes.',
+            'status' => 'active',
+            'started_at' => now(),
+        ]);
 
-        expect($cycle)->toHaveKey('phases');
-        expect($cycle['phases'])->toHaveKeys(['plan', 'do', 'study', 'act']);
-    });
-});
+        $cycle = $this->service->getPdsaCycle((string) $persisted->pdsa_cycle_id);
 
-describe('updateWorkflowPreference', function () {
-    it('updates user workflow preference', function () {
+        $this->assertSame($persisted->pdsa_cycle_id, $cycle['id']);
+        $this->assertSame($persisted->title, $cycle['title']);
+        $this->assertArrayHasKey('plan', $cycle);
+        $this->assertArrayHasKey('study', $cycle);
+        $this->assertContains($cycle['status'], ['Plan', 'Do', 'Study', 'Act']);
+    }
+
+    public function test_updates_user_workflow_preference(): void
+    {
         $user = Mockery::mock(User::class);
         $user->shouldReceive('update')
             ->once()
             ->with(['workflow_preference' => 'perioperative']);
 
         $this->service->updateWorkflowPreference($user, 'perioperative');
-    });
+    }
 
-    it('accepts valid workflow values', function () {
+    public function test_accepts_valid_workflow_values(): void
+    {
         $workflows = ['superuser', 'rtdc', 'perioperative', 'emergency', 'improvement'];
 
         foreach ($workflows as $workflow) {
@@ -174,5 +221,5 @@ describe('updateWorkflowPreference', function () {
 
             $this->service->updateWorkflowPreference($user, $workflow);
         }
-    });
-});
+    }
+}

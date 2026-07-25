@@ -1,158 +1,192 @@
 <?php
 
+namespace Tests\Unit\Services;
+
 use App\Services\ProcessAnalysisService;
+use Tests\TestCase;
 
-beforeEach(function () {
-    $this->service = new ProcessAnalysisService;
-});
+class ProcessAnalysisServiceTest extends TestCase
+{
+    private ProcessAnalysisService $service;
 
-describe('getNursingOperations', function () {
-    it('returns admissions workflow data by default', function () {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->service = new ProcessAnalysisService;
+    }
+
+    public function test_returns_admissions_workflow_data_by_default(): void
+    {
         $data = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '24 Hours');
 
-        expect($data)->toBeArray()
-            ->toHaveKeys(['nodes', 'edges', 'metrics']);
-    });
+        $this->assertIsArray($data);
+        $this->assertArrayHasKey('nodes', $data);
+        $this->assertArrayHasKey('edges', $data);
+        $this->assertArrayHasKey('metrics', $data);
+    }
 
-    it('returns discharge workflow data when requested', function () {
+    public function test_returns_discharge_workflow_data_when_requested(): void
+    {
         $data = $this->service->getNursingOperations('Summit Regional Medical Center', 'Discharges', '24 Hours');
 
-        expect($data)->toBeArray()
-            ->toHaveKeys(['nodes', 'edges', 'metrics']);
-    });
+        $this->assertIsArray($data);
+        $this->assertArrayHasKey('nodes', $data);
+        $this->assertArrayHasKey('edges', $data);
+        $this->assertArrayHasKey('metrics', $data);
+    }
 
-    it('returns nodes with expected structure', function () {
+    public function test_returns_nodes_with_expected_structure(): void
+    {
         $data = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '24 Hours');
 
-        expect($data['nodes'])->toBeArray()->not->toBeEmpty();
+        $this->assertIsArray($data['nodes']);
+        $this->assertNotEmpty($data['nodes']);
 
         $firstNode = $data['nodes'][0];
-        expect($firstNode)->toHaveKeys(['id', 'position', 'data']);
-        expect($firstNode['data'])->toHaveKey('label');
-        expect($firstNode['data'])->toHaveKey('metrics');
-    });
+        $this->assertArrayHasKey('id', $firstNode);
+        $this->assertArrayHasKey('position', $firstNode);
+        $this->assertArrayHasKey('data', $firstNode);
+        $this->assertArrayHasKey('label', $firstNode['data']);
+        $this->assertArrayHasKey('metrics', $firstNode['data']);
+    }
 
-    it('returns edges with expected structure', function () {
+    public function test_returns_edges_with_expected_structure(): void
+    {
         $data = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '24 Hours');
 
-        expect($data['edges'])->toBeArray()->not->toBeEmpty();
+        $this->assertIsArray($data['edges']);
+        $this->assertNotEmpty($data['edges']);
 
         $firstEdge = $data['edges'][0];
-        expect($firstEdge)->toHaveKeys(['id', 'source', 'target']);
-    });
+        $this->assertArrayHasKey('id', $firstEdge);
+        $this->assertArrayHasKey('source', $firstEdge);
+        $this->assertArrayHasKey('target', $firstEdge);
+    }
 
-    it('returns metrics with staffing data', function () {
+    public function test_returns_metrics_with_staffing_data(): void
+    {
         $data = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '24 Hours');
 
-        expect($data['metrics'])->toHaveKey('staffing');
-        expect($data['metrics']['staffing'])->toHaveKeys(['nurses', 'physicians']);
-        expect($data['metrics']['staffing']['nurses'])->toHaveKeys(['assigned', 'required']);
-    });
+        $this->assertArrayHasKey('staffing', $data['metrics']);
+        $this->assertArrayHasKey('nurses', $data['metrics']['staffing']);
+        $this->assertArrayHasKey('physicians', $data['metrics']['staffing']);
+        $this->assertArrayHasKey('assigned', $data['metrics']['staffing']['nurses']);
+        $this->assertArrayHasKey('required', $data['metrics']['staffing']['nurses']);
+    }
 
-    it('returns metrics with space data', function () {
+    public function test_returns_metrics_with_space_data(): void
+    {
         $data = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '24 Hours');
 
-        expect($data['metrics']['space'])->toHaveKey('rooms');
-        expect($data['metrics']['space']['rooms'])->toHaveKeys(['occupied', 'capacity']);
-    });
+        $this->assertArrayHasKey('rooms', $data['metrics']['space']);
+        $this->assertArrayHasKey('occupied', $data['metrics']['space']['rooms']);
+        $this->assertArrayHasKey('capacity', $data['metrics']['space']['rooms']);
+    }
 
-    it('returns metrics with cascade analysis', function () {
+    public function test_returns_metrics_with_cascade_analysis(): void
+    {
         $data = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '24 Hours');
 
-        expect($data['metrics'])->toHaveKey('cascade');
-        expect($data['metrics']['cascade'])->toHaveKeys(['primaryProcess', 'affectedProcesses']);
-    });
+        $this->assertArrayHasKey('cascade', $data['metrics']);
+        $this->assertArrayHasKey('primaryProcess', $data['metrics']['cascade']);
+        $this->assertArrayHasKey('affectedProcesses', $data['metrics']['cascade']);
+    }
 
-    it('returns metrics with wait time data', function () {
+    public function test_returns_metrics_with_wait_time_data(): void
+    {
         $data = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '24 Hours');
 
-        expect($data['metrics'])->toHaveKey('waitTime');
-        expect($data['metrics']['waitTime'])->toHaveKeys(['current', 'benchmark', 'peakMultipliers']);
-    });
+        $this->assertArrayHasKey('waitTime', $data['metrics']);
+        $this->assertArrayHasKey('current', $data['metrics']['waitTime']);
+        $this->assertArrayHasKey('benchmark', $data['metrics']['waitTime']);
+        $this->assertArrayHasKey('peakMultipliers', $data['metrics']['waitTime']);
+    }
 
-    it('returns metrics with predictions', function () {
+    public function test_returns_metrics_with_predictions(): void
+    {
         $data = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '24 Hours');
 
-        expect($data['metrics'])->toHaveKey('predictions');
-        expect($data['metrics']['predictions'])->toHaveKeys([
-            'resourceUtilization',
-            'patternAnalysis',
-            'correlations',
-            'optimizationSuggestions',
-        ]);
-    });
-});
+        $this->assertArrayHasKey('predictions', $data['metrics']);
+        $this->assertArrayHasKey('resourceUtilization', $data['metrics']['predictions']);
+        $this->assertArrayHasKey('patternAnalysis', $data['metrics']['predictions']);
+        $this->assertArrayHasKey('correlations', $data['metrics']['predictions']);
+        $this->assertArrayHasKey('optimizationSuggestions', $data['metrics']['predictions']);
+    }
 
-describe('time range multiplier', function () {
-    it('applies 7-day multiplier to node counts', function () {
+    public function test_applies_seven_day_multiplier_to_node_counts(): void
+    {
         $dayData = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '24 Hours');
         $weekData = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '7 Days');
 
         $dayCount = $dayData['nodes'][0]['data']['metrics']['count'];
         $weekCount = $weekData['nodes'][0]['data']['metrics']['count'];
 
-        expect($weekCount)->toBe($dayCount * 7);
-    });
+        $this->assertSame($dayCount * 7, $weekCount);
+    }
 
-    it('applies 14-day multiplier to node counts', function () {
+    public function test_applies_fourteen_day_multiplier_to_node_counts(): void
+    {
         $dayData = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '24 Hours');
         $twoWeekData = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '14 Days');
 
         $dayCount = $dayData['nodes'][0]['data']['metrics']['count'];
         $twoWeekCount = $twoWeekData['nodes'][0]['data']['metrics']['count'];
 
-        expect($twoWeekCount)->toBe($dayCount * 14);
-    });
+        $this->assertSame($dayCount * 14, $twoWeekCount);
+    }
 
-    it('applies 30-day multiplier to node counts', function () {
+    public function test_applies_thirty_day_multiplier_to_node_counts(): void
+    {
         $dayData = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '24 Hours');
         $monthData = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '1 Month');
 
         $dayCount = $dayData['nodes'][0]['data']['metrics']['count'];
         $monthCount = $monthData['nodes'][0]['data']['metrics']['count'];
 
-        expect($monthCount)->toBe($dayCount * 30);
-    });
+        $this->assertSame($dayCount * 30, $monthCount);
+    }
 
-    it('applies multiplier to edge patient counts', function () {
+    public function test_applies_multiplier_to_edge_patient_counts(): void
+    {
         $dayData = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '24 Hours');
         $weekData = $this->service->getNursingOperations('Summit Regional Medical Center', 'Admissions', '7 Days');
 
         $dayEdge = collect($dayData['edges'])->firstWhere('id', 'e1');
         $weekEdge = collect($weekData['edges'])->firstWhere('id', 'e1');
 
-        expect($weekEdge['data']['patientCount'])
-            ->toBe($dayEdge['data']['patientCount'] * 7);
-    });
-});
+        $this->assertSame($dayEdge['data']['patientCount'] * 7, $weekEdge['data']['patientCount']);
+    }
 
-describe('discharge workflow', function () {
-    it('includes clinical branch nodes', function () {
+    public function test_discharge_workflow_includes_clinical_branch_nodes(): void
+    {
         $data = $this->service->getNursingOperations('Summit Regional Medical Center', 'Discharges', '24 Hours');
 
         $nodeIds = collect($data['nodes'])->pluck('id')->all();
 
-        expect($nodeIds)->toContain('discharge_order')
-            ->toContain('med_reconciliation')
-            ->toContain('discharge_summary')
-            ->toContain('patient_education');
-    });
+        $this->assertContains('discharge_order', $nodeIds);
+        $this->assertContains('med_reconciliation', $nodeIds);
+        $this->assertContains('discharge_summary', $nodeIds);
+        $this->assertContains('patient_education', $nodeIds);
+    }
 
-    it('includes pharmacy branch nodes', function () {
+    public function test_discharge_workflow_includes_pharmacy_branch_nodes(): void
+    {
         $data = $this->service->getNursingOperations('Summit Regional Medical Center', 'Discharges', '24 Hours');
 
         $nodeIds = collect($data['nodes'])->pluck('id')->all();
 
-        expect($nodeIds)->toContain('med_review')
-            ->toContain('rx_processing')
-            ->toContain('take_home_meds');
-    });
+        $this->assertContains('med_review', $nodeIds);
+        $this->assertContains('rx_processing', $nodeIds);
+        $this->assertContains('take_home_meds', $nodeIds);
+    }
 
-    it('includes final departure step', function () {
+    public function test_discharge_workflow_includes_final_departure_step(): void
+    {
         $data = $this->service->getNursingOperations('Summit Regional Medical Center', 'Discharges', '24 Hours');
 
         $nodeIds = collect($data['nodes'])->pluck('id')->all();
 
-        expect($nodeIds)->toContain('departure');
-    });
-});
+        $this->assertContains('departure', $nodeIds);
+    }
+}

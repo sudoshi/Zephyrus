@@ -33,8 +33,6 @@ readonly FEATURE_SHARD_INDEX="${BASH_REMATCH[1]}"
 # pipefail instead of masquerading as an empty shard.
 resolved_files="$(
     find tests/Feature -type f -name '*Test.php' \
-        ! -path 'tests/Feature/Api/ProcessAnalysisTest.php' \
-        ! -path 'tests/Feature/Auth/AuthenticationFlowTest.php' \
         -print \
         | LC_ALL=C sort \
         | python3 scripts/ci/resolve-shard-files.py --manifest "$MANIFEST" --shard "$FEATURE_SHARD_INDEX"

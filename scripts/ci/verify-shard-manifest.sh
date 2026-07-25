@@ -20,8 +20,6 @@ done
 
 # Same discovery pipeline as run-backend-test-shard.sh.
 find tests/Feature -type f -name '*Test.php' \
-    ! -path 'tests/Feature/Api/ProcessAnalysisTest.php' \
-    ! -path 'tests/Feature/Auth/AuthenticationFlowTest.php' \
     -print | LC_ALL=C sort > "$workdir/discovered"
 
 LC_ALL=C sort "$workdir/assigned" > "$workdir/assigned.sorted"
