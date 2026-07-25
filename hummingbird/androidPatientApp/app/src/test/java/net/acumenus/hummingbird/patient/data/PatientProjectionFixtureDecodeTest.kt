@@ -2,6 +2,7 @@ package net.acumenus.hummingbird.patient.data
 
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -34,6 +35,23 @@ class PatientProjectionFixtureDecodeTest {
         assertEquals("pathway_events", events.data.kind)
         assertEquals(4, events.data.content.events.size)
         assertTrue(events.data.content.events.any { it.category == "transport" })
+    }
+
+    @Test
+    fun decodesForwardCompatiblePathwayEventsFixtureWithoutExposingUnknownVocabulary() {
+        val events = PatientEnvelopeDecoder.pathwayEvents(
+            fixture("patient-pathway-events-forward-compatible.json"),
+        )
+
+        val first = events.data.content.events.first()
+        assertEquals("future_navigation", first.category)
+        assertEquals("Status being confirmed", PatientStateVocabulary.label(
+            first.category.orEmpty(),
+            PatientStateDomain.PATHWAY_EVENT_CATEGORY,
+        ))
+        assertNull(first.detail)
+        assertEquals(9_007_199_254_740_993L, events.meta.version)
+        assertEquals(256, events.data.content.notices.size)
     }
 
     @Test

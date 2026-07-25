@@ -29,6 +29,8 @@ class PatientProjectionFixtureRegenerationTest extends TestCase
 
     private const FIXTURE_DIR = 'docs/hummingbird/api-contract/fixtures/patient';
 
+    private const FORWARD_COMPATIBILITY_FIXTURE = 'patient-pathway-events-forward-compatible.json';
+
     /** @var array<string, string> */
     private const ROUTES = [
         'patient-today.json' => 'today',
@@ -74,6 +76,12 @@ class PatientProjectionFixtureRegenerationTest extends TestCase
                         file_get_contents(base_path(self::FIXTURE_DIR.'/'.$filename)),
                         $serialized,
                         "{$filename} is stale. Review the deterministic BFF change, then run HUMMINGBIRD_PATIENT_FIXTURE_DUMP=1 to regenerate it.",
+                    );
+                }
+
+                if ($filename === 'patient-pathway-events.json') {
+                    $this->assertForwardCompatibilityFixture(
+                        $this->forwardCompatibilityPayload($payload),
                     );
                 }
             }
@@ -137,6 +145,54 @@ class PatientProjectionFixtureRegenerationTest extends TestCase
             json_decode($responseBody, flags: JSON_THROW_ON_ERROR),
             JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
         )."\n";
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function forwardCompatibilityPayload(array $payload): array
+    {
+        $payload['data']['content']['events'][0]['detail'] = null;
+        $payload['data']['content']['events'][0]['category'] = 'future_navigation';
+        $payload['data']['content']['events'][0]['future_context'] = [
+            'introduced_by' => 'patient-contract-next',
+            'safe_to_ignore' => true,
+        ];
+        $payload['data']['content']['notices'] = array_map(
+            static fn (int $index): string => "Additional released context {$index}",
+            range(1, 256),
+        );
+        $payload['data']['future_projection_context'] = [
+            'schema_note' => 'Additive contract field for native forward-compatibility coverage.',
+        ];
+        $payload['meta']['version'] = 9007199254740993;
+        $payload['meta']['future_decimal_precision'] = '0.000000000000000001';
+        $payload['meta']['future_metadata'] = ['safe_to_ignore' => true];
+        $payload['links']['future_web'] = 'https://zephyrus.example.test/patient/forward-compatible';
+
+        return $payload;
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function assertForwardCompatibilityFixture(array $payload): void
+    {
+        $serialized = json_encode(
+            $payload,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+        )."\n";
+
+        if (env('HUMMINGBIRD_PATIENT_FIXTURE_DUMP')) {
+            $this->writeFixture(self::FORWARD_COMPATIBILITY_FIXTURE, $serialized);
+
+            return;
+        }
+
+        // The checked-in document may be reformatted by the repository Markdown/JSON
+        // formatter. Compare JSON semantics here so harmless whitespace cannot hide
+        // a real contract difference or make the deterministic freshness gate flaky.
+        $this->assertJsonStringEqualsJsonString(
+            $serialized,
+            file_get_contents(base_path(self::FIXTURE_DIR.'/'.self::FORWARD_COMPATIBILITY_FIXTURE)),
+            self::FORWARD_COMPATIBILITY_FIXTURE.' is stale. Review the compatibility expectation, then run HUMMINGBIRD_PATIENT_FIXTURE_DUMP=1 to regenerate it.',
+        );
     }
 
     private function writeFixture(string $filename, string $serialized): void

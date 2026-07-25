@@ -38,6 +38,19 @@ final class PatientAPIModelTests: XCTestCase {
         XCTAssertTrue(careTeam.data.content.communicationOptions?.contains("call_button_for_urgent_help") == true)
     }
 
+    func testForwardCompatiblePathwayEventsFixtureFallsBackToPatientSafeVocabulary() throws {
+        let events = try decodeFixture(
+            "patient-pathway-events-forward-compatible.json",
+            as: PatientEnvelope<PatientProjectionData<PatientPathwayEventsContent>>.self
+        )
+
+        XCTAssertEqual(events.data.kind, "pathway_events")
+        XCTAssertEqual(events.data.content.events?.first?.category, .other)
+        XCTAssertNil(events.data.content.events?.first?.detail)
+        XCTAssertEqual(events.meta.version, .integer(9_007_199_254_740_993))
+        XCTAssertEqual(events.data.content.notices?.count, 256)
+    }
+
     private func decodeFixture<Payload: Codable & Equatable>(
         _ filename: String,
         as type: PatientEnvelope<Payload>.Type

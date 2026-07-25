@@ -931,6 +931,16 @@ enum PatientPathwayEventCategory: String, Codable, Equatable {
     case transport
     case other
 
+    init(from decoder: Decoder) throws {
+        let rawValue = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: rawValue) ?? .other
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
     var patientLabel: String {
         switch self {
         case .test: "Test"

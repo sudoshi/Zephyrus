@@ -6,8 +6,8 @@ no patient feature enabled by this entry.
 
 ## Baseline
 
-- The governing Hummingbird plan has 173 checked and 290 unchecked checklist items
-  (463 total). This is an unweighted work-item count, not a clinical-readiness
+- The governing Hummingbird plan has 182 checked and 289 unchecked checklist items
+  (471 total). This is an unweighted work-item count, not a clinical-readiness
   percentage.
 - The program is reset to a controlled inpatient-pilot cutline: approved
   Today/My Path/Care Team/discharge projections plus accountable secure messaging
@@ -21,17 +21,17 @@ no patient feature enabled by this entry.
 
 ## Daily control board
 
-| Release slice                            | Owner                               | Status                    | Decision/dependency                                                                   | Evidence                                                                                                                                                      | Flag state                            | Next action                                                     |
-| ---------------------------------------- | ----------------------------------- | ------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------- |
-| Native staff Eddy SSE completion         | Engineering                         | Ready for review          | No external decision                                                                  | Laravel BFF 9 tests/66 assertions; stream service 3/13; Android 122 Debug JVM + 26 API 35 AVD; iPhone 17 Pro 110 tests; contract/ledger verifiers pass        | Staff-only; no patient flag           | Include with scoped commit; no deployment                       |
-| Staff communication action affordances   | Engineering                         | Accepted locally          | No external decision                                                                  | PHP 19 tests/446 assertions; web 14 tests + production build; Android API 35 12 tests; iOS 93 unit + 4 UI tests; all client controls fail closed              | Staff-only; no patient flag           | Hold for review; do not expand while pilot gates block          |
-| Staff and patient DTO fixture provenance | Engineering                         | Accepted locally          | No external decision                                                                  | 8 factory-seeded staff BFF captures; 6 test-only patient BFF captures; PHP, iOS, Android decoders; iPhone 17 Pro and Android API 35 journeys green            | Contract-only; no patient flag        | Add generated artifacts; keep approved-source fixtures separate |
-| Reference-patient dry-run integrity      | Engineering                         | Accepted locally          | No external decision                                                                  | Local regression proves preview does not create an encounter or opaque-resolver row; remote read-only preview finds sole active encounter `10040` / unit `85` | All patient flags remain off          | Keep identity, draft, and release gates unchanged               |
-| Pilot scope and governance               | Product / clinical / privacy        | Blocked                   | Facility, units, cohort, disclosure policy, identity, language, SLA, escalation owner | None yet                                                                                                                                                      | All patient flags remain off          | Convene decision meeting within one business day                |
-| Approved patient source/release adapter  | Integration / clinical content      | Blocked                   | Named source system, source contract, review/release owner                            | Draft/reconciliation kernel exists; no approved production adapter or release authority                                                                       | All patient exposure flags remain off | Select source and write source contract                         |
-| Patient native vertical slice            | Native / accessibility              | Contract ratified locally | Released pilot projection contract                                                    | Six test-only BFF fixtures decode through both production model layers; iPhone 17 Pro UI and Android API 35 journey are green                                 | All patient flags remain off          | Bind the same harness to approved-source release fixtures       |
-| Accountable communication pilot          | Nursing ops / support / engineering | Blocked                   | Responsibility pools, shifts, topics, SLA, support desk                               | Local workflow foundations exist; pilot configuration and deployed E2E do not                                                                                 | Messaging remains off                 | Configure two pilot unit pools and tabletop                     |
-| Integrated pilot rehearsal               | Release / independent reviewers     | Not started               | Waves 1–4 exit evidence                                                               | None yet                                                                                                                                                      | All patient flags remain off          | Schedule after source, governance, and workflow gates           |
+| Release slice                            | Owner                               | Status                    | Decision/dependency                                                                   | Evidence                                                                                                                                                                                               | Flag state                            | Next action                                                     |
+| ---------------------------------------- | ----------------------------------- | ------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- | --------------------------------------------------------------- |
+| Native staff Eddy SSE completion         | Engineering                         | Ready for review          | No external decision                                                                  | Laravel BFF 9 tests/66 assertions; stream service 3/13; Android 122 Debug JVM + 26 API 35 AVD; iPhone 17 Pro 110 tests; contract/ledger verifiers pass                                                 | Staff-only; no patient flag           | Include with scoped commit; no deployment                       |
+| Staff communication action affordances   | Engineering                         | Accepted locally          | No external decision                                                                  | PHP 19 tests/446 assertions; web 14 tests + production build; Android API 35 12 tests; iOS 93 unit + 4 UI tests; all client controls fail closed                                                       | Staff-only; no patient flag           | Hold for review; do not expand while pilot gates block          |
+| Staff and patient DTO fixture provenance | Engineering                         | Accepted locally          | No external decision                                                                  | 8 factory-seeded staff BFF captures; 6 test-only patient BFF captures plus 1 labelled derived forward-compatibility probe; PHP, iOS, Android decoders; iPhone 17 Pro and Android API 35 journeys green | Contract-only; no patient flag        | Add generated artifacts; keep approved-source fixtures separate |
+| Reference-patient dry-run integrity      | Engineering                         | Accepted locally          | No external decision                                                                  | Local regression proves preview does not create an encounter or opaque-resolver row; remote read-only preview finds sole active encounter `10040` / unit `85`                                          | All patient flags remain off          | Keep identity, draft, and release gates unchanged               |
+| Pilot scope and governance               | Product / clinical / privacy        | Blocked                   | Facility, units, cohort, disclosure policy, identity, language, SLA, escalation owner | None yet                                                                                                                                                                                               | All patient flags remain off          | Convene decision meeting within one business day                |
+| Approved patient source/release adapter  | Integration / clinical content      | Blocked                   | Named source system, source contract, review/release owner                            | Draft/reconciliation kernel exists; no approved production adapter or release authority                                                                                                                | All patient exposure flags remain off | Select source and write source contract                         |
+| Patient native vertical slice            | Native / accessibility              | Contract ratified locally | Released pilot projection contract                                                    | Six test-only BFF fixtures decode through both production model layers; iPhone 17 Pro UI and Android API 35 journey are green                                                                          | All patient flags remain off          | Bind the same harness to approved-source release fixtures       |
+| Accountable communication pilot          | Nursing ops / support / engineering | Blocked                   | Responsibility pools, shifts, topics, SLA, support desk                               | Local workflow foundations exist; pilot configuration and deployed E2E do not                                                                                                                          | Messaging remains off                 | Configure two pilot unit pools and tabletop                     |
+| Integrated pilot rehearsal               | Release / independent reviewers     | Not started               | Waves 1–4 exit evidence                                                               | None yet                                                                                                                                                                                               | All patient flags remain off          | Schedule after source, governance, and workflow gates           |
 
 ## Evidence convention
 
@@ -196,6 +196,37 @@ This establishes local, deterministic contract evidence and native emulator/simu
 evidence. It does not generate the native DTOs, replace the selected approved clinical
 source adapter, create a clinical release, alter the existing remote reference encounter,
 enable a patient flag, or satisfy pilot governance and independent-review gates.
+
+## 2026-07-25 — Patient forward-compatibility fixture ratification
+
+### Completed implementation
+
+- `patient-pathway-events-forward-compatible.json` is a deterministic **test-only**
+  derivation of the testing-runtime pathway-events BFF capture. Its provenance names it
+  as derived, rather than presenting it as an additional source capture or release
+  fixture.
+- The fixture proves explicit `null` handling, an unknown `future_navigation` category,
+  additive nested fields in `data`, `meta`, and `links`, exact integer preservation for
+  `9007199254740993`, a precision-preserving decimal string, and a 256-item notice list.
+- The iOS decoder maps an unknown pathway event category to generic `Care update`; the
+  Android presentation vocabulary maps it to generic `Status being confirmed`. Neither
+  app renders the unrecognized server value to a patient.
+
+### Verification
+
+| Boundary                            | Command / target                                                                                          | Result                             |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Laravel patient projection boundary | `PatientProjectionFixtureRegenerationTest`, `PatientSharedDtoFixtureTest`, and `PatientProjectionApiTest` | 18 passed / 779 assertions         |
+| iOS native decoder                  | iPhone 17 Pro / iOS 26.3.1, `testForwardCompatiblePathwayEventsFixtureFallsBackToPatientSafeVocabulary`   | 1 passed / 0 failures              |
+| Android native decoder              | `PatientProjectionFixtureDecodeTest` JVM suite                                                            | 7 passed / 0 failures/errors/skips |
+| Android patient journey             | API 35 `hb` emulator / `PatientPrimaryJourneyInstrumentedTest`                                            | 7 passed / 0 failures/errors/skips |
+
+### Remaining boundary
+
+This is deterministic compatibility evidence for manually maintained client models. It
+does not create generated DTOs, prove behavior against an approved source/release,
+change any patient feature flag, or satisfy clinical, accessibility, privacy, or pilot
+acceptance gates.
 
 ## 2026-07-25 — Reference-patient dry-run made no-write
 

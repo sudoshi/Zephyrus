@@ -13,8 +13,8 @@ communications, and production readiness. That is not one feature. It is a
 multi-release healthcare program with several decisions that engineering cannot
 make on its own.
 
-The governing checklist currently contains **173 completed and 290 open items**
-(463 total). This is an unweighted execution count, not a claim that the product is
+The governing checklist currently contains **182 completed and 289 open items**
+(471 total). This is an unweighted execution count, not a claim that the product is
 37% clinically or operationally ready. A single unresolved source-release or
 identity decision can block a patient pilot regardless of how many code items are
 complete.
@@ -183,9 +183,12 @@ authorized projection.
 
 **Current local foundation (2026-07-25):** the same six patient-care DTOs are
 captured through the testing-only patient BFF and decoded by the production iOS and
-Android model layers. Focused iPhone 17 Pro and Android API 35 journeys are green.
-This closes local contract ratification only; the Wave 3 exit still requires the
-approved-source release responses and all listed release-mode/accessibility evidence.
+Android model layers. One separately labelled, test-only forward-compatibility fixture
+is deterministically derived from the pathway-events BFF capture to prove nullable,
+unknown-enum, additive-field, exact-integer/decimal, and large-payload handling.
+Focused iPhone 17 Pro and Android API 35 journeys are green. This closes local contract
+ratification only; the Wave 3 exit still requires the approved-source release responses
+and all listed release-mode/accessibility evidence.
 
 1. Bind the already separate iOS and Android patient binaries to the approved pilot
    enrollment and session lifecycle, including expired/revoked access and a generic
@@ -316,10 +319,10 @@ evidence, or dependency due time is removed from active work.
 3. Create the pilot configuration/flag manifest and a test-environment release
    checklist. Verify every patient flag is off by default.
 4. Select and document the approved source adapter input for the four pilot patient
-   views. The six deterministic test-only projection fixtures now ratify the native
-   DTO boundary, but they are not an approved source release; create separate
-   release fixtures from the selected source and reject synthetic content as a
-   release substitute.
+   views. The six deterministic test-only projection fixtures and one derived
+   compatibility probe ratify the native DTO boundary, but they are not an approved
+   source release; create separate release fixtures from the selected source and reject
+   synthetic content as a release substitute.
 5. Start Waves 2, 3, and 4 in parallel, each with exactly one integration owner.
 6. At the end of day two, hold a hard checkpoint. If source/release or governance
    approval is still absent, stop feature expansion and escalate that dependency;

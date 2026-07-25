@@ -55,10 +55,13 @@ records the source endpoint and regeneration test for every staff artifact.
 The six patient-care fixtures in [`fixtures/patient/`](fixtures/patient/) are captured through
 the real patient BFF boundary, but only from the deterministic
 `SyntheticPatientProjectionProvisioner` in the testing runtime. They cover Today, My Path,
-pathway events, discharge readiness, rounds summary, and Care Team. They do **not** contain a
-real patient, a remote database response, an approved clinical source, or a release decision;
-they are contract-ratification evidence only. Their distinct
-[`fixture-provenance.v1.json`](fixtures/patient/fixture-provenance.v1.json) records that
+pathway events, discharge readiness, rounds summary, and Care Team. A seventh, explicitly
+test-only forward-compatibility fixture is deterministically derived from the pathway-events
+capture; it exercises a nullable field, an unknown enum, additive fields, an exact large integer,
+a precision-preserving decimal string, and a 256-notice payload. It is not a second source
+capture. None of these artifacts contains a real patient, a remote database response, an approved
+clinical source, or a release decision; they are contract-ratification evidence only. Their
+distinct [`fixture-provenance.v1.json`](fixtures/patient/fixture-provenance.v1.json) records that
 boundary explicitly.
 
 Regenerate staff fixtures with
