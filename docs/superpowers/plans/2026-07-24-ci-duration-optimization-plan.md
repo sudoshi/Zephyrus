@@ -112,9 +112,11 @@ The standalone Debug build's artifacts are never reused; XCTest recompiles every
   `needs: changes` + `if: needs.changes.outputs.reuse != 'true'`; reuse can never trigger on
   `pull_request` events, so branch protection semantics are untouched. Empirically verified on real
   history: PR #61 and #63 squash trees are byte-identical to their PR-head trees.
-- [ ] Docs-only fast path (b): deferred to a follow-up; `needs: changes` is already in place, so it is
-  an output + condition extension. Classification must exclude `docs/hummingbird/**` (generated docs are
-  contract-verified in CI) and keep gitleaks running on every diff.
+- [x] Docs-only fast path (b): the gatekeeper classifies the change set (PR file list, or the push
+  compare API on main with a 300-file truncation guard) as docs-only when every file is under `docs/`
+  or a root-level `*.md`, with `docs/hummingbird/**` excluded (generated docs are contract-verified by
+  backend-quality). The 10 suite jobs skip on `docs_only`; the Security job (gitleaks / SAST) runs on
+  every change set regardless. All classification failures fail open to the full suite.
 
 ### S5. De-risk the `macos-26` queue tail — **removes the +35 m variance**
 - [ ] In order: (a) test whether `macos-15`'s Xcode selection now covers the needed iOS-26 SDK — if yes, leave the scarce pool entirely; (b) evaluate larger-runner pools; (c) failing both, move XCUITest journeys to main-push/nightly lanes only (permissible — staff iOS is not a required PR check — but record the coverage trade-off explicitly).
