@@ -89,15 +89,18 @@ struct PatientExperienceSnapshot: Equatable {
             let category = item.category.map {
                 PatientStateVocabulary.label(for: $0.rawValue, domain: .scheduleCategory)
             }
+            let isDelayed = item.status == "delayed"
             return PatientPlanItem(
                 id: UUID(uuidString: item.itemUUID) ?? UUID(),
                 title: item.label,
-                timeLabel: item.timeWindow,
-                detail: [category.map { "Type: \($0)." }, item.detail, item.preparation]
-                    .compactMap { $0 }
-                    .filter { !$0.isEmpty }
-                    .joined(separator: " ")
-                    .nonEmpty ?? "Your care team has released this step for today.",
+                timeLabel: isDelayed ? PatientDelayedSchedulePresentation.timing : item.timeWindow,
+                detail: isDelayed
+                    ? PatientDelayedSchedulePresentation.detail
+                    : [category.map { "Type: \($0)." }, item.detail, item.preparation]
+                        .compactMap { $0 }
+                        .filter { !$0.isEmpty }
+                        .joined(separator: " ")
+                        .nonEmpty ?? "Your care team has released this step for today.",
                 certainty: PatientCertainty(timingConfidence: item.timingConfidence, status: item.status),
                 statusLabel: PatientStateVocabulary.label(for: item.status, domain: .schedule),
                 provenance: today?.data.provenance.patientDescription ?? "Released patient projection"
@@ -264,6 +267,14 @@ struct PatientExperienceSnapshot: Equatable {
                     certainty: .beingClarified,
                     statusLabel: "Result not available yet",
                     provenance: "Synthetic test-plan placeholder · no result content"
+                ),
+                PatientPlanItem(
+                    title: "Schedule update",
+                    timeLabel: PatientDelayedSchedulePresentation.timing,
+                    detail: PatientDelayedSchedulePresentation.detail,
+                    certainty: .beingClarified,
+                    statusLabel: "Delayed",
+                    provenance: "Synthetic schedule update · no operational reason or ETA"
                 ),
             ],
             todayNextSteps: ["Write down questions for care team rounds."],
@@ -591,7 +602,9 @@ enum PatientCertainty: String, Equatable {
     case beingClarified = "Being clarified"
 
     init(timingConfidence: String?, status: String?) {
-        if ["completed", "result_released"].contains(status) || timingConfidence == "confirmed" {
+        if ["delayed", "waiting", "result_pending"].contains(status) {
+            self = .beingClarified
+        } else if ["completed", "result_released"].contains(status) || timingConfidence == "confirmed" {
             self = .confirmed
         } else if ["planned", "scheduled", "transport_requested", "in_progress"].contains(status) || timingConfidence == "estimated" {
             self = .expected
@@ -599,6 +612,11 @@ enum PatientCertainty: String, Equatable {
             self = .beingClarified
         }
     }
+}
+
+private enum PatientDelayedSchedulePresentation {
+    static let timing = "Timing is being updated"
+    static let detail = "The timing for this step has changed. Your care team will explain what happens next."
 }
 
 struct PatientPathwayStage: Identifiable, Equatable {

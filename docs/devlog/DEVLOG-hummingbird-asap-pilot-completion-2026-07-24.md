@@ -481,3 +481,37 @@ This ratifies a no-new-data composition of content that has already crossed its 
 released patient-projection boundary. It does not create a patient record, change a
 grant or scope, add a production source/reconciliation worker, release clinical content,
 enable a patient feature, authorize a pilot, migrate data, or deploy an application.
+
+## 2026-07-25 — Delayed schedule presentation safety ratification
+
+### Completed implementation
+
+- A released schedule item with the `delayed` code no longer renders its free-text
+  `time_window`, detail, preparation, or timing-confidence wording in either native
+  patient app. Both apps substitute the fixed patient-safe text **Timing is being
+  updated** and **The timing for this step has changed. Your care team will explain
+  what happens next.** This prevents an unverified ETA or operational explanation from
+  being restated as patient guidance.
+- iOS certainty calculation now gives `delayed`, `waiting`, and `result_pending`
+  precedence over every upstream timing-confidence value. Those states render as **Being
+  clarified** rather than **Expected**; `completed` and `result_released` still retain
+  their confirmed treatment.
+- Deterministic native inputs use a source-specific time, detail, and preparation. The
+  mapper assertions require the fixed safe presentation instead, and the debug-only
+  reference scenarios render the same generic delayed card for both emulators.
+
+### Verification
+
+| Boundary                 | Command / target                                                                                                             | Result                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Android native mapper    | Debug JVM: `PatientSessionCoordinatorTest`                                                                                   | passed / 0 failures                                                        |
+| iOS native mapper        | iPhone 17 Pro / iOS 26.3.1: `PatientAppViewModelTests`                                                                       | 24 passed / 0 failures                                                     |
+| iOS rendered journey     | iPhone 17 Pro / iOS 26.3.1: `PatientReferenceJourneyUITests/testReferenceJourneyExposesCarePathTeamAndSafeMessagingLanguage` | 1 passed / 0 failures; verifies generic delayed wording                    |
+| Android rendered journey | API 35 `hb` emulator / `connectedDebugAndroidTest --rerun-tasks`                                                             | 15 passed / 0 failures, errors, or skips; verifies generic delayed wording |
+
+### Remaining boundary
+
+This ratifies a defensive client rendering rule. It does not review or approve a source
+delay reason, determine an ETA, inspect staffing/capacity, approve clinical wording,
+release a patient projection, enable a patient feature, authorize a pilot, migrate data,
+or deploy an application.

@@ -20,6 +20,8 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["today-care-goals"]))
         XCTAssertTrue(scrollUntilExists(app.staticTexts["A test update"]))
         XCTAssertTrue(scrollUntilExists(app.staticTexts["Result not available yet"]))
+        XCTAssertTrue(scrollUntilExists(app.staticTexts["Schedule update"]))
+        XCTAssertTrue(scrollUntilExists(app.staticTexts["Timing is being updated"]))
         attachScreenshot(named: "Today")
 
         app.tabBars.buttons["My Path"].tap()

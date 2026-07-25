@@ -27,6 +27,13 @@ class PatientSessionCoordinatorTest {
             "Result not available yet",
             ready.snapshot.todayItems.first { it.title == "A test update" }.status,
         )
+        val delayedItem = ready.snapshot.todayItems.first { it.title == "A delayed update" }
+        assertEquals("Timing is being updated", delayedItem.timing)
+        assertEquals(
+            "The timing for this step has changed. Your care team will explain what happens next.",
+            delayedItem.explanation,
+        )
+        assertEquals("Delayed", delayedItem.status)
         assertEquals("Planning for leaving the hospital", ready.snapshot.todayItems.last().title)
         assertEquals("Reference Hospital · Reference inpatient unit · Reference room", ready.snapshot.todayCareLocationLabel)
         assertEquals("Monitoring and treatment", ready.snapshot.pathway.single().title)
@@ -621,6 +628,17 @@ internal class FakePatientApiGateway(
                             timeWindow = "Later today",
                             timingConfidence = "unknown",
                             preparation = "Your care team will explain what happens next.",
+                            canChange = true,
+                        ),
+                        PatientScheduleItem(
+                            itemUuid = "019f4d7a-3200-7000-8000-000000000013",
+                            label = "A delayed update",
+                            detail = "Source-specific delay detail.",
+                            category = "procedure",
+                            status = "delayed",
+                            timeWindow = "3:45 PM",
+                            timingConfidence = "estimated",
+                            preparation = "Source-specific preparation.",
                             canChange = true,
                         ),
                     ),

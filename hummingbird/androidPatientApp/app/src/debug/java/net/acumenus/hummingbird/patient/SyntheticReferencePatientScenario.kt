@@ -69,6 +69,13 @@ internal object SyntheticReferencePatientScenario {
                 provenance = "Synthetic test-plan placeholder • no result content",
             ),
             PatientTodayItem(
+                title = "Schedule update",
+                timing = "Timing is being updated",
+                status = "Delayed",
+                explanation = "The timing for this step has changed. Your care team will explain what happens next.",
+                provenance = "Synthetic schedule update • no operational reason or ETA",
+            ),
+            PatientTodayItem(
                 title = "Planning for leaving the hospital",
                 timing = "In the next day or two",
                 status = "Estimated",

@@ -418,21 +418,26 @@ object PatientSnapshotFactory {
             ?: unavailableContext("Your hospital stay")
         val todayContent = today?.data?.content
         val todayItems = todayContent?.schedule?.map { item ->
+            val isDelayed = item.status == "delayed"
             PatientTodayItem(
                 title = item.label,
-                timing = item.timeWindow,
+                timing = if (isDelayed) "Timing is being updated" else item.timeWindow,
                 status = PatientStateVocabulary.label(item.status, PatientStateDomain.SCHEDULE),
-                explanation = listOfNotNull(
-                    item.category?.let {
-                        "Type: ${PatientStateVocabulary.label(it, PatientStateDomain.SCHEDULE_CATEGORY)}."
-                    },
-                    item.detail,
-                    item.preparation?.let { "Preparation: $it" },
-                    item.timingConfidence?.let {
-                        "Timing confidence: ${PatientStateVocabulary.label(it, PatientStateDomain.TIMING_CONFIDENCE)}."
-                    },
-                ).joinToString(" ").ifBlank {
-                    "This item is part of your currently released plan for today."
+                explanation = if (isDelayed) {
+                    "The timing for this step has changed. Your care team will explain what happens next."
+                } else {
+                    listOfNotNull(
+                        item.category?.let {
+                            "Type: ${PatientStateVocabulary.label(it, PatientStateDomain.SCHEDULE_CATEGORY)}."
+                        },
+                        item.detail,
+                        item.preparation?.let { "Preparation: $it" },
+                        item.timingConfidence?.let {
+                            "Timing confidence: ${PatientStateVocabulary.label(it, PatientStateDomain.TIMING_CONFIDENCE)}."
+                        },
+                    ).joinToString(" ").ifBlank {
+                        "This item is part of your currently released plan for today."
+                    }
                 },
                 provenance = today.provenanceLabel(),
             )

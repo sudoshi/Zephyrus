@@ -100,6 +100,11 @@ final class PatientAppViewModelTests: XCTestCase {
             viewModel.snapshot?.todayItems.first(where: { $0.title == "A test update" })?.statusLabel,
             "Result not available yet"
         )
+        let delayedItem = viewModel.snapshot?.todayItems.first(where: { $0.title == "A delayed update" })
+        XCTAssertEqual(delayedItem?.timeLabel, "Timing is being updated")
+        XCTAssertEqual(delayedItem?.detail, "The timing for this step has changed. Your care team will explain what happens next.")
+        XCTAssertEqual(delayedItem?.statusLabel, "Delayed")
+        XCTAssertEqual(delayedItem?.certainty, .beingClarified)
         XCTAssertEqual(viewModel.snapshot?.todayItems.last?.title, "Planning for leaving the hospital")
         XCTAssertEqual(viewModel.snapshot?.encounterLabel, "5 East · Room 512 · Example Hospital")
         XCTAssertTrue(viewModel.snapshot?.todayNextSteps.contains("Tell your care team what you would like explained today.") == true)
@@ -1144,6 +1149,17 @@ private enum PatientFixtures {
                         timeWindow: "Later today",
                         timingConfidence: "unknown",
                         preparation: "Your care team will explain what happens next.",
+                        canChange: true
+                    ),
+                    PatientScheduleItem(
+                        itemUUID: "019f0000-0000-7000-8000-000000000023",
+                        label: "A delayed update",
+                        detail: "Source-specific delay detail.",
+                        category: .procedure,
+                        status: "delayed",
+                        timeWindow: "3:45 PM",
+                        timingConfidence: "confirmed",
+                        preparation: "Source-specific preparation.",
                         canChange: true
                     ),
                 ],
