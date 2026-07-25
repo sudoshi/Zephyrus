@@ -32,6 +32,8 @@ const workItem = {
     patient_context_ref: "ptok_abcdef1234567890abcdef12",
     topic: { code: "care_question", label: "Question for my care team" },
     unit: { id: 85, label: "5 East — Medical/Surgical" },
+    facility: { key: "SUMMIT_REGIONAL", label: "Summit Regional Hospital" },
+    service_line: { code: "hospital_medicine", label: "Hospital Medicine" },
     pool: {
         pool_uuid: "019f0000-0000-7000-8000-000000000003",
         label: "5 East Care Team",
@@ -142,7 +144,7 @@ describe("Patient Communications workspace", () => {
         } as ReturnType<typeof usePage>);
     });
 
-    it("renders explicit authorized unit and responsible-team filters", () => {
+    it("renders governed facility and service-line filters only from the authorized queue", () => {
         render(
             <PatientCommunicationsIndex
                 initialInbox={{ items: [workItem], count: 1 }}
@@ -155,14 +157,60 @@ describe("Patient Communications workspace", () => {
         expect(
             screen.getByRole("option", { name: workItem.unit.label }),
         ).toBeInTheDocument();
+        expect(screen.getByLabelText("Facility")).toHaveValue("all");
+        expect(
+            screen.getByRole("option", { name: workItem.facility.label }),
+        ).toBeInTheDocument();
+        expect(screen.getByLabelText("Service line")).toHaveValue("all");
+        expect(
+            screen.getByRole("option", { name: workItem.service_line.label }),
+        ).toBeInTheDocument();
         expect(screen.getByLabelText("Responsible team")).toHaveValue("all");
         expect(
             screen.getByRole("option", { name: workItem.pool.label }),
         ).toBeInTheDocument();
         expect(
-            screen.getByText(
-                /Facility and service-line filters remain unavailable/i,
-            ),
+            screen.getByText(/active encounter's governed location mapping/i),
+        ).toBeInTheDocument();
+    });
+
+    it("filters facility and service line without using routing-team scope", () => {
+        const otherItem = {
+            ...workItem,
+            work_item_uuid: "019f0000-0000-7000-8000-000000000010",
+            thread_uuid: "019f0000-0000-7000-8000-000000000011",
+            topic: { code: "discharge", label: "Discharge planning" },
+            facility: {
+                key: "NORTH_CAMPUS",
+                label: "North Campus Hospital",
+            },
+            service_line: {
+                code: "cardiovascular",
+                label: "Cardiovascular Services",
+            },
+        };
+
+        render(
+            <PatientCommunicationsIndex
+                initialInbox={{ items: [workItem, otherItem], count: 2 }}
+                endpoints={endpoints}
+                auth={{ user: null }}
+            />,
+        );
+
+        fireEvent.change(screen.getByLabelText("Facility"), {
+            target: { value: otherItem.facility.key },
+        });
+        expect(screen.getByText(otherItem.topic.label)).toBeInTheDocument();
+        expect(
+            screen.queryByText(workItem.topic.label),
+        ).not.toBeInTheDocument();
+
+        fireEvent.change(screen.getByLabelText("Service line"), {
+            target: { value: workItem.service_line.code },
+        });
+        expect(
+            screen.getByText("No communications match these filters."),
         ).toBeInTheDocument();
     });
 
@@ -700,8 +748,7 @@ describe("Patient Communications workspace", () => {
             envelope({
                 work_item: {
                     ...detail,
-                    work_item_uuid:
-                        "019f0000-0000-7000-8000-000000000099",
+                    work_item_uuid: "019f0000-0000-7000-8000-000000000099",
                     work_item_version: 1,
                     thread_version: 2,
                 },

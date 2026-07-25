@@ -12,6 +12,16 @@ data class PatientCommunicationUnit(
     val label: String,
 )
 
+data class PatientCommunicationFacility(
+    val key: String,
+    val label: String,
+)
+
+data class PatientCommunicationServiceLine(
+    val code: String,
+    val label: String,
+)
+
 data class PatientCommunicationPool(
     val poolUuid: String,
     val label: String,
@@ -47,6 +57,8 @@ data class PatientCommunicationWorkItem(
     val closedAt: String?,
     val messages: List<PatientCommunicationMessage> = emptyList(),
     val hasEarlierMessages: Boolean = false,
+    val facility: PatientCommunicationFacility? = null,
+    val serviceLine: PatientCommunicationServiceLine? = null,
 )
 
 data class PatientCommunicationInbox(

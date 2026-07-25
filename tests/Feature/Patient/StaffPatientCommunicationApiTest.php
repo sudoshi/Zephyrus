@@ -5,6 +5,9 @@ namespace Tests\Feature\Patient;
 use App\Models\Audit\UserEvent;
 use App\Models\Encounter;
 use App\Models\Facility\FacilitySpace;
+use App\Models\Facility\FacilitySpaceServiceLine;
+use App\Models\Org\Facility;
+use App\Models\Org\Organization;
 use App\Models\Patient\PatientEncounterAccessGrant;
 use App\Models\Patient\PatientMessage;
 use App\Models\Patient\PatientMessageDeliveryReceipt;
@@ -16,6 +19,7 @@ use App\Models\PatientCommunication\PoolMembership;
 use App\Models\PatientCommunication\ResponsibilityPool;
 use App\Models\PatientCommunication\StaffActionEvent;
 use App\Models\PatientCommunication\ThreadWorkItem;
+use App\Models\Reference\ServiceLine;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Patient\Messaging\DatabasePatientMessageHandoffConsumer;
@@ -208,6 +212,50 @@ class StaffPatientCommunicationApiTest extends TestCase
             'target_id' => (string) $workItem->work_item_uuid,
             'outcome' => 'success',
         ]);
+    }
+
+    public function test_inbox_projects_only_active_canonical_facility_and_primary_service_line_context(): void
+    {
+        $fixture = $this->routedCommunication();
+        [$facility, $serviceLine] = $this->attachGovernedLocation($fixture['unit']);
+        $staffToken = $this->staffToken($fixture['staff']);
+
+        $this->withToken($staffToken)
+            ->getJson('/api/mobile/v1/patient-communications/inbox')
+            ->assertOk()
+            ->assertJsonPath('data.items.0.facility.key', (string) $facility->facility_key)
+            ->assertJsonPath('data.items.0.facility.label', (string) $facility->facility_name)
+            ->assertJsonPath('data.items.0.service_line.code', (string) $serviceLine->service_line_code)
+            ->assertJsonPath('data.items.0.service_line.label', (string) $serviceLine->display_name)
+            ->assertJsonMissingPath('data.items.0.facility.facility_id')
+            ->assertJsonMissingPath('data.items.0.service_line.metadata');
+
+        FacilitySpaceServiceLine::query()
+            ->where('facility_space_id', $fixture['unit']->fresh()->facility_space_id)
+            ->where('primary_flag', true)
+            ->update(['effective_end' => now()->subDay()->toDateString()]);
+        $this->app['auth']->forgetGuards();
+
+        // A historic mapping cannot label a current service-line filter, but a
+        // still-active facility remains safe to show as location context.
+        $this->withToken($staffToken)
+            ->getJson('/api/mobile/v1/patient-communications/inbox')
+            ->assertOk()
+            ->assertJsonPath('data.items.0.facility.label', (string) $facility->facility_name)
+            ->assertJsonPath('data.items.0.service_line', null);
+
+        // A routing pool can retain the same facility key even when the facility
+        // registry row is inactive. The work remains authorized, but its filter
+        // projection fails closed rather than exposing a stale location label.
+        $facility->forceFill(['is_active' => false])->save();
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($staffToken)
+            ->getJson('/api/mobile/v1/patient-communications/inbox')
+            ->assertOk()
+            ->assertJsonPath('data.count', 1)
+            ->assertJsonPath('data.items.0.facility', null)
+            ->assertJsonPath('data.items.0.service_line', null);
     }
 
     public function test_staff_disclosure_fails_closed_before_reconciliation_for_inactive_or_moved_encounters(): void
@@ -1361,6 +1409,51 @@ class StaffPatientCommunicationApiTest extends TestCase
             DB::rollBack();
             $this->addToAssertionCount(1);
         }
+    }
+
+    /**
+     * @return array{Facility, ServiceLine}
+     */
+    private function attachGovernedLocation(Unit $unit): array
+    {
+        $suffix = Str::lower(Str::random(10));
+        $organization = Organization::query()->create([
+            'organization_key' => 'staff-api-org-'.$suffix,
+            'name' => 'Staff API Test Health System',
+            'kind' => 'idn',
+        ]);
+        $facility = Facility::query()->create([
+            'organization_id' => $organization->getKey(),
+            'facility_key' => 'STAFF_API_FACILITY_'.Str::upper($suffix),
+            'facility_name' => 'Staff API Test Hospital',
+            'idn_role' => 'community_hospital',
+            'review_status' => 'client_verified',
+            'is_active' => true,
+        ]);
+        $serviceLine = ServiceLine::query()->create([
+            'service_line_code' => 'staff_api_medicine_'.$suffix,
+            'display_name' => 'Staff API Test Medicine',
+            'clinical_domain' => 'hospital_medicine',
+            'is_active' => true,
+        ]);
+        $facilitySpace = FacilitySpace::query()->create([
+            'space_code' => 'staff-api-space-'.$suffix,
+            'space_name' => 'Staff API Test Unit Space',
+            'space_category' => 'unit',
+            'service_line_code' => $serviceLine->service_line_code,
+            'status' => 'active',
+            'facility_key' => $facility->facility_key,
+        ]);
+        FacilitySpaceServiceLine::query()->create([
+            'facility_space_id' => $facilitySpace->getKey(),
+            'service_line_code' => $serviceLine->service_line_code,
+            'primary_flag' => true,
+            'effective_start' => now()->subDay()->toDateString(),
+        ]);
+
+        $unit->forceFill(['facility_space_id' => $facilitySpace->getKey()])->save();
+
+        return [$facility, $serviceLine];
     }
 
     /**

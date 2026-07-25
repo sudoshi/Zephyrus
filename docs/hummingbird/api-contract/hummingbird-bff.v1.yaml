@@ -2827,6 +2827,20 @@ components:
         id: { type: integer, minimum: 1 }
         label: { type: string, minLength: 1 }
       required: [id, label]
+    PatientCommunicationFacility:
+      type: object
+      additionalProperties: false
+      properties:
+        key: { type: string, minLength: 1, maxLength: 120 }
+        label: { type: string, minLength: 1, maxLength: 160 }
+      required: [key, label]
+    PatientCommunicationServiceLine:
+      type: object
+      additionalProperties: false
+      properties:
+        code: { type: string, minLength: 1, maxLength: 120 }
+        label: { type: string, minLength: 1, maxLength: 160 }
+      required: [code, label]
     PatientCommunicationPool:
       type: object
       additionalProperties: false
@@ -3042,6 +3056,14 @@ components:
           oneOf:
             - $ref: "#/components/schemas/PatientCommunicationUnit"
             - { type: "null" }
+        facility:
+          oneOf:
+            - $ref: "#/components/schemas/PatientCommunicationFacility"
+            - { type: "null" }
+        service_line:
+          oneOf:
+            - $ref: "#/components/schemas/PatientCommunicationServiceLine"
+            - { type: "null" }
         pool: { $ref: "#/components/schemas/PatientCommunicationPool" }
         status: { type: string, enum: [open, closed] }
         ownership_state:
@@ -3082,6 +3104,8 @@ components:
           patient_context_ref,
           topic,
           unit,
+          facility,
+          service_line,
           pool,
           status,
           ownership_state,

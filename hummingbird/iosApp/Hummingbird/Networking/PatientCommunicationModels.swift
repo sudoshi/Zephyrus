@@ -29,6 +29,8 @@ struct PatientCommunicationWorkItem: Decodable, Equatable, Identifiable {
     let isResponseDue: Bool
     let isEscalationDue: Bool
     let closedAt: String?
+    var facility: PatientCommunicationFacility? = nil
+    var serviceLine: PatientCommunicationServiceLine? = nil
     let messages: [PatientCommunicationMessage]?
     let hasEarlierMessages: Bool?
 
@@ -48,6 +50,16 @@ struct PatientCommunicationTopic: Decodable, Equatable {
 
 struct PatientCommunicationUnit: Decodable, Equatable {
     let id: Int
+    let label: String
+}
+
+struct PatientCommunicationFacility: Decodable, Equatable {
+    let key: String
+    let label: String
+}
+
+struct PatientCommunicationServiceLine: Decodable, Equatable {
+    let code: String
     let label: String
 }
 

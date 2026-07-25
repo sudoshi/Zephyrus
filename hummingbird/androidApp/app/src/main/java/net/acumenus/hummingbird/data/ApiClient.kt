@@ -1430,6 +1430,8 @@ class ApiClient(
     internal fun parsePatientCommunicationWorkItem(o: JSONObject): PatientCommunicationWorkItem {
         val topic = o.optJSONObject("topic") ?: JSONObject()
         val unit = o.optJSONObject("unit")
+        val facility = o.optJSONObject("facility")
+        val serviceLine = o.optJSONObject("service_line")
         val pool = o.optJSONObject("pool") ?: JSONObject()
 
         return PatientCommunicationWorkItem(
@@ -1463,6 +1465,18 @@ class ApiClient(
             closedAt = o.optStringOrNull("closed_at"),
             messages = o.optJSONArray("messages").objects().map(::parsePatientCommunicationMessage),
             hasEarlierMessages = o.optBoolean("has_earlier_messages", false),
+            facility = facility?.let {
+                PatientCommunicationFacility(
+                    key = it.optString("key"),
+                    label = it.optStringOrNull("label") ?: "Facility",
+                )
+            },
+            serviceLine = serviceLine?.let {
+                PatientCommunicationServiceLine(
+                    code = it.optString("code"),
+                    label = it.optStringOrNull("label") ?: "Service line",
+                )
+            },
         )
     }
 

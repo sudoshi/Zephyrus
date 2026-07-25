@@ -42,6 +42,16 @@ interface CommunicationUnit {
     label: string;
 }
 
+interface CommunicationFacility {
+    key: string;
+    label: string;
+}
+
+interface CommunicationServiceLine {
+    code: string;
+    label: string;
+}
+
 interface CommunicationPool {
     pool_uuid: string;
     label: string;
@@ -63,6 +73,8 @@ interface CommunicationWorkItem {
     patient_context_ref: string | null;
     topic: CommunicationTopic;
     unit: CommunicationUnit | null;
+    facility: CommunicationFacility | null;
+    service_line: CommunicationServiceLine | null;
     pool: CommunicationPool;
     status: string;
     ownership_state: string;
@@ -178,6 +190,8 @@ function hasSelectedProjectionDrift(
         previous.patient_context_ref !== next.patient_context_ref ||
         previous.topic.code !== next.topic.code ||
         previous.unit?.id !== next.unit?.id ||
+        previous.facility?.key !== next.facility?.key ||
+        previous.service_line?.code !== next.service_line?.code ||
         previous.pool.pool_uuid !== next.pool.pool_uuid ||
         previous.status !== next.status ||
         previous.ownership_state !== next.ownership_state ||
@@ -355,6 +369,8 @@ export default function PatientCommunicationsIndex({
     const [query, setQuery] = useState("");
     const [queueFilter, setQueueFilter] = useState<QueueFilter>("all");
     const [unitFilter, setUnitFilter] = useState("all");
+    const [facilityFilter, setFacilityFilter] = useState("all");
+    const [serviceLineFilter, setServiceLineFilter] = useState("all");
     const [poolFilter, setPoolFilter] = useState("all");
     const [replyBody, setReplyBody] = useState("");
     const [closeReason, setCloseReason] =
@@ -520,6 +536,39 @@ export default function PatientCommunicationsIndex({
         [inbox.items],
     );
 
+    const availableFacilities = useMemo(
+        () =>
+            Array.from(
+                new Map(
+                    inbox.items.flatMap((item) =>
+                        item.facility
+                            ? [[item.facility.key, item.facility.label]]
+                            : [],
+                    ),
+                ).entries(),
+            ).sort((left, right) => left[1].localeCompare(right[1])),
+        [inbox.items],
+    );
+
+    const availableServiceLines = useMemo(
+        () =>
+            Array.from(
+                new Map(
+                    inbox.items.flatMap((item) =>
+                        item.service_line
+                            ? [
+                                  [
+                                      item.service_line.code,
+                                      item.service_line.label,
+                                  ],
+                              ]
+                            : [],
+                    ),
+                ).entries(),
+            ).sort((left, right) => left[1].localeCompare(right[1])),
+        [inbox.items],
+    );
+
     const filteredItems = useMemo(() => {
         const needle = query.trim().toLocaleLowerCase();
 
@@ -538,6 +587,16 @@ export default function PatientCommunicationsIndex({
                 String(item.unit?.id ?? "") !== unitFilter
             )
                 return false;
+            if (
+                facilityFilter !== "all" &&
+                item.facility?.key !== facilityFilter
+            )
+                return false;
+            if (
+                serviceLineFilter !== "all" &&
+                item.service_line?.code !== serviceLineFilter
+            )
+                return false;
             if (poolFilter !== "all" && item.pool.pool_uuid !== poolFilter)
                 return false;
             if (!needle) return true;
@@ -545,11 +604,21 @@ export default function PatientCommunicationsIndex({
             return [
                 item.topic.label,
                 item.unit?.label,
+                item.facility?.label,
+                item.service_line?.label,
                 item.pool.label,
                 contextLabel(item.patient_context_ref),
             ].some((value) => value?.toLocaleLowerCase().includes(needle));
         });
-    }, [inbox.items, poolFilter, query, queueFilter, unitFilter]);
+    }, [
+        facilityFilter,
+        inbox.items,
+        poolFilter,
+        query,
+        queueFilter,
+        serviceLineFilter,
+        unitFilter,
+    ]);
 
     const loadDetail = useCallback(
         async (workItemUuid: string): Promise<boolean> => {
@@ -1411,6 +1480,52 @@ export default function PatientCommunicationsIndex({
                                     </select>
                                 </label>
                                 <label className="block text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                    Facility
+                                    <select
+                                        value={facilityFilter}
+                                        onChange={(event) =>
+                                            setFacilityFilter(
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="mt-1 min-h-10 w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-sm text-healthcare-text-primary focus:border-healthcare-primary focus:ring-healthcare-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark"
+                                    >
+                                        <option value="all">
+                                            All authorized facilities
+                                        </option>
+                                        {availableFacilities.map(
+                                            ([key, label]) => (
+                                                <option key={key} value={key}>
+                                                    {label}
+                                                </option>
+                                            ),
+                                        )}
+                                    </select>
+                                </label>
+                                <label className="block text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                    Service line
+                                    <select
+                                        value={serviceLineFilter}
+                                        onChange={(event) =>
+                                            setServiceLineFilter(
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="mt-1 min-h-10 w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-sm text-healthcare-text-primary focus:border-healthcare-primary focus:ring-healthcare-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark"
+                                    >
+                                        <option value="all">
+                                            All authorized service lines
+                                        </option>
+                                        {availableServiceLines.map(
+                                            ([code, label]) => (
+                                                <option key={code} value={code}>
+                                                    {label}
+                                                </option>
+                                            ),
+                                        )}
+                                    </select>
+                                </label>
+                                <label className="block text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                     Responsible team
                                     <select
                                         value={poolFilter}
@@ -1431,9 +1546,11 @@ export default function PatientCommunicationsIndex({
                                 </label>
                             </div>
                             <p className="mt-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                Facility and service-line filters remain
-                                unavailable until those governed fields are
-                                added to the content-free staff projection.
+                                Filters contain only current, authorized queue
+                                items. Facility and service-line context comes
+                                from the active encounter's governed location
+                                mapping, not from a team's broader routing
+                                scope.
                             </p>
                         </div>
 

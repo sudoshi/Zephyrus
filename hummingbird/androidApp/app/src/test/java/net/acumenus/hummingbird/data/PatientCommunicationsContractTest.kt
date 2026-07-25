@@ -21,6 +21,8 @@ class PatientCommunicationsContractTest {
 
         assertEquals("Medication question", item.topic.label)
         assertEquals("5 East", item.unit?.label)
+        assertEquals("Summit Regional Hospital", item.facility?.label)
+        assertEquals("Hospital Medicine", item.serviceLine?.label)
         assertEquals("5 East care team", item.pool.label)
         assertEquals(7, item.workItemVersion)
         assertEquals(11, item.threadVersion)
@@ -616,6 +618,8 @@ class PatientCommunicationsContractTest {
           "patient_context_ref": "ptok_test_only",
           "topic": {"code": "medication_question", "label": "Medication question"},
           "unit": {"id": 85, "label": "5 East"},
+          "facility": {"key": "SUMMIT_REGIONAL", "label": "Summit Regional Hospital"},
+          "service_line": {"code": "hospital_medicine", "label": "Hospital Medicine"},
           "pool": {"pool_uuid": "019f7cb6-4d44-73e1-b28c-82bea62c4190", "label": "5 East care team"},
           "status": "open",
           "ownership_state": "pool_owned",

@@ -10,6 +10,8 @@ final class PatientCommunicationsContractTests: XCTestCase {
         let envelope = try decoder.decode(Envelope<PatientCommunicationWorkItem>.self, from: data)
 
         XCTAssertEqual(envelope.data.topic.label, "Discharge planning")
+        XCTAssertEqual(envelope.data.facility?.label, "Summit Regional Hospital")
+        XCTAssertEqual(envelope.data.serviceLine?.label, "Hospital Medicine")
         XCTAssertEqual(envelope.data.pool.label, "5 East care team")
         XCTAssertEqual(envelope.data.pool.poolUuid, "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
         XCTAssertEqual(envelope.data.workItemVersion, 4)
@@ -47,6 +49,8 @@ final class PatientCommunicationsContractTests: XCTestCase {
         "patient_context_ref": "ptok_0123456789abcdef01234567",
         "topic": {"code": "discharge_planning", "label": "Discharge planning"},
         "unit": {"id": 85, "label": "5 East"},
+        "facility": {"key": "SUMMIT_REGIONAL", "label": "Summit Regional Hospital"},
+        "service_line": {"code": "hospital_medicine", "label": "Hospital Medicine"},
         "pool": {"pool_uuid": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "label": "5 East care team"},
         "status": "open",
         "ownership_state": "acknowledged",
@@ -152,6 +156,8 @@ final class PatientCommunicationsAPIClientTests: XCTestCase {
           "patient_context_ref": null,
           "topic": {"code": "discharge_planning", "label": "Discharge planning"},
           "unit": {"id": 85, "label": "5 East"},
+          "facility": {"key": "SUMMIT_REGIONAL", "label": "Summit Regional Hospital"},
+          "service_line": {"code": "hospital_medicine", "label": "Hospital Medicine"},
           "pool": {"pool_uuid": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "label": "5 East care team"},
           "status": "open", "ownership_state": "responded", "assigned_to_me": true,
           "work_item_version": 5, "thread_version": 9,
