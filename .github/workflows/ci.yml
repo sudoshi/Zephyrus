@@ -248,8 +248,10 @@ jobs:
     needs: changes
     # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
     if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
-    # Matches the ratified "no shard above 30 m" budget; caps hung-shard burn.
-    timeout-minutes: 30
+    # Ratcheted 30 -> 20 after S1/S2/D1: worst observed shard is ~10.5 m
+    # (feature-1 carrying the RadiologyDemoGeneratorTest swing — evidence run
+    # 30163345605), so 20 m keeps ~2x headroom while halving hung-shard burn.
+    timeout-minutes: 20
     env:
       APP_ENV: testing
       APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
