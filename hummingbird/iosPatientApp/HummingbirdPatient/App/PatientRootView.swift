@@ -59,7 +59,7 @@ private struct PatientNoActiveEncounterView: View {
                         if state.availability == .noActiveEncounter {
                             Text("No care information is shown while your account has no active hospital stay.")
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .patientSecondaryText()
                         }
                     }
                 }

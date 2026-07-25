@@ -61,7 +61,7 @@ struct PatientTodayView: View {
                             }
                             Text("Open Care Team for ways to connect with your team.")
                                 .font(.footnote)
-                                .foregroundStyle(.secondary)
+                                .patientSecondaryText()
                             PatientProvenanceText(value: snapshot.careTeam[0].provenance)
                         }
                     }
@@ -89,7 +89,7 @@ struct PatientTodayView: View {
                                         .joined(separator: " · ")
                                     )
                                     .font(.footnote)
-                                    .foregroundStyle(.secondary)
+                                    .patientSecondaryText()
                                 }
                             }
                             PatientProvenanceText(value: currentStageProvenance)
@@ -125,7 +125,7 @@ struct PatientTodayView: View {
                                             "\(PatientStateVocabulary.label(for: topic.status, domain: .roundsTopic)) · \(topic.summary)"
                                         )
                                         .font(.footnote)
-                                        .foregroundStyle(.secondary)
+                                        .patientSecondaryText()
                                     }
                                 }
                             }
@@ -196,7 +196,7 @@ struct PatientTodayView: View {
 
                 Text("Care plans can change. Your care team—not this app—makes clinical decisions. Ask them if something here does not match what you were told.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
                     .padding(.vertical, 8)
             }
             .padding(20)

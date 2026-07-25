@@ -111,10 +111,12 @@ final class PatientSessionManagementUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
         app.buttons["Done"].tap()
+        let presentationRoot = app.descendants(matching: .any)["patient-presentation-extra_large-high-contrast"].firstMatch
         XCTAssertTrue(
-            app.descendants(matching: .any)["patient-presentation-preference-notice"]
-                .waitForExistence(timeout: 3)
+            presentationRoot.waitForExistence(timeout: 3)
         )
+        let presentationNotice = app.descendants(matching: .any)["patient-presentation-preference-notice"].firstMatch
+        XCTAssertTrue(presentationNotice.waitForExistence(timeout: 3))
         XCTAssertTrue(
             app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "high contrast"))
                 .firstMatch.waitForExistence(timeout: 2)

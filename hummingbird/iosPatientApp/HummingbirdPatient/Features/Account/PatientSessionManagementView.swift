@@ -123,7 +123,7 @@ struct PatientSessionManagementView: View {
                     systemImage: "info.circle.fill"
                 )
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .patientSecondaryText()
             }
             .accessibilityElement(children: .combine)
 
@@ -207,7 +207,7 @@ private struct PatientSessionCard: View {
 
                         Text(session.safeDeviceDetails)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
                     }
                 }
 
@@ -218,7 +218,7 @@ private struct PatientSessionCard: View {
                     Label("Session ends \(session.expiryDisplay)", systemImage: "calendar.badge.clock")
                 }
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .patientSecondaryText()
 
                 Button(role: .destructive, action: revoke) {
                     Label(

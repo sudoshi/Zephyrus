@@ -29,7 +29,7 @@ struct PatientPreferencesView: View {
                     Section {
                         Text("Choose how Hummingbird Patient presents non-clinical account information. These choices never change your care plan, clinical orders, or urgent-help instructions.")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
                     }
 
                     Section("Reading and movement") {
@@ -47,7 +47,7 @@ struct PatientPreferencesView: View {
 
                         Text("Hummingbird also respects the accessibility settings on this device.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
                     }
 
                     Section("Notifications") {
@@ -65,18 +65,18 @@ struct PatientPreferencesView: View {
 
                         Text("This records a preference; it does not guarantee delivery, replace bedside communication, or change emergency guidance.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
                     }
 
                     if let message = viewModel.preferencesMessage {
                         Section {
                             VStack(alignment: .leading, spacing: 8) {
                                 Label(message, systemImage: "checkmark.shield.fill")
-                                    .foregroundStyle(.secondary)
+                                    .patientSecondaryText()
                                 if textSize == .extraLarge && highContrast {
                                     Text("Extra Large text and high contrast are applied in Hummingbird Patient. Your device accessibility settings remain in effect.")
                                         .font(.footnote)
-                                        .foregroundStyle(.secondary)
+                                        .patientSecondaryText()
                                         .accessibilityIdentifier("patient-preferences-applied-accessibility")
                                 }
                             }

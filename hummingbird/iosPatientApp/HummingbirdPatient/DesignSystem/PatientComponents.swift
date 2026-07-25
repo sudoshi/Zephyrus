@@ -42,7 +42,7 @@ struct PatientScreenHeader: View {
                 .foregroundStyle(PatientPalette.ink)
             Text(subtitle)
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .patientSecondaryText()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -91,7 +91,7 @@ struct PatientFreshnessView: View {
                     .font(.subheadline.weight(.semibold))
                 Text(snapshot.sourceLimitation)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
             }
         }
         .accessibilityElement(children: .combine)
@@ -119,7 +119,7 @@ struct PatientPresentationPreferenceNotice: View {
                         .font(.body)
                     Text("These display choices do not change your care plan, clinical orders, or urgent-help instructions.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .patientSecondaryText()
                 }
             }
             .accessibilityIdentifier("patient-presentation-preference-notice")
@@ -186,7 +186,7 @@ struct PatientUrgentHelpNotice: View {
                     .font(.body)
                 Text("Messages are for nonurgent questions. They are not monitored as an emergency service or live chat.")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
             }
         }
         .accessibilityElement(children: .combine)
@@ -200,7 +200,7 @@ struct PatientProvenanceText: View {
     var body: some View {
         Label("Source: \(value)", systemImage: "checkmark.shield")
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .patientSecondaryText()
             .accessibilityLabel("Information source: \(value)")
     }
 }
@@ -217,7 +217,7 @@ struct PatientProjectionSummaryCard: View {
                     .foregroundStyle(PatientPalette.ink)
                 Text(summary)
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
             }
         }
         .accessibilityElement(children: .combine)
@@ -237,7 +237,7 @@ struct PatientProjectionRevisionNoticeCard: View {
                     .font(.body)
                 Text("Ask your care team if you have questions about what is shown here.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
             }
         }
         .accessibilityElement(children: .combine)

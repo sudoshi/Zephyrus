@@ -93,7 +93,7 @@ struct PatientPathView: View {
                             .font(.body)
                         Text("Sending a message does not automatically change your care plan or create a clinical order. Your team will review it with you.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
                         Button("Open Messages", systemImage: "message.fill") {
                             openMessages()
                         }
@@ -128,7 +128,7 @@ struct PatientPathView: View {
                                 } else {
                                     Text("Ask your bedside nurse or another care-team member to talk this through with you.")
                                         .font(.footnote)
-                                        .foregroundStyle(.secondary)
+                                        .patientSecondaryText()
                                 }
                             }
                         }
@@ -197,7 +197,7 @@ struct PatientPathView: View {
                                 if let confidence = discharge.estimatedConfidence {
                                     Text("Timing confidence: \(PatientStateVocabulary.label(for: confidence, domain: .timingConfidence)).")
                                         .font(.footnote)
-                                        .foregroundStyle(.secondary)
+                                        .patientSecondaryText()
                                 }
                             }
                         }

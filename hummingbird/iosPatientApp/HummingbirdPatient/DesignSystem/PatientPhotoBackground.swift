@@ -138,7 +138,7 @@ struct PatientLoadingStateView: View {
                     .font(.title3.bold())
                 Text("Only information released to Hummingbird Patient will appear.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
                     .multilineTextAlignment(.center)
             }
             .padding(24)

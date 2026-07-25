@@ -173,7 +173,7 @@ private struct PatientImmediateHelpCard: View {
                     .font(.body)
                 Text("Do not wait for a message response when you need immediate help.")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
             }
         }
         .accessibilityElement(children: .combine)
@@ -189,7 +189,7 @@ private struct PatientNoOfflineQueueCard: View {
                 systemImage: "wifi"
             )
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.secondary)
+            .patientSecondaryText()
         }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("messages-no-offline-queue")
@@ -223,7 +223,7 @@ private struct PatientMessageThreadSummaryCard: View {
                     Spacer(minLength: 8)
                     Image(systemName: "chevron.right")
                         .font(.caption.bold())
-                        .foregroundStyle(.secondary)
+                        .patientSecondaryText()
                         .accessibilityHidden(true)
                 }
                 Label(thread.ownershipState.patientLabel, systemImage: thread.status == .open ? "message.badge.fill" : "checkmark.circle.fill")
@@ -234,10 +234,10 @@ private struct PatientMessageThreadSummaryCard: View {
                     .foregroundStyle(PatientPalette.blue)
                 Text(thread.expectedResponseWindow)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
                 Text("Last update \(PatientMessageDateFormatting.display(thread.lastMessageAt))")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
             }
         }
         .accessibilityElement(children: .combine)
@@ -264,7 +264,7 @@ private struct PatientNewMessageComposer: View {
                 if topics.isEmpty {
                     Text("No approved message topics are available right now.")
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .patientSecondaryText()
                 } else {
                     Picker("Question topic", selection: $selectedTopicCode) {
                         ForEach(topics) { topic in
@@ -277,13 +277,13 @@ private struct PatientNewMessageComposer: View {
                     if let topic = topics.first(where: { $0.code == selectedTopicCode }) {
                         Text(topic.description)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
                         Label("Typical response", systemImage: "clock")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PatientPalette.blue)
                         Text(topic.expectedResponseWindow)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
 
                         if topic.code == "rounds_question" {
                             PatientCard {
@@ -296,7 +296,7 @@ private struct PatientNewMessageComposer: View {
                                     .foregroundStyle(PatientPalette.teal)
                                     Text("Your care team may review it before a care conversation, but it may not be discussed in a particular round. For immediate help, use the urgent-help option above.")
                                         .font(.footnote)
-                                        .foregroundStyle(.secondary)
+                                        .patientSecondaryText()
                                 }
                             }
                             .accessibilityIdentifier("rounds-question-safety-notice")
@@ -562,7 +562,7 @@ private struct PatientMessageThreadView: View {
                     .font(.title2.bold())
                 Text(thread.topic.description)
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
                 Label(thread.ownershipState.patientLabel, systemImage: "message.badge.fill")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PatientPalette.blue)
@@ -597,14 +597,14 @@ private struct PatientVisibleMessageCard: View {
                     Spacer(minLength: 8)
                     Text(PatientMessageDateFormatting.display(message.sentAt))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .patientSecondaryText()
                 }
                 Text(visibleBody)
                     .font(.body)
                 if message.senderDisplayRole == .patient {
                     Text(deliveryLabel)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .patientSecondaryText()
                 }
                 if canAmend {
                     HStack(spacing: 8) {
@@ -617,7 +617,7 @@ private struct PatientVisibleMessageCard: View {
                     }
                     Text("A correction or withdrawal adds a new record. It does not erase the message already in this conversation.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .patientSecondaryText()
                 }
             }
         }
@@ -659,7 +659,7 @@ private struct PatientCorrectionComposer: View {
                     .foregroundStyle(PatientPalette.blue)
                 Text("Your correction is sent as a new message. The earlier message stays visible in the conversation history.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
                 PatientMessageEditor(title: "Your corrected nonurgent message", text: $correction)
                 HStack(spacing: 10) {
                     Button {
@@ -743,7 +743,7 @@ private struct PatientMessageEditor: View {
                 }
             Text("\(text.count) of 2,000 characters")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .patientSecondaryText()
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }

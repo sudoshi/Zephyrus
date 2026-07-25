@@ -15,7 +15,7 @@ struct PatientPrivacyCoverView: View {
                     .foregroundStyle(PatientPalette.ink)
                 Text("Your care information is covered while the app is not active.")
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 36)
             }

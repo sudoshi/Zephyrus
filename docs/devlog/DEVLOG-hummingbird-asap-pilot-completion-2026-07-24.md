@@ -1015,3 +1015,40 @@ This supplies read-only visibility, transition-deduplicated critical alert evide
 incident boundary. It does not implement an approved terminal-failure supersession/requeue
 workflow, numeric SLO/response-time ownership, projection/push consumers, production rehearsal,
 patient activation, a production patient, a migration, or deployment.
+
+## 2026-07-25 — Patient high-contrast secondary-text correction and native revalidation
+
+### Completed implementation
+
+- Corrected a patient-accessibility defect found during simulator review: the saved **Prefer high
+  contrast** setting already removed the decorative Hummingbird scenery and made cards opaque, but
+  explanatory copy that explicitly used SwiftUI's semantic secondary color could remain too muted.
+- Added one patient-scoped secondary-text modifier. It preserves normal semantic secondary styling
+  unless either the operating system has increased contrast or the patient has saved high contrast.
+  In high-contrast presentation it uses near-black text on light surfaces and near-white text on
+  dark surfaces. This is intentional application behavior; SwiftUI's
+  `colorSchemeContrast` environment is system-owned and is not overwritten.
+- Applied that modifier to all patient-facing secondary copy across the welcome, Today, My Path,
+  Care Team, Messages, account, privacy-cover, loading, shared card, and Hummingbird-background
+  surfaces. The existing high-contrast background rule continues to suppress decorative imagery
+  rather than reducing its opacity.
+- Strengthened the native UI journey so it saves Extra Large text plus high contrast, closes the
+  preferences sheet, verifies the exposed `patient-presentation-extra_large-high-contrast` state,
+  verifies the visible reading-preferences notice, and captures the care screen. The capture used
+  only the debug synthetic-reference scenario and visibly labels it as not a real patient.
+
+### Verification
+
+| Boundary                           | Command / target                                                                                                                                                 | Result                                                                                                                    |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Focused saved-preference journey   | iPhone 17 Pro / iOS 26.3.1: `PatientSessionManagementUITests/testSavedAccessibilityPreferencesApplyAHighContrastExtraLargeCareView`                              | 1 passed / 0 failures; saved state and visible notice verified                                                            |
+| Full iOS patient target            | `xcodebuild test -project HummingbirdPatient.xcodeproj -scheme HummingbirdPatient -destination 'platform=iOS Simulator,id=0A7FAE8C-8902-462D-BB4D-1E216D5BFDC1'` | 81 passed / 0 failures on iPhone 17 Pro / iOS 26.3.1                                                                      |
+| Visual simulator review            | Focused-test screenshot attachment                                                                                                                               | reviewed: no decorative imagery, high-contrast text/borders, Extra Large text, and synthetic-reference disclosure visible |
+| Android patient regression context | API 35 `hb` emulator: `connectedDebugAndroidTest --rerun-tasks` before this iOS-only change                                                                      | 16 passed / 0 failures; Android source was not changed by this correction                                                 |
+
+### Remaining boundary
+
+This makes the saved high-contrast choice deterministic for patient explanatory copy and adds
+device evidence for the synthetic reference scenario. It does not establish WCAG 2.2 AA
+conformance, complete VoiceOver/TalkBack or language-access validation, ratify a clinical release,
+activate any feature, create a production patient, migrate data, or deploy an application.

@@ -36,7 +36,7 @@ struct PatientCareTeamView: View {
                             .font(.body)
                         Text("Viewing this screen never sends a message.")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
                     }
                 }
                 .accessibilityIdentifier("care-team-connection-guidance")
