@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -52,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -113,6 +115,13 @@ import net.acumenus.hummingbird.ui.transport.TransportJobDetailScreen
 import net.acumenus.hummingbird.ui.transport.TransportJobsScreen
 
 private enum class HummingbirdTab { Home, ForYou, Activity, Communications }
+
+/**
+ * Android's global Eddy entry intentionally starts from the existing server-authorized house
+ * lens. It never derives a patient scope from the visible UI or carries patient-message state
+ * into the chat request.
+ */
+internal const val GLOBAL_EDDY_SCOPE_REF = "house"
 
 data class HummingbirdLaunchConfig(
     val roleId: String? = null,
@@ -394,6 +403,10 @@ fun MainScreen(
                         onOpenThread = { detail = AltitudeDetail.PatientCommunication(it) },
                     )
                 }
+                GlobalEddyAccessButton(
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                    onOpenEddy = { detail = AltitudeDetail.Eddy(GLOBAL_EDDY_SCOPE_REF) },
+                )
             } else {
                 when (currentDetail) {
                     is AltitudeDetail.Drill -> DrillDetailScreen(
@@ -549,6 +562,22 @@ fun MainScreen(
             }
         }
     }
+}
+
+/** Persistent signed-in entry matching iOS's global Eddy affordance, without widening scope. */
+@Composable
+internal fun GlobalEddyAccessButton(
+    modifier: Modifier = Modifier,
+    onOpenEddy: () -> Unit,
+) {
+    ExtendedFloatingActionButton(
+        onClick = onOpenEddy,
+        modifier = modifier.testTag("global-eddy-access"),
+        containerColor = Z.primary,
+        contentColor = Color.White,
+        icon = { Icon(Icons.Filled.Forum, contentDescription = null) },
+        text = { Text("Ask Eddy") },
+    )
 }
 
 private fun iconForRole(role: MobileRole): ImageVector = when (role.androidIconName) {
