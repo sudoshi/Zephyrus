@@ -19,6 +19,11 @@ final class PharmacyTatAnalyticsTest extends TestCase
 {
     use UsesCommittedAncillaryScenario;
 
+    protected static function committedScenarioAnchor(): string
+    {
+        return '2026-07-13T14:30:00Z';
+    }
+
     private CarbonImmutable $anchor;
 
     protected function setUp(): void

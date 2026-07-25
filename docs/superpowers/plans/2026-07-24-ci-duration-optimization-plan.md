@@ -96,7 +96,18 @@ The standalone Debug build's artifacts are never reused; XCTest recompiles every
 
 ### S2. Kill setup amplification in the ~21 consumer classes — **−38 m suite compute**
 *The sanctioned §3.2.9 shape: minimal governed fixtures + at least one full-seeder integration case per protected invariant; no dirty-DB reuse, isolation preserved.*
-- [ ] Build the smallest governed ancillary fixture for service-level cases; keep `AncillaryDemoScenarioTest` + one full-refresh integration case per invariant on the full pipeline. Target: 4,426 s → ~900 s (26 × one-time class setup + ~110 cases × ~1 s). Suite compute 85 m → ~46 m; every non-floor shard lands ~5–6 m.
+- [x] Shipped as a **class-scoped committed scenario** rather than minimal fixtures — stronger than the
+  original sketch because every test keeps the FULL governed scenario: `UsesCommittedAncillaryScenario`
+  builds the 5 seeders + `refresh()` once per class, committed (RefreshDatabase disconnects after each
+  per-test rollback, so an open outer transaction cannot span tests), before the per-test transaction
+  begins; each test still runs in its own rollback transaction over a byte-identical baseline — this is
+  NOT dirty-DB reuse, and isolation is preserved. Grounded in a 26-class + full-service audit
+  (2026-07-25): builds self-clear via owner-scoped DELETEs + idempotent upserts, single connection,
+  no commits/TRUNCATE/DDL, fully anchor-derived; all 22 pure consumers share one anchor. The 4
+  generator-contract tests hoist seeders only — `refresh()` in their bodies IS the subject.
+  `tests/TestCase.php` guard wipes all schemas (`IsolatedTestDatabase::resetAllSchemas`) + re-migrates
+  when a non-scenario class follows in-process; `resolve-shard-files.py` orders scenario classes last
+  per shard so CI never pays that path. Scenario builds: 135 → ~26 per full run.
 
 ### S3. Parallelize XCUITest (2 simulator clones) + split the 11-test routing class — **staff iOS UI step 12.1 m → ~6.5–7.5 m**
 - [ ] `project.yml:19-20` `parallelizable: true`, `-parallel-testing-enabled YES -parallel-testing-worker-count 2` (`ci.yml:727`), and split `PatientCommunicationRoutingUITests` (11 of 18 tests; XCTest distributes per-class, so without the split two workers cap at −4 m).

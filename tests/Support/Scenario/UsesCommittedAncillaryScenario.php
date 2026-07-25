@@ -15,6 +15,7 @@ use Database\Seeders\StaffingReferenceSeeder;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
+use Illuminate\Support\Facades\DB;
 
 /**
  * CI plan S2 — class-scoped committed demo scenario.
@@ -88,6 +89,11 @@ trait UsesCommittedAncillaryScenario
 
         $anchor = CarbonImmutable::parse(static::committedScenarioAnchor());
 
+        // The build runs during parent::setUp(), before TestCase::setUp()
+        // reaches its per-test wiring — apply the payload-store wiring the
+        // scenario's CanonicalEventWriter path depends on.
+        $this->wireClinicalPayloadTestStore();
+
         CarbonImmutable::setTestNow($anchor);
 
         try {
@@ -105,6 +111,14 @@ trait UsesCommittedAncillaryScenario
         } finally {
             CarbonImmutable::setTestNow();
         }
+
+        // Committed baselines live across many DELETE+INSERT build cycles
+        // in one process; without this, autovacuum timing leaves planner
+        // statistics AND visibility-map coverage (which prices the suite's
+        // Index Only Scan plan-shape assertions) nondeterministic. VACUUM
+        // is legal here — the build runs in autocommit, outside any test
+        // transaction. Same data -> same stats + VM -> same plans.
+        DB::statement('VACUUM ANALYZE');
 
         CommittedScenarioState::$activeClass = static::class;
     }

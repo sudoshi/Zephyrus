@@ -51,6 +51,10 @@ abstract class TestCase extends BaseTestCase
         // RefreshDatabaseState::$migrated.
         if (CommittedScenarioState::$activeClass !== null
             && ! in_array(UsesCommittedAncillaryScenario::class, class_uses_recursive(static::class), true)) {
+            // migrate:fresh only drops search_path tables while this app
+            // spans many PG schemas — wipe them all so the re-migration
+            // reproduces a freshly provisioned database.
+            Support\IsolatedTestDatabase::resetAllSchemas();
             RefreshDatabaseState::$migrated = false;
             CommittedScenarioState::reset();
         }
@@ -61,6 +65,21 @@ abstract class TestCase extends BaseTestCase
             Http::preventStrayRequests();
         }
 
+        $this->wireClinicalPayloadTestStore();
+
+        $this->withoutVite();
+    }
+
+    /**
+     * Test wiring for the encrypted clinical-payload store (in-memory
+     * secret providers + local disk). Applied on every test in setUp();
+     * also applied by UsesCommittedAncillaryScenario BEFORE the class-
+     * scoped scenario build, which runs during parent::setUp() — earlier
+     * than this method's setUp() invocation — and writes payloads
+     * through CanonicalEventWriter.
+     */
+    protected function wireClinicalPayloadTestStore(): void
+    {
         $this->app->singleton(SecretProviderRegistry::class, fn ($app) => new SecretProviderRegistry([
             $app->make(FileSecretProvider::class),
             new InMemorySecretProvider('vault'),
@@ -83,8 +102,6 @@ abstract class TestCase extends BaseTestCase
                 'report' => false,
             ],
         ]);
-
-        $this->withoutVite();
     }
 
     public function actingAs(Authenticatable $user, $guard = null)
