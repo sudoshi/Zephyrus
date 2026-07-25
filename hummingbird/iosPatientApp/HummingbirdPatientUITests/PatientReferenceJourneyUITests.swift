@@ -131,6 +131,26 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         attachScreenshot(named: "Welcome-API-Off")
     }
 
+    func testNoActiveEncounterHidesAllCareTabsAndKeepsUrgentHelpVisible() {
+        app.terminate()
+        app = XCUIApplication()
+        app.launchEnvironment["HBP_SYNTHETIC_REFERENCE"] = "0"
+        app.launchEnvironment["HBP_NO_ACTIVE_ENCOUNTER_PREVIEW"] = "1"
+        app.launch()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["patient-no-active-encounter"]
+                .waitForExistence(timeout: 5)
+        )
+        XCTAssertTrue(app.staticTexts["No active hospital stay"].exists)
+        XCTAssertTrue(app.staticTexts["Your care view is not available"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["urgent-help-notice"].exists)
+        XCTAssertTrue(app.buttons["Check again"].exists)
+        XCTAssertTrue(app.buttons["Exit securely"].exists)
+        XCTAssertFalse(app.tabBars.buttons["Today"].exists)
+        attachScreenshot(named: "No-Active-Encounter")
+    }
+
     func testEnrollmentRequiresACompleteInvitationBeforeItCanSubmit() {
         app.terminate()
         app = XCUIApplication()

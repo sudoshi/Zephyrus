@@ -775,3 +775,42 @@ code, approve a clinical/patient content source, authorize a pilot, migrate data
 deploy an application. Secure challenge delivery, proofing assurance, wrong-patient
 prevention confirmation, accessibility/usability review, clinical governance, and
 independent activation authority remain separate required gates.
+
+## 2026-07-25 — No-active-encounter fail-closed parity ratification
+
+### Completed implementation
+
+- Audited the two native session boundaries against the active-grant contract. The
+  server exposes only active, non-revoked, in-window grants. Android already converts
+  an empty grant collection into a dedicated **No active hospital stay** state; iOS
+  previously retained its tab shell with empty care sections.
+- iOS now treats an empty current-encounter collection as a hard local content boundary:
+  it immediately removes the `PatientExperienceSnapshot`, messaging state,
+  device-session state, and account-preference state. The only retained local material is
+  the protected session token, allowing the patient to choose **Check again** if a new
+  care connection is later granted. **Exit securely** clears that token and returns to
+  the normal access screen.
+- The patient-facing screen is intentionally generic. It says that no active hospital
+  stay is available, keeps the existing immediate-help instructions visible, offers no
+  reason for the missing grant, shows no tabs or prior clinical content, and uses the
+  existing local Hummingbird imagery beneath opaque readable cards. A Debug-only,
+  no-network preview exists solely for simulator coverage and is compiled out of release
+  builds.
+
+### Verification
+
+| Boundary                            | Command / target                                                                                                            | Result                                                                                                                                     |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| iOS state boundary                  | iPhone 17 Pro / iOS 26.3.1: `PatientAppViewModelTests`                                                                      | 25 passed / 0 failures; the new empty-grant test proves no snapshot, no projection calls, generic language, and no messaging/session state |
+| iOS rendered/accessibility boundary | iPhone 17 Pro / iOS 26.3.1: `PatientReferenceJourneyUITests/testNoActiveEncounterHidesAllCareTabsAndKeepsUrgentHelpVisible` | 1 passed / 0 failures or skips; reviewed capture shows no tabs, prominent urgent help, readable cards, and the local decorative background |
+| Android equivalent baseline         | Debug JVM: `PatientSessionCoordinatorTest.noEncounterReturnsExplicitEmptyState`                                             | passed / 0 failures; proves the active-grant-empty outcome has no Today call and enters the explicit empty state                           |
+| Diff safety                         | `git diff --check`                                                                                                          | passed                                                                                                                                     |
+
+### Remaining boundary
+
+This aligns the client behavior for an already empty active-grant response. It does not
+define an approved post-discharge portal/retention policy, infer a discharge/transfer/
+merge/correction reason, poll or push a lifecycle event while the app is open, create or
+activate a production patient, enable a feature flag, approve a patient source, authorize
+a pilot, migrate data, or deploy an application. Those source, policy, operational, and
+deployed end-to-end requirements remain separate gates.

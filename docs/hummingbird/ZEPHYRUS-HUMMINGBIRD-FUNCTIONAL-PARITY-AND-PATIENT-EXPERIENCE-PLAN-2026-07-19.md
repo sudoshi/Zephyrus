@@ -565,7 +565,7 @@ The patient product should feel reassuring without becoming juvenile, visually n
 - [ ] Patient reviews privacy, communication limitations, proxy choices, language, accessibility, and notification preferences.
 - [ ] Server creates a patient principal and encounter access grant; no raw MRN is stored in the app.
 - [ ] The app displays patient name/encounter confirmation sufficient to prevent wrong-patient enrollment without exposing unnecessary data.
-- [ ] A revoked, discharged, transferred, merged, or corrected encounter is handled explicitly.
+- [ ] A revoked, discharged, transferred, merged, or corrected encounter is handled explicitly. _(2026-07-25 partial: the active-grant API withholds inactive/revoked/expired grants. Android already converted an empty result to its dedicated no-active-stay screen; iOS now follows the same fail-closed rule rather than leaving the patient in a tab shell full of empty care sections. It immediately removes the snapshot, messages, device-session view, and preferences, exposes only a generic no-active-stay explanation, urgent-help guidance, a voluntary recheck, and secure exit. The retained protected token can be used only to recheck for a newly available grant; no care content remains on device. iPhone 17 Pro model and UI evidence plus the Android empty-grant coordinator regression pass. This is not a live lifecycle solution: source-driven transfer/merge/correction semantics, runtime revocation push/polling, post-discharge retention/portal policy, and deployed end-to-end evidence remain open.)_
 
 #### Journey B: morning orientation and rounds
 

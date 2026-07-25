@@ -1,8 +1,14 @@
 import Foundation
 
+struct PatientNoActiveEncounterState: Equatable {
+    let displayName: String
+    let message: String
+}
+
 @MainActor
 final class PatientAppViewModel: ObservableObject {
     @Published private(set) var snapshot: PatientExperienceSnapshot?
+    @Published private(set) var noActiveEncounter: PatientNoActiveEncounterState?
     @Published private(set) var isBusy = false
     @Published var errorMessage: String?
     @Published private(set) var messagingState: PatientMessagingState = .notGranted
@@ -37,9 +43,13 @@ final class PatientAppViewModel: ObservableObject {
     }
 
     func bootstrap() async {
-        guard snapshot == nil else { return }
+        guard snapshot == nil, noActiveEncounter == nil else { return }
 
         #if DEBUG
+        if ProcessInfo.processInfo.environment["HBP_NO_ACTIVE_ENCOUNTER_PREVIEW"] == "1" {
+            activateNoActiveEncounterPreview()
+            return
+        }
         if configuration.syntheticReferenceRequested {
             activateSyntheticReference()
             return
@@ -87,6 +97,7 @@ final class PatientAppViewModel: ObservableObject {
         let revokeToken = tokenStore.refreshToken ?? tokenStore.accessToken
         tokenStore.clear()
         snapshot = nil
+        noActiveEncounter = nil
         errorMessage = nil
         resetMessaging()
         resetSessionManagement()
@@ -100,11 +111,25 @@ final class PatientAppViewModel: ObservableObject {
     func activateSyntheticReference() {
         tokenStore.clear()
         errorMessage = nil
+        noActiveEncounter = nil
         resetSessionManagement()
         let syntheticSnapshot = PatientExperienceSnapshot.syntheticReference(now: Date())
         snapshot = syntheticSnapshot
         patientPreferences = syntheticSnapshot.preferences
         messagingState = .ready(.syntheticReference)
+    }
+
+    private func activateNoActiveEncounterPreview() {
+        tokenStore.clear()
+        snapshot = nil
+        noActiveEncounter = PatientNoActiveEncounterState(
+            displayName: "Patient",
+            message: "No active hospital stay is available in Hummingbird Patient. Ask your care team if you expected to see one."
+        )
+        errorMessage = nil
+        resetMessaging()
+        resetSessionManagement()
+        resetPreferences()
     }
     #endif
 
@@ -305,6 +330,7 @@ final class PatientAppViewModel: ObservableObject {
     ) async {
         isBusy = true
         errorMessage = nil
+        noActiveEncounter = nil
         defer { isBusy = false }
 
         do {
@@ -381,6 +407,19 @@ final class PatientAppViewModel: ObservableObject {
 
     private func installPatientExperience(accessToken: String) async throws {
         let loadedSnapshot = try await fetchPatientExperience(accessToken: accessToken)
+        guard loadedSnapshot.encounterUUID != nil else {
+            snapshot = nil
+            noActiveEncounter = PatientNoActiveEncounterState(
+                displayName: loadedSnapshot.patientName,
+                message: "No active hospital stay is available in Hummingbird Patient. Ask your care team if you expected to see one."
+            )
+            resetMessaging()
+            resetSessionManagement()
+            resetPreferences()
+            return
+        }
+
+        noActiveEncounter = nil
         snapshot = loadedSnapshot
         patientPreferences = loadedSnapshot.preferences
         preferencesMessage = nil
@@ -1148,6 +1187,7 @@ final class PatientAppViewModel: ObservableObject {
     ) {
         tokenStore.clear()
         snapshot = nil
+        noActiveEncounter = nil
         resetMessaging()
         resetSessionManagement()
         resetPreferences()

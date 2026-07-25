@@ -168,6 +168,37 @@ final class PatientAppViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
+    func testNoActiveEncounterPurgesTheCareSurfaceAndUsesGenericPatientLanguage() async {
+        let api = MockPatientAPI(noActiveEncounter: true)
+        let store = InMemoryPatientTokenStore(accessToken: "valid-access", refreshToken: "valid-refresh")
+        let viewModel = PatientAppViewModel(
+            configuration: .enabled,
+            api: api,
+            tokenStore: store
+        )
+
+        await viewModel.bootstrap()
+
+        XCTAssertNil(viewModel.snapshot)
+        XCTAssertEqual(viewModel.noActiveEncounter?.displayName, "Sam Example")
+        XCTAssertEqual(
+            viewModel.noActiveEncounter?.message,
+            "No active hospital stay is available in Hummingbird Patient. Ask your care team if you expected to see one."
+        )
+        XCTAssertEqual(viewModel.messagingState, .notGranted)
+        XCTAssertTrue(viewModel.patientSessions.isEmpty)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertEqual(store.accessToken, "valid-access")
+        XCTAssertEqual(store.refreshToken, "valid-refresh")
+
+        let calls = await api.recordedCalls()
+        XCTAssertEqual(calls.profileTokens, ["valid-access"])
+        XCTAssertEqual(calls.encounterTokens, ["valid-access"])
+        XCTAssertTrue(calls.todayTokens.isEmpty)
+        XCTAssertTrue(calls.pathwayTokens.isEmpty)
+        XCTAssertTrue(calls.careTeamTokens.isEmpty)
+    }
+
     func testLoginStoresPatientTokenPairAndLoadsThePatientExperience() async {
         let api = MockPatientAPI()
         let store = InMemoryPatientTokenStore()
@@ -728,6 +759,7 @@ private actor MockPatientAPI: PatientAPIService {
     private let sessionManagementUnavailable: Bool
     private let sessionRevocationTransportFailure: Bool
     private let sessionRevocationServerFailure: Bool
+    private let noActiveEncounter: Bool
     private var revokedPatientSessionUUIDs: Set<String> = []
 
     init(
@@ -741,7 +773,8 @@ private actor MockPatientAPI: PatientAPIService {
         sessionUnauthorized: Bool = false,
         sessionManagementUnavailable: Bool = false,
         sessionRevocationTransportFailure: Bool = false,
-        sessionRevocationServerFailure: Bool = false
+        sessionRevocationServerFailure: Bool = false,
+        noActiveEncounter: Bool = false
     ) {
         shouldRejectNextProfile = profileUnauthorizedOnce
         self.missingToday = missingToday
@@ -754,6 +787,7 @@ private actor MockPatientAPI: PatientAPIService {
         self.sessionManagementUnavailable = sessionManagementUnavailable
         self.sessionRevocationTransportFailure = sessionRevocationTransportFailure
         self.sessionRevocationServerFailure = sessionRevocationServerFailure
+        self.noActiveEncounter = noActiveEncounter
     }
 
     func recordedCalls() -> Calls { calls }
@@ -851,6 +885,13 @@ private actor MockPatientAPI: PatientAPIService {
 
     func encounters(accessToken: String) async throws -> PatientEnvelope<PatientEncounterCollection> {
         calls.encounterTokens.append(accessToken)
+        if noActiveEncounter {
+            return PatientEnvelope(
+                data: PatientEncounterCollection(encounters: []),
+                meta: PatientFixtures.meta,
+                links: [:]
+            )
+        }
         return PatientFixtures.encounters
     }
 
