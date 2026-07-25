@@ -737,7 +737,7 @@ jobs:
         # In-job flake retry on PR lanes only; §3.2.9 budget-evidence runs on
         # main must stay retry-free so ratified budgets measure true cost.
         env:
-          XCUITEST_RETRY_FLAGS: ${{ github.event_name == 'pull_request' && '-retry-tests-on-failure -maximum-test-repetitions 3' || '' }}
+          XCUITEST_RETRY_FLAGS: ${{ github.event_name == 'pull_request' && '-retry-tests-on-failure -test-iterations 3 -test-repetition-relaunch-enabled YES' || '' }}
         run: |
           xcodebuild \
             -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
@@ -960,7 +960,7 @@ jobs:
         # In-job flake retry on PR lanes only; §3.2.9 budget-evidence runs on
         # main must stay retry-free so ratified budgets measure true cost.
         env:
-          XCUITEST_RETRY_FLAGS: ${{ github.event_name == 'pull_request' && '-retry-tests-on-failure -maximum-test-repetitions 3' || '' }}
+          XCUITEST_RETRY_FLAGS: ${{ github.event_name == 'pull_request' && '-retry-tests-on-failure -test-iterations 3 -test-repetition-relaunch-enabled YES' || '' }}
         run: |
           xcodebuild \
             -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
