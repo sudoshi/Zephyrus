@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Ancillary;
 
-use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
-use App\Services\Demo\DemoClock;
 use App\Services\Pharmacy\ControlledSubstanceOperationsService;
 use App\Services\Pharmacy\PharmacyDischargeReadinessService;
 use App\Services\Pharmacy\PharmacyDispenseService;
@@ -13,12 +11,7 @@ use App\Services\Pharmacy\PharmacyFlowBoardService;
 use App\Services\Pharmacy\PharmacyIvRoomService;
 use App\Services\Pharmacy\PharmacyTatAnalyticsService;
 use Carbon\CarbonImmutable;
-use Database\Seeders\AncillaryReferenceSeeder;
-use Database\Seeders\CaseManagementSeeder;
-use Database\Seeders\CommandCenterDemoSeeder;
-use Database\Seeders\RtdcSeeder;
-use Database\Seeders\StaffingReferenceSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\Scenario\UsesCommittedAncillaryScenario;
 use Tests\TestCase;
 
 /**
@@ -38,7 +31,7 @@ use Tests\TestCase;
  */
 final class PharmacyPhaseSafetyGateTest extends TestCase
 {
-    use RefreshDatabase;
+    use UsesCommittedAncillaryScenario;
 
     private CarbonImmutable $anchor;
 
@@ -81,14 +74,6 @@ final class PharmacyPhaseSafetyGateTest extends TestCase
         parent::setUp();
         $this->anchor = CarbonImmutable::parse('2026-07-11T14:00:00Z');
         CarbonImmutable::setTestNow($this->anchor);
-        $this->seed([
-            RtdcSeeder::class,
-            CaseManagementSeeder::class,
-            StaffingReferenceSeeder::class,
-            CommandCenterDemoSeeder::class,
-            AncillaryReferenceSeeder::class,
-        ]);
-        app(AncillaryDemoScenarioService::class)->refresh(new DemoClock($this->anchor));
     }
 
     protected function tearDown(): void

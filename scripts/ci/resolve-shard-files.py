@@ -78,7 +78,21 @@ def main() -> None:
 
     if not 0 <= args.shard < shard_count:
         raise SystemExit(f"Shard index {args.shard} out of range 0-{shard_count - 1}")
-    for f in sorted(f for f, s in resolved.items() if s == args.shard):
+
+    # Plan S2: classes using UsesCommittedAncillaryScenario leave a committed
+    # demo baseline behind, and the tests/TestCase.php boundary guard pays a
+    # full schema wipe + re-migration when a non-scenario class follows one.
+    # Emitting scenario classes LAST inside the shard means that guard never
+    # fires in CI. Detection is content-based so newly converted classes
+    # order correctly without touching this script.
+    def uses_committed_scenario(path: str) -> bool:
+        try:
+            return "UsesCommittedAncillaryScenario" in Path(path).read_text()
+        except OSError:
+            return False
+
+    shard_files = (f for f, s in resolved.items() if s == args.shard)
+    for f in sorted(shard_files, key=lambda f: (uses_committed_scenario(f), f)):
         print(f)
 
 
