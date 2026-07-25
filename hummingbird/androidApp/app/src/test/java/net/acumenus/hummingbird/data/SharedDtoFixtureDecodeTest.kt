@@ -3,6 +3,7 @@ package net.acumenus.hummingbird.data
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -56,6 +57,32 @@ class SharedDtoFixtureDecodeTest {
         assertEquals(2, context.timeline.size)
         assertEquals(2, context.dependencies.size)
         assertEquals(1, context.actions.size)
+    }
+
+    @Test
+    fun decodesEddyChatSuccessAndTheDocumentedUnavailableNotice() {
+        val success = api.parseEddyChatReply(JSONObject("""
+            {
+              "conversation_id": "cb45f98e-c0d5-4fdd-8d29-6f51f66ab8ba",
+              "message": {
+                "role": "assistant",
+                "content": "Review the current discharge barriers before the next huddle.",
+                "provider": "ollama"
+              }
+            }
+        """.trimIndent()))
+        val unavailable = api.parseEddyChatReply(JSONObject("""
+            { "message": "Eddy is temporarily unavailable. Please try again shortly." }
+        """.trimIndent()))
+
+        assertEquals("cb45f98e-c0d5-4fdd-8d29-6f51f66ab8ba", success.conversationId)
+        assertEquals("assistant", success.message.role)
+        assertEquals("ollama", success.message.provider)
+        assertTrue(success.message.content.startsWith("Review the current discharge"))
+        assertNull(unavailable.conversationId)
+        assertEquals("assistant", unavailable.message.role)
+        assertNull(unavailable.message.provider)
+        assertEquals("Eddy is temporarily unavailable. Please try again shortly.", unavailable.message.content)
     }
 
     @Test

@@ -1164,7 +1164,9 @@ capabilities:
     phase: staff_p1
     owners: { product: Eddy Product, engineering: Hummingbird Platform }
     user_roles: ["@all_staff"]
-    verification_evidence: [tests/Feature/Mobile/Eddy/EddyMobileBffTest.php]
+    verification_evidence:
+      - tests/Feature/Mobile/Eddy/EddyMobileBffTest.php
+      - hummingbird/androidApp/app/src/test/java/net/acumenus/hummingbird/data/SharedDtoFixtureDecodeTest.kt
     web_routes: []
     staff_bff_operations:
       - POST /api/mobile/v1/eddy/chat

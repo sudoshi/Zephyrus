@@ -74,10 +74,28 @@ class EddyMobileBffTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user, ['mobile:read']);
 
-        $this->postJson('/api/mobile/v1/eddy/chat', ['message' => 'what is the net bed need?', 'surface' => 'rtdc'])
+        $this->postJson('/api/mobile/v1/eddy/chat', [
+            'message' => 'what is the net bed need?',
+            'surface' => 'rtdc',
+            'page_context' => 'eddy_context',
+            'page_component' => 'Eddy context',
+            'page_data' => ['scope_ref' => 'house', 'persona' => 'bed_manager'],
+        ])
             ->assertOk()
             ->assertJsonStructure(['data' => ['conversation_id', 'status', 'message'], 'meta' => ['as_of', 'stale'], 'links'])
             ->assertJsonPath('data.status', 'success');
+
+        Http::assertSent(function ($request): bool {
+            $data = $request->data();
+
+            return str_ends_with($request->url(), '/eddy/chat')
+                && ($data['page_context'] ?? null) === 'eddy_context'
+                && ($data['page_component'] ?? null) === 'Eddy context'
+                && (array) ($data['page_data'] ?? []) === [
+                    'scope_ref' => 'house',
+                    'persona' => 'bed_manager',
+                ];
+        });
 
         $conversation = EddyConversation::forUser($user->id)->firstOrFail();
         $this->assertSame('hummingbird', $conversation->origin);

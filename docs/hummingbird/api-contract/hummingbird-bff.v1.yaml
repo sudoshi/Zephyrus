@@ -5052,7 +5052,7 @@ components:
         surface:
           {
             type: string,
-            description: "ed|rtdc|periop|transport|evs|staffing|improvement|command_center|chat",
+            description: "hummingbird|ed|rtdc|periop|transport|evs|staffing|improvement|command_center|chat",
             default: chat,
           }
         conversation_id:
@@ -5065,6 +5065,18 @@ components:
           {
             type: string,
             description: The mobile screen Eddy is invoked from (process-awareness hint).,
+          }
+        page_component:
+          {
+            type: string,
+            maxLength: 160,
+            description: A short visible component or summary from the invoking screen.,
+          }
+        page_data:
+          {
+            type: object,
+            additionalProperties: true,
+            description: "Optional screen-context hints. The client must not cache this request or response and the server remains the authorization and disclosure authority.",
           }
       required: [message]
     EddyProposedAction:

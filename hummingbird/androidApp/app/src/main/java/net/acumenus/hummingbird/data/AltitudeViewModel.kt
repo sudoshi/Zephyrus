@@ -26,6 +26,11 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
     var patientContext by mutableStateOf<PatientOperationalContext?>(null); private set
     var activity by mutableStateOf(ActivityFeed(emptyList(), null)); private set
     var eddyContext by mutableStateOf<EddyContext?>(null); private set
+    var eddyChatTurns by mutableStateOf<List<EddyChatTurn>>(emptyList()); private set
+    var eddyChatLoading by mutableStateOf(false); private set
+    var eddyChatError by mutableStateOf<String?>(null); private set
+    private var eddyConversationId: String? = null
+    private var eddyScopeRef: String? = null
 
     var loading by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
@@ -86,6 +91,7 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
         drill = null
         patientContext = null
         eddyContext = null
+        resetEddyChat()
         error = null
     }
 
@@ -127,6 +133,90 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
         eddyContext = api.eddyContext(bearer, scopeRef, selectedRole.id)
     }
 
+    /**
+     * Start an in-memory Eddy transcript for a single authorized operational scope.
+     * Switching scope or persona intentionally drops the prior transcript rather than
+     * persisting potentially sensitive prompts outside the server conversation store.
+     */
+    fun beginEddyChat(scopeRef: String) {
+        if (eddyScopeRef == scopeRef) return
+        resetEddyChat()
+        eddyScopeRef = scopeRef
+    }
+
+    fun sendEddyMessage(bearer: String, scopeRef: String, message: String) {
+        val trimmed = message.trim()
+        if (trimmed.isEmpty() || eddyChatLoading) return
+        if (trimmed.length > EDDY_MESSAGE_MAX_LENGTH) {
+            eddyChatError = "Messages are limited to 8,000 characters."
+            return
+        }
+
+        beginEddyChat(scopeRef)
+        val conversationId = eddyConversationId
+        val roleId = selectedRole.id
+        eddyChatTurns = eddyChatTurns + EddyChatTurn(EddyChatRole.USER, trimmed) +
+            EddyChatTurn(EddyChatRole.ASSISTANT, "", pending = true)
+        eddyChatLoading = true
+        eddyChatError = null
+
+        viewModelScope.launch {
+            try {
+                val reply = api.eddyChat(
+                    bearer = bearer,
+                    message = trimmed,
+                    conversationId = conversationId,
+                    persona = roleId,
+                    pageContext = "eddy_context",
+                    pageComponent = "Eddy context",
+                    pageData = mapOf(
+                        "screen" to "Eddy context",
+                        "persona" to roleId,
+                        "scope_ref" to scopeRef,
+                    ),
+                )
+                if (eddyScopeRef != scopeRef) return@launch
+                eddyConversationId = reply.conversationId ?: eddyConversationId
+                resolvePendingEddyTurn(reply.message.content, reply.message.provider)
+            } catch (e: ApiException) {
+                if (eddyScopeRef != scopeRef) return@launch
+                if (e.statusCode == 401) needsReauth = true
+                val message = e.message ?: "Eddy is unavailable right now. Please try again shortly."
+                eddyChatError = message
+                resolvePendingEddyTurn(message, null)
+            } catch (_: Exception) {
+                if (eddyScopeRef != scopeRef) return@launch
+                val message = "Eddy is unavailable right now. Please try again shortly."
+                eddyChatError = message
+                resolvePendingEddyTurn(message, null)
+            } finally {
+                if (eddyScopeRef == scopeRef) eddyChatLoading = false
+            }
+        }
+    }
+
+    private fun resolvePendingEddyTurn(message: String, provider: String?) {
+        val index = eddyChatTurns.indexOfLast { it.pending }
+        val resolved = EddyChatTurn(
+            role = EddyChatRole.ASSISTANT,
+            text = message.ifBlank { "…" },
+            provider = provider,
+        )
+        eddyChatTurns = if (index >= 0) {
+            eddyChatTurns.toMutableList().also { it[index] = resolved }
+        } else {
+            eddyChatTurns + resolved
+        }
+    }
+
+    private fun resetEddyChat() {
+        eddyChatTurns = emptyList()
+        eddyChatLoading = false
+        eddyChatError = null
+        eddyConversationId = null
+        eddyScopeRef = null
+    }
+
     private fun request(block: suspend () -> Unit) {
         loading = true
         viewModelScope.launch {
@@ -144,4 +234,8 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun profileKey(key: String, userId: Int): String = "hb.$key.$userId"
+
+    private companion object {
+        const val EDDY_MESSAGE_MAX_LENGTH = 8_000
+    }
 }

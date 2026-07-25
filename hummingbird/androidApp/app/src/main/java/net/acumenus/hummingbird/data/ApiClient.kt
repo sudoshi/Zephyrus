@@ -253,6 +253,7 @@ class ApiClient(
     }
 
     companion object {
+        private const val unavailableEddyMessage = "Eddy is unavailable right now. Please try again shortly."
         val BASE_URL: String = BuildConfig.ZEPHYRUS_BASE_URL
         val REVERB_SCHEME: String = BuildConfig.ZEPHYRUS_REVERB_SCHEME
         val REVERB_HOST: String = BuildConfig.ZEPHYRUS_REVERB_HOST
@@ -846,6 +847,40 @@ class ApiClient(
         parseEddyContext(
             getData(withPersona("/api/mobile/v1/eddy/context/${urlPart(scopeRef)}", persona), bearer),
         )
+    }
+
+    /**
+     * Send one non-retryable staff Eddy turn. The BFF deliberately returns a
+     * decodable unavailable notice at HTTP 503; preserve that notice
+     * for the UI rather than replacing it with a transport error.
+     */
+    suspend fun eddyChat(
+        bearer: String,
+        message: String,
+        conversationId: String?,
+        persona: String,
+        pageContext: String,
+        pageComponent: String,
+        pageData: Map<String, String>,
+    ): EddyChatReply = withContext(Dispatchers.IO) {
+        val body = JSONObject().apply {
+            put("message", message)
+            put("surface", "hummingbird")
+            conversationId?.takeIf(String::isNotBlank)?.let { put("conversation_id", it) }
+            put("page_context", pageContext)
+            put("page_component", pageComponent)
+            if (pageData.isNotEmpty()) put("page_data", JSONObject(pageData))
+        }.toString()
+        val (code, text) = send(
+            "POST",
+            withPersona("/api/mobile/v1/eddy/chat", persona),
+            body,
+            bearer,
+        )
+        if (code !in 200..299 && code != 503) {
+            throw ApiException(errorMessage(text, code), code, errorCode(text))
+        }
+        parseEddyChatReply(JSONObject(text).getJSONObject("data"))
     }
 
     suspend fun flowWindow(
@@ -1580,6 +1615,29 @@ class ApiClient(
         context = summarizeContext(data.optJSONObject("context")),
         questionsSupported = data.optJSONArray("questions_supported").strings(),
     )
+
+    /** Visible to JVM contract tests: 503 returns `message` as a string, not an object. */
+    internal fun parseEddyChatReply(data: JSONObject): EddyChatReply {
+        val rawMessage = data.opt("message")
+        val message = if (rawMessage is JSONObject) {
+            EddyReplyMessage(
+                role = rawMessage.optString("role", "assistant"),
+                content = rawMessage.optString("content").ifBlank { unavailableEddyMessage },
+                provider = rawMessage.optStringOrNull("provider"),
+            )
+        } else {
+            EddyReplyMessage(
+                role = "assistant",
+                content = (rawMessage as? String)?.ifBlank { unavailableEddyMessage } ?: unavailableEddyMessage,
+                provider = null,
+            )
+        }
+
+        return EddyChatReply(
+            conversationId = data.optStringOrNull("conversation_id"),
+            message = message,
+        )
+    }
 
     private fun parsePersona(o: JSONObject?): PersonaData {
         val roleId = o?.optStringOrNull("role_id") ?: MobileRoleCatalog.default.id

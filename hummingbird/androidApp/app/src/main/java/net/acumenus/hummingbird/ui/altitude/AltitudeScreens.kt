@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -28,11 +29,14 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -60,6 +64,8 @@ import net.acumenus.hummingbird.data.AltitudeWorkspaceItem
 import net.acumenus.hummingbird.data.AuthViewModel
 import net.acumenus.hummingbird.data.DisplayField
 import net.acumenus.hummingbird.data.DrillDetail
+import net.acumenus.hummingbird.data.EddyChatRole
+import net.acumenus.hummingbird.data.EddyChatTurn
 import net.acumenus.hummingbird.data.EddyContext
 import net.acumenus.hummingbird.data.ForYouItem
 import net.acumenus.hummingbird.data.MobileRole
@@ -553,13 +559,28 @@ fun EddyContextScreen(
     scopeRef: String,
     onBack: () -> Unit,
 ) {
+    var draft by remember(scopeRef) { mutableStateOf("") }
+
     LaunchedEffect(bearer, vm.selectedRole.id, scopeRef) {
+        vm.beginEddyChat(scopeRef)
         vm.loadEddyContext(bearer, scopeRef)
     }
 
     Scaffold(
         containerColor = Z.bg,
-        topBar = { DetailTopBar("Eddy context", onBack) },
+        topBar = { DetailTopBar("Eddy", onBack) },
+        bottomBar = {
+            EddyChatComposer(
+                draft = draft,
+                sending = vm.eddyChatLoading,
+                error = vm.eddyChatError,
+                onDraftChange = { draft = it },
+                onSend = { message ->
+                    vm.sendEddyMessage(bearer, scopeRef, message)
+                    draft = ""
+                },
+            )
+        },
     ) { inner ->
         LazyColumn(
             modifier = Modifier.padding(inner),
@@ -576,17 +597,89 @@ fun EddyContextScreen(
                 item { FieldPanel(context.context) }
                 item { SectionTitle("Policy") }
                 item { FieldPanel(context.phiPolicy) }
-                item { SectionTitle("Supported questions") }
+                item { SectionTitle("Suggested operational questions") }
                 if (context.questionsSupported.isEmpty()) {
                     item { EmptyPanel("No suggested questions returned.") }
                 }
                 items(context.questionsSupported) { question ->
-                    Text(
-                        humanizeLocal(question),
-                        color = Z.ink,
-                        fontSize = 14.sp,
-                        modifier = Modifier.fillMaxWidth().panel().padding(14.dp),
-                    )
+                    OutlinedButton(
+                        onClick = { draft = humanizeLocal(question) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(humanizeLocal(question), modifier = Modifier.fillMaxWidth()) }
+                }
+                if (vm.eddyChatTurns.isNotEmpty()) {
+                    item { SectionTitle("Conversation") }
+                    items(vm.eddyChatTurns) { turn -> EddyChatBubble(turn) }
+                }
+            }
+        }
+    }
+}
+
+/** Testable, no-cache-only staff Eddy composer. It exposes no action or approval control. */
+@Composable
+internal fun EddyChatComposer(
+    draft: String,
+    sending: Boolean,
+    error: String?,
+    onDraftChange: (String) -> Unit,
+    onSend: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Z.surface)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        error?.let { ErrorPanel(it) }
+        OutlinedTextField(
+            value = draft,
+            onValueChange = { if (it.length <= 8_000) onDraftChange(it) },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Ask Eddy about operations") },
+            supportingText = {
+                Text("Use the authorized context; do not add unnecessary patient details. Eddy suggests; people decide.")
+            },
+            enabled = !sending,
+            minLines = 1,
+            maxLines = 4,
+        )
+        Button(
+            onClick = {
+                val message = draft.trim()
+                if (message.isNotEmpty()) onSend(message)
+            },
+            enabled = draft.isNotBlank() && !sending,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Z.primary),
+        ) {
+            Text(if (sending) "Eddy is assessing…" else "Ask Eddy")
+        }
+    }
+}
+
+@Composable
+private fun EddyChatBubble(turn: EddyChatTurn) {
+    val isUser = turn.role == EddyChatRole.USER
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start) {
+        Column(
+            modifier = if (isUser) {
+                Modifier
+                    .fillMaxWidth(0.82f)
+                    .background(Z.primary, RoundedCornerShape(16.dp))
+                    .padding(12.dp)
+            } else {
+                Modifier.fillMaxWidth(0.82f).panel().padding(12.dp)
+            },
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            if (turn.pending) {
+                Text("Eddy is assessing…", color = Z.inkMuted, fontSize = 13.sp)
+            } else {
+                Text(turn.text, color = if (isUser) Z.bg else Z.ink, fontSize = 14.sp)
+                if (!isUser && turn.provider != null) {
+                    Text("Via ${turn.provider}", color = Z.inkMuted, fontSize = 11.sp)
                 }
             }
         }

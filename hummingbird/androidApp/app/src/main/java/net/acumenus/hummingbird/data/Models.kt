@@ -661,6 +661,31 @@ data class EddyContext(
 )
 
 /**
+ * One persisted turn returned by the staff-only Eddy mobile BFF. This state is
+ * intentionally in-memory only: Eddy prompts and replies must not enter the
+ * general mobile offline cache.
+ */
+data class EddyChatReply(
+    val conversationId: String?,
+    val message: EddyReplyMessage,
+)
+
+data class EddyReplyMessage(
+    val role: String,
+    val content: String,
+    val provider: String?,
+)
+
+enum class EddyChatRole { USER, ASSISTANT }
+
+data class EddyChatTurn(
+    val role: EddyChatRole,
+    val text: String,
+    val provider: String? = null,
+    val pending: Boolean = false,
+)
+
+/**
  * Carries an HTTP status so the UI can react to 401 (re-auth). `errorCode` mirrors the
  * envelope's `error.code` (e.g. "invalid_since" on a 422 delta rejection).
  */
