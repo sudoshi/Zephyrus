@@ -8,7 +8,10 @@ on:
 
 concurrency:
   group: ci-full-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseding pushes cancel PR runs only. A cancelled main run can never
+  # satisfy the deploy gate for its commit, which left rapid back-to-back
+  # merges permanently undeployable.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -134,7 +137,8 @@ jobs:
   backend-tests:
     name: Backend tests (${{ matrix.shard }})
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Matches the ratified "no shard above 30 m" budget; caps hung-shard burn.
+    timeout-minutes: 30
     env:
       APP_ENV: testing
       APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
@@ -261,8 +265,10 @@ jobs:
       - name: TypeScript type check
         run: bash scripts/capture-release-evidence.sh frontend-typescript npx tsc --noEmit
 
-      - name: Run Vitest with coverage
-        run: bash scripts/capture-release-evidence.sh frontend-vitest npx vitest run --coverage
+      # Coverage output has no PR-lane consumer; the lcov record persists
+      # from main pushes only.
+      - name: Run Vitest
+        run: bash scripts/capture-release-evidence.sh frontend-vitest npx vitest run ${{ github.event_name == 'push' && '--coverage' || '' }}
 
       - name: Vite production build
         run: bash scripts/capture-release-evidence.sh frontend-build npx vite build
@@ -429,6 +435,22 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      # restore-keys keeps the last browser bundle warm across lockfile
+      # changes; playwright install then no-ops unless its version moved.
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
       - name: Install application and browser dependencies
         run: |
           composer install --prefer-dist --no-interaction --no-progress
@@ -513,6 +535,13 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: package-lock.json
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
 
       - name: Install application dependencies
         run: |
@@ -631,6 +660,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Booting a simulator takes 2-5 minutes and depends on nothing the
+      # builds produce, so start it immediately and let it overlap the build
+      # steps; the wait step before the first test blocks on readiness.
+      - name: Select and begin booting an available iPhone Simulator
+        id: simulator
+        run: |
+          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
+          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
+
       - name: Install pinned XcodeGen
         env:
           XCODEGEN_VERSION: 2.46.0
@@ -660,7 +699,10 @@ jobs:
             -o "$RUNNER_TEMP/hummingbird-fixture-decoder"
           "$RUNNER_TEMP/hummingbird-fixture-decoder" "$GITHUB_WORKSPACE"
 
-      - name: Build Debug for iPhone Simulator
+      # build-for-testing writes app + test bundles into the derivedDataPath
+      # the test steps read, so XCTest/XCUITest run test-without-building
+      # instead of recompiling from scratch.
+      - name: Build Debug for testing (iPhone Simulator)
         run: |
           xcodebuild \
             -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
@@ -668,11 +710,51 @@ jobs:
             -configuration Debug \
             -sdk iphonesimulator \
             -destination "generic/platform=iOS Simulator" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-debug" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build
+            build-for-testing
 
+      - name: Wait for simulator boot to complete
+        run: xcrun simctl bootstatus "${{ steps.simulator.outputs.udid }}" -b
+
+      - name: Run XCTest unit suite
+        run: |
+          xcodebuild \
+            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
+            -scheme Hummingbird \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
+            -resultBundlePath "$RUNNER_TEMP/HummingbirdStaffUnitTests.xcresult" \
+            -only-testing:HummingbirdTests \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test-without-building
+
+      - name: Run XCUITest reference journeys
+        # In-job flake retry on PR lanes only; §3.2.9 budget-evidence runs on
+        # main must stay retry-free so ratified budgets measure true cost.
+        env:
+          XCUITEST_RETRY_FLAGS: ${{ github.event_name == 'pull_request' && '-retry-tests-on-failure -test-iterations 3 -test-repetition-relaunch-enabled YES' || '' }}
+        run: |
+          xcodebuild \
+            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
+            -scheme Hummingbird \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
+            -resultBundlePath "$RUNNER_TEMP/HummingbirdStaffUITests.xcresult" \
+            -only-testing:HummingbirdUITests \
+            -parallel-testing-enabled NO \
+            $XCUITEST_RETRY_FLAGS \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test-without-building
+
+      # The Release build gates the deploy path, not test feedback, so it
+      # runs after the tests to surface test failures sooner.
       - name: Build Release for iPhone Simulator
         run: |
           xcodebuild \
@@ -690,44 +772,6 @@ jobs:
         run: |
           release_app="$RUNNER_TEMP/hummingbird-staff-ios-release/Build/Products/Release-iphonesimulator/Hummingbird.app"
           bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" staff
-
-      - name: Select and boot an available iPhone Simulator
-        id: simulator
-        run: |
-          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
-          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
-          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
-          xcrun simctl bootstatus "$simulator_udid" -b
-
-      - name: Run XCTest unit suite
-        run: |
-          xcodebuild \
-            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
-            -scheme Hummingbird \
-            -configuration Debug \
-            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
-            -resultBundlePath "$RUNNER_TEMP/HummingbirdStaffUnitTests.xcresult" \
-            -only-testing:HummingbirdTests \
-            -parallel-testing-enabled NO \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            test
-
-      - name: Run XCUITest reference journeys
-        run: |
-          xcodebuild \
-            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
-            -scheme Hummingbird \
-            -configuration Debug \
-            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
-            -resultBundlePath "$RUNNER_TEMP/HummingbirdStaffUITests.xcresult" \
-            -only-testing:HummingbirdUITests \
-            -parallel-testing-enabled NO \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            test
 
       - name: Shut down test simulator
         if: always() && steps.simulator.outputs.udid != ''
@@ -849,6 +893,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Booting a simulator takes 2-5 minutes and depends on nothing the
+      # builds produce, so start it immediately and let it overlap the build
+      # steps; the wait step before the first test blocks on readiness.
+      - name: Select and begin booting an available iPhone Simulator
+        id: simulator
+        run: |
+          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
+          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
+
       - name: Install pinned XcodeGen
         env:
           XCODEGEN_VERSION: 2.46.0
@@ -868,7 +922,10 @@ jobs:
           bash scripts/ci/verify-hummingbird-patient-boundary.sh source "$IOS_PATIENT_ROOT"
           xcodebuild -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" -list
 
-      - name: Build Debug for iPhone Simulator
+      # build-for-testing writes app + test bundles into the derivedDataPath
+      # the test steps read, so XCTest/XCUITest run test-without-building
+      # instead of recompiling from scratch.
+      - name: Build Debug for testing (iPhone Simulator)
         run: |
           xcodebuild \
             -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
@@ -876,11 +933,51 @@ jobs:
             -configuration Debug \
             -sdk iphonesimulator \
             -destination "generic/platform=iOS Simulator" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-debug" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build
+            build-for-testing
 
+      - name: Wait for simulator boot to complete
+        run: xcrun simctl bootstatus "${{ steps.simulator.outputs.udid }}" -b
+
+      - name: Run XCTest unit suite
+        run: |
+          xcodebuild \
+            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
+            -scheme HummingbirdPatient \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
+            -resultBundlePath "$RUNNER_TEMP/HummingbirdPatientUnitTests.xcresult" \
+            -only-testing:HummingbirdPatientTests \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test-without-building
+
+      - name: Run XCUITest reference journeys
+        # In-job flake retry on PR lanes only; §3.2.9 budget-evidence runs on
+        # main must stay retry-free so ratified budgets measure true cost.
+        env:
+          XCUITEST_RETRY_FLAGS: ${{ github.event_name == 'pull_request' && '-retry-tests-on-failure -test-iterations 3 -test-repetition-relaunch-enabled YES' || '' }}
+        run: |
+          xcodebuild \
+            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
+            -scheme HummingbirdPatient \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
+            -resultBundlePath "$RUNNER_TEMP/HummingbirdPatientUITests.xcresult" \
+            -only-testing:HummingbirdPatientUITests \
+            -parallel-testing-enabled NO \
+            $XCUITEST_RETRY_FLAGS \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test-without-building
+
+      # The Release build gates the deploy path, not test feedback, so it
+      # runs after the tests to surface test failures sooner.
       - name: Build Release for iPhone Simulator
         run: |
           xcodebuild \
@@ -899,44 +996,6 @@ jobs:
           release_app="$RUNNER_TEMP/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/HummingbirdPatient.app"
           bash scripts/ci/verify-hummingbird-patient-boundary.sh artifact "$release_app"
           bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" patient
-
-      - name: Select and boot an available iPhone Simulator
-        id: simulator
-        run: |
-          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
-          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
-          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
-          xcrun simctl bootstatus "$simulator_udid" -b
-
-      - name: Run XCTest unit suite
-        run: |
-          xcodebuild \
-            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
-            -scheme HummingbirdPatient \
-            -configuration Debug \
-            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
-            -resultBundlePath "$RUNNER_TEMP/HummingbirdPatientUnitTests.xcresult" \
-            -only-testing:HummingbirdPatientTests \
-            -parallel-testing-enabled NO \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            test
-
-      - name: Run XCUITest reference journeys
-        run: |
-          xcodebuild \
-            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
-            -scheme HummingbirdPatient \
-            -configuration Debug \
-            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
-            -resultBundlePath "$RUNNER_TEMP/HummingbirdPatientUITests.xcresult" \
-            -only-testing:HummingbirdPatientUITests \
-            -parallel-testing-enabled NO \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            test
 
       - name: Shut down test simulator
         if: always() && steps.simulator.outputs.udid != ''
