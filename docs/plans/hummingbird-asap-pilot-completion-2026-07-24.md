@@ -13,7 +13,7 @@ communications, and production readiness. That is not one feature. It is a
 multi-release healthcare program with several decisions that engineering cannot
 make on its own.
 
-The governing checklist currently contains **182 completed and 289 open items**
+The governing checklist currently contains **183 completed and 288 open items**
 (471 total). This is an unweighted execution count, not a claim that the product is
 37% clinically or operationally ready. A single unresolved source-release or
 identity decision can block a patient pilot regardless of how many code items are

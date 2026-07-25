@@ -6,7 +6,7 @@ no patient feature enabled by this entry.
 
 ## Baseline
 
-- The governing Hummingbird plan has 182 checked and 289 unchecked checklist items
+- The governing Hummingbird plan has 183 checked and 288 unchecked checklist items
   (471 total). This is an unweighted work-item count, not a clinical-readiness
   percentage.
 - The program is reset to a controlled inpatient-pilot cutline: approved
@@ -227,6 +227,36 @@ This is deterministic compatibility evidence for manually maintained client mode
 does not create generated DTOs, prove behavior against an approved source/release,
 change any patient feature flag, or satisfy clinical, accessibility, privacy, or pilot
 acceptance gates.
+
+## 2026-07-25 — Staff Flow high-volume synchronization ratification
+
+### Completed implementation
+
+- The server already serves the high-volume staff Flow Window through a constrained
+  `since` cursor: only append-only events and census snapshots are narrowed; current
+  projections, geometry, bed status, and duties are renewed in full. Malformed or
+  out-of-window cursors fail with `422 invalid_since` instead of silently becoming a
+  potentially misleading full refresh.
+- Static, non-live Flow geometry (`/flow/floors` and `/flow/spaces3d`) has a strong
+  `ETag`/`If-None-Match` 304 path. The iOS and Android runtime paths use the Flow
+  Window cursor; iOS now has direct native coverage for request construction, cursor
+  echo decoding, duplicate-safe historical merge, and full current-state replacement.
+- This control is intentionally confined to the staff Flow BFF. It does not change the
+  private no-store treatment of patient projections or authorize a patient offline cache.
+
+### Verification
+
+| Boundary                      | Command / target                                                     | Result                              |
+| ----------------------------- | -------------------------------------------------------------------- | ----------------------------------- |
+| Laravel Flow contract         | `php artisan test tests/Feature/Mobile/FlowWindowTest.php --compact` | 22 passed / 865 assertions          |
+| iOS native delta contract     | iPhone 17 Pro / iOS 26.3.1, `FlowWindowDeltaTests`                   | 3 passed / 0 failures               |
+| Android native delta contract | `FlowDeltaTest` Debug and Release; `FlowCacheLogicTest` Debug        | 8/8 + 8/8 + 5/5 passed / 0 failures |
+| Android staff regression      | API 35 `hb` emulator / full Debug instrumentation                    | 27 passed / 0 failures/errors/skips |
+
+### Remaining boundary
+
+This ratifies the bounded staff high-volume-read strategy. It does not establish
+generated clients, make every mobile read cacheable, or apply caching to patient data.
 
 ## 2026-07-25 — Reference-patient dry-run made no-write
 
