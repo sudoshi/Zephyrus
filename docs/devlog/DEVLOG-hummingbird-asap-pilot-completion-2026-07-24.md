@@ -40,6 +40,47 @@ Each subsequent entry must cite the exact commit SHA, command output/test count,
 simulator or emulator target, feature-flag state, decision record, and unresolved
 blocker. Narrative progress without those artifacts is not an accepted update.
 
+## 2026-07-25 — iOS continuous screen-capture privacy cover
+
+**Implementation commit:** `b524cf28`
+**Decision record:** no clinical, identity, disclosure, or release decision was
+made; this is a bounded native privacy control. All patient exposure flags remain
+off and no production patient, database, or deployment action occurred.
+
+### Completed implementation
+
+- Added a main-actor `PatientScreenCaptureMonitor` that reads iOS 17's current
+  scene-capture state and refreshes on `UIScreen.capturedDidChangeNotification`.
+  During active screen recording, external display, or sharing, it places the
+  existing opaque, Hummingbird-branded privacy cover above every care surface.
+- Kept the existing inactive and foreground-access-revalidation covers, with a
+  reason-specific patient-readable accessibility label for each condition.
+  Capture protection has higher precedence so care content remains covered even
+  while the scene is otherwise active.
+- Added a state-change unit test and a debug-only UI launch control. The iPhone
+  journey asserts the capture cover's wording and that the Today tab is not
+  hittable; release binaries exclude both debug launch-control strings.
+
+### Verification
+
+| Boundary             | Command / target                                                                                                                            | Result                                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Patient backend      | `php artisan test tests/Feature/Patient --stop-on-failure` against isolated `zephyrus_test` PostgreSQL                                      | 205 tests / 3,535 assertions, exit 0                                                                             |
+| Android patient app  | `./gradlew --no-daemon connectedDebugAndroidTest --rerun-tasks --console=plain` on `hb(AVD)` / API 35                                       | 17 instrumentation tests; 0 failures/errors/skips                                                                |
+| iOS focused control  | two targeted `xcodebuild test` selections on iPhone 17 Pro / iOS Simulator 26.3.1                                                           | monitor state-change unit test and capture-cover UI test passed; 0 failures                                      |
+| iOS full regression  | `xcodebuild test -project HummingbirdPatient.xcodeproj -scheme HummingbirdPatient -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` | 87 tests; 0 failed, skipped, or expected failures                                                                |
+| iOS release boundary | `xcodebuild build` with `-configuration Release` for iPhone 17 Pro simulator, then binary-string scan for `HBP_SHOW_*_PRIVACY_COVER`        | build passed; neither debug privacy launch-control string is present in the optimized release application binary |
+
+### Explicit remaining boundary
+
+This protects an active iOS capture session only. iOS reports one-time
+screenshots after capture, so this does not claim to prevent or redact them. It
+does not prove app-switcher thumbnails, clipboard, widgets, notification
+redaction, backups, screen-reader privacy, rooted/jailbroken-device protection,
+or the complete device/OS accessibility and privacy matrix. It does not activate
+any patient feature, authorize a pilot, create or activate a patient, change a
+database, or deploy an application.
+
 ## 2026-07-25 — Cross-platform evidence reconciliation and pilot-control template
 
 **Tested source head:** `72ea2862325a5728e261c0022f78cd2da374ccc5`
