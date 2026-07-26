@@ -14,6 +14,9 @@ use App\Integrations\Healthcare\Services\SourceRuntimePressureService;
 use App\Models\Org\Facility;
 use App\Models\Org\Organization;
 use App\Models\User;
+use App\Observability\Exporters\InMemoryMetricExporter;
+use App\Observability\SpanAttributes;
+use App\Security\ClinicalPayloads\ClinicalPayloadException;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -606,7 +609,7 @@ final class SourceObservabilityControlPlaneTest extends TestCase
         config()->set('observability.enabled', true);
         config()->set('observability.exporter', 'memory');
         $this->completeOnboarding();
-        $exporter = app(\App\Observability\Exporters\InMemoryMetricExporter::class);
+        $exporter = app(InMemoryMetricExporter::class);
         $exporter->flush();
 
         $observedAt = CarbonImmutable::parse('2026-07-13T14:00:00Z');
@@ -624,8 +627,8 @@ final class SourceObservabilityControlPlaneTest extends TestCase
         $this->assertStringNotContainsString('ZPHI', json_encode($attributes, JSON_THROW_ON_ERROR));
 
         // A clinical canary on an attribute is rejected by the safe-attribute contract.
-        $this->expectException(\App\Security\ClinicalPayloads\ClinicalPayloadException::class);
-        \App\Observability\SpanAttributes::make(['zephyrus.tainted' => 'ZPHI-OBSERVABILITY-CANARY']);
+        $this->expectException(ClinicalPayloadException::class);
+        SpanAttributes::make(['zephyrus.tainted' => 'ZPHI-OBSERVABILITY-CANARY']);
     }
 
     public function test_source_health_digest_labels_mode_and_staleness_for_downstream_contracts(): void

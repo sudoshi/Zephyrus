@@ -4,6 +4,7 @@ namespace Tests\Feature\Cockpit;
 
 use App\Services\Cockpit\DrillBuilder;
 use App\Services\Cockpit\SnapshotBuilder;
+use App\Services\Operations\RoomStatusService;
 use Database\Seeders\CockpitKpiDefinitionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -134,7 +135,7 @@ class PeriopDrillTest extends TestCase
             'or_out_time' => now()->addHour(),
         ]);
 
-        $rooms = app(\App\Services\Operations\RoomStatusService::class)->build()['rooms'];
+        $rooms = app(RoomStatusService::class)->build()['rooms'];
         $this->assertNotEmpty($rooms);
         $this->assertSame('OR 1 — Cardiac', $rooms[0]['suiteName']);
         $this->assertArrayHasKey('delayMin', $rooms[0]);

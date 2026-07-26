@@ -7,6 +7,7 @@ use App\Models\Ancillary\AncillaryBreach;
 use App\Models\Ancillary\AncillaryMilestone;
 use App\Models\Ancillary\AncillaryOrder;
 use App\Models\Integration\Source;
+use App\Models\Ops\MetricDefinition;
 use App\Models\Radiology\Exam;
 use App\Models\Radiology\Read;
 use App\Models\Radiology\Scanner;
@@ -98,7 +99,7 @@ class RadiologyCockpitMetricsTest extends TestCase
         $engine = app(StatusEngine::class);
         foreach ([$breaches, $unread, $scanners] as $tile) {
             $definition = DB::table('ops.metric_definitions')->where('metric_key', $tile['key'])->first();
-            $model = \App\Models\Ops\MetricDefinition::query()->findOrFail($definition->metric_definition_id);
+            $model = MetricDefinition::query()->findOrFail($definition->metric_definition_id);
             $this->assertSame($engine->resolveStatus($tile['value'], $model)->value, $tile['status']);
         }
         $this->assertSame('warn', $breaches['status']);

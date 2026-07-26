@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Cockpit;
 
+use App\Jobs\RefreshCockpitMaterializedViews;
 use App\Services\Cockpit\SnapshotBuilder;
 use Database\Seeders\CockpitKpiDefinitionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -70,7 +71,7 @@ class CockpitSnapshotSectionsTest extends TestCase
         }
         DB::table('prod.workforce_actuals')->insert($workforce);
 
-        foreach (\App\Jobs\RefreshCockpitMaterializedViews::VIEWS as $view) {
+        foreach (RefreshCockpitMaterializedViews::VIEWS as $view) {
             DB::statement("REFRESH MATERIALIZED VIEW {$view}");
         }
     }

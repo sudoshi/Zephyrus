@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Rounds;
 
+use App\Models\Encounter;
+use App\Models\Rounds\RoundPatient;
+use App\Models\Rounds\RoundRun;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\SeedsRoundsStory;
 use Tests\TestCase;
@@ -133,7 +136,7 @@ class RoundRunLifecycleTest extends TestCase
             ->assertCreated()->json('data.run.run_uuid');
 
         $this->assertSame($first, $second);
-        $this->assertSame(1, \App\Models\Rounds\RoundRun::query()->count());
+        $this->assertSame(1, RoundRun::query()->count());
     }
 
     public function test_reconcile_suggests_new_admission_without_rewriting_cohort(): void
@@ -141,7 +144,7 @@ class RoundRunLifecycleTest extends TestCase
         $board = $this->createRoundsRun();
         $runUuid = $board['data']['run']['run_uuid'];
 
-        $newEncounter = \App\Models\Encounter::create([
+        $newEncounter = Encounter::create([
             'patient_ref' => 'ROUNDS-PAT-NEW',
             'unit_id' => $this->roundsUnit->unit_id,
             'admitted_at' => now(),
@@ -156,7 +159,7 @@ class RoundRunLifecycleTest extends TestCase
 
         $this->assertCount(1, $suggestions['add']);
         $this->assertSame($newEncounter->encounter_id, $suggestions['add'][0]['prod_encounter_id']);
-        $this->assertSame(3, \App\Models\Rounds\RoundPatient::query()->count());
+        $this->assertSame(3, RoundPatient::query()->count());
 
         // Applying the suggestion enrolls the patient and bumps the queue version.
         $updated = $this->actingAs($this->chargeNurse)

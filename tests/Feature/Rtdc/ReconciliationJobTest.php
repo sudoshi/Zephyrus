@@ -4,8 +4,10 @@ namespace Tests\Feature\Rtdc;
 
 use App\Jobs\ReconcileRtdcPredictions;
 use App\Models\RtdcPrediction;
+use App\Models\RtdcReconciliation;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\ReconciliationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -21,7 +23,7 @@ class ReconciliationJobTest extends TestCase
         RtdcPrediction::create(['unit_id' => $a->unit_id, 'service_date' => $yesterday, 'horizon' => 'by_midnight', 'discharges_weighted' => 2]);
         RtdcPrediction::create(['unit_id' => $b->unit_id, 'service_date' => $yesterday, 'horizon' => 'by_midnight', 'discharges_weighted' => 1]);
 
-        (new ReconcileRtdcPredictions)->handle(app(\App\Services\ReconciliationService::class));
+        (new ReconcileRtdcPredictions)->handle(app(ReconciliationService::class));
 
         $this->assertDatabaseCount('prod.rtdc_reconciliations', 2);
     }
@@ -30,7 +32,7 @@ class ReconciliationJobTest extends TestCase
     {
         $user = User::factory()->create();
         $unit = Unit::create(['name' => 'A', 'type' => 'med_surg', 'staffed_bed_count' => 10, 'ratio_floor' => 5]);
-        \App\Models\RtdcReconciliation::create([
+        RtdcReconciliation::create([
             'unit_id' => $unit->unit_id, 'service_date' => today()->subDay(),
             'predicted_discharges' => 4, 'actual_discharges' => 5, 'reliability_score' => 0.8,
         ]);

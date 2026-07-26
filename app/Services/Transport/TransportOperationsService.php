@@ -11,6 +11,7 @@ use App\Support\Operations\SourceFreshness;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 class TransportOperationsService
@@ -321,7 +322,7 @@ class TransportOperationsService
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, TransportEvent>  $events
+     * @param  Collection<int, TransportEvent>  $events
      */
     private function firstOccurrence($events, string $eventType): ?Carbon
     {

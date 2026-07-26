@@ -5,6 +5,12 @@ namespace App\Models\Ancillary;
 use App\Casts\JsonObject;
 use App\Models\Encounter;
 use App\Models\Integration\Source;
+use App\Models\Lab\AnatomicPathologyCase;
+use App\Models\Lab\BloodBankReadiness;
+use App\Models\Lab\Result;
+use App\Models\Lab\Specimen;
+use App\Models\Pharmacy\MedicationOrder;
+use App\Models\Radiology\Exam;
 use App\Models\Unit;
 use Database\Factories\Ancillary\AncillaryOrderFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -70,32 +76,32 @@ class AncillaryOrder extends Model
 
     public function radiologyExam(): HasOne
     {
-        return $this->hasOne(\App\Models\Radiology\Exam::class, 'ancillary_order_id', 'ancillary_order_id');
+        return $this->hasOne(Exam::class, 'ancillary_order_id', 'ancillary_order_id');
     }
 
     public function labSpecimens(): HasMany
     {
-        return $this->hasMany(\App\Models\Lab\Specimen::class, 'ancillary_order_id', 'ancillary_order_id');
+        return $this->hasMany(Specimen::class, 'ancillary_order_id', 'ancillary_order_id');
     }
 
     public function labResults(): HasMany
     {
-        return $this->hasMany(\App\Models\Lab\Result::class, 'ancillary_order_id', 'ancillary_order_id');
+        return $this->hasMany(Result::class, 'ancillary_order_id', 'ancillary_order_id');
     }
 
     public function anatomicPathologyCase(): HasOne
     {
-        return $this->hasOne(\App\Models\Lab\AnatomicPathologyCase::class, 'ancillary_order_id', 'ancillary_order_id');
+        return $this->hasOne(AnatomicPathologyCase::class, 'ancillary_order_id', 'ancillary_order_id');
     }
 
     public function bloodBankReadiness(): HasOne
     {
-        return $this->hasOne(\App\Models\Lab\BloodBankReadiness::class, 'ancillary_order_id', 'ancillary_order_id');
+        return $this->hasOne(BloodBankReadiness::class, 'ancillary_order_id', 'ancillary_order_id');
     }
 
     public function medicationOrder(): HasOne
     {
-        return $this->hasOne(\App\Models\Pharmacy\MedicationOrder::class, 'ancillary_order_id', 'ancillary_order_id');
+        return $this->hasOne(MedicationOrder::class, 'ancillary_order_id', 'ancillary_order_id');
     }
 
     public function scopeOpen(Builder $query): Builder

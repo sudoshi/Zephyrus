@@ -7,6 +7,7 @@ namespace App\Services\Ed;
 use App\Services\Ancillary\AncillaryReadinessService;
 use App\Support\Hospital\HospitalManifest;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -141,7 +142,7 @@ class TreatmentService
      * Sorted by acuity (ESI ascending, nulls last) then longest dwell first so
      * the most urgent / longest-waiting patients surface at the top of the board.
      *
-     * @return \Illuminate\Support\Collection<int,object>
+     * @return Collection<int,object>
      */
     private function treatmentCohort(Carbon $now)
     {
@@ -177,10 +178,10 @@ class TreatmentService
      * (seeded data straddles wall-clock now, so a provider_seen_at can be in the
      * future for not-yet-"happened" rows — clamp keeps the demo sane).
      *
-     * @param  \Illuminate\Support\Collection<int,object>  $rows
+     * @param  Collection<int,object>  $rows
      * @return list<array<string,mixed>>
      */
-    private function board($rows, Carbon $now, \Illuminate\Support\Collection $imagingByVisit, \Illuminate\Support\Collection $labByVisit, \Illuminate\Support\Collection $medicationByVisit): array
+    private function board($rows, Carbon $now, Collection $imagingByVisit, Collection $labByVisit, Collection $medicationByVisit): array
     {
         $board = [];
 

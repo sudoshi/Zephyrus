@@ -6,9 +6,12 @@ use App\Http\Concerns\AuthorizesMobilePersonaActions;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Concerns\RequiresIdempotencyKey;
 use App\Http\Controllers\Controller;
+use App\Models\Transport\TransportEvent;
 use App\Models\Transport\TransportRequest;
+use App\Models\User;
 use App\Services\Mobile\MobilePersonaCatalog;
 use App\Services\Mobile\OperationalActivityLedger;
+use App\Services\Transport\TransportLifecycleService;
 use App\Services\Transport\TransportOperationsService;
 use App\Support\Operations\DurationFormatter;
 use Illuminate\Http\JsonResponse;
@@ -49,7 +52,7 @@ class TransportController extends Controller
             'cursor' => ['nullable', 'string', 'max:1000'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'priority' => ['nullable', Rule::in(['routine', 'urgent', 'stat'])],
-            'status' => ['nullable', Rule::in(array_keys(\App\Services\Transport\TransportLifecycleService::TRANSITIONS))],
+            'status' => ['nullable', Rule::in(array_keys(TransportLifecycleService::TRANSITIONS))],
         ]);
         $actor = $request->user();
         $page = $this->transport->list(array_merge($validated, [
@@ -67,7 +70,7 @@ class TransportController extends Controller
             })
             ->get();
 
-        $completedToday = \App\Models\Transport\TransportEvent::query()
+        $completedToday = TransportEvent::query()
             ->where('event_type', 'transport.completed')
             ->whereDate('occurred_at', Carbon::today())
             ->distinct('transport_request_id')
@@ -238,7 +241,7 @@ class TransportController extends Controller
     // MARK: PHI-minimized shaping (mirrors TransportOperationsService::sla/isAtRisk semantics)
 
     /** @return array<string, mixed> */
-    private function shapeJob(TransportRequest $r, \App\Models\User $actor): array
+    private function shapeJob(TransportRequest $r, User $actor): array
     {
         $visualStatus = $this->tier($r);
         $serialized = $this->transport->serializeRequest($r, $actor);

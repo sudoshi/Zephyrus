@@ -14,7 +14,7 @@ cd "$PROJECT_ROOT"
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 
-for shard in 0 1 2 3 4 5 6 7; do
+for shard in 0 1 2 3; do
     SHARD_LIST_ONLY=1 bash scripts/ci/run-backend-test-shard.sh "feature-$shard" >> "$workdir/assigned"
 done
 

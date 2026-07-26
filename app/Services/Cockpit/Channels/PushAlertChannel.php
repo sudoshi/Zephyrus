@@ -8,6 +8,7 @@ use App\Contracts\PushNotifier;
 use App\Models\Cockpit\CockpitAlert;
 use App\Models\User;
 use App\Services\Alerting\OperationalAlert;
+use Illuminate\Support\Collection;
 
 /**
  * Mobile paging for opened cockpit alerts AND shared operational alerts
@@ -86,7 +87,7 @@ class PushAlertChannel implements AlertChannel, OperationalAlertChannel
         return $dispatched;
     }
 
-    /** @return \Illuminate\Support\Collection<int, User> */
+    /** @return Collection<int, User> */
     private function recipients()
     {
         return User::query()

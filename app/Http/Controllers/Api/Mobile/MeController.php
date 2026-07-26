@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api\Mobile;
 use App\Authorization\Capability;
 use App\Http\Concerns\RendersMobileEnvelope;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\Authorization\RoleCapabilityService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 /**
  * GET  /api/mobile/v1/me              — profile, role, workflow, unit assignments.
@@ -51,9 +54,9 @@ class MeController extends Controller
      * none rather than failing the whole profile (the mobile onboarding falls back
      * to the census unit list in that case).
      *
-     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     * @return Collection<int, array<string, mixed>>
      */
-    private function unitAssignments(\App\Models\User $user): \Illuminate\Support\Collection
+    private function unitAssignments(User $user): Collection
     {
         try {
             return $user->units()->get()->map(fn ($unit) => [
@@ -62,7 +65,7 @@ class MeController extends Controller
                 'role' => $unit->pivot->role,
                 'is_primary' => (bool) $unit->pivot->is_primary,
             ])->values();
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             report($e);
 
             return collect();

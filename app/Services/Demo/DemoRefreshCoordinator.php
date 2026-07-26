@@ -4,6 +4,8 @@ namespace App\Services\Demo;
 
 use App\Jobs\RefreshCockpitSnapshot;
 use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -199,7 +201,7 @@ final class DemoRefreshCoordinator
 
     // ---- ledger ----
 
-    private function openLedger(string $refreshId, DemoClock $clock, \Illuminate\Support\Carbon $startedAt): void
+    private function openLedger(string $refreshId, DemoClock $clock, Carbon $startedAt): void
     {
         DB::table('ops.demo_refresh_runs')->insert([
             'refresh_id' => $refreshId,
@@ -250,7 +252,7 @@ final class DemoRefreshCoordinator
         if ($latest === null) {
             return 'critical';
         }
-        $minutes = abs(now()->diffInMinutes(\Carbon\CarbonImmutable::parse($latest)));
+        $minutes = abs(now()->diffInMinutes(CarbonImmutable::parse($latest)));
         if ($minutes <= $expectedLag) {
             return 'success';
         }

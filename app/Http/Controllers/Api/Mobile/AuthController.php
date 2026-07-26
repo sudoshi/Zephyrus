@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\Mobile;
 
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Audit\UserAuditRecorder;
@@ -22,8 +24,8 @@ use Laravel\Sanctum\PersonalAccessToken;
  * honors must_change_password exactly: a forced-change user receives only a
  * narrowly-scoped change token until they set a new password.
  *
- * @see \App\Http\Controllers\Auth\AuthenticatedSessionController  (web — untouched)
- * @see \App\Http\Controllers\Auth\ChangePasswordController        (web — untouched)
+ * @see AuthenticatedSessionController  (web — untouched)
+ * @see ChangePasswordController        (web — untouched)
  */
 class AuthController extends Controller
 {

@@ -225,7 +225,7 @@ jobs:
         run: bash scripts/ci/verify-shard-manifest.sh
 
       - name: Run Pint (code style)
-        run: ./vendor/bin/pint --test
+        run: ./vendor/bin/pint --test --parallel
 
       - name: Run migrations
         run: bash scripts/capture-release-evidence.sh backend-migration php artisan migrate --force
@@ -289,6 +289,10 @@ jobs:
       RELEASE_EVIDENCE_DIR: artifacts/release-evidence/backend-${{ matrix.shard }}
     strategy:
       fail-fast: false
+      # Plan D3: 4 feature shards, each running 2 paratest workers on
+      # per-process isolated databases (was 8 serial shards) — same total
+      # test compute on half the VMs, wall ~neutral. Shard scripts run
+      # ordered passes to honor the S2 scenario/anchor invariants.
       matrix:
         shard:
           - unit
@@ -296,10 +300,6 @@ jobs:
           - feature-1
           - feature-2
           - feature-3
-          - feature-4
-          - feature-5
-          - feature-6
-          - feature-7
 
     services:
       postgres:

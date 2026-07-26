@@ -3,10 +3,12 @@
 namespace App\Models\Raw;
 
 use App\Models\Integration\Source;
+use App\Security\ClinicalPayloads\ClinicalPayloadHydrator;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class InboundMessage extends Model
 {
@@ -24,7 +26,7 @@ class InboundMessage extends Model
     protected function payload(): Attribute
     {
         return Attribute::make(get: fn (mixed $value, array $attributes): ?array => app(
-            \App\Security\ClinicalPayloads\ClinicalPayloadHydrator::class,
+            ClinicalPayloadHydrator::class,
         )->optional(
             isset($attributes['payload_object_id']) ? (int) $attributes['payload_object_id'] : null,
             (int) $attributes['source_id'],
@@ -38,7 +40,7 @@ class InboundMessage extends Model
     protected function normalizedPayload(): Attribute
     {
         return Attribute::make(get: fn (mixed $value, array $attributes): ?array => app(
-            \App\Security\ClinicalPayloads\ClinicalPayloadHydrator::class,
+            ClinicalPayloadHydrator::class,
         )->optional(
             isset($attributes['normalized_payload_object_id']) ? (int) $attributes['normalized_payload_object_id'] : null,
             (int) $attributes['source_id'],
@@ -49,7 +51,7 @@ class InboundMessage extends Model
 
     private function objectKind(int $payloadObjectId): ?string
     {
-        return \Illuminate\Support\Facades\DB::table('raw.payload_objects')
+        return DB::table('raw.payload_objects')
             ->where('payload_object_id', $payloadObjectId)
             ->value('payload_kind');
     }

@@ -2,6 +2,7 @@
 
 namespace App\Services\Cockpit;
 
+use App\Models\Ops\MetricDefinition;
 use App\Support\Cockpit\MetricValue;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -25,7 +26,7 @@ class MetricValueWriter
 
     /**
      * @param  array<string, MetricValue>  $values  keyed by metric_key
-     * @param  Collection<string, \App\Models\Ops\MetricDefinition>  $definitions  keyed by metric_key
+     * @param  Collection<string, MetricDefinition>  $definitions  keyed by metric_key
      * @return int rows written
      */
     public function write(array $values, Collection $definitions, CarbonInterface $measuredAt): int

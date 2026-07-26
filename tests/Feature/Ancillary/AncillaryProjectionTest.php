@@ -14,6 +14,7 @@ use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Integrations\Healthcare\Synthetic\SyntheticHealthcareConnector;
 use App\Jobs\ReplayPendingIntegrationEvents;
 use App\Models\Ancillary\AncillaryOrder;
+use App\Models\Integration\Source;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AncillaryReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -341,7 +342,7 @@ class AncillaryProjectionTest extends TestCase
     }
 
     private function projectDirect(
-        \App\Models\Integration\Source $source,
+        Source $source,
         string $milestoneCode,
         string $sourceOrderKey,
         string $reconciliationKey,

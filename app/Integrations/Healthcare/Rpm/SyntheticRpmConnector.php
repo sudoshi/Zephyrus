@@ -4,6 +4,7 @@ namespace App\Integrations\Healthcare\Rpm;
 
 use App\Integrations\Healthcare\Contracts\HealthcareConnector;
 use App\Integrations\Healthcare\DTO\BackfillRequest;
+use App\Integrations\Healthcare\DTO\CanonicalOperationalEvent;
 use App\Integrations\Healthcare\DTO\ConnectorCapabilities;
 use App\Integrations\Healthcare\DTO\ConnectorHealth;
 use App\Integrations\Healthcare\DTO\PollRequest;
@@ -16,6 +17,8 @@ use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Models\Integration\CanonicalEventRecord;
 use App\Models\Integration\ConnectorWatermark;
 use App\Models\Integration\ProvenanceRecord;
+use App\Models\Integration\Source;
+use App\Models\Org\Facility;
 use App\Models\Raw\DeadLetter;
 use App\Models\Raw\InboundMessage;
 use App\Models\Raw\IngestRun;
@@ -258,7 +261,7 @@ class SyntheticRpmConnector implements HealthcareConnector
         return $run->fresh();
     }
 
-    private function source(): \App\Models\Integration\Source
+    private function source(): Source
     {
         $scope = $this->enterpriseScope();
 
@@ -283,7 +286,7 @@ class SyntheticRpmConnector implements HealthcareConnector
             return [];
         }
 
-        $facility = \App\Models\Org\Facility::query()
+        $facility = Facility::query()
             ->with('organization:organization_id,organization_key')
             ->where('facility_key', $facilityKey)
             ->where('is_active', true)
@@ -301,7 +304,7 @@ class SyntheticRpmConnector implements HealthcareConnector
     }
 
     private function startRun(
-        \App\Models\Integration\Source $source,
+        Source $source,
         string $runType,
         ?string $cursorBefore = null,
         array $metadata = [],
@@ -394,14 +397,14 @@ class SyntheticRpmConnector implements HealthcareConnector
 
     private function projectRecord(
         CanonicalEventRecord $record,
-        ?\App\Integrations\Healthcare\DTO\CanonicalOperationalEvent $event = null,
+        ?CanonicalOperationalEvent $event = null,
         bool $force = false,
     ): void {
         if ($record->projection_status === 'projected' && ! $force) {
             return;
         }
 
-        $event ??= new \App\Integrations\Healthcare\DTO\CanonicalOperationalEvent(
+        $event ??= new CanonicalOperationalEvent(
             eventId: $record->event_id,
             eventType: $record->event_type,
             entityType: $record->entity_type,

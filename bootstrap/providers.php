@@ -1,7 +1,10 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\HummingbirdServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\HummingbirdServiceProvider::class,
+    AppServiceProvider::class,
+    HummingbirdServiceProvider::class,
     // App\Providers\CsrfServiceProvider::class, // Disabled to remove CSRF token requirement
 ];

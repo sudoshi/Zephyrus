@@ -15,6 +15,7 @@ use App\Services\Patient\PatientHmac;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 
 /**
  * Accept a patient-authored request to clarify released education. This is not
@@ -119,7 +120,7 @@ class PatientEducationClarificationService
                     $replayed = true;
                 } else {
                     PatientEducationClarificationRequest::query()->create([
-                        'clarification_uuid' => (string) \Illuminate\Support\Str::uuid7(),
+                        'clarification_uuid' => (string) Str::uuid7(),
                         'principal_id' => $principal->getKey(),
                         'access_grant_id' => $grant->getKey(),
                         'pathway_projection_id' => $projection->getKey(),

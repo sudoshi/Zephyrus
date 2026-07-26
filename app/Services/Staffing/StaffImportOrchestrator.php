@@ -14,6 +14,7 @@ use App\Services\Staffing\Support\PullWindow;
 use App\Services\Staffing\Support\RawStaffRecord;
 use App\Services\Staffing\Support\ResolvedAssignment;
 use App\Services\Staffing\Support\StagedStaffMember;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -317,7 +318,7 @@ class StaffImportOrchestrator
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, object>
+     * @return Collection<int, object>
      */
     private function loadRules(StaffingSource $source)
     {
@@ -365,7 +366,7 @@ class StaffImportOrchestrator
 
     /**
      * @param  list<string>  $seenKeys
-     * @return \Illuminate\Support\Collection<int, StaffMember>
+     * @return Collection<int, StaffMember>
      */
     private function departedMembers(StaffingSource $source, array $seenKeys)
     {

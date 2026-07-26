@@ -2,12 +2,14 @@
 
 namespace App\Services\Flow;
 
+use App\Models\Encounter;
 use App\Models\Evs\EvsRequest;
 use App\Models\Transport\TransportRequest;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Mobile\MobilePersonaCatalog;
+use App\Support\Hospital\HospitalManifest;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Schema;
 
@@ -337,7 +339,7 @@ class FlowLensService
         } else {
             // Default floor: the user's assigned unit's floor; the periop
             // floor for OR lenses; otherwise the lowest manifest floor.
-            $manifest = app(\App\Support\Hospital\HospitalManifest::class);
+            $manifest = app(HospitalManifest::class);
             $assigned = $user ? $this->defaultUnitFor($user) : null;
             $assignedFloor = $assigned !== null ? $this->floorForUnit($assigned) : null;
             $floor = match (true) {
@@ -413,7 +415,7 @@ class FlowLensService
         $context = $this->patientContext->build($arg, $user, $lens['role_id']);
         $patientRef = $this->patientContext->resolvePatientRef($arg);
 
-        $unitId = \App\Models\Encounter::query()
+        $unitId = Encounter::query()
             ->where('patient_ref', $patientRef)
             ->where('status', 'active')
             ->where('is_deleted', false)
@@ -479,7 +481,7 @@ class FlowLensService
 
     private function floorForUnit(Unit $unit): ?int
     {
-        $manifest = app(\App\Support\Hospital\HospitalManifest::class);
+        $manifest = app(HospitalManifest::class);
         $entry = $unit->abbreviation ? $manifest->unit($unit->abbreviation) : null;
 
         return isset($entry['floor']) ? (int) $entry['floor'] : null;

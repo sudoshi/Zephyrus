@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Services\Home\HomeCensusService;
+use App\Services\Home\HomeCommandService;
+use App\Services\Home\HomeLogisticsService;
+use App\Services\Home\HomeReferralService;
+use App\Services\Home\HomeTransitionService;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
@@ -17,22 +21,22 @@ class HomeDashboardController extends Controller
         return Inertia::render('Home/Census', $census->build());
     }
 
-    public function command(\App\Services\Home\HomeCommandService $command): InertiaResponse
+    public function command(HomeCommandService $command): InertiaResponse
     {
         return Inertia::render('Home/Command', $command->build());
     }
 
-    public function referrals(\App\Services\Home\HomeReferralService $referrals): InertiaResponse
+    public function referrals(HomeReferralService $referrals): InertiaResponse
     {
         return Inertia::render('Home/Referrals', $referrals->build());
     }
 
-    public function transitions(\App\Services\Home\HomeTransitionService $transitions): InertiaResponse
+    public function transitions(HomeTransitionService $transitions): InertiaResponse
     {
         return Inertia::render('Home/Transitions', $transitions->build());
     }
 
-    public function logistics(\App\Services\Home\HomeLogisticsService $logistics): InertiaResponse
+    public function logistics(HomeLogisticsService $logistics): InertiaResponse
     {
         return Inertia::render('Home/Logistics', $logistics->build());
     }

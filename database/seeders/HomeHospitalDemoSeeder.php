@@ -5,13 +5,16 @@ namespace Database\Seeders;
 use App\Models\Bed;
 use App\Models\Encounter;
 use App\Models\Home\HomeEpisode;
+use App\Models\Home\HomeEscalation;
 use App\Models\Home\HomeProgram;
 use App\Models\Home\HomeReferral;
 use App\Models\Home\HomeVisit;
 use App\Models\Home\RpmDevice;
 use App\Models\Home\RpmEnrollment;
 use App\Models\Home\RpmKit;
+use App\Models\Home\RpmObservation;
 use App\Models\Unit;
+use App\Services\Home\RpmAlertEvaluator;
 use Illuminate\Database\Seeder;
 use Ramsey\Uuid\Uuid;
 
@@ -85,7 +88,7 @@ class HomeHospitalDemoSeeder extends Seeder
      */
     private function seedObservations(): void
     {
-        \App\Models\Home\RpmObservation::query()
+        RpmObservation::query()
             ->where('source_key', 'demo-seed')
             ->where('observed_at', '<', now()->subHours(48))
             ->delete();
@@ -97,7 +100,7 @@ class HomeHospitalDemoSeeder extends Seeder
             ->orderBy('rpm_enrollment_id')
             ->get();
 
-        $evaluator = app(\App\Services\Home\RpmAlertEvaluator::class);
+        $evaluator = app(RpmAlertEvaluator::class);
 
         foreach ($enrollments->values() as $index => $enrollment) {
             $ref = $enrollment->patient_ref;
@@ -146,7 +149,7 @@ class HomeHospitalDemoSeeder extends Seeder
                         $value = $mean + (11 - $hoursAgo) * 1.6;
                     }
 
-                    $observation = \App\Models\Home\RpmObservation::updateOrCreate(
+                    $observation = RpmObservation::updateOrCreate(
                         ['observation_uuid' => Uuid::uuid5(Uuid::NAMESPACE_DNS,
                             "zephyrus.home.obs.{$ref}.{$loinc}.".$observedAt->format('YmdH'))->toString()],
                         [
@@ -201,7 +204,7 @@ class HomeHospitalDemoSeeder extends Seeder
 
             $initiated = now()->subDays($spec['daysAgo'])->setTime(14, 10);
 
-            \App\Models\Home\HomeEscalation::updateOrCreate(
+            HomeEscalation::updateOrCreate(
                 ['escalation_uuid' => Uuid::uuid5(Uuid::NAMESPACE_DNS, 'zephyrus.home.escalation.'.$spec['ref'].'.'.$spec['daysAgo'])->toString()],
                 [
                     'home_episode_id' => $episode->home_episode_id,
