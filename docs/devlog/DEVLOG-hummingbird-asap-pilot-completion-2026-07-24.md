@@ -198,6 +198,50 @@ It does not add continuous revocation polling, push revocation, source-driven
 transfer/merge/correction handling, production identity proofing, a patient
 activation, clinical content approval, or pilot authorization.
 
+## 2026-07-25 — Privacy-cover accessibility-tree isolation
+
+**Implementation commit:** `44a32c53`
+**Decision record:** no clinical, identity, disclosure, or release decision was
+made. This is a client-side privacy hardening measure; all patient exposure
+flags remain off and no patient, database, migration, or deployment action
+occurred.
+
+### Completed implementation
+
+- iOS no longer leaves `PatientRootView` rendered behind an opaque privacy
+  overlay. While the existing lifecycle, access-revalidation, or screen-capture
+  privacy condition is active, the root view is not part of the rendered
+  accessibility hierarchy; the reason-specific cover is the modal accessibility
+  element. The care root is rebuilt only after the privacy condition ends.
+- Android now clears the semantics of the entire inner care subtree while its
+  existing `privacyCovered` condition is true. Only a PHI-free, assertive
+  privacy-cover announcement remains exposed; visual care content can remain
+  in the composable layout without becoming discoverable to accessibility
+  services.
+- The iPhone UI journeys now assert that the `Today` tab does not exist while
+  either debug privacy-cover condition is active. A new API 35 Compose
+  instrumentation test asserts that `patient-content` has zero accessible
+  nodes during the Android cover and returns when the cover lifts.
+
+### Verification
+
+| Boundary                          | Command / target                                                                                                                            | Result                                                             |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| iOS focused privacy behavior      | two targeted `PatientReferenceJourneyUITests` privacy-cover tests on iPhone 17 Pro                                                          | 2 passed / 0 failures; cover present and `Today` absent            |
+| iOS full regression               | `xcodebuild test -project HummingbirdPatient.xcodeproj -scheme HummingbirdPatient -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` | 13 UI tests passed / 0 failures                                    |
+| Android focused semantics         | API 35 `hb` AVD `PatientPrivacyAccessibilityInstrumentedTest`                                                                               | 1 passed / 0 failures; care semantics removed and restored         |
+| Android full regression           | API 35 `hb` AVD `connectedDebugAndroidTest --rerun-tasks`                                                                                   | 18 tests / 0 failures, errors, or skips                            |
+| iOS release and static boundaries | Release simulator build plus privacy-control string scan; Xcode project, Android boundary, contract, accessibility, disclosure, diff checks | all passed; accessibility matrix remains draft and not pilot-ready |
+
+### Bounded claim
+
+This prevents the current native care trees from remaining available through
+their app accessibility semantics while the app's privacy cover is active. It
+does not replace VoiceOver/TalkBack linear-navigation review, focus-order and
+announcement review, or the remaining device and OS privacy matrix. It does
+not prove redaction of system screenshots, app-switcher snapshots, clipboard,
+widgets, notifications, backups, or every OS/OEM implementation.
+
 ## 2026-07-25 — Cross-platform evidence reconciliation and pilot-control template
 
 **Tested source head:** `72ea2862325a5728e261c0022f78cd2da374ccc5`
