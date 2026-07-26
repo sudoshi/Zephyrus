@@ -1172,3 +1172,100 @@ deployment authorization.
 - No production database, patient, principal, identity link, grant, session, encounter,
   account preference, clinical projection, message, route, source, migration, deployment,
   or pilot state was read or changed.
+
+## 2026-07-26 — Foundation accessibility and layout matrix
+
+### Audit finding and bounded correction
+
+- Added the
+  [foundation accessibility and layout matrix](../nightingale/FOUNDATION-ACCESSIBILITY-LAYOUT-MATRIX-2026-07-26.md).
+- Audited the installed iOS foundation at dark appearance, Increased Contrast, and
+  `accessibility-extra-extra-extra-large`. The fixed forest accent measured 2.946:1 against
+  black and visibly failed the bounded normal-text contrast gate.
+- Replaced the fixed iOS accent with a dynamic light/dark value. Unit-calculated contrast is
+  now 7.129:1 against the light system background and 11.324:1 against the dark system
+  background.
+- Added an explicit Android Material 3 dark scheme selected from
+  `isSystemInDarkTheme()`. Eight Android text/container pairs across the light and dark
+  schemes now have unit-enforced ratios ranging from 6.031:1 to 16.342:1.
+- Kept color as non-essential emphasis. Every current patient state still has explicit text,
+  and decorative imagery remains outside accessibility meaning.
+
+### Layout, semantics, and target behavior
+
+- Added stable identifiers/test tags for the product, privacy, and Display comfort headings
+  plus both current controls.
+- Removed an unnecessary iOS contained accessibility subtree after XCUITest proved it placed
+  Display comfort before the visually earlier privacy card. The final accessibility
+  sequence is product heading, privacy heading, Display comfort heading, reduce motion, and
+  hide imagery.
+- Added 44-point minimum iOS toggle rows and rectangular hit shapes.
+- Replaced each Android label-plus-thumb interaction with one full-width, 48 dp minimum
+  `Role.Switch` row. The visual switch has no separate change handler, so the whole labeled
+  row is one state-changing target.
+- Top-aligned and width-bounded the Android scroll column. This removes dependence on center
+  arrangement when enlarged content exceeds the viewport.
+- Added an iOS accessibility-XXXL landscape journey that proves semantic order,
+  scroll-to-hittable behavior, target height, and state changes. Its
+  `DynamicTypeSize.accessibility5` adapter is compile-time Debug-only, and the test
+  requires a 60-point product-heading height so a no-op adapter cannot pass.
+- Added an Android font-scale-2.0 landscape journey that traverses the actual unmerged
+  semantics tree, proves ordering, converts 48 dp to device pixels, checks full-row heights,
+  changes both states, and restores font scale/orientation in `finally`.
+
+### Native and artifact evidence
+
+- On iPhone 16e Simulator `3F568F29-BE58-49AD-8151-6C2303B4C4E3`, iOS 26.3.1, the
+  final normally signed suite passed eight unit and four UI tests with zero failures or
+  skips from restored light appearance, normal contrast, and system-large text. The
+  largest-text journey itself applied the Debug-only accessibility5 override, produced a
+  six-page landscape hierarchy, and passed. The normally signed Release simulator build
+  passed.
+- Installed and visually inspected the exact new Release application under those settings.
+  For the Release inspection, the simulator was explicitly set to dark appearance,
+  `DarkenSystemColors=1`, and accessibility XXXL. Text reflowed and scrolled, the corrected
+  accent remained legible, card boundaries were visible, and the stronger contrast policy
+  withheld decorative imagery. The local screenshot SHA-256 is
+  `f3ca5fb5eb5281424d08858e56fdd381eb06ed5fa47d607dfc1bfc480b08f153`.
+- On the `hb` Android 15/API 35 AVD, seven JVM and seven instrumentation tests passed.
+  A clean, no-build-cache run also passed the Nightingale product boundary, `lintDebug`,
+  `lintVitalRelease`, Debug assembly, and unsigned Release assembly. Gradle reported 125
+  actionable tasks: 124 executed and one up-to-date.
+- The final Android dark/font-scale-2.0 UI Automator hierarchy exposed the two complete
+  checkable rows at 222 pixels each on the 420 dpi portrait surface, approximately 84.6 dp.
+  Its SHA-256 is
+  `6392d3ef5ebfbcd4ef85b568e94c067b90fb77725ef4197e85f7a82518d13fcf`.
+- Android `FLAG_SECURE` still yielded a black application capture. The capture hash
+  `5d5c731e9047f2c26407fab4bfa66b40ae59788da3438089db5f479732b53ebc`
+  proves the capture boundary, not visual layout. Independent dark-theme physical/secure
+  device review remains open.
+- Exact local artifacts:
+    - iOS Debug executable:
+      `16b70a01b76791066d289399b67222fdf129f4cd7857c31cc843a85ad38401e5`;
+    - iOS Release executable:
+      `b53911139c4033d480ebd8ad434a643077e0f8a1d4cb2a3f25974d030a00a3b8`;
+    - Android Debug APK:
+      `4d866ec381399caabd1287fd204e0dc01d3794267aecd5900a69d87d0dd91164`;
+    - Android unsigned Release APK:
+      `bd3d2994c84fa7de97d2770c257b70b8eb48f0fc59a081f486ecf6ebe03dd4e3`.
+
+### Mechanical enforcement and retained failures
+
+- Extended `verify-nightingale-product-boundary.sh` to require the appearance-aware iOS
+  accent, 44-point iOS row target, Android dark scheme, system dark selection, 48 dp
+  Android row target, both contrast tests, both largest-text landscape journeys, and the
+  iOS accessibility-size adapter inside a Debug-only branch.
+- Retained the failed fixed-color ratio and initial semantic-order assertion as findings.
+  Also retained, but did not count as evidence, an unsigned iOS Keychain status `-34018`,
+  an invalid receiver-scoped Compose import, clipped-coordinate order logic, and an
+  unavailable Compose semantics accessor. The first iOS geometry proof also failed at
+  `40.67` points because the UIKit launch argument did not affect the SwiftUI hierarchy on
+  iOS 26.3.1; the accepted Debug-only adapter produced the intended six-page hierarchy.
+- The master checklist now closes only the bounded current-shell matrix. Full WCAG 2.2 AA,
+  VoiceOver/TalkBack human traversal, focus recovery, language expansion/RTL,
+  physical-device review, every future journey, and all named reviews remain open.
+- Commit/push and exact-SHA CI evidence for this slice remain required before publication is
+  fully ratified.
+- No production database, patient, principal, identity link, grant, session, encounter,
+  projection, preference, message, route, source, migration, deployment, or pilot state was
+  read or changed.

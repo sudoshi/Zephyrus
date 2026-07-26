@@ -341,3 +341,16 @@ session, encounter, projection, preference, message, pathway, release, feature f
 migration, deployment, or pilot state was created, read, or changed.
 
 The implementation remains an offline, no-patient-data Nightingale foundation.
+
+## 15. Follow-up accessibility-layout evidence
+
+The later
+[foundation accessibility and layout matrix](./FOUNDATION-ACCESSIBILITY-LAYOUT-MATRIX-2026-07-26.md)
+found and corrected a dark-appearance iOS accent failure, added an explicit Android dark
+scheme, corrected foundation semantic order, expanded complete interaction targets, and
+proved the current shell at maximum text and landscape on both emulators.
+
+The original artifact hashes in this decision remain the historical display-comfort slice
+and are not rewritten. The follow-up matrix records the replacement artifact hashes and
+its expanded test counts. Full product conformance and independent human review remain
+open.

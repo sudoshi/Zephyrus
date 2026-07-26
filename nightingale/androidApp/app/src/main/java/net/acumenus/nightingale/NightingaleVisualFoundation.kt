@@ -5,16 +5,22 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -22,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +41,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -41,7 +49,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-private val NightingaleColorScheme = lightColorScheme(
+internal val NightingaleLightColorScheme = lightColorScheme(
     primary = Color(0xFF365F49),
     onPrimary = Color.White,
     surface = Color(0xFFFFFCF5),
@@ -50,14 +58,27 @@ private val NightingaleColorScheme = lightColorScheme(
     onSurfaceVariant = Color(0xFF514A42),
 )
 
+internal val NightingaleDarkColorScheme = darkColorScheme(
+    primary = Color(0xFFA8D5B8),
+    onPrimary = Color(0xFF123323),
+    surface = Color(0xFF17130F),
+    onSurface = Color(0xFFF7F0E7),
+    surfaceVariant = Color(0xFF2B2723),
+    onSurfaceVariant = Color(0xFFD8CEC3),
+)
+
+internal fun nightingaleColorScheme(darkTheme: Boolean) =
+    if (darkTheme) NightingaleDarkColorScheme else NightingaleLightColorScheme
+
 @Composable
 internal fun NightingaleFoundationScreen(
     privacyCovered: Boolean,
     presentationPreferences: NightingalePresentationPreferences,
     systemReduceMotion: Boolean,
     highContrast: Boolean,
+    darkTheme: Boolean = isSystemInDarkTheme(),
 ) {
-    MaterialTheme(colorScheme = NightingaleColorScheme) {
+    MaterialTheme(colorScheme = nightingaleColorScheme(darkTheme)) {
         val policy = nightingaleSceneAccessibilityPolicy(
             preferences = presentationPreferences.snapshot,
             fontScale = LocalDensity.current.fontScale,
@@ -69,11 +90,14 @@ internal fun NightingaleFoundationScreen(
             NightingaleScenicBackground(policy = policy) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .align(Alignment.TopCenter)
+                        .widthIn(max = 520.dp)
+                        .fillMaxWidth()
+                        .fillMaxHeight()
                         .verticalScroll(rememberScrollState())
                         .testTag("nightingale-safe-shell")
                         .padding(horizontal = 28.dp, vertical = 56.dp),
-                    verticalArrangement = Arrangement.Center,
+                    verticalArrangement = Arrangement.Top,
                 ) {
                     if (policy.showDecorativeImagery) {
                         Image(
@@ -86,6 +110,7 @@ internal fun NightingaleFoundationScreen(
                         text = NightingaleProductBoundary.productName,
                         modifier = Modifier
                             .padding(top = 16.dp)
+                            .testTag("nightingale-product-heading")
                             .semantics { heading() },
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.SemiBold,
@@ -163,6 +188,8 @@ private fun NightingaleFoundationStatusCard(modifier: Modifier = Modifier) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
                 text = "Your privacy comes first",
+                modifier = Modifier.testTag("nightingale-privacy-status-heading"),
+                color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -195,7 +222,9 @@ private fun NightingaleDisplayComfortCard(
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
                 text = "Display comfort",
-                modifier = Modifier.semantics { heading() },
+                modifier = Modifier
+                    .testTag("nightingale-display-comfort-heading")
+                    .semantics { heading() },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -206,21 +235,15 @@ private fun NightingaleDisplayComfortCard(
                 style = MaterialTheme.typography.bodySmall,
             )
 
-            Text(
-                text = "Reduce motion in Nightingale",
-                modifier = Modifier.padding(top = 18.dp),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Switch(
+            NightingaleComfortToggle(
+                label = "Reduce motion in Nightingale",
                 checked = presentationPreferences.snapshot.reduceMotionRequested,
                 onCheckedChange = {
                     presentationPreferences.setReduceMotionRequested(it)
                 },
                 modifier = Modifier
-                    .testTag("nightingale-reduce-motion-toggle")
-                    .semantics {
-                        contentDescription = "Reduce motion in Nightingale"
-                    },
+                    .padding(top = 18.dp)
+                    .testTag("nightingale-reduce-motion-toggle"),
             )
             Text(
                 text = if (policy.reduceMotion) {
@@ -235,21 +258,15 @@ private fun NightingaleDisplayComfortCard(
                 style = MaterialTheme.typography.bodySmall,
             )
 
-            Text(
-                text = "Hide decorative imagery",
-                modifier = Modifier.padding(top = 18.dp),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Switch(
+            NightingaleComfortToggle(
+                label = "Hide decorative imagery",
                 checked = presentationPreferences.snapshot.hideDecorativeImageryRequested,
                 onCheckedChange = {
                     presentationPreferences.setHideDecorativeImageryRequested(it)
                 },
                 modifier = Modifier
-                    .testTag("nightingale-hide-imagery-toggle")
-                    .semantics {
-                        contentDescription = "Hide decorative imagery"
-                    },
+                    .padding(top = 18.dp)
+                    .testTag("nightingale-hide-imagery-toggle"),
             )
             Text(
                 text = if (policy.showDecorativeImagery) {
@@ -264,6 +281,37 @@ private fun NightingaleDisplayComfortCard(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
+    }
+}
+
+@Composable
+private fun NightingaleComfortToggle(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = onCheckedChange,
+            ),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Switch(
+            checked = checked,
+            onCheckedChange = null,
+        )
     }
 }
 

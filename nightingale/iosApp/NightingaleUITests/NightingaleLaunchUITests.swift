@@ -64,9 +64,72 @@ final class NightingaleLaunchUITests: XCTestCase {
         )
     }
 
+    func testLargestTextLandscapeKeepsContentOrderedReachableAndTouchable() {
+        let device = XCUIDevice.shared
+        device.orientation = .landscapeLeft
+        defer { device.orientation = .portrait }
+
+        let app = resetApplication()
+        app.launchEnvironment["NIGHTINGALE_TEST_ACCESSIBILITY_TEXT_SIZE"] = "1"
+        app.launch()
+
+        let productHeading = app.staticTexts["nightingale-product-heading"]
+        XCTAssertTrue(productHeading.waitForExistence(timeout: 5))
+        XCTAssertGreaterThanOrEqual(productHeading.frame.height, 60)
+
+        let orderedIdentifiers = app.descendants(matching: .any)
+            .allElementsBoundByAccessibilityElement
+            .map(\.identifier)
+            .filter {
+                [
+                    "nightingale-product-heading",
+                    "nightingale-privacy-status-heading",
+                    "nightingale-display-comfort-heading",
+                    "nightingale-reduce-motion-toggle",
+                    "nightingale-hide-imagery-toggle",
+                ].contains($0)
+            }
+        XCTAssertEqual(
+            orderedIdentifiers,
+            [
+                "nightingale-product-heading",
+                "nightingale-privacy-status-heading",
+                "nightingale-display-comfort-heading",
+                "nightingale-reduce-motion-toggle",
+                "nightingale-hide-imagery-toggle",
+            ]
+        )
+
+        let reduceMotion = app.switches["nightingale-reduce-motion-toggle"]
+        let hideImagery = app.switches["nightingale-hide-imagery-toggle"]
+        scrollToHittable(reduceMotion, in: app)
+        XCTAssertGreaterThanOrEqual(reduceMotion.frame.height, 44)
+        reduceMotion.tap()
+        XCTAssertEqual(reduceMotion.value as? String, "1")
+
+        scrollToHittable(hideImagery, in: app)
+        XCTAssertGreaterThanOrEqual(hideImagery.frame.height, 44)
+        hideImagery.tap()
+        XCTAssertEqual(hideImagery.value as? String, "1")
+    }
+
     private func resetApplication() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["NIGHTINGALE_TEST_RESET_PRESENTATION_PREFERENCES"] = "1"
         return app
+    }
+
+    private func scrollToHittable(
+        _ element: XCUIElement,
+        in app: XCUIApplication,
+        maxSwipes: Int = 12
+    ) {
+        XCTAssertTrue(element.waitForExistence(timeout: 5))
+        var remainingSwipes = maxSwipes
+        while !element.isHittable, remainingSwipes > 0 {
+            app.swipeUp()
+            remainingSwipes -= 1
+        }
+        XCTAssertTrue(element.isHittable)
     }
 }

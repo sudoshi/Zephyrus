@@ -325,6 +325,13 @@ authorization, idempotency, audit, and patient-visible outcome evidence.
       system/patient reduced-motion choice to every current motion site, allow decorative
       imagery to be disabled without hiding essential content, persist both choices across
       relaunch, and bind native tests to exact local Debug/Release artifacts.
+- [x] Complete the bounded foundation accessibility-layout matrix: correct the failing iOS
+      dark-background accent, add explicit Android light/dark schemes, mechanically prove
+      every current semantic text pair at 4.5:1 or greater, preserve ordered landmarks,
+      make both controls scroll-reachable at iOS accessibility XXXL and Android font scale
+      `2.0` in landscape, and prove 44-point iOS plus 48 dp Android targets. This closes
+      only the current offline shell; future screens, manual assistive-technology review,
+      language/RTL coverage, full WCAG conformance, and named approvals remain open.
 - [ ] Carry forward the existing automated privacy controls only as candidate evidence;
       rerun them under Nightingale app IDs and assets.
 - [ ] Meet WCAG 2.2 AA plus iOS/Android guidance for screen-reader navigation, focus order,
@@ -429,6 +436,12 @@ part of application development work.
         precedence, effective reduced motion, decorative-imagery suppression, relaunch
         persistence, Release-artifact boundary scans, and clean iOS Simulator/Android API 35
         suites. This does not close full accessibility conformance or any human approval.
+14. [x] Audit and harden the current foundation at maximum text, landscape, dark appearance,
+        and increased contrast: replace the failing fixed iOS accent with an appearance-aware
+        palette, add Android system-selected dark colors, correct semantic reading order,
+        expand complete interaction rows, add native contrast/target/reflow tests, and bind
+        the result to exact local Debug/Release artifacts. The broader Stream E conformance
+        and independent-review items remain open.
 
 ## 10. Explicit holds
 

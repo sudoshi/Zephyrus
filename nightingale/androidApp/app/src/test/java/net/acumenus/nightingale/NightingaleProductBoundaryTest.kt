@@ -1,6 +1,9 @@
 package net.acumenus.nightingale
 
 import android.view.WindowManager
+import androidx.compose.material3.ColorScheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -92,6 +95,14 @@ class NightingaleProductBoundaryTest {
     }
 
     @Test
+    fun patientTextColorsMeetContrastInLightAndDarkSchemes() {
+        assertEquals(NightingaleLightColorScheme, nightingaleColorScheme(darkTheme = false))
+        assertEquals(NightingaleDarkColorScheme, nightingaleColorScheme(darkTheme = true))
+        assertPatientTextContrast(NightingaleLightColorScheme)
+        assertPatientTextContrast(NightingaleDarkColorScheme)
+    }
+
+    @Test
     fun protectedStateNamespaceIsNightingaleOnlyAndCredentialAgnostic() {
         val combined = listOf(
             NightingaleProtectedStateNamespace.KEYSTORE_ALIAS,
@@ -117,5 +128,25 @@ class NightingaleProductBoundaryTest {
             assertFalse(state.hasDraft)
             assertEquals(reason, state.lastClearReason)
         }
+    }
+
+    private fun assertPatientTextContrast(colorScheme: ColorScheme) {
+        assertTrue(contrastRatio(colorScheme.primary, colorScheme.surfaceVariant) >= 4.5f)
+        assertTrue(contrastRatio(colorScheme.onSurface, colorScheme.surface) >= 4.5f)
+        assertTrue(
+            contrastRatio(
+                colorScheme.onSurfaceVariant,
+                colorScheme.surfaceVariant,
+            ) >= 4.5f,
+        )
+        assertTrue(contrastRatio(colorScheme.onPrimary, colorScheme.primary) >= 4.5f)
+    }
+
+    private fun contrastRatio(foreground: Color, background: Color): Float {
+        val foregroundLuminance = foreground.luminance()
+        val backgroundLuminance = background.luminance()
+        val lighter = maxOf(foregroundLuminance, backgroundLuminance)
+        val darker = minOf(foregroundLuminance, backgroundLuminance)
+        return (lighter + 0.05f) / (darker + 0.05f)
     }
 }

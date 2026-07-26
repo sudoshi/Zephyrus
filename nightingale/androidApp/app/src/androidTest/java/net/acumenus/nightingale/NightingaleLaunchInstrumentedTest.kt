@@ -1,6 +1,9 @@
 package net.acumenus.nightingale
 
 import android.content.Context
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import android.os.ParcelFileDescriptor
 import android.util.Base64
 import android.view.WindowManager
 import androidx.compose.ui.test.assertIsDisplayed
@@ -9,13 +12,17 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.security.KeyStore
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -182,6 +189,56 @@ class NightingaleLaunchInstrumentedTest {
         }
     }
 
+    @Test
+    fun largestTextLandscapeKeepsContentOrderedReachableAndTouchable() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        executeShellCommand("settings put system font_scale 2.0")
+        try {
+            composeRule.activityRule.scenario.onActivity { activity ->
+                activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            }
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                composeRule.activity.resources.configuration.orientation ==
+                    Configuration.ORIENTATION_LANDSCAPE &&
+                    composeRule.activity.resources.configuration.fontScale >= 2f
+            }
+
+            val orderedTags = listOf(
+                "nightingale-product-heading",
+                "nightingale-privacy-status-heading",
+                "nightingale-display-comfort-heading",
+                "nightingale-reduce-motion-toggle",
+                "nightingale-hide-imagery-toggle",
+            )
+            val semanticTags = mutableListOf<String>()
+            collectTestTags(
+                composeRule.onRoot(useUnmergedTree = true).fetchSemanticsNode(),
+                semanticTags,
+            )
+            assertEquals(orderedTags, semanticTags.filter(orderedTags::contains))
+
+            val minimumTargetPixels = with(composeRule.activity.resources.displayMetrics) {
+                48f * density
+            }
+            listOf(
+                "nightingale-reduce-motion-toggle",
+                "nightingale-hide-imagery-toggle",
+            ).forEach { tag ->
+                val node = composeRule.onNodeWithTag(tag)
+                node.performScrollTo().assertIsDisplayed()
+                assertTrue(
+                    node.fetchSemanticsNode().boundsInRoot.height >= minimumTargetPixels,
+                )
+                node.performClick().assertIsOn()
+            }
+        } finally {
+            executeShellCommand("settings put system font_scale 1.0")
+            composeRule.activityRule.scenario.onActivity { activity ->
+                activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            }
+        }
+    }
+
     private fun setPresentationPreferences(
         reduceMotion: Boolean,
         hideImagery: Boolean,
@@ -204,4 +261,21 @@ class NightingaleLaunchInstrumentedTest {
             load(null)
             containsAlias(NightingaleProtectedStateNamespace.KEYSTORE_ALIAS)
         }
+
+    private fun executeShellCommand(command: String) {
+        val descriptor = InstrumentationRegistry.getInstrumentation().uiAutomation
+            .executeShellCommand(command)
+        ParcelFileDescriptor.AutoCloseInputStream(descriptor)
+            .bufferedReader()
+            .use { it.readText() }
+    }
+
+    private fun collectTestTags(node: SemanticsNode, destination: MutableList<String>) {
+        if (SemanticsProperties.TestTag in node.config) {
+            destination.add(node.config[SemanticsProperties.TestTag])
+        }
+        node.children.forEach { child ->
+            collectTestTags(child, destination)
+        }
+    }
 }

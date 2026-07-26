@@ -5,7 +5,25 @@ struct NightingaleApp: App {
     var body: some Scene {
         WindowGroup {
             NightingalePrivacyProtectedRoot()
+                .nightingaleTestAccessibilityTextSize()
         }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func nightingaleTestAccessibilityTextSize() -> some View {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment[
+            "NIGHTINGALE_TEST_ACCESSIBILITY_TEXT_SIZE"
+        ] == "1" {
+            dynamicTypeSize(.accessibility5)
+        } else {
+            self
+        }
+        #else
+        self
+        #endif
     }
 }
 
@@ -99,6 +117,7 @@ private struct NightingaleFoundationView: View {
                     Text(NightingaleProductBoundary.productName)
                         .font(.largeTitle.weight(.semibold))
                         .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("nightingale-product-heading")
                     Text("A calm place to understand, prepare, and connect with your care team.")
                         .font(.title3)
                         .foregroundStyle(.secondary)
@@ -127,6 +146,8 @@ private struct NightingaleFoundationStatusCard: View {
             Label("Your privacy comes first", systemImage: "hand.raised.fill")
                 .font(.headline)
                 .foregroundStyle(NightingalePalette.forest)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("nightingale-privacy-status-heading")
             Text("Live patient access is not available in this foundation build. Please ask your care team for current information.")
                 .font(.body)
             Text("No patient information is stored or requested by this build.")
@@ -143,7 +164,6 @@ private struct NightingaleFoundationStatusCard: View {
             RoundedRectangle(cornerRadius: 22)
                 .stroke(Color.primary.opacity(colorSchemeContrast == .increased ? 0.32 : 0.1))
         }
-        .accessibilityElement(children: .contain)
     }
 }
 
@@ -156,6 +176,7 @@ private struct NightingaleDisplayComfortCard: View {
             Text("Display comfort")
                 .font(.headline)
                 .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("nightingale-display-comfort-heading")
 
             Text("These settings are stored by Nightingale, not your care account. They never change your care information.")
                 .font(.footnote)
@@ -170,6 +191,8 @@ private struct NightingaleDisplayComfortCard: View {
                     set: presentationPreferences.setReduceMotionRequested
                 )
             )
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
             .accessibilityIdentifier("nightingale-reduce-motion-toggle")
 
             Text(
@@ -190,6 +213,8 @@ private struct NightingaleDisplayComfortCard: View {
                     set: presentationPreferences.setHideDecorativeImageryRequested
                 )
             )
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
             .accessibilityIdentifier("nightingale-hide-imagery-toggle")
 
             Text(

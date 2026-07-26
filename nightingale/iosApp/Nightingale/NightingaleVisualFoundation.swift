@@ -1,7 +1,13 @@
 import SwiftUI
 
 enum NightingalePalette {
-    static let forest = Color(red: 0.20, green: 0.38, blue: 0.29)
+    static let forestUIColor = UIColor { traits in
+        if traits.userInterfaceStyle == .dark {
+            return UIColor(red: 0.55, green: 0.80, blue: 0.66, alpha: 1)
+        }
+        return UIColor(red: 0.20, green: 0.38, blue: 0.29, alpha: 1)
+    }
+    static let forest = Color(uiColor: forestUIColor)
     static let warmMist = Color(red: 0.98, green: 0.95, blue: 0.89)
     static let coolMist = Color(red: 0.90, green: 0.96, blue: 0.94)
 }

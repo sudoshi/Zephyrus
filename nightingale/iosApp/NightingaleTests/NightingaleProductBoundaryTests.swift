@@ -1,4 +1,5 @@
 import Security
+import UIKit
 import XCTest
 @testable import Nightingale
 
@@ -146,6 +147,25 @@ final class NightingaleProductBoundaryTests: XCTestCase {
         XCTAssertEqual(accessibilityText.decorativeImageOpacity, 0.04)
     }
 
+    func testForestAccentMeetsTextContrastInLightAndDarkAppearances() {
+        let lightTraits = UITraitCollection(userInterfaceStyle: .light)
+        let darkTraits = UITraitCollection(userInterfaceStyle: .dark)
+
+        let lightAccent = NightingalePalette.forestUIColor.resolvedColor(with: lightTraits)
+        let darkAccent = NightingalePalette.forestUIColor.resolvedColor(with: darkTraits)
+        let lightBackground = UIColor.systemBackground.resolvedColor(with: lightTraits)
+        let darkBackground = UIColor.systemBackground.resolvedColor(with: darkTraits)
+
+        XCTAssertGreaterThanOrEqual(
+            contrastRatio(foreground: lightAccent, background: lightBackground),
+            4.5
+        )
+        XCTAssertGreaterThanOrEqual(
+            contrastRatio(foreground: darkAccent, background: darkBackground),
+            4.5
+        )
+    }
+
     @MainActor
     func testPresentationPreferencesPersistOnlyUnderNightingaleKeys() throws {
         let suiteName = "net.acumenus.nightingale.tests.presentation.\(UUID().uuidString)"
@@ -203,5 +223,33 @@ final class NightingaleProductBoundaryTests: XCTestCase {
             )
         }
         return attributes
+    }
+
+    private func contrastRatio(foreground: UIColor, background: UIColor) -> Double {
+        let foregroundLuminance = relativeLuminance(foreground)
+        let backgroundLuminance = relativeLuminance(background)
+        return (max(foregroundLuminance, backgroundLuminance) + 0.05)
+            / (min(foregroundLuminance, backgroundLuminance) + 0.05)
+    }
+
+    private func relativeLuminance(_ color: UIColor) -> Double {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        XCTAssertTrue(color.getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+        XCTAssertEqual(alpha, 1, accuracy: 0.001)
+
+        func linearized(_ component: CGFloat) -> Double {
+            let value = Double(component)
+            if value <= 0.04045 {
+                return value / 12.92
+            }
+            return pow((value + 0.055) / 1.055, 2.4)
+        }
+
+        return 0.2126 * linearized(red)
+            + 0.7152 * linearized(green)
+            + 0.0722 * linearized(blue)
     }
 }

@@ -17,7 +17,10 @@ held Today candidate now defines field-level release, freshness, uncertainty, la
 correction, and offline semantics across 68 synthetic outcomes while the executable
 contract remains empty. Nightingale now also has two device-local display-comfort controls:
 reduced motion and decorative-imagery suppression. They are presentation-only, remain
-separate from care-account preferences, and do not authorize patient access.
+separate from care-account preferences, and do not authorize patient access. The current
+offline shell now also has a bounded maximum-text, landscape, semantic-order, target-size,
+and light/dark contrast matrix; this does not establish product-wide WCAG conformance or
+human approval.
 
 Current product-identity records:
 
@@ -34,6 +37,7 @@ Current product-identity records:
 - [Communication and notification source classification](./COMMUNICATION-AND-NOTIFICATION-SOURCE-CLASSIFICATION-2026-07-26.md)
 - [Journey, preference, presentation, synthetic, and release source classification](./JOURNEY-PREFERENCE-PRESENTATION-RELEASE-SOURCE-CLASSIFICATION-2026-07-26.md)
 - [Presentation-preferences foundation decision and evidence](./PRESENTATION-PREFERENCES-FOUNDATION-DECISION-2026-07-26.md)
+- [Foundation accessibility and layout matrix](./FOUNDATION-ACCESSIBILITY-LAYOUT-MATRIX-2026-07-26.md)
 - [Empty/default-off contract foundation](./api-contract/nightingale-foundation.v0.json)
 - [Identity candidate and fixtures](./identity/candidates/v0/candidate.json)
 - [Current-inpatient source candidate and fixtures](./source-candidates/current-inpatient/v0/candidate.json)
