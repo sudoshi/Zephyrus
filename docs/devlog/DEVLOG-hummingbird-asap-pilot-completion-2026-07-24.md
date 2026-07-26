@@ -40,6 +40,47 @@ Each subsequent entry must cite the exact commit SHA, command output/test count,
 simulator or emulator target, feature-flag state, decision record, and unresolved
 blocker. Narrative progress without those artifacts is not an accepted update.
 
+## 2026-07-25 — Production reference-patient mutation refusal
+
+**Implementation commit:** `d93278f6`
+**Decision record:** no new clinical, identity, disclosure, or release decision.
+The synthetic reference is a non-production test-boundary tool, not a path to
+create or activate a production patient. All patient exposure flags remain off;
+no database command was sent to a production runtime.
+
+### Completed implementation
+
+- Added a production-runtime refusal before either synthetic reference mutation:
+  `hummingbird:seed-reference-patient --commit` cannot create or refresh the
+  reference encounter, and `hummingbird:provision-reference-patient-identity`
+  with `--commit` cannot create a principal, identity link, access grant, or enrollment
+  challenge. Both surface the stable
+  `reference_patient_provisioning_forbidden_in_production` failure.
+- Kept the default dry-run previews intact. They remain useful for content-minimal
+  inspection, but neither creates an operational encounter nor issues a context
+  reference, identity, grant, session, token, or enrollment material.
+- Added direct production-environment regression tests that assert no encounter,
+  context-cache row, principal, identity link, grant, or challenge exists after a
+  rejected commit attempt.
+
+### Verification
+
+| Boundary                  | Command / target                                                                                                                                               | Result                                                           |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Mutation-refusal behavior | focused synthetic-encounter and reference-identity feature tests                                                                                               | 13 tests / 134 assertions passed                                 |
+| Patient backend           | `php artisan test tests/Feature/Patient --stop-on-failure` against isolated `zephyrus_test` PostgreSQL                                                         | exit 0                                                           |
+| PHP style                 | `./vendor/bin/pint --test` on the two services and two focused test files                                                                                      | passed (Pint emitted a third-party PHP deprecation warning only) |
+| Native evidence           | Existing complete iPhone 17 Pro and Android API 35 patient-suite results remain applicable: this increment changes only Laravel command/service mutation gates | no native binary or API contract change                          |
+
+### Explicit remaining boundary
+
+This removes the unsafe production mutation path; it does not delete, activate,
+or otherwise alter the previously created synthetic reference foundation. It does
+not establish a non-production pilot boundary, identity proofing, enrollment
+delivery, approved source data, clinical release, a patient feature flag, or a
+patient pilot. Production patient access remains prohibited until those independent
+gates are authorized.
+
 ## 2026-07-25 — iOS continuous screen-capture privacy cover
 
 **Implementation commit:** `b524cf28`
