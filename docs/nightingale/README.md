@@ -19,6 +19,7 @@ Current product-identity records:
 - [Identity, recovery, and protected-state decisions](./IDENTITY-RECOVERY-AND-PROTECTED-STATE-DECISIONS-2026-07-26.md)
 - [Contract ownership and authorization matrix](./CONTRACT-OWNERSHIP-AND-AUTHORIZATION-MATRIX-2026-07-26.md)
 - [Patient-state vocabulary classification](./PATIENT-STATE-VOCABULARY-CLASSIFICATION-2026-07-26.md)
+- [Encounter-access held-candidate decision](./ENCOUNTER-ACCESS-CANDIDATE-DECISION-2026-07-26.md)
 - [Empty/default-off contract foundation](./api-contract/nightingale-foundation.v0.json)
 - [Launcher, themed-icon, and splash evidence](../evidence/nightingale/brand-identity-2026-07-26/README.md)
 
@@ -29,6 +30,9 @@ Current product-identity records:
 - The `0.0.0-governance` contract under `api-contract/` is deliberately empty and
   non-routable. An operation may be added only after its owner, compatibility decision,
   authorization/non-disclosure matrix, fixtures, and review evidence are defined.
+- Candidate artifacts under `api-contract/candidates/` are non-runnable decision/fixture
+  evidence. They do not add a path, reserve a namespace, permit client generation, or
+  authorize implementation.
 - Add clinical, content, privacy, accessibility, and release evidence under `safety/` only
   with a dated reviewer/approval record. Draft evidence must say that it is draft.
 - Never store patient information, credentials, tokens, production fixtures, or private

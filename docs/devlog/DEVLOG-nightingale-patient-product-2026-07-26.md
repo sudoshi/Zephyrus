@@ -272,3 +272,70 @@ deployment authorization.
 - The contract must remain empty until named owners approve the applicable pre-operation
   gates. All vocabulary codes and labels remain held until one version/checksum-bound
   Nightingale registry and canonical cross-platform fixtures are independently approved.
+
+## 2026-07-26 — First read-only encounter-access held candidate
+
+### Source scrutiny
+
+- Traced the legacy `GET /encounters` request from product/feature gates through Sanctum,
+  patient-realm/session/ability middleware, grant policies/query filters, per-row audit,
+  response metadata, OpenAPI schema, backend feature coverage, and both native decoders and
+  session coordinators.
+- Recorded source hashes and the full analysis in the
+  [encounter-access candidate decision](../nightingale/ENCOUNTER-ACCESS-CANDIDATE-DECISION-2026-07-26.md).
+- Identified that the legacy response exposes grant UUID, raw scopes, relationship, grant
+  validity dates, and row version even though the clients need only a navigation handle.
+- Identified that both legacy apps silently choose the first encounter, while backend order
+  is an authorization-record sort rather than a patient-safe transfer/readmission rule.
+- Identified missing list-time proof of verified/current identity-link ownership and current
+  inpatient source state; nullable effective-time drift across database/service/policy/
+  contract/fixture; raw unvalidated scope arrays; row-oriented audit that omits an empty
+  evaluation event; and a non-coherent maximum-row collection version/freshness claim.
+- Confirmed the principal backend feature test proves one active-row happy path and selected
+  source-field omission, but does not cover the full identity, status, time, source,
+  cardinality, data-integrity, audit, race, or cross-platform matrix.
+
+### Held candidate and fixtures
+
+- Added a non-runnable candidate artifact with null route and operation ID, no OpenAPI
+  inclusion, no namespace reservation, no client generation/network permission, and every
+  activation field false.
+- Reduced the candidate success entry to one separately issued Nightingale opaque
+  `encounter_handle`; explicitly excluded 12 legacy/source/identity fields and any durable
+  native storage.
+- Restricted the initial candidate to `self` and zero or one eligible inpatient context.
+  More than one returns a generic account-review result; a dependency outage returns
+  temporary unavailability rather than a false empty result.
+- Defined 42 synthetic cases across success, complete omission, release gating,
+  authentication, account/session state, identity/source integrity, unknown registry data,
+  opaque-handle integrity, dependency/audit failure, cardinality, race, policy mismatch,
+  malformed scope registry, and throttling.
+- Added eight exact response templates with bounded patient language, a one-field success
+  payload, exact no-store/privacy headers, policy/evaluation metadata, no links, and no
+  irrelevant state-vocabulary version.
+- Added a dependency-free verifier that checks the held state, foundation zero-path state,
+  exact field/header/template/case/audit mappings, handle/request formats, synthetic-only
+  fixtures, production/legacy token absence, and all 42 case IDs. Five mutation self-tests
+  prove it rejects operation activation, a second encounter, a legacy grant field, a
+  weakened identity-link outcome, and production fixture replay.
+
+### Verification and holds
+
+- Both Nightingale contract verifiers (including negative self-tests), the native
+  no-network/product-boundary verifier, JSON/Markdown/YAML formatting, relative-link
+  checks, JavaScript syntax checks, and Git whitespace checks pass.
+- An optional local `PatientApiBoundaryTest` corroboration was attempted against the
+  `phpunit.xml`-pinned localhost `zephyrus_test` configuration, but this isolated worktree
+  has no `vendor/autoload.php` and the host has no Composer executable. It failed before
+  Laravel bootstrap or any database connection and is not counted as passing evidence.
+- This slice changes no Laravel route/controller/service/model/migration/configuration and
+  no iOS or Android application source. The executable Nightingale OpenAPI artifact still
+  has zero paths, and the native applications still have no network client or Android
+  internet permission.
+- Candidate fixture success is not API success, clinical approval, identity approval, or
+  cross-platform runtime parity. Named ownership, route/compatibility ADR, identity and
+  source definitions, opaque-handle design, privacy/security/accessibility/patient/support
+  review, implementation tests, non-production integration, and release approval all
+  remain open.
+- No production database, patient, principal, identity link, grant, session, source
+  encounter, feature flag, route, migration, deployment, or pilot state was read or changed.

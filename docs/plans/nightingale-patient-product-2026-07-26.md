@@ -225,6 +225,12 @@ human visual review records correct brand, crop, contrast, and no unwanted trans
       registry, native coverage gaps, category schema-placement conflict, Android Today
       omissions, unknown-value differences, and the rejected absent-version compatibility
       rule. All codes and labels remain held.
+- [x] Define the first read-only encounter-access candidate without adding an operation:
+      remove legacy grant internals, restrict the held candidate to zero/one self inpatient
+      context, define a Nightingale-only opaque handle, document identity/source/audit/race
+      requirements, and mechanically verify 42 synthetic outcome cases plus negative
+      verifier mutations. The OpenAPI contract still has zero paths and both apps remain
+      offline.
 - [ ] Classify each existing Hummingbird Patient source file as reusable safety primitive,
       reusable product behavior, test/fixture-only, or rejected legacy behavior.
 - [ ] Port primitives into Nightingale by reviewed commits, not a blind directory copy:
@@ -313,16 +319,16 @@ part of application development work.
 
 ## 9. Immediate implementation sequence
 
-1. Define the first read-only candidate operation's decision and canonical fixture matrix
-   against the contract/authorization/vocabulary findings. Keep the contract at zero paths
-   until named approvals and every pre-operation gate are satisfied; do not register a
-   route or enable native network access.
+1. Define the route/compatibility ADR alternatives and the Nightingale identity/source
+   decisions required to evaluate the held encounter-access candidate. Keep the contract at
+   zero paths until named approvals and every pre-operation gate are satisfied; do not
+   register a route or enable native network access.
 2. Complete the remaining cross-surface brand audit for notification, widget, installed
    upgrade, and future store-listing surfaces; launcher, themed-icon, and splash checks are
    captured in non-PHI evidence.
-3. Continue source-by-source classification for identity input, first-read projection
-   models, error/non-disclosure handling, and fixtures. Treat the legacy contract and
-   vocabulary as evidence, not approved implementation.
+3. Continue source-by-source classification for identity input, enrollment/recovery,
+   first-read projection models, and error/non-disclosure handling. Treat the legacy
+   contract, candidate fixtures, and vocabulary as evidence, not approved implementation.
 4. Update this checklist and its devlog after each verified slice. Do not convert partial
    automation into clinical, privacy, accessibility, pilot, or deployment completion.
 
