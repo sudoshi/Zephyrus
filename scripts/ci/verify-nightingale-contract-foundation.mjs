@@ -35,6 +35,16 @@ function isRecord(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function sameMembers(actual, expected) {
+    return (
+        Array.isArray(actual) &&
+        actual.length === expected.length &&
+        [...actual]
+            .sort()
+            .every((value, index) => value === [...expected].sort()[index])
+    );
+}
+
 function inspect(document, raw) {
     const violations = [];
     const assert = (condition, message) => {
@@ -53,6 +63,22 @@ function inspect(document, raw) {
 
     const ownership = document["x-nightingale-contract"];
     assert(
+        isRecord(ownership) &&
+            sameMembers(Object.keys(ownership), [
+                "product",
+                "audience",
+                "governance_status",
+                "artifact_owner",
+                "backend_boundary_owner",
+                "compatibility_input_only",
+                "route_namespace_reserved",
+                "route_namespace",
+                "compatibility_strategy",
+                "client_generation_permitted",
+            ]),
+        "contract ownership fields changed",
+    );
+    assert(
         ownership?.product === "Nightingale",
         "product identity is not Nightingale",
     );
@@ -65,8 +91,17 @@ function inspect(document, raw) {
         "legacy compatibility must remain input-only",
     );
     assert(
-        ownership?.route_namespace_reserved === false,
-        "a route namespace was reserved",
+        ownership?.route_namespace_reserved === true,
+        "the Nightingale route namespace is not reserved",
+    );
+    assert(
+        ownership?.route_namespace === "/api/nightingale/v1",
+        "unexpected Nightingale route namespace",
+    );
+    assert(
+        ownership?.compatibility_strategy ===
+            "independent-no-alias-no-proxy-no-redirect",
+        "compatibility strategy changed",
     );
     assert(
         ownership?.client_generation_permitted === false,
@@ -75,13 +110,33 @@ function inspect(document, raw) {
 
     const activation = document["x-nightingale-activation"];
     assert(
+        isRecord(activation) &&
+            sameMembers(Object.keys(activation), [
+                "default",
+                "routes_registered",
+                "route_registration_permitted",
+                "network_clients_permitted",
+                "identity_enabled",
+                "inpatient_source_enabled",
+                "production_source_query_permitted",
+                "patient_disclosure_enabled",
+                "patient_mutation_enabled",
+                "production_enabled",
+                "required_before_first_operation",
+            ]),
+        "activation fields changed",
+    );
+    assert(
         activation?.default === "disabled",
         "activation default is not disabled",
     );
     for (const field of [
         "routes_registered",
+        "route_registration_permitted",
         "network_clients_permitted",
         "identity_enabled",
+        "inpatient_source_enabled",
+        "production_source_query_permitted",
         "patient_disclosure_enabled",
         "patient_mutation_enabled",
         "production_enabled",
@@ -151,6 +206,23 @@ function runNegativeSelfTests(document) {
             expected: "paths must contain zero operations",
             mutate(candidate) {
                 candidate.paths["/v1/me"] = { get: { responses: {} } };
+            },
+        },
+        {
+            name: "namespace drift",
+            expected: "unexpected Nightingale route namespace",
+            mutate(candidate) {
+                candidate["x-nightingale-contract"].route_namespace =
+                    "/api/patient/v1";
+            },
+        },
+        {
+            name: "route registration permission",
+            expected: "route_registration_permitted must be false",
+            mutate(candidate) {
+                candidate[
+                    "x-nightingale-activation"
+                ].route_registration_permitted = true;
             },
         },
         {

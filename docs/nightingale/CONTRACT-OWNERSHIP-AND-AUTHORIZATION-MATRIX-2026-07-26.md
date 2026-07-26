@@ -1,8 +1,9 @@
 # Nightingale contract ownership and authorization matrix
 
-**Status:** Governance foundation; no Nightingale API operation, route namespace, server,
-security scheme, client, identity flow, patient disclosure, mutation, feature flag, pilot,
-or production use is approved by this document.
+**Status:** Governance foundation with a reserved Nightingale route namespace; no API
+operation, registered route, usable server, security scheme, client, identity flow, source
+query, patient disclosure, mutation, feature flag, pilot, or production use is approved by
+this document.
 
 **Decision date:** 2026-07-26
 
@@ -18,7 +19,7 @@ active API. The first OpenAPI artifact is intentionally empty:
 - no usable server;
 - no security scheme or credential format;
 - no generated client permission;
-- no reserved route namespace;
+- one reserved product namespace with no registered route;
 - every activation category explicitly false; and
 - a verifier that fails if an operation or legacy/staff route enters the artifact.
 
@@ -80,21 +81,22 @@ No named individuals or delegates are recorded yet, so every operation remains h
 `0.0.0-governance` is not an API version. It is a machine-readable assertion that there is
 no runnable Nightingale API. Client generation and route registration are prohibited.
 
-### 4.2 Future API version
+### 4.2 Reserved API namespace
 
-No `/api/nightingale/v1` route is reserved by this slice. A future ADR must decide among:
+The
+[route, compatibility, identity, and inpatient-source ADR](./ROUTE-COMPATIBILITY-IDENTITY-SOURCE-ADR-2026-07-26.md)
+reserves `/api/nightingale/v1`. The first held relative path is
+`/inpatient-contexts`, with operation ID `listNightingaleInpatientContexts`.
 
-1. a Nightingale-owned route namespace with an explicit migration from the patient
-   compatibility boundary;
-2. a time-bounded compatibility adapter that calls shared patient-domain services but owns
-   separate Nightingale request/response contracts; or
-3. continued use of a product-neutral patient route namespace under explicitly transferred
-   ownership.
+The decision rejects aliases, proxies, redirects, second-prefix mounting, and native fallback
+to `/api/patient/v1` or `/api/mobile/v1`. Shared internal services remain possible only
+behind Nightingale-owned request/response, authorization, audit, and release adapters.
 
-The decision must include endpoint discovery, certificate/pinning posture if applicable,
-deep-link boundaries, rollout, dual-running, telemetry separation, deprecation, and
-rollback. A Laravel route alias alone is insufficient because it does not prove equivalent
-authorization, identity, response, audit, or failure behavior.
+Reservation is not route registration. The foundation retains zero OpenAPI paths, a
+non-routable `.invalid` server, no security scheme, no generated client, no Nightingale route
+file or controller, and every activation field false. Endpoint discovery,
+certificate/pinning posture if applicable, deep-link boundaries, rollout, dual-running,
+telemetry separation, deprecation, and rollback remain operation/release decisions.
 
 ### 4.3 Versioning rules
 
@@ -317,7 +319,8 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
 ## 9. Required evidence before the first operation
 
 - [ ] Named owners and independent approvers for every applicable row in section 3.
-- [ ] ADR for route namespace and compatibility/deprecation behavior.
+- [x] ADR for route namespace and compatibility/deprecation behavior, mechanically pinned
+      with route registration still prohibited.
 - [ ] Approved Nightingale identity, representative, enrollment, recovery, and session
       contract.
 - [ ] Operation-specific authorization and non-disclosure matrix with automated tests.
@@ -333,5 +336,6 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
 Until these gates are met, `paths` remains empty.
 
 The encounter-access candidate decision and fixtures are pre-contract evidence for these
-gates, not proof that a gate is complete. No owner is named, no ADR or identity design is
-approved, and no backend/native parity implementation exists.
+gates, not proof that a gate is complete. The route/compatibility ADR and default-deny
+prerequisite ports exist, but no owner is named, identity/source adapter is approved, or
+backend/native operation parity implementation exists.

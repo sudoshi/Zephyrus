@@ -1,8 +1,9 @@
 # Nightingale encounter-access candidate decision
 
-**Status:** Held candidate and synthetic fixture specification only. This record does not add
-an OpenAPI operation, reserve a route, enable identity or networking, approve a backend
-implementation, authorize patient disclosure, or permit production use.
+**Status:** Held candidate and synthetic fixture specification only. The product namespace,
+relative candidate path, and operation ID are reserved by the foundation ADR, but this record
+does not add an OpenAPI operation, register a route, enable identity or networking, approve a
+source adapter, authorize patient disclosure, or permit production use.
 
 **Decision date:** 2026-07-26
 
@@ -15,6 +16,7 @@ implementation, authorize patient disclosure, or permit production use.
 
 - [Contract ownership and authorization matrix](./CONTRACT-OWNERSHIP-AND-AUTHORIZATION-MATRIX-2026-07-26.md)
 - [Patient-state vocabulary classification](./PATIENT-STATE-VOCABULARY-CLASSIFICATION-2026-07-26.md)
+- [Route, compatibility, identity, and inpatient-source ADR](./ROUTE-COMPATIBILITY-IDENTITY-SOURCE-ADR-2026-07-26.md)
 - [Empty/default-off contract foundation](./api-contract/nightingale-foundation.v0.json)
 
 ## 1. Outcome
@@ -442,15 +444,17 @@ text are not permitted audit metadata.
 
 ## 12. Future backend implementation requirements
 
-No implementation is approved, but a reviewable change would need:
+The namespace/default-deny foundation is implemented, but no runtime operation is approved.
+A reviewable operation change would still need:
 
-- a Nightingale-owned contract operation and route/compatibility ADR;
+- an approved Nightingale-owned contract operation under the reserved route namespace;
 - a separate default-off Nightingale configuration boundary, not an alias to Hummingbird
   flags;
-- a Nightingale realm and session decision completed first;
+- an approved Nightingale realm and session design behind the default-deny identity port;
 - an allowlisted purpose/relationship/status/scope registry in code;
 - a verified identity-link join and ownership assertion;
-- an approved operational source adapter and current-inpatient definition;
+- an approved operational source adapter and current-inpatient definition behind the
+  default-deny source port;
 - a new Nightingale handle mapping with uniqueness and revocation rules;
 - a bounded query that cannot return more than the initial maximum;
 - one consistent effective-time predicate shared by query and policy;
@@ -514,7 +518,10 @@ or replay of these fixtures is prohibited.
 
 - [ ] Name the accountable product, contract, backend, identity, privacy/security,
       accessibility, support, clinical-safety, source-integration, and release owners.
-- [ ] Approve the Nightingale route namespace and compatibility/deprecation ADR.
+- [x] Adopt and mechanically pin the `/api/nightingale/v1` namespace,
+      `/inpatient-contexts` relative candidate path, operation ID, and no-alias/no-proxy/
+      no-redirect compatibility strategy. Runtime registration and independent release
+      approval remain prohibited.
 - [ ] Approve identity proofing, assurance, session, recovery, and representative model.
 - [ ] Define the exact eligible inpatient context across admission, observation, transfer,
       leave, discharge, correction, downtime, and merge.
@@ -530,4 +537,5 @@ or replay of these fixtures is prohibited.
       exact-SHA release evidence.
 
 Until every applicable gate is satisfied, the Nightingale OpenAPI `paths` object remains
-empty, the route and operation ID remain null, and native network access remains disabled.
+empty, no Laravel route is registered, and native network access remains disabled. The
+reserved path and operation ID are design identifiers only.

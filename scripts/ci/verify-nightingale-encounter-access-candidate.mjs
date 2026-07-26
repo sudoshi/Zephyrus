@@ -37,6 +37,9 @@ const foundationPath = path.join(
 
 const CANDIDATE_ID = "nightingale.encounter-access.v0-candidate";
 const POLICY_VERSION = "nightingale-encounter-access-policy.v0-candidate";
+const ROUTE_NAMESPACE = "/api/nightingale/v1";
+const CANDIDATE_PATH = "/inpatient-contexts";
+const OPERATION_ID = "listNightingaleInpatientContexts";
 const HANDLE_PATTERN = /^ntg_enc_[a-z2-7]{50}$/;
 const REQUEST_PATTERN = /^ntg_req_[a-z2-7]{50}$/;
 const ISO_INSTANT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
@@ -264,6 +267,20 @@ function inspect(candidate, fixtures, foundation, candidateRaw, fixtureRaw) {
         "foundation paths must remain empty",
     );
     assert(
+        foundation?.["x-nightingale-contract"]?.route_namespace ===
+            ROUTE_NAMESPACE &&
+            foundation?.["x-nightingale-contract"]?.route_namespace_reserved ===
+                true,
+        "foundation route namespace decision changed",
+    );
+    assert(
+        foundation?.["x-nightingale-activation"]
+            ?.route_registration_permitted === false &&
+            foundation?.["x-nightingale-activation"]?.routes_registered ===
+                false,
+        "foundation route activation changed",
+    );
+    assert(
         candidate.artifact_kind === "nightingale-nonrunnable-api-candidate",
         "candidate kind changed",
     );
@@ -277,15 +294,30 @@ function inspect(candidate, fixtures, foundation, candidateRaw, fixtureRaw) {
     );
 
     const operation = candidate.operation;
-    assert(operation?.method === "GET", "candidate method must remain GET");
-    assert(operation?.path === null, "candidate path must remain unassigned");
     assert(
-        operation?.operation_id === null,
-        "candidate operation id must remain unassigned",
+        sameMembers(sortedKeys(operation), [
+            "method",
+            "path",
+            "operation_id",
+            "openapi_inclusion",
+            "route_namespace_reserved",
+            "route_registration_permitted",
+            "client_generation_permitted",
+            "network_client_permitted",
+        ]),
+        "candidate operation fields changed",
+    );
+    assert(operation?.method === "GET", "candidate method must remain GET");
+    assert(
+        operation?.path === CANDIDATE_PATH,
+        "candidate path decision changed",
+    );
+    assert(
+        operation?.operation_id === OPERATION_ID,
+        "candidate operation id decision changed",
     );
     for (const field of [
         "openapi_inclusion",
-        "route_namespace_reserved",
         "route_registration_permitted",
         "client_generation_permitted",
         "network_client_permitted",
@@ -294,6 +326,17 @@ function inspect(candidate, fixtures, foundation, candidateRaw, fixtureRaw) {
     }
 
     const activation = candidate.activation;
+    assert(
+        sameMembers(sortedKeys(activation), [
+            "product",
+            "operation",
+            "identity",
+            "disclosure",
+            "nonproduction_integration",
+            "production",
+        ]),
+        "candidate activation fields changed",
+    );
     for (const field of [
         "product",
         "operation",
@@ -307,6 +350,10 @@ function inspect(candidate, fixtures, foundation, candidateRaw, fixtureRaw) {
             `activation.${field} must remain false`,
         );
     }
+    assert(
+        operation?.route_namespace_reserved === true,
+        "candidate route namespace is not reserved",
+    );
 
     assert(
         sameMembers(candidate.audience?.permitted_relationships, ["self"]),
@@ -612,6 +659,13 @@ function cloned(value) {
 
 function runNegativeSelfTests(candidate, fixtures, foundation) {
     const cases = [
+        {
+            name: "candidate path drift",
+            expected: "candidate path decision changed",
+            mutate(candidateCopy) {
+                candidateCopy.operation.path = "/encounters";
+            },
+        },
         {
             name: "operation activation",
             expected: "openapi_inclusion must remain false",

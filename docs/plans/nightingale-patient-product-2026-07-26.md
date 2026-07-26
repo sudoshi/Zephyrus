@@ -231,6 +231,12 @@ human visual review records correct brand, crop, contrast, and no unwanted trans
       requirements, and mechanically verify 42 synthetic outcome cases plus negative
       verifier mutations. The OpenAPI contract still has zero paths and both apps remain
       offline.
+- [x] Adopt and mechanically enforce the route/compatibility foundation: reserve
+      `/api/nightingale/v1` and the held `/inpatient-contexts` operation name, reject every
+      alias/proxy/redirect/fallback to legacy patient or staff APIs, keep route registration
+      prohibited, and add request-scoped default-deny identity/current-inpatient ports plus a
+      fail-closed precondition truth table. The foundation has no route/controller/provider
+      binding, database query, OpenAPI operation, or native client.
 - [ ] Classify each existing Hummingbird Patient source file as reusable safety primitive,
       reusable product behavior, test/fixture-only, or rejected legacy behavior.
 - [ ] Port primitives into Nightingale by reviewed commits, not a blind directory copy:
@@ -319,18 +325,21 @@ part of application development work.
 
 ## 9. Immediate implementation sequence
 
-1. Define the route/compatibility ADR alternatives and the Nightingale identity/source
-   decisions required to evaluate the held encounter-access candidate. Keep the contract at
-   zero paths until named approvals and every pre-operation gate are satisfied; do not
-   register a route or enable native network access.
-2. Complete the remaining cross-surface brand audit for notification, widget, installed
-   upgrade, and future store-listing surfaces; launcher, themed-icon, and splash checks are
-   captured in non-PHI evidence.
-3. Continue source-by-source classification for identity input, enrollment/recovery,
-   first-read projection models, and error/non-disclosure handling. Treat the legacy
-   contract, candidate fixtures, and vocabulary as evidence, not approved implementation.
-4. Update this checklist and its devlog after each verified slice. Do not convert partial
-   automation into clinical, privacy, accessibility, pilot, or deployment completion.
+1. [x] Define and mechanically pin the route/compatibility ADR, independent product
+       namespace, held candidate path, and default-deny identity/source prerequisite ports. The
+       contract remains at zero paths and neither route registration nor native networking is
+       enabled.
+2. [ ] Complete identity proofing/session/recovery and authoritative current-inpatient-source
+       adapter designs, fixtures, and independent approvals. Do not bind either port or query a
+       patient source until those decisions pass.
+3. [ ] Complete the remaining cross-surface brand audit for notification, widget, installed
+       upgrade, and future store-listing surfaces; launcher, themed-icon, and splash checks are
+       captured in non-PHI evidence.
+4. [ ] Continue source-by-source classification for identity input, enrollment/recovery,
+       first-read projection models, and error/non-disclosure handling. Treat the legacy
+       contract, candidate fixtures, and vocabulary as evidence, not approved implementation.
+5. [ ] Update this checklist and its devlog after each verified slice. Do not convert partial
+       automation into clinical, privacy, accessibility, pilot, or deployment completion.
 
 ## 10. Explicit holds
 

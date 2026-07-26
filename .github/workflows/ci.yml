@@ -764,10 +764,17 @@ jobs:
         with:
           node-version: 22
 
-      - name: Verify empty contract, held candidates, and native product boundary
+      - name: Setup PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          coverage: none
+
+      - name: Verify empty contract, held candidates, backend foundation, and native product boundary
         run: |
           node scripts/ci/verify-nightingale-contract-foundation.mjs . --self-test
           node scripts/ci/verify-nightingale-encounter-access-candidate.mjs . --self-test
+          php scripts/ci/verify-nightingale-backend-foundation.php . --self-test
           bash scripts/ci/verify-nightingale-product-boundary.sh .
 
   # ---------------------------------------------------------------------------

@@ -339,3 +339,94 @@ deployment authorization.
   remain open.
 - No production database, patient, principal, identity link, grant, session, source
   encounter, feature flag, route, migration, deployment, or pilot state was read or changed.
+
+## 2026-07-26 — Route, compatibility, identity, and inpatient-source foundation
+
+### Source reconciliation
+
+- Traced Laravel route ownership through `RouteServiceProvider`, `routes/patient.php`, and
+  the bootstrap middleware/exception pipeline. The legacy patient API is explicitly mounted
+  under `/api/patient/v1`; staff/general mobile behavior remains under `/api/**`, including
+  `/api/mobile/v1`.
+- Reconciled `Encounter`, the `prod.encounters` creation migration,
+  `PatientEncounterAccessService`, `PatientCommunicationEncounterGuard`, and
+  `PatientCommunicationLifecycleReconciliationService`.
+- Identified that current operational code uses related but non-identical active/current
+  checks. The model scope checks status and deletion, messaging additionally requires a null
+  discharge timestamp and grant linkage, and lifecycle reconciliation treats contradictory
+  combinations as unresolved.
+- Confirmed the encounter migration documents `active | discharged` but does not add a
+  database status check constraint. The operational table is therefore a plausible future
+  adapter input, not an authorization source or approved Nightingale vocabulary.
+- Performed the audit from repository source only. No production database, patient,
+  principal, link, grant, session, encounter, configuration, or response was read.
+
+### Adopted architecture
+
+- Added the
+  [route, compatibility, identity, and inpatient-source ADR](../nightingale/ROUTE-COMPATIBILITY-IDENTITY-SOURCE-ADR-2026-07-26.md).
+- Reserved `/api/nightingale/v1` and the held relative candidate path
+  `/inpatient-contexts`, with operation ID `listNightingaleInpatientContexts`.
+- Rejected aliases, proxies, redirects, second-prefix route mounting, and native fallback to
+  the legacy patient or staff APIs. Internal reuse remains possible only behind
+  Nightingale-owned adapters and contracts.
+- Updated the foundation and candidate artifacts to pin those design identifiers while
+  retaining zero OpenAPI paths, a `.invalid` server, no security scheme, no route
+  registration, no client generation/networking, and every activation state false.
+- Added `config/nightingale.php` as a code-owned, non-environment-activatable foundation.
+  It cannot configure a provider/source adapter or turn on routes, identity, source queries,
+  disclosure, mutation, or production.
+
+### Default-deny backend primitives
+
+- Added a request-scoped `NightingaleIdentityBoundary` with `unavailable`, `denied`, and
+  `verified_self` states. The only implementation is unconfigured and always unavailable.
+  No legacy principal, token, ability, grant, credential, or identifier schema was adopted.
+- Added a request-scoped `NightingaleInpatientContextSource` with `unavailable`,
+  `inconsistent`, `confirmed_closed`, and `confirmed_current` states. The only implementation
+  performs no query and always returns unavailable.
+- Added a precondition gate that withholds for 11 of 12 identity/source combinations. The
+  single positive combination continues only to later governed evaluation; it never grants
+  access and never returns patient data.
+- Added no service-container binding, middleware, controller, route file, route group,
+  model, migration, database call, network call, serializer, native client, or Android
+  internet permission.
+
+### Mechanical evidence
+
+- Added a dependency-free PHP verifier that cross-checks config, foundation, candidate,
+  route absence, unconfigured states, and all 12 precondition combinations.
+- Added five negative mutations for route activation, identity activation, legacy-realm
+  reuse, production source-query permission, and namespace drift.
+- Extended the foundation verifier to pin the namespace, no-alias strategy, and additional
+  route/source activation fields.
+- Extended the candidate verifier to pin the relative path and operation ID while preserving
+  the zero-path/held state; added a candidate-path mutation.
+- Added a PHPUnit truth-table test for the two ports and precondition gate. Local dependency-
+  free verification runs without Laravel or a database; the repository PHPUnit suite will
+  run the test after Composer installation in CI.
+- Added PHP 8.2 setup and the backend verifier to the independent Nightingale CI job.
+- Locally passed PHP syntax checks, the dependency-free backend verifier and its five
+  negative mutations, both Node contract verifiers and their negative mutations, the native
+  product-boundary scan, targeted Prettier checks, relative-link checks, Git whitespace
+  validation, and changed-file production credential/host scans.
+- Regenerated the Nightingale Xcode project and passed five unit tests plus two UI journeys
+  on the iPhone 17 Pro Simulator with normal local simulator signing. A preceding
+  `CODE_SIGNING_ALLOWED=NO` diagnostic run correctly failed only the Keychain canary with
+  `errSecMissingEntitlement (-34018)`; it is not counted as evidence. The signed rerun passed
+  the canary, privacy cover, no-live-access, protected-state, and volatile-input tests.
+- Built the Nightingale iOS Release simulator app successfully.
+- On the Android API 35 `hb` emulator, passed all five instrumentation tests, the JVM unit
+  suite, the Nightingale product boundary, Android lint-vital, and Debug/Release assembly.
+
+### Checklist and holds
+
+- Checked the plan’s route/compatibility foundation item and the contract matrix’s ADR item.
+  Identity proofing/session/recovery, an authoritative source adapter, named owners,
+  independent approvals, and every operation/release gate remain unchecked.
+- The earlier devlog entry accurately records the candidate’s prior null-path/no-reservation
+  state. This section supersedes that design state only; it does not turn the candidate into
+  an operation.
+- No production patient was created. Production database access remains explicitly outside
+  this development stream, and no route, migration, deployment, or feature activation was
+  performed.

@@ -5,10 +5,10 @@
     "purpose": "Discover zero or one currently eligible self inpatient context without exposing authorization or source-system internals.",
     "operation": {
         "method": "GET",
-        "path": null,
-        "operation_id": null,
+        "path": "/inpatient-contexts",
+        "operation_id": "listNightingaleInpatientContexts",
         "openapi_inclusion": false,
-        "route_namespace_reserved": false,
+        "route_namespace_reserved": true,
         "route_registration_permitted": false,
         "client_generation_permitted": false,
         "network_client_permitted": false
