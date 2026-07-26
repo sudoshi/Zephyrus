@@ -160,6 +160,44 @@ evidence that every iOS version, system snapshot, screenshot, clipboard,
 widget, notification, backup, or accessibility privacy path is redacted. The
 complete privacy matrix remains open.
 
+## 2026-07-25 — iOS interruption access-revalidation guard
+
+**Implementation commit:** `2cf728ae`
+**Decision record:** no clinical, identity, disclosure, or release decision was
+made. This change protects the existing current-access revalidation boundary;
+all patient exposure flags remain off and no production patient, database, or
+deployment action occurred.
+
+### Completed implementation
+
+- Extended `PatientAppActivityMonitor` so `willResignActive` requires both the
+  opaque privacy cover and a later current-session/current-encounter check.
+  `didBecomeActive` removes only the lifecycle cover; it cannot make care
+  content available again by itself.
+- The root keeps the cover over the care surface after an `inactive` or
+  background transition until the existing fail-closed revalidation completes.
+  A short interruption therefore follows the same access decision as a full
+  app switch or background return.
+- The monitor test proves the critical sequence: leaving the foreground sets
+  both requirements; becoming active clears the lifecycle cover only; an
+  explicit revalidation completion clears the remaining access requirement.
+
+### Verification
+
+| Boundary                  | Command / target                                                                   | Result                                                                                                    |
+| ------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| iOS focused control       | two targeted `PatientAppViewModelTests` selections on iPhone 17 Pro                | 2 tests passed; 0 failures                                                                                |
+| iOS full regression       | full `xcodebuild test` on iPhone 17 Pro                                            | exit 0; 13 UI journeys passed with 0 failures                                                             |
+| Android parity regression | `connectedDebugAndroidTest --rerun-tasks` on API 35 `hb` AVD                       | 17 tests; 0 failures/errors/skips; existing `onPause`/`onResume` cover-and-revalidate path remained green |
+| Release boundary          | iPhone 17 Pro Release build plus executable-string scan for debug privacy controls | build passed; no debug privacy-control string present                                                     |
+
+### Bounded claim
+
+This strengthens current-access verification after iOS lifecycle interruptions.
+It does not add continuous revocation polling, push revocation, source-driven
+transfer/merge/correction handling, production identity proofing, a patient
+activation, clinical content approval, or pilot authorization.
+
 ## 2026-07-25 — Cross-platform evidence reconciliation and pilot-control template
 
 **Tested source head:** `72ea2862325a5728e261c0022f78cd2da374ccc5`
