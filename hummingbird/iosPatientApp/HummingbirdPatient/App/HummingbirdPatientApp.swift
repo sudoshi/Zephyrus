@@ -30,6 +30,7 @@ private struct PatientPrivacyProtectedRoot: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var screenCaptureMonitor = PatientScreenCaptureMonitor()
+    @StateObject private var appActivityMonitor = PatientAppActivityMonitor()
     @State private var shouldRevalidateAccessOnActivation = false
 
     private var presentationPreferences: PatientPresentationPreferences {
@@ -69,7 +70,7 @@ private struct PatientPrivacyProtectedRoot: View {
             return .screenCapture
         }
 
-        if scenePhase != .active || debugPrivacyCoverRequested {
+        if appActivityMonitor.requiresPrivacyCover || scenePhase != .active || debugPrivacyCoverRequested {
             return .inactive
         }
 

@@ -25,6 +25,21 @@ final class PatientAppViewModelTests: XCTestCase {
         XCTAssertFalse(monitor.isCaptureActive)
     }
 
+    func testActivityMonitorRequiresPrivacyCoverBeforeTheAppSwitchesAndReleasesItOnActivation() async {
+        let notificationCenter = NotificationCenter()
+        let monitor = PatientAppActivityMonitor(notificationCenter: notificationCenter)
+
+        XCTAssertFalse(monitor.requiresPrivacyCover)
+
+        notificationCenter.post(name: UIApplication.willResignActiveNotification, object: nil)
+        await Task.yield()
+        XCTAssertTrue(monitor.requiresPrivacyCover)
+
+        notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+        await Task.yield()
+        XCTAssertFalse(monitor.requiresPrivacyCover)
+    }
+
     func testSyntheticReferenceIsClearlyLabeledAndContainsUncertaintyAndProvenance() {
         let snapshot = PatientExperienceSnapshot.syntheticReference(now: Date(timeIntervalSince1970: 1_700_000_000))
 

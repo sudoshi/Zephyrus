@@ -71,6 +71,51 @@ final class PatientScreenCaptureMonitor: ObservableObject {
     }
 }
 
+/**
+ Covers protected content as soon as the process begins leaving the foreground,
+ before the scene-phase update used by the view hierarchy settles. This is the
+ earliest app-level lifecycle hook available for the system app-switcher snapshot.
+ */
+@MainActor
+final class PatientAppActivityMonitor: ObservableObject {
+    @Published private(set) var requiresPrivacyCover = false
+
+    private let notificationCenter: NotificationCenter
+    private var resignActiveObserver: NSObjectProtocol?
+    private var becomeActiveObserver: NSObjectProtocol?
+
+    init(notificationCenter: NotificationCenter = .default) {
+        self.notificationCenter = notificationCenter
+        resignActiveObserver = notificationCenter.addObserver(
+            forName: UIApplication.willResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.requiresPrivacyCover = true
+            }
+        }
+        becomeActiveObserver = notificationCenter.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.requiresPrivacyCover = false
+            }
+        }
+    }
+
+    deinit {
+        if let resignActiveObserver {
+            notificationCenter.removeObserver(resignActiveObserver)
+        }
+        if let becomeActiveObserver {
+            notificationCenter.removeObserver(becomeActiveObserver)
+        }
+    }
+}
+
 struct PatientPrivacyCoverView: View {
     let reason: PatientPrivacyCoverReason
 
