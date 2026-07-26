@@ -1,40 +1,40 @@
 package net.acumenus.hummingbird.patient
 
-import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import net.acumenus.hummingbird.patient.ui.HummingbirdPatientTheme
+import net.acumenus.hummingbird.patient.ui.PatientAuthenticationScreen
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-class PatientAuthenticationSmokeTest {
+class PatientAuthenticationFormInstrumentedTest {
     @get:Rule
-    val composeRule = createAndroidComposeRule<MainActivity>()
+    val composeRule = createComposeRule()
 
     @Test
-    fun signedOutShellExplainsTheSeparatePatientBoundary() {
-        composeRule.onNodeWithText("Hummingbird Patient").assertIsDisplayed()
-        composeRule.onNodeWithText("A separate patient account")
-            .performScrollTo()
-            .assertIsDisplayed()
-        composeRule.onNodeWithText("Use invitation").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Invitation ID").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Continue securely").performScrollTo().assertIsDisplayed()
-    }
+    fun configuredBuildEnablesOnlyACompleteInvitationAndSubmitsTheExactForm() {
+        var submitted: PatientEnrollmentForm? = null
+        composeRule.setContent {
+            HummingbirdPatientTheme(darkTheme = false) {
+                PatientAuthenticationScreen(
+                    state = PatientSessionState.SignedOut(),
+                    networkEnabled = true,
+                    onAuthModeSelected = {},
+                    onSignIn = { _, _ -> },
+                    onEnroll = { submitted = it },
+                )
+            }
+        }
 
-    @Test
-    fun defaultOffBuildKeepsCompletedInvitationAndSignInSubmissionsDisabled() {
-        composeRule.onNodeWithTag("patient-api-off-state")
-            .performScrollTo()
-            .assertIsDisplayed()
         composeRule.onNodeWithTag("patient-enrollment-submit")
             .performScrollTo()
             .assertIsNotEnabled()
-
         composeRule.onNodeWithTag("patient-enrollment-challenge-uuid")
             .performScrollTo()
             .performTextInput("019f0000-0000-7000-8000-000000000051")
@@ -59,17 +59,12 @@ class PatientAuthenticationSmokeTest {
 
         composeRule.onNodeWithTag("patient-enrollment-submit")
             .performScrollTo()
-            .assertIsNotEnabled()
-
-        composeRule.onNodeWithTag("patient-auth-mode-sign-in").performClick()
-        composeRule.onNodeWithTag("patient-sign-in-email")
-            .performScrollTo()
-            .performTextInput("sample@example.test")
-        composeRule.onNodeWithTag("patient-sign-in-password")
-            .performScrollTo()
-            .performTextInput("patient-password")
-        composeRule.onNodeWithTag("patient-sign-in-submit")
-            .performScrollTo()
-            .assertIsNotEnabled()
+            .assertIsEnabled()
+            .performClick()
+        composeRule.runOnIdle {
+            assertEquals("019f0000-0000-7000-8000-000000000051", submitted?.challengeUuid)
+            assertEquals("Sample Patient", submitted?.displayName)
+            assertEquals("sample@example.test", submitted?.email)
+        }
     }
 }

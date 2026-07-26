@@ -115,18 +115,20 @@ internal fun PatientAuthenticationScreen(
                 FilterChip(
                     selected = state.authMode == PatientAuthMode.ENROLL,
                     onClick = { onAuthModeSelected(PatientAuthMode.ENROLL) },
+                    modifier = Modifier.testTag("patient-auth-mode-enroll"),
                     label = { Text("Use invitation") },
                 )
                 FilterChip(
                     selected = state.authMode == PatientAuthMode.SIGN_IN,
                     onClick = { onAuthModeSelected(PatientAuthMode.SIGN_IN) },
+                    modifier = Modifier.testTag("patient-auth-mode-sign-in"),
                     label = { Text("Sign in") },
                 )
             }
 
             when (state.authMode) {
-                PatientAuthMode.ENROLL -> EnrollmentForm(onEnroll)
-                PatientAuthMode.SIGN_IN -> SignInForm(onSignIn)
+                PatientAuthMode.ENROLL -> EnrollmentForm(networkEnabled, onEnroll)
+                PatientAuthMode.SIGN_IN -> SignInForm(networkEnabled, onSignIn)
             }
 
             when (val status = state.status) {
@@ -147,9 +149,10 @@ internal fun PatientAuthenticationScreen(
 
             if (!networkEnabled) {
                 Text(
-                    text = "Online patient access is off by default in this pilot build.",
+                    text = "Live access is off. No care information will be requested until patient API access is explicitly configured.",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("patient-api-off-state"),
                 )
             }
 
@@ -163,7 +166,10 @@ internal fun PatientAuthenticationScreen(
 }
 
 @Composable
-private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
+private fun EnrollmentForm(
+    networkEnabled: Boolean,
+    onEnroll: (PatientEnrollmentForm) -> Unit,
+) {
     // Enrollment secrets and identifiers stay in volatile composition memory;
     // they must never be serialized into Activity saved state.
     var challengeUuid by remember { mutableStateOf("") }
@@ -183,7 +189,7 @@ private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
         password = password,
         passwordConfirmation = passwordConfirmation,
     )
-    val canSubmit = form.clientValidationMessage() == null
+    val canSubmit = networkEnabled && form.clientValidationMessage() == null
 
     fun submit() {
         if (!canSubmit) return
@@ -318,12 +324,15 @@ private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
 }
 
 @Composable
-private fun SignInForm(onSignIn: (String, String) -> Unit) {
+private fun SignInForm(
+    networkEnabled: Boolean,
+    onSignIn: (String, String) -> Unit,
+) {
     // Credentials are intentionally not part of Activity saved state.
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
-    val canSubmit = email.isLikelyPatientEmail() && password.isNotEmpty()
+    val canSubmit = networkEnabled && email.isLikelyPatientEmail() && password.isNotEmpty()
 
     fun submit() {
         if (!canSubmit) return
@@ -341,7 +350,9 @@ private fun SignInForm(onSignIn: (String, String) -> Unit) {
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-sign-in-email"),
             label = { Text("Email") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
@@ -355,7 +366,9 @@ private fun SignInForm(onSignIn: (String, String) -> Unit) {
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-sign-in-password"),
             label = { Text("Password") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
