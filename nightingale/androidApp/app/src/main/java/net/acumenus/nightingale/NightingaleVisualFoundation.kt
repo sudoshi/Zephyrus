@@ -1,5 +1,8 @@
 package net.acumenus.nightingale
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -17,9 +20,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -45,25 +50,23 @@ private val NightingaleColorScheme = lightColorScheme(
     onSurfaceVariant = Color(0xFF514A42),
 )
 
-internal data class NightingaleSceneAccessibilityPolicy(
-    val imageAlpha: Float,
-    val scrimAlphas: List<Float>,
-)
-
-internal fun nightingaleSceneAccessibilityPolicy(
-    fontScale: Float,
-    highContrast: Boolean = false,
-): NightingaleSceneAccessibilityPolicy = when {
-    highContrast -> NightingaleSceneAccessibilityPolicy(0f, listOf(1f, 1f, 1f))
-    fontScale >= 1.3f -> NightingaleSceneAccessibilityPolicy(0.08f, listOf(0.92f, 0.96f, 0.99f))
-    else -> NightingaleSceneAccessibilityPolicy(0.16f, listOf(0.72f, 0.86f, 0.96f))
-}
-
 @Composable
-internal fun NightingaleFoundationScreen(privacyCovered: Boolean) {
+internal fun NightingaleFoundationScreen(
+    privacyCovered: Boolean,
+    presentationPreferences: NightingalePresentationPreferences,
+    systemReduceMotion: Boolean,
+    highContrast: Boolean,
+) {
     MaterialTheme(colorScheme = NightingaleColorScheme) {
+        val policy = nightingaleSceneAccessibilityPolicy(
+            preferences = presentationPreferences.snapshot,
+            fontScale = LocalDensity.current.fontScale,
+            highContrast = highContrast,
+            systemReduceMotion = systemReduceMotion,
+        )
+
         Box(modifier = Modifier.fillMaxSize()) {
-            NightingaleScenicBackground {
+            NightingaleScenicBackground(policy = policy) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -72,11 +75,13 @@ internal fun NightingaleFoundationScreen(privacyCovered: Boolean) {
                         .padding(horizontal = 28.dp, vertical = 56.dp),
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Image(
-                        painter = painterResource(R.mipmap.ic_launcher_foreground),
-                        contentDescription = null,
-                        modifier = Modifier.size(88.dp),
-                    )
+                    if (policy.showDecorativeImagery) {
+                        Image(
+                            painter = painterResource(R.mipmap.ic_launcher_foreground),
+                            contentDescription = null,
+                            modifier = Modifier.size(88.dp),
+                        )
+                    }
                     Text(
                         text = NightingaleProductBoundary.productName,
                         modifier = Modifier
@@ -92,20 +97,36 @@ internal fun NightingaleFoundationScreen(privacyCovered: Boolean) {
                         style = MaterialTheme.typography.titleMedium,
                     )
                     NightingaleFoundationStatusCard(modifier = Modifier.padding(top = 24.dp))
+                    NightingaleDisplayComfortCard(
+                        presentationPreferences = presentationPreferences,
+                        policy = policy,
+                        modifier = Modifier.padding(top = 18.dp),
+                    )
                 }
             }
 
             if (privacyCovered) {
-                NightingalePrivacyCover()
+                NightingalePrivacyCover(policy = policy)
             }
         }
     }
 }
 
 @Composable
-private fun NightingaleScenicBackground(content: @Composable BoxScope.() -> Unit) {
+private fun NightingaleScenicBackground(
+    policy: NightingaleSceneAccessibilityPolicy,
+    content: @Composable BoxScope.() -> Unit,
+) {
     val surface = MaterialTheme.colorScheme.surface
-    val policy = nightingaleSceneAccessibilityPolicy(LocalDensity.current.fontScale)
+    val imageAlpha by animateFloatAsState(
+        targetValue = policy.imageAlpha,
+        animationSpec = if (policy.reduceMotion) {
+            snap()
+        } else {
+            tween(durationMillis = policy.transitionDurationMillis)
+        },
+        label = "nightingale-decorative-image-alpha",
+    )
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -117,7 +138,7 @@ private fun NightingaleScenicBackground(content: @Composable BoxScope.() -> Unit
             contentScale = ContentScale.Fit,
             modifier = Modifier
                 .fillMaxSize()
-                .alpha(policy.imageAlpha),
+                .alpha(imageAlpha),
         )
         Box(
             modifier = Modifier
@@ -161,7 +182,93 @@ private fun NightingaleFoundationStatusCard(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun NightingalePrivacyCover() {
+private fun NightingaleDisplayComfortCard(
+    presentationPreferences: NightingalePresentationPreferences,
+    policy: NightingaleSceneAccessibilityPolicy,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(22.dp),
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "Display comfort",
+                modifier = Modifier.semantics { heading() },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "These settings are stored by Nightingale, not your care account. They never change your care information.",
+                modifier = Modifier.padding(top = 8.dp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+
+            Text(
+                text = "Reduce motion in Nightingale",
+                modifier = Modifier.padding(top = 18.dp),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Switch(
+                checked = presentationPreferences.snapshot.reduceMotionRequested,
+                onCheckedChange = {
+                    presentationPreferences.setReduceMotionRequested(it)
+                },
+                modifier = Modifier
+                    .testTag("nightingale-reduce-motion-toggle")
+                    .semantics {
+                        contentDescription = "Reduce motion in Nightingale"
+                    },
+            )
+            Text(
+                text = if (policy.reduceMotion) {
+                    "Motion is reduced. Nightingale changes views without decorative movement."
+                } else {
+                    "Gentle transitions are enabled. Nightingale also follows your system Reduce Motion setting."
+                },
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .testTag("nightingale-motion-status"),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+
+            Text(
+                text = "Hide decorative imagery",
+                modifier = Modifier.padding(top = 18.dp),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Switch(
+                checked = presentationPreferences.snapshot.hideDecorativeImageryRequested,
+                onCheckedChange = {
+                    presentationPreferences.setHideDecorativeImageryRequested(it)
+                },
+                modifier = Modifier
+                    .testTag("nightingale-hide-imagery-toggle")
+                    .semantics {
+                        contentDescription = "Hide decorative imagery"
+                    },
+            )
+            Text(
+                text = if (policy.showDecorativeImagery) {
+                    "The Nightingale artwork is shown softly behind the page."
+                } else {
+                    "Decorative imagery is hidden. Essential text and controls remain available."
+                },
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .testTag("nightingale-imagery-status"),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun NightingalePrivacyCover(policy: NightingaleSceneAccessibilityPolicy) {
     Surface(
         modifier = Modifier
             .fillMaxSize()
@@ -172,7 +279,7 @@ private fun NightingalePrivacyCover() {
             },
         color = MaterialTheme.colorScheme.surface,
     ) {
-        NightingaleScenicBackground {
+        NightingaleScenicBackground(policy = policy) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()

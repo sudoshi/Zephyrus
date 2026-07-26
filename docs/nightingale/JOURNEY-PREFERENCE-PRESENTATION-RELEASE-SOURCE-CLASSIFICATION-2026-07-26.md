@@ -638,8 +638,14 @@ The eleven migration files are classified as safety-principle evidence only. Thi
 
 ### 10.2 Preferences and presentation
 
-- [ ] Split device accessibility settings from account preferences.
-- [ ] Decide whether any accessibility preference roams across devices.
+- [x] Split device accessibility settings from account preferences.
+      Nightingale now stores only reduced-motion and decorative-imagery choices in
+      product-local platform stores; neither is connected to a care account, API, clinical
+      model, locale, communication consent, or delivery preference.
+- [x] Decide whether any accessibility preference roams across devices.
+      Nightingale implements no account/cloud synchronization. Android backup and transfer
+      exclude shared preferences. Apple-managed iOS backup/restore behavior remains an
+      explicitly unratified external release property, not an app roaming feature.
 - [ ] Define locale ownership, translation release, fallback, language-change, and
       interpreter-support behavior.
 - [ ] Define timezone derivation and prevent a stale account timezone from changing clinical
@@ -648,11 +654,18 @@ The eleven migration files are classified as safety-principle evidence only. Thi
       workflows exist.
 - [ ] Define preview privacy independently for lock screen, notification center, wearable,
       car, shared device, and representative access.
-- [ ] Implement actual reduced-motion behavior on both platforms before presenting the
+- [x] Implement actual reduced-motion behavior on both platforms before presenting the
       control as effective.
+      Every current governed motion site consumes the stronger system/patient policy; iOS
+      removes the foundation transitions and Android uses a zero-duration `snap()` policy.
 - [ ] Prove largest text, reflow, focus order, contrast, target size, screen reader,
       landscape, language expansion, and images-disabled behavior.
-- [ ] Bind accessibility evidence to exact Debug and Release artifacts.
+      The images-disabled foundation subset is proven on both platforms, but the remaining
+      compound requirements keep this item open.
+- [x] Bind accessibility evidence to exact Debug and Release artifacts.
+      The presentation decision records SHA-256 values for the exact local iOS simulator
+      executables and Android APKs. Distribution signing, stores, protected-`main` release,
+      and independent approval remain separate open gates.
 
 ### 10.3 Patient-authored inputs
 

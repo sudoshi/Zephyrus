@@ -15,7 +15,9 @@ The bounded 255-source Hummingbird Patient predecessor universe is fully classif
 three checksum-pinned ledgers; this is migration evidence, not implementation approval. A
 held Today candidate now defines field-level release, freshness, uncertainty, language,
 correction, and offline semantics across 68 synthetic outcomes while the executable
-contract remains empty.
+contract remains empty. Nightingale now also has two device-local display-comfort controls:
+reduced motion and decorative-imagery suppression. They are presentation-only, remain
+separate from care-account preferences, and do not authorize patient access.
 
 Current product-identity records:
 
@@ -31,6 +33,7 @@ Current product-identity records:
 - [Identity-input, enrollment/recovery, first-read, and error source classification](./IDENTITY-INPUT-FIRST-READ-ERROR-SOURCE-CLASSIFICATION-2026-07-26.md)
 - [Communication and notification source classification](./COMMUNICATION-AND-NOTIFICATION-SOURCE-CLASSIFICATION-2026-07-26.md)
 - [Journey, preference, presentation, synthetic, and release source classification](./JOURNEY-PREFERENCE-PRESENTATION-RELEASE-SOURCE-CLASSIFICATION-2026-07-26.md)
+- [Presentation-preferences foundation decision and evidence](./PRESENTATION-PREFERENCES-FOUNDATION-DECISION-2026-07-26.md)
 - [Empty/default-off contract foundation](./api-contract/nightingale-foundation.v0.json)
 - [Identity candidate and fixtures](./identity/candidates/v0/candidate.json)
 - [Current-inpatient source candidate and fixtures](./source-candidates/current-inpatient/v0/candidate.json)

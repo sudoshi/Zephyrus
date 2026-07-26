@@ -4,9 +4,13 @@ import android.content.Context
 import android.util.Base64
 import android.view.WindowManager
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -133,6 +137,66 @@ class NightingaleLaunchInstrumentedTest {
         } finally {
             runCatching { store.deleteAll() }
         }
+    }
+
+    @Test
+    fun displayComfortControlsPersistAndExplainTheirEffect() {
+        setPresentationPreferences(reduceMotion = false, hideImagery = false)
+        try {
+            composeRule.onNodeWithTag("nightingale-reduce-motion-toggle")
+                .performScrollTo()
+                .assertIsOff()
+                .performClick()
+                .assertIsOn()
+            composeRule.onNodeWithText(
+                "Motion is reduced. Nightingale changes views without decorative movement.",
+            ).assertIsDisplayed()
+
+            composeRule.onNodeWithTag("nightingale-hide-imagery-toggle")
+                .performScrollTo()
+                .assertIsOff()
+                .performClick()
+                .assertIsOn()
+            composeRule.onNodeWithText(
+                "Decorative imagery is hidden. Essential text and controls remain available.",
+            ).assertIsDisplayed()
+
+            composeRule.activityRule.scenario.recreate()
+            composeRule.waitForIdle()
+
+            composeRule.onNodeWithTag("nightingale-reduce-motion-toggle")
+                .performScrollTo()
+                .assertIsOn()
+            composeRule.onNodeWithTag("nightingale-hide-imagery-toggle")
+                .performScrollTo()
+                .assertIsOn()
+
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            val keys = context.getSharedPreferences(
+                NightingalePresentationPreferenceNamespace.PREFERENCES_FILE,
+                Context.MODE_PRIVATE,
+            ).all.keys
+            assertTrue(keys == NightingalePresentationPreferenceNamespace.allKeys)
+        } finally {
+            setPresentationPreferences(reduceMotion = false, hideImagery = false)
+        }
+    }
+
+    private fun setPresentationPreferences(
+        reduceMotion: Boolean,
+        hideImagery: Boolean,
+    ) {
+        composeRule.activityRule.scenario.onActivity { activity ->
+            assertTrue(
+                activity.presentationPreferences.setReduceMotionRequested(reduceMotion),
+            )
+            assertTrue(
+                activity.presentationPreferences.setHideDecorativeImageryRequested(
+                    hideImagery,
+                ),
+            )
+        }
+        composeRule.waitForIdle()
     }
 
     private fun androidKeyStoreContainsNightingaleKey(): Boolean =

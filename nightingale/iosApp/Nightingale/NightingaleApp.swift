@@ -18,21 +18,38 @@ enum NightingaleProductBoundary {
 
 private struct NightingalePrivacyProtectedRoot: View {
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var systemReduceTransparency
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var volatileInputState = NightingaleVolatileInputState()
+    @StateObject private var presentationPreferences = NightingalePresentationPreferences()
 
     var body: some View {
         ZStack {
-            NightingaleFoundationView()
+            NightingaleFoundationView(
+                presentationPreferences: presentationPreferences,
+                policy: presentationPolicy
+            )
                 .accessibilityHidden(privacyCoverVisible)
 
             if privacyCoverVisible {
-                NightingalePrivacyCoverView()
-                    .transition(reduceMotion ? .identity : .opacity)
+                NightingalePrivacyCoverView(policy: presentationPolicy)
+                    .transition(presentationPolicy.reduceMotion ? .identity : .opacity)
                     .zIndex(100)
             }
         }
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: privacyCoverVisible)
+        .animation(
+            presentationPolicy.reduceMotion ? nil : .easeOut(duration: 0.12),
+            value: privacyCoverVisible
+        )
+        .animation(
+            presentationPolicy.reduceMotion
+                ? nil
+                : .easeInOut(duration: presentationPolicy.transitionDuration),
+            value: presentationPreferences.snapshot
+        )
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase != .active {
                 volatileInputState.clear(.applicationInactive)
@@ -48,20 +65,36 @@ private struct NightingalePrivacyProtectedRoot: View {
         scenePhase != .active
         #endif
     }
+
+    private var presentationPolicy: NightingaleSceneAccessibilityPolicy {
+        NightingaleSceneAccessibilityPolicy.resolve(
+            preferences: presentationPreferences.snapshot,
+            systemReduceMotion: systemReduceMotion,
+            systemReduceTransparency: systemReduceTransparency,
+            increasedContrast: colorSchemeContrast == .increased,
+            accessibilityTextSize: dynamicTypeSize.isAccessibilitySize,
+            darkMode: colorScheme == .dark
+        )
+    }
 }
 
 private struct NightingaleFoundationView: View {
+    @ObservedObject var presentationPreferences: NightingalePresentationPreferences
+    let policy: NightingaleSceneAccessibilityPolicy
+
     var body: some View {
         ZStack {
-            NightingaleScenicBackground()
+            NightingaleScenicBackground(policy: policy)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Image("BrandMark")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 88, height: 88)
-                        .accessibilityHidden(true)
+                    if policy.showDecorativeImagery {
+                        Image("BrandMark")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 88, height: 88)
+                            .accessibilityHidden(true)
+                    }
 
                     Text(NightingaleProductBoundary.productName)
                         .font(.largeTitle.weight(.semibold))
@@ -70,7 +103,11 @@ private struct NightingaleFoundationView: View {
                         .font(.title3)
                         .foregroundStyle(.secondary)
 
-                    NightingaleFoundationStatusCard()
+                    NightingaleFoundationStatusCard(cardOpacity: policy.cardOpacity)
+                    NightingaleDisplayComfortCard(
+                        presentationPreferences: presentationPreferences,
+                        policy: policy
+                    )
                 }
                 .frame(maxWidth: 520, alignment: .leading)
                 .padding(.horizontal, 28)
@@ -82,8 +119,8 @@ private struct NightingaleFoundationView: View {
 }
 
 private struct NightingaleFoundationStatusCard: View {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    let cardOpacity: Double
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -108,8 +145,71 @@ private struct NightingaleFoundationStatusCard: View {
         }
         .accessibilityElement(children: .contain)
     }
+}
 
-    private var cardOpacity: Double {
-        reduceTransparency || colorSchemeContrast == .increased ? 1 : 0.92
+private struct NightingaleDisplayComfortCard: View {
+    @ObservedObject var presentationPreferences: NightingalePresentationPreferences
+    let policy: NightingaleSceneAccessibilityPolicy
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Display comfort")
+                .font(.headline)
+                .accessibilityAddTraits(.isHeader)
+
+            Text("These settings are stored by Nightingale, not your care account. They never change your care information.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            Toggle(
+                "Reduce motion in Nightingale",
+                isOn: Binding(
+                    get: {
+                        presentationPreferences.snapshot.reduceMotionRequested
+                    },
+                    set: presentationPreferences.setReduceMotionRequested
+                )
+            )
+            .accessibilityIdentifier("nightingale-reduce-motion-toggle")
+
+            Text(
+                policy.reduceMotion
+                    ? "Motion is reduced. Nightingale changes views without decorative movement."
+                    : "Gentle transitions are enabled. Nightingale also follows your system Reduce Motion setting."
+            )
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .accessibilityIdentifier("nightingale-motion-status")
+
+            Toggle(
+                "Hide decorative imagery",
+                isOn: Binding(
+                    get: {
+                        presentationPreferences.snapshot.hideDecorativeImageryRequested
+                    },
+                    set: presentationPreferences.setHideDecorativeImageryRequested
+                )
+            )
+            .accessibilityIdentifier("nightingale-hide-imagery-toggle")
+
+            Text(
+                policy.showDecorativeImagery
+                    ? "The Nightingale artwork is shown softly behind the page."
+                    : "Decorative imagery is hidden. Essential text and controls remain available."
+            )
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .accessibilityIdentifier("nightingale-imagery-status")
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Color(uiColor: .systemBackground).opacity(policy.cardOpacity),
+            in: RoundedRectangle(cornerRadius: 22)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(Color.primary.opacity(0.1))
+        }
     }
 }

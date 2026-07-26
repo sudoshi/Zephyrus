@@ -23,14 +23,72 @@ class NightingaleProductBoundaryTest {
     }
 
     @Test
-    fun decorativeImageIsWithheldForHighContrastAndReducedForLargeText() {
-        val highContrast = nightingaleSceneAccessibilityPolicy(fontScale = 1f, highContrast = true)
-        val largeText = nightingaleSceneAccessibilityPolicy(fontScale = 1.3f)
-        val standard = nightingaleSceneAccessibilityPolicy(fontScale = 1f)
+    fun presentationPolicyCombinesPatientAndSystemAccessibilityDecisions() {
+        val defaultPreferences = NightingalePresentationPreferenceSnapshot(
+            reduceMotionRequested = false,
+            hideDecorativeImageryRequested = false,
+        )
+        val patientPreferences = NightingalePresentationPreferenceSnapshot(
+            reduceMotionRequested = true,
+            hideDecorativeImageryRequested = true,
+        )
+        val highContrast = nightingaleSceneAccessibilityPolicy(
+            preferences = defaultPreferences,
+            fontScale = 1f,
+            highContrast = true,
+            systemReduceMotion = true,
+        )
+        val largeText = nightingaleSceneAccessibilityPolicy(
+            preferences = defaultPreferences,
+            fontScale = 1.3f,
+            highContrast = false,
+            systemReduceMotion = false,
+        )
+        val standard = nightingaleSceneAccessibilityPolicy(
+            preferences = defaultPreferences,
+            fontScale = 1f,
+            highContrast = false,
+            systemReduceMotion = false,
+        )
+        val patientReduced = nightingaleSceneAccessibilityPolicy(
+            preferences = patientPreferences,
+            fontScale = 1f,
+            highContrast = false,
+            systemReduceMotion = false,
+        )
 
         assertEquals(0f, highContrast.imageAlpha)
+        assertTrue(highContrast.reduceMotion)
+        assertFalse(highContrast.showDecorativeImagery)
+        assertEquals(0, highContrast.transitionDurationMillis)
+
         assertEquals(0.08f, largeText.imageAlpha)
+        assertFalse(largeText.reduceMotion)
+        assertTrue(largeText.showDecorativeImagery)
+
         assertEquals(0.16f, standard.imageAlpha)
+        assertFalse(standard.reduceMotion)
+        assertTrue(standard.showDecorativeImagery)
+        assertEquals(180, standard.transitionDurationMillis)
+
+        assertEquals(0f, patientReduced.imageAlpha)
+        assertTrue(patientReduced.reduceMotion)
+        assertFalse(patientReduced.showDecorativeImagery)
+        assertEquals(0, patientReduced.transitionDurationMillis)
+    }
+
+    @Test
+    fun presentationPreferenceNamespaceIsNightingaleOnlyAndAccountAgnostic() {
+        val combined = (
+            NightingalePresentationPreferenceNamespace.PREFERENCES_FILE
+                + NightingalePresentationPreferenceNamespace.allKeys.joinToString("|")
+            ).lowercase()
+
+        assertTrue(combined.contains("nightingale"))
+        assertFalse(combined.contains("hummingbird"))
+        assertFalse(combined.contains("patient"))
+        assertFalse(combined.contains("account"))
+        assertFalse(combined.contains("token"))
     }
 
     @Test

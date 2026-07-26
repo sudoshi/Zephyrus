@@ -1061,3 +1061,114 @@ deployment authorization.
   accessibility, patient-advisor, legal/HIM, support, operations, release, and deployment
   approvals remain open. No route, adapter, query, generated client, or native journey may
   be implemented from this candidate until those gates are independently satisfied.
+
+## 2026-07-26 — Device-local display-comfort foundation
+
+### Decision and patient boundary
+
+- Added the
+  [presentation-preferences foundation decision](../nightingale/PRESENTATION-PREFERENCES-FOUNDATION-DECISION-2026-07-26.md).
+- Implemented exactly two Nightingale-owned device choices on iOS and Android: reduce
+  motion and hide decorative imagery.
+- Kept both choices separate from care-account, locale, clinical, communication, consent,
+  delivery, notification, identity, and encounter state. The patient-facing card explicitly
+  says the settings never change care information.
+- Chose stronger-setting precedence: either a system reduced-motion request or the local
+  Nightingale request removes governed decorative motion; either the local imagery choice
+  or a stronger system contrast/transparency condition withholds decorative art.
+- Decided that Nightingale will not roam these settings through an account, API, or cloud
+  key-value store. Android backup/device-transfer rules exclude shared preferences. iOS
+  operating-system backup/restore behavior remains unratified and is not represented as an
+  app synchronization feature.
+
+### Native implementation
+
+- Added a pure iOS presentation policy and `UserDefaults`-backed Nightingale namespace with
+  full product-specific keys. The UI-test reset hook is compiled only in Debug.
+- Added a pure Android presentation policy and private Nightingale `SharedPreferences`
+  namespace. Writes commit synchronously, and the UI snapshot changes only after a
+  successful commit.
+- iOS now consumes system Reduce Motion, Reduce Transparency, Increased Contrast,
+  accessibility text size, and color scheme. Android consumes the zero animator-duration
+  condition, Android 14+ system contrast, and current font scale.
+- Both apps hide the foreground and scenic bird artwork when requested, retain every
+  essential heading/copy/control, and attenuate imagery at accessibility text size.
+- iOS removes privacy-cover and local presentation transitions under reduced motion.
+  Android replaces the scenic alpha tween with `snap()` and a zero-millisecond policy.
+- Added equivalent Nightingale-only labels, identifiers/test tags, checked states, and
+  effect explanations on both platforms.
+
+### Mechanical enforcement
+
+- Extended `verify-nightingale-product-boundary.sh` to require the two policy sources and
+  exact preference namespaces, reject account/cloud-sync APIs, require the iOS reset hook
+  inside a Debug conditional, and reject production test-clearing/inspection APIs.
+- Unit truth tables cover standard, local reduced/hidden, stronger system, and
+  accessibility-text behavior.
+- Persistence tests prove the exact Nightingale key set and reject Hummingbird, patient,
+  account, and token namespace leakage.
+- Device UI tests enable both controls, verify patient-facing effect copy, relaunch or
+  recreate the application, and verify the persisted checked states.
+
+### Native evidence
+
+- Regenerated the iOS Xcode project. On iPhone 16e Simulator
+  `3F568F29-BE58-49AD-8151-6C2303B4C4E3`, iOS 26.3.1, all 10 tests passed with zero
+  failures or skips. The normally signed Release simulator build succeeded.
+- Visually inspected the clean installed iOS Release application. The supplied
+  Nightingale artwork remains calming and subordinate to text; the privacy boundary is
+  legible; the two controls and explanatory copy are reachable.
+- The iOS Release executable scan excluded the Debug reset hook, Hummingbird name,
+  application network URLs, and cloud-key-value API. It contained only the expected Apple
+  property-list DTD URL among URL-shaped strings.
+- The exact iOS Debug and Release simulator executable SHA-256 values are
+  `5f203f74c9b98f7700e00d52c05e0b676b8c458f07c385825cc59695709b3ca9` and
+  `663b1f9906e718dbd235512b1bc90cc9f9e47738a718bb71ac8cb686c6db0e81`.
+- Cold-booted the `hb` Android 15/API 35 AVD without a snapshot. Six JVM and six
+  instrumentation tests passed. `verifyNightingaleProductBoundary`, `lintVitalRelease`,
+  `assembleDebug`, and `assembleRelease` passed; Gradle reported 117 actionable tasks,
+  with 116 executed and one up-to-date.
+- A manual UI Automator check found the Nightingale heading, privacy copy, Display comfort
+  heading, two checkable controls, and their explanations. Both controls stayed checked
+  with enabled-state copy after a cold relaunch.
+- Android `FLAG_SECURE` intentionally made external emulator screenshots black. The black
+  capture is not treated as visual-layout proof; Compose instrumentation and the live
+  accessibility hierarchy establish rendered semantics and state. Independent human
+  device review remains open.
+- The Android unsigned Release APK declared no `INTERNET` permission. Its DEX excluded
+  legacy Hummingbird, test preference APIs, Zephyrus endpoint, API-path, and WebSocket
+  tokens. Generic AndroidX/Compose diagnostic/schema URLs were classified as library
+  strings rather than application endpoints.
+- The exact Android Debug and unsigned Release APK SHA-256 values are
+  `ac851797682524dde8d739d9b6f4aa4eaaa0b77cc4e322b48e1ec21ec7149e1c` and
+  `9c23e30f1c7211f969ecb2cf68698591f74de409a3d689cf116c68e64fded3e1`.
+
+### Reproducibility and failed preflights
+
+- Initial Android preflights failed before product verification because the shell did not
+  select a Java runtime or Android SDK. Selecting the Android Studio JDK and local SDK then
+  exposed an unavailable high-text-contrast API and a missing Compose delegated-state
+  import.
+- Replaced the unavailable API with the Android 14+ `UiModeManager.contrast` seam and added
+  the required import. The complete clean task set then passed. None of the preliminary
+  failures is counted as evidence.
+- A broad Android Release URL scan found only platform/library diagnostics and schema
+  strings. The final boundary assertion uses forbidden application endpoint tokens plus
+  the independent no-`INTERNET` manifest check, and does not misrepresent bundled library
+  text as application networking.
+
+### Checklist and residual status
+
+- Updated the master plan immediately: the bounded display-comfort subset is complete, and
+  the broader primitive-port item remains open for patient API and vocabulary work.
+- Closed the checklist decisions for device/account separation, intentional non-roaming,
+  effective reduced motion, and exact local artifact binding.
+- Left the compound largest-text, reflow, focus, contrast, target-size, screen-reader,
+  landscape, language-expansion, and images-disabled item open because only the bounded
+  imagery subset is proven.
+- Full WCAG 2.2 AA conformance, physical-device visual review, iOS backup/restore behavior,
+  distribution signing/store evidence, and named patient-advisor/accessibility/privacy/
+  clinical/language/support/release approvals remain open.
+- No production database, patient, principal, identity link, grant, session, encounter,
+  account preference, clinical projection, message, route, source, migration, deployment,
+  or pilot state was read or changed.

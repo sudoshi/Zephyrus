@@ -7,16 +7,15 @@ enum NightingalePalette {
 }
 
 struct NightingaleScenicBackground: View {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @Environment(\.colorScheme) private var colorScheme
+    let policy: NightingaleSceneAccessibilityPolicy
 
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .bottomTrailing) {
                 Color(uiColor: .systemBackground)
 
-                if !reduceTransparency && colorSchemeContrast != .increased {
+                if policy.showDecorativeImagery {
                     LinearGradient(
                         colors: gradientColors,
                         startPoint: .topLeading,
@@ -28,7 +27,7 @@ struct NightingaleScenicBackground: View {
                         .scaledToFit()
                         .frame(width: min(proxy.size.width * 1.15, 560))
                         .offset(x: proxy.size.width * 0.18, y: proxy.size.height * 0.08)
-                        .opacity(colorScheme == .dark ? 0.10 : 0.08)
+                        .opacity(policy.decorativeImageOpacity)
                 }
             }
         }
@@ -46,9 +45,11 @@ struct NightingaleScenicBackground: View {
 }
 
 struct NightingalePrivacyCoverView: View {
+    let policy: NightingaleSceneAccessibilityPolicy
+
     var body: some View {
         ZStack {
-            NightingaleScenicBackground()
+            NightingaleScenicBackground(policy: policy)
 
             VStack(spacing: 14) {
                 Image(systemName: "hand.raised.fill")

@@ -274,9 +274,9 @@ human visual review records correct brand, crop, contrast, and no unwanted trans
       patient API boundary, protected storage, lifecycle/screen-capture privacy cover,
       accessibility presentation preferences, patient-safe vocabulary, and volatile drafts.
       Protected storage, lifecycle/screen-capture protection, the foundation accessibility
-      presentation subset, volatile-input foundations, and an empty contract governance
-      boundary are complete. Patient API runtime behavior and all vocabulary code/copy
-      remain held.
+      presentation subset, device-local reduced-motion and decorative-imagery preferences,
+      volatile-input foundations, and an empty contract governance boundary are complete.
+      Patient API runtime behavior and all vocabulary code/copy remain held.
 - [ ] Reissue all product strings, accessibility IDs, test hooks, storage keys, telemetry
       event names, and diagnostics under the Nightingale namespace.
       Current foundation storage keys, test hooks, and diagnostics are Nightingale-only;
@@ -320,6 +320,11 @@ authorization, idempotency, audit, and patient-visible outcome evidence.
       identities: lifecycle cover, Android `FLAG_SECURE`, no-network boundary, large-text image
       attenuation, iOS high-contrast image withholding, an Android high-contrast policy seam,
       and patient-safe accessibility semantics.
+- [x] Implement and rerun the bounded display-comfort subset under Nightingale identities:
+      separate device-local preferences from future account preferences, apply the stronger
+      system/patient reduced-motion choice to every current motion site, allow decorative
+      imagery to be disabled without hiding essential content, persist both choices across
+      relaunch, and bind native tests to exact local Debug/Release artifacts.
 - [ ] Carry forward the existing automated privacy controls only as candidate evidence;
       rerun them under Nightingale app IDs and assets.
 - [ ] Meet WCAG 2.2 AA plus iOS/Android guidance for screen-reader navigation, focus order,
@@ -419,6 +424,11 @@ part of application development work.
         accessibility approvals before implementing any Today route, adapter, projection
         query, generated client, or native rendering. Emulator verification of the unchanged
         offline foundation does not satisfy these approvals.
+13. [x] Implement the approved offline presentation-preferences foundation on both native
+        platforms: two Nightingale-only device preferences, stronger-system-setting
+        precedence, effective reduced motion, decorative-imagery suppression, relaunch
+        persistence, Release-artifact boundary scans, and clean iOS Simulator/Android API 35
+        suites. This does not close full accessibility conformance or any human approval.
 
 ## 10. Explicit holds
 
