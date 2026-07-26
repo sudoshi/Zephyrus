@@ -6,8 +6,9 @@ no patient feature enabled by this entry.
 
 ## Baseline
 
-- The governing Hummingbird plan has 186 checked and 285 unchecked checklist items
-  (471 total). This is an unweighted work-item count, not a clinical-readiness
+- The governing Hummingbird plan has 196 checked and 277 unchecked checklist items
+  (473 total), reconciled from every Markdown checkbox on 2026-07-25. This is an
+  unweighted work-item count, not a clinical-readiness
   percentage.
 - The program is reset to a controlled inpatient-pilot cutline: approved
   Today/My Path/Care Team/discharge projections plus accountable secure messaging
@@ -38,6 +39,44 @@ no patient feature enabled by this entry.
 Each subsequent entry must cite the exact commit SHA, command output/test count,
 simulator or emulator target, feature-flag state, decision record, and unresolved
 blocker. Narrative progress without those artifacts is not an accepted update.
+
+## 2026-07-25 — Cross-platform evidence reconciliation and pilot-control template
+
+**Tested source head:** `72ea2862325a5728e261c0022f78cd2da374ccc5`
+**Evidence/doc commit:** recorded with this documentation change
+
+### Completed evidence and control work
+
+- Reconciled every Markdown checkbox in the governing Hummingbird parity plan:
+  196 checked and 277 unchecked items (473 total). This is an unweighted
+  work-item count, not a clinical, privacy, accessibility, or release-readiness
+  score.
+- Replaced stale assertions that the focused Patient PHP suite could not run
+  locally. The isolated `zephyrus_test` boundary was available and the complete
+  `tests/Feature/Patient` suite now has current evidence.
+- Published the
+  [fail-closed controlled-pilot configuration manifest](../operations/HUMMINGBIRD-CONTROLLED-PILOT-CONFIGURATION-MANIFEST.md).
+  It inventories the patient-realm, Care Pathways, and Virtual Rounds patient
+  bridge controls; requires default, owner, classification, audit evidence,
+  rollback, and expiry for each; and leaves every authorization-time value
+  unassigned/off.
+
+### Verification
+
+| Boundary            | Command / target                                                                                                                            | Result                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Patient backend     | `php artisan test tests/Feature/Patient --stop-on-failure` against isolated `zephyrus_test` PostgreSQL                                      | 205 tests, 3,535 assertions passed in 61.09 seconds                                            |
+| Android patient app | `./gradlew --no-daemon connectedDebugAndroidTest --rerun-tasks --console=plain` on `hb(AVD)` / API 35                                       | 17 instrumentation tests passed; build successful                                              |
+| iOS patient app     | `xcodebuild test -project HummingbirdPatient.xcodeproj -scheme HummingbirdPatient -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` | 85 tests passed; 0 failed, skipped, or expected failures (iPhone 17 Pro, iOS Simulator 26.3.1) |
+
+### Explicit remaining boundary
+
+This evidence and template do not approve a facility, unit, cohort, source,
+projection release, identity/enrollment workflow, message policy, staffing
+pool, feature flag, visual asset, production patient, database change, or
+deployment. The required signed decisions, controlled test environment,
+governed source/release chain, multidisciplinary accessibility review, and
+independent release approval remain active blockers.
 
 ## 2026-07-25 — Patient journey instrumentation stability repair
 

@@ -13,9 +13,10 @@ communications, and production readiness. That is not one feature. It is a
 multi-release healthcare program with several decisions that engineering cannot
 make on its own.
 
-The governing checklist currently contains **183 completed and 288 open items**
-(471 total). This is an unweighted execution count, not a claim that the product is
-37% clinically or operationally ready. A single unresolved source-release or
+The governing checklist currently contains **196 completed and 277 open items**
+(473 total), reconciled from every Markdown checkbox on 2026-07-25. This is an
+unweighted execution count, not a claim that the product is 41% clinically or
+operationally ready. A single unresolved source-release or
 identity decision can block a patient pilot regardless of how many code items are
 complete.
 
@@ -146,6 +147,10 @@ integration lead, nursing operations lead, engineering release owner.
    be activated as a shortcut.
 5. Publish the pilot configuration manifest and flag matrix. Each flag needs a
    default, owner, data classification, audit event, rollback action, and expiry.
+   The fail-closed template is published at
+   [Hummingbird Controlled-Pilot Configuration Manifest](../operations/HUMMINGBIRD-CONTROLLED-PILOT-CONFIGURATION-MANIFEST.md);
+   it intentionally contains no authorization-time values and does not satisfy
+   the Wave 1 exit until the signed evidence is attached.
 
 **Wave 1 exit evidence:** signed decision record, field-level disclosure matrix,
 pilot configuration manifest, threat/hazard workshop dates, and an enabled test
@@ -317,7 +322,10 @@ evidence, or dependency due time is removed from active work.
    disclosure policy, enrollment approach, source owner, message topics/SLA, and
    decision owners. Record unanswered decisions as blockers with dates.
 3. Create the pilot configuration/flag manifest and a test-environment release
-   checklist. Verify every patient flag is off by default.
+   checklist. The template now exists at
+   [Hummingbird Controlled-Pilot Configuration Manifest](../operations/HUMMINGBIRD-CONTROLLED-PILOT-CONFIGURATION-MANIFEST.md),
+   with every patient and related-system flag defaulting to off; fill it only
+   from signed pilot decisions in a non-production release record.
 4. Select and document the approved source adapter input for the four pilot patient
    views. The six deterministic test-only projection fixtures and one derived
    compatibility probe ratify the native DTO boundary, but they are not an approved
