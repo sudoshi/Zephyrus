@@ -5,6 +5,7 @@ namespace App\Services\Mobile\Demo;
 use App\Models\Encounter;
 use App\Models\Unit;
 use App\Services\Mobile\MobilePatientContextService;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use RuntimeException;
@@ -15,7 +16,10 @@ final class HummingbirdReferencePatientProvisioner
 
     public const DEFAULT_PATIENT_REF = 'demo-hummingbird-reference-inpatient';
 
-    public function __construct(private readonly MobilePatientContextService $patientContext) {}
+    public function __construct(
+        private readonly Application $app,
+        private readonly MobilePatientContextService $patientContext,
+    ) {}
 
     /** @return array<string, mixed> */
     public function preview(int $unitId, string $patientRef = self::DEFAULT_PATIENT_REF): array
@@ -41,6 +45,7 @@ final class HummingbirdReferencePatientProvisioner
     /** @return array<string, mixed> */
     public function provision(int $unitId, string $patientRef = self::DEFAULT_PATIENT_REF): array
     {
+        $this->assertCommitAllowed();
         $this->assertSyntheticReference($patientRef);
 
         return DB::transaction(function () use ($unitId, $patientRef): array {
@@ -100,6 +105,13 @@ final class HummingbirdReferencePatientProvisioner
     {
         if (preg_match('/^(demo|sim)-[a-z0-9][a-z0-9-]{7,95}$/', $patientRef) !== 1) {
             throw new InvalidArgumentException('Reference patient id must be a lowercase demo- or sim- pseudonym.');
+        }
+    }
+
+    private function assertCommitAllowed(): void
+    {
+        if ($this->app->environment('production')) {
+            throw new RuntimeException('reference_patient_provisioning_forbidden_in_production');
         }
     }
 

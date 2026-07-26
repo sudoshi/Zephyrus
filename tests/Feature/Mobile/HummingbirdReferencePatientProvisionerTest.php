@@ -92,6 +92,34 @@ class HummingbirdReferencePatientProvisionerTest extends TestCase
         ]);
     }
 
+    public function test_production_runtime_refuses_a_synthetic_reference_commit_but_keeps_preview_read_only(): void
+    {
+        $unit = $this->unit('Production Guard Unit');
+        $originalEnvironment = $this->app['env'];
+        $this->app['env'] = 'production';
+
+        try {
+            $preview = app(HummingbirdReferencePatientProvisioner::class)->preview((int) $unit->unit_id);
+            $this->assertFalse($preview['committed']);
+            $this->assertFalse($preview['patient_context_ref_issued']);
+
+            $this->artisan('hummingbird:seed-reference-patient', [
+                '--unit-id' => $unit->unit_id,
+                '--commit' => true,
+            ])->expectsOutputToContain('reference_patient_provisioning_forbidden_in_production')
+                ->assertFailed();
+        } finally {
+            $this->app['env'] = $originalEnvironment;
+        }
+
+        $this->assertDatabaseMissing('prod.encounters', [
+            'patient_ref' => HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
+        ]);
+        $this->assertDatabaseMissing('ops.patient_operational_context_cache', [
+            'patient_ref' => HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
+        ]);
+    }
+
     private function unit(string $name): Unit
     {
         return Unit::create([
