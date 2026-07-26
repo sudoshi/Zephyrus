@@ -205,6 +205,9 @@ human visual review records correct brand, crop, contrast, and no unwanted trans
 
 ### Stream C — Patient-safe application migration
 
+- [x] Classify and reimplement the first foundation subset only: lifecycle privacy cover,
+      Android secure-window protection, accessibility-aware decorative imagery, and a
+      released-content-only no-data state. All unlisted legacy sources remain held.
 - [ ] Classify each existing Hummingbird Patient source file as reusable safety primitive,
       reusable product behavior, test/fixture-only, or rejected legacy behavior.
 - [ ] Port primitives into Nightingale by reviewed commits, not a blind directory copy:
@@ -212,7 +215,7 @@ human visual review records correct brand, crop, contrast, and no unwanted trans
       accessibility presentation preferences, patient-safe vocabulary, and volatile drafts.
 - [ ] Reissue all product strings, accessibility IDs, test hooks, storage keys, telemetry
       event names, and diagnostics under the Nightingale namespace.
-- [ ] Require a compile-time scan proving Nightingale has no `hummingbird.patient` package,
+- [x] Require a compile-time scan proving Nightingale has no `hummingbird.patient` package,
       bundle, endpoint, storage, or user-facing string except explicit migration provenance.
 - [ ] Preserve the reference app untouched until the Nightingale migration evidence is
       independently approved; then retire it through a separately authorized change.
@@ -240,6 +243,10 @@ authorization, idempotency, audit, and patient-visible outcome evidence.
 
 ### Stream E — Accessibility, privacy, and human validation
 
+- [x] Reissue and rerun the foundation subset of automated privacy controls under Nightingale
+      identities: lifecycle cover, Android `FLAG_SECURE`, no-network boundary, large-text image
+      attenuation, iOS high-contrast image withholding, an Android high-contrast policy seam,
+      and patient-safe accessibility semantics.
 - [ ] Carry forward the existing automated privacy controls only as candidate evidence;
       rerun them under Nightingale app IDs and assets.
 - [ ] Meet WCAG 2.2 AA plus iOS/Android guidance for screen-reader navigation, focus order,
@@ -283,13 +290,13 @@ part of application development work.
 
 ## 9. Immediate implementation sequence
 
-1. Finish Debug and Release build verification for both Nightingale targets, then record the
-   platform-specific evidence and any app-store/signing prerequisites without reserving IDs.
+1. Classify the protected-storage and volatile-input subset only after documenting the
+   Nightingale identity/recovery, namespace, device-compromise, logout/deletion, and threat
+   model decisions; do not port a credential implementation first.
 2. Complete the remaining real iOS/Android launcher-surface checks for both brands, including
    dark/round/adaptive variants; retain only non-PHI screenshots as evidence.
-3. Port the former patient reference incrementally through the Stream C compile-time boundary
-   gates, starting with secure storage, no-staff-endpoint policy, privacy cover, and a
-   released-content-only empty state.
+3. Define a Nightingale-owned, default-off contract and authorization matrix before adding an
+   API client, authentication input, patient projection, or communication capability.
 4. Update this checklist and its devlog after each verified slice. Do not convert partial
    automation into clinical, privacy, accessibility, pilot, or deployment completion.
 

@@ -12,4 +12,14 @@ final class NightingaleLaunchUITests: XCTestCase {
             ].waitForExistence(timeout: 5)
         )
     }
+
+    func testPrivacyCoverHidesFoundationContentWithNightingaleIdentity() {
+        let app = XCUIApplication()
+        app.launchEnvironment["NIGHTINGALE_SHOW_PRIVACY_COVER"] = "1"
+        app.launch()
+
+        let privacyCover = app.descendants(matching: .any)["nightingale-privacy-cover"]
+        XCTAssertTrue(privacyCover.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Your privacy comes first"].isHittable)
+    }
 }
