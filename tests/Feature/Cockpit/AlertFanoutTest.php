@@ -5,6 +5,7 @@ namespace Tests\Feature\Cockpit;
 use App\Contracts\AlertChannel;
 use App\Contracts\PushNotifier;
 use App\Models\Cockpit\CockpitAlert;
+use App\Models\Ops\MetricDefinition;
 use App\Models\User;
 use App\Services\Cockpit\AlertEngine;
 use App\Services\Cockpit\AlertFanout;
@@ -14,6 +15,7 @@ use App\Services\Eddy\EddyApprovalNotifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -102,8 +104,8 @@ class AlertFanoutTest extends TestCase
         $fanout->alertOpened($warn);
         $this->assertCount(0, $this->spy->sent);
 
-        \App\Models\Ops\MetricDefinition::query()->create([
-            'metric_definition_uuid' => (string) \Illuminate\Support\Str::uuid(),
+        MetricDefinition::query()->create([
+            'metric_definition_uuid' => (string) Str::uuid(),
             'metric_key' => 'staffing.overtime',
             'label' => 'Overtime',
             'domain' => 'staffing',

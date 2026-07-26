@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Integrations;
 
+use App\Integrations\Healthcare\DTO\PollRequest;
 use App\Integrations\Healthcare\DTO\ReplayRequest;
 use App\Integrations\Healthcare\DTO\WebhookEnvelope;
+use App\Integrations\Healthcare\Services\EnterpriseConnectorControlService;
 use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Integrations\Healthcare\Synthetic\SyntheticHealthcareConnector;
 use App\Models\Org\Facility;
@@ -231,7 +233,7 @@ class SyntheticHealthcareConnectorTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'superuser', 'must_change_password' => false]);
         app(SyntheticHealthcareConnector::class)->healthCheck();
-        app(SyntheticHealthcareConnector::class)->poll(new \App\Integrations\Healthcare\DTO\PollRequest(messages: []));
+        app(SyntheticHealthcareConnector::class)->poll(new PollRequest(messages: []));
 
         $this->actingAs($user)->getJson('/api/admin/integrations/health')
             ->assertOk()
@@ -344,7 +346,7 @@ class SyntheticHealthcareConnectorTest extends TestCase
         $this->assertNotNull($draft->payload_object_id);
         $this->assertSame(
             'RECOGNIZABLE-WRITEBACK-PATIENT-4411',
-            app(\App\Integrations\Healthcare\Services\EnterpriseConnectorControlService::class)
+            app(EnterpriseConnectorControlService::class)
                 ->writebackPayload((int) $draft->writeback_draft_id, (int) $source->source_id)['description'],
         );
         $this->assertStringNotContainsString(

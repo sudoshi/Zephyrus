@@ -3,11 +3,13 @@
 namespace App\Services\Flow;
 
 use App\Models\Barrier;
+use App\Models\Bed;
 use App\Models\BedPlacementDecision;
 use App\Models\BedRequest;
 use App\Models\EdVisit;
 use App\Models\Evs\EvsEvent;
 use App\Models\OperationalEvent;
+use App\Models\ORLog;
 use App\Models\Staffing\StaffingEvent;
 use App\Models\Transport\TransportEvent;
 use App\Models\Unit;
@@ -15,6 +17,7 @@ use App\Services\Mobile\MobilePatientContextService;
 use App\Support\Hospital\HospitalManifest;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * The review half of the Flow Window — FLOW-WINDOW-PLAN §6.2 (W2, G4).
@@ -235,7 +238,7 @@ class OperationalTimelineService
                 ->get()
                 ->map(function (BedPlacementDecision $decision): array {
                     $bed = $decision->chosen_bed_id !== null
-                        ? \App\Models\Bed::find($decision->chosen_bed_id)
+                        ? Bed::find($decision->chosen_bed_id)
                         : null;
 
                     return $this->normalized(
@@ -420,7 +423,7 @@ class OperationalTimelineService
         ];
 
         $events = collect();
-        $logs = \App\Models\ORLog::query()
+        $logs = ORLog::query()
             ->from($table)
             ->with('case.room') // ORLog→case→room: OR-side milestones land in a named room
             ->where('is_deleted', false)
@@ -461,7 +464,7 @@ class OperationalTimelineService
     private function orlogTable(): ?string
     {
         foreach (['prod.orlog', 'prod.or_logs'] as $table) {
-            if (\Illuminate\Support\Facades\Schema::hasTable($table)) {
+            if (Schema::hasTable($table)) {
                 return $table;
             }
         }
@@ -542,7 +545,7 @@ class OperationalTimelineService
         return $unitId !== null ? ($this->unitLabels[$unitId] ?? null) : null;
     }
 
-    private function orMilestoneAt(\App\Models\ORLog $log, string $column): ?CarbonImmutable
+    private function orMilestoneAt(ORLog $log, string $column): ?CarbonImmutable
     {
         $value = $log->{$column};
         if ($value === null || $value === '') {

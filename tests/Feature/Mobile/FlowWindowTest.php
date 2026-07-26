@@ -4,7 +4,9 @@ namespace Tests\Feature\Mobile;
 
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Mobile\MobilePersonaCatalog;
+use App\Support\Hospital\HospitalManifest;
 use Database\Seeders\RtdcSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -151,12 +153,12 @@ class FlowWindowTest extends TestCase
             ->getContent();
 
         // The trip patient is task-linked → its ptok may appear …
-        $tripPtok = app(\App\Services\Mobile\MobilePatientContextService::class)
+        $tripPtok = app(MobilePatientContextService::class)
             ->contextRefFor('FLOWTEST-PAT-TRIP');
         $this->assertStringContainsString($tripPtok, $body);
 
         // … but the EDD patient (no transport request) must not.
-        $eddPtok = app(\App\Services\Mobile\MobilePatientContextService::class)
+        $eddPtok = app(MobilePatientContextService::class)
             ->contextRefFor('FLOWTEST-PAT-EDD');
         $this->assertStringNotContainsString($eddPtok, $body);
     }
@@ -164,7 +166,7 @@ class FlowWindowTest extends TestCase
     public function test_unit_depth_requires_a_shared_unit_assignment(): void
     {
         $micu = Unit::where('abbreviation', 'MICU')->firstOrFail();
-        $eddPtok = app(\App\Services\Mobile\MobilePatientContextService::class)
+        $eddPtok = app(MobilePatientContextService::class)
             ->contextRefFor('FLOWTEST-PAT-EDD');
 
         // A charge nurse NOT assigned to MICU: unit scope works, identity is stripped.
@@ -210,7 +212,7 @@ class FlowWindowTest extends TestCase
     public function test_bed_statuses_are_served_only_to_bed_status_lenses_at_floor_or_unit_scope(): void
     {
         $micu = Unit::where('abbreviation', 'MICU')->firstOrFail();
-        $floor = (int) app(\App\Support\Hospital\HospitalManifest::class)->unit('MICU')['floor'];
+        $floor = (int) app(HospitalManifest::class)->unit('MICU')['floor'];
 
         // EVS (event_kinds includes bed_status) at floor scope → the turn map.
         $this->actingAsRole('evs');
@@ -328,7 +330,7 @@ class FlowWindowTest extends TestCase
 
     public function test_bed_statuses_survive_a_qualifying_evs_floor_scope_delta(): void
     {
-        $floor = (int) app(\App\Support\Hospital\HospitalManifest::class)->unit('MICU')['floor'];
+        $floor = (int) app(HospitalManifest::class)->unit('MICU')['floor'];
         $this->actingAsRole('evs');
 
         $now = $this->getJson('/api/mobile/v1/flow/window?persona=evs&scope=floor:'.$floor)

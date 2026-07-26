@@ -13,6 +13,16 @@ use App\Models\Integration\ProvenanceRecord;
 use App\Models\Pharmacy\AdcTransaction;
 use App\Models\Pharmacy\MedicationOrder;
 use App\Services\Ancillary\AncillaryProjectionRebuilder;
+use App\Services\Ancillary\SlaEvaluator;
+use App\Services\Lab\LabCriticalValueProjector;
+use App\Services\Lab\LabOrderProjector;
+use App\Services\Lab\LabResultProjector;
+use App\Services\Pharmacy\AdcTransactionProjector;
+use App\Services\Pharmacy\PharmacyOrderProjector;
+use App\Services\Pharmacy\RxAdministrationProjector;
+use App\Services\Radiology\RadiologyCriticalResultProjector;
+use App\Services\Radiology\RadiologyOrderProjector;
+use App\Services\Radiology\RadiologyReadProjector;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -30,16 +40,16 @@ class AncillaryProjectionHandler implements ProjectionHandler
 
     public function __construct(
         private readonly AncillaryProjectionRebuilder $rebuilder,
-        private readonly \App\Services\Ancillary\SlaEvaluator $slaEvaluator,
-        private readonly \App\Services\Radiology\RadiologyOrderProjector $radiologyOrderProjector,
-        private readonly \App\Services\Radiology\RadiologyReadProjector $radiologyReadProjector,
-        private readonly \App\Services\Radiology\RadiologyCriticalResultProjector $radiologyCriticalResultProjector,
-        private readonly \App\Services\Lab\LabOrderProjector $labOrderProjector,
-        private readonly \App\Services\Lab\LabResultProjector $labResultProjector,
-        private readonly \App\Services\Lab\LabCriticalValueProjector $labCriticalValueProjector,
-        private readonly \App\Services\Pharmacy\PharmacyOrderProjector $pharmacyOrderProjector,
-        private readonly \App\Services\Pharmacy\AdcTransactionProjector $adcTransactionProjector,
-        private readonly \App\Services\Pharmacy\RxAdministrationProjector $rxAdministrationProjector,
+        private readonly SlaEvaluator $slaEvaluator,
+        private readonly RadiologyOrderProjector $radiologyOrderProjector,
+        private readonly RadiologyReadProjector $radiologyReadProjector,
+        private readonly RadiologyCriticalResultProjector $radiologyCriticalResultProjector,
+        private readonly LabOrderProjector $labOrderProjector,
+        private readonly LabResultProjector $labResultProjector,
+        private readonly LabCriticalValueProjector $labCriticalValueProjector,
+        private readonly PharmacyOrderProjector $pharmacyOrderProjector,
+        private readonly AdcTransactionProjector $adcTransactionProjector,
+        private readonly RxAdministrationProjector $rxAdministrationProjector,
     ) {}
 
     public function key(): string
@@ -299,7 +309,7 @@ class AncillaryProjectionHandler implements ProjectionHandler
                 );
             }
             if ($department === 'rx'
-                && in_array($milestoneCode, \App\Services\Pharmacy\PharmacyOrderProjector::MILESTONES, true)) {
+                && in_array($milestoneCode, PharmacyOrderProjector::MILESTONES, true)) {
                 // Order-linked ADC events resolve their station registry row
                 // before projection so the dispense satellite can carry it.
                 $adcStation = isset($event->payload['source_transaction_key'])

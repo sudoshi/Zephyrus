@@ -6,6 +6,7 @@ use App\Models\Bed;
 use App\Models\Facility\FacilitySpace;
 use App\Models\Unit;
 use App\Support\Hospital\HospitalManifest;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -131,7 +132,7 @@ class FloorPlateAssetService
     {
         $document = $this->build();
         Storage::disk('local')->put(self::ASSET_PATH, json_encode($document, JSON_UNESCAPED_SLASHES));
-        \Illuminate\Support\Facades\Cache::forget('flow:plates:doc');
+        Cache::forget('flow:plates:doc');
 
         return $document;
     }
@@ -146,7 +147,7 @@ class FloorPlateAssetService
      */
     public function load(): array
     {
-        return \Illuminate\Support\Facades\Cache::remember('flow:plates:doc', 300, function (): array {
+        return Cache::remember('flow:plates:doc', 300, function (): array {
             $disk = Storage::disk('local');
             if ($disk->exists(self::ASSET_PATH)) {
                 $decoded = json_decode((string) $disk->get(self::ASSET_PATH), true);

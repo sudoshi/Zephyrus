@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Deployment\Staffing;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Deployment\Staffing\StoreStaffingSourceRequest;
 use App\Models\Org\StaffingSource;
+use App\Services\Staffing\Contracts\StaffingConnector;
 use App\Services\Staffing\StaffingConnectorFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -111,7 +112,7 @@ class StaffingSourceController extends Controller
      * Build the connector from request-supplied content (csv string / fhir bundle) +
      * an optional per-run mapping override.
      */
-    private function connectorFor(StaffingSource $source, Request $request): \App\Services\Staffing\Contracts\StaffingConnector
+    private function connectorFor(StaffingSource $source, Request $request): StaffingConnector
     {
         return $this->factory->make($source, array_filter([
             'csv' => $request->input('csv'),

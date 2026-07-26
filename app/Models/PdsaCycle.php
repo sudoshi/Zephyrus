@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Ops\Intervention;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -28,6 +29,6 @@ class PdsaCycle extends Model
 
     public function interventions(): HasMany
     {
-        return $this->hasMany(\App\Models\Ops\Intervention::class, 'pdsa_cycle_id', 'pdsa_cycle_id');
+        return $this->hasMany(Intervention::class, 'pdsa_cycle_id', 'pdsa_cycle_id');
     }
 }

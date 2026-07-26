@@ -13,6 +13,7 @@ use App\Models\Raw\InboundMessage;
 use App\Models\Raw\IngestRun;
 use App\Observability\MetricRecorder;
 use App\Security\ClinicalPayloads\ClinicalPayloadStore;
+use App\Services\Home\HomeEscalationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -295,7 +296,7 @@ class PatientFlowHl7IngestPipeline
             if ((bool) config('home_hospital.enabled')
                 && in_array((string) ($normalized['event_type'] ?? ''), ['admit', 'register'], true)) {
                 try {
-                    app(\App\Services\Home\HomeEscalationService::class)
+                    app(HomeEscalationService::class)
                         ->closeForEdReturn((string) $normalized['patient_id']);
                 } catch (Throwable $exception) {
                     Log::warning('home_hospital.escalation_close_failed', [

@@ -4,6 +4,7 @@ namespace Tests\Feature\Transport;
 
 use App\Models\Transport\TransportRequest;
 use App\Models\User;
+use App\Services\Transport\TransportOperationsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -81,7 +82,7 @@ class TransportRequestApiTest extends TestCase
         $user = $this->dispatcher();
 
         TransportRequest::create([
-            'request_uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'request_uuid' => (string) Str::uuid(),
             'request_type' => 'transfer',
             'priority' => 'stat',
             'status' => 'requested',
@@ -240,7 +241,7 @@ class TransportRequestApiTest extends TestCase
             'is_deleted' => false,
         ]);
 
-        $measure = collect(app(\App\Services\Transport\TransportOperationsService::class)->measures())
+        $measure = collect(app(TransportOperationsService::class)->measures())
             ->firstWhere('key', 'vendor_acceptance_cancellation');
 
         $this->assertNotNull($internal);
@@ -285,7 +286,7 @@ class TransportRequestApiTest extends TestCase
             ]);
         }
 
-        $measures = collect(app(\App\Services\Transport\TransportOperationsService::class)->measures())
+        $measures = collect(app(TransportOperationsService::class)->measures())
             ->keyBy('key');
 
         $this->assertSame(5.0, (float) $measures['request_to_assign_min']['value']);

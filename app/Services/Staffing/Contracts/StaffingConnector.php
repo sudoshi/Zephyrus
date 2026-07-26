@@ -5,6 +5,7 @@ namespace App\Services\Staffing\Contracts;
 use App\Services\Staffing\Support\ConnectionResult;
 use App\Services\Staffing\Support\ConnectorCapabilities;
 use App\Services\Staffing\Support\PullWindow;
+use App\Services\Staffing\Support\RawStaffRecord;
 
 /**
  * Phase 7: the pluggable staffing-source contract (mirrors the Connector Contract
@@ -36,7 +37,7 @@ interface StaffingConnector
     /**
      * Stream RawStaffRecord value objects for the window.
      *
-     * @return iterable<\App\Services\Staffing\Support\RawStaffRecord>
+     * @return iterable<RawStaffRecord>
      */
     public function pullStaff(PullWindow $window): iterable;
 

@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -420,7 +421,7 @@ return new class extends Migration
                     'rotation_overlap_ends_at' => null,
                 ];
                 $versionId = (int) DB::table('integration.source_credential_versions')->insertGetId([
-                    'credential_version_uuid' => (string) \Illuminate\Support\Str::uuid7(),
+                    'credential_version_uuid' => (string) Str::uuid7(),
                     'source_credential_id' => $credential->source_credential_id,
                     'source_id' => $credential->source_id,
                     'version_number' => 1,

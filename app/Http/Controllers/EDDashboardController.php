@@ -2,19 +2,30 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesFlowLens;
+use App\Services\Dashboard\EdDashboardService;
+use App\Services\Ed\AcuityPredictionService;
+use App\Services\Ed\ArrivalPredictionService;
+use App\Services\Ed\ResourceAnalyticsService;
+use App\Services\Ed\ResourceManagementService;
+use App\Services\Ed\ResourceOptimizationService;
+use App\Services\Ed\TreatmentService;
+use App\Services\Ed\TriageService;
+use App\Services\Ed\WaitTimeService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class EDDashboardController extends Controller
 {
-    use \App\Http\Controllers\Concerns\ResolvesFlowLens;
+    use ResolvesFlowLens;
 
     /**
      * Display the ED dashboard.
      *
-     * @return \Inertia\Response
+     * @return Response
      */
-    public function index(Request $request, \App\Services\Dashboard\EdDashboardService $edDashboard)
+    public function index(Request $request, EdDashboardService $edDashboard)
     {
         $request->session()->put('workflow', 'emergency');
 
@@ -26,9 +37,9 @@ class EDDashboardController extends Controller
     /**
      * Display the ED wait time analytics.
      *
-     * @return \Inertia\Response
+     * @return Response
      */
-    public function waitTime(\App\Services\Ed\WaitTimeService $waitTime)
+    public function waitTime(WaitTimeService $waitTime)
     {
         return Inertia::render('ED/Analytics/WaitTime', $waitTime->build());
     }
@@ -36,7 +47,7 @@ class EDDashboardController extends Controller
     /**
      * Display the ED patient flow analytics.
      *
-     * @return \Inertia\Response
+     * @return Response
      */
     public function flow(Request $request)
     {
@@ -49,9 +60,9 @@ class EDDashboardController extends Controller
     /**
      * Display the ED resource utilization analytics.
      *
-     * @return \Inertia\Response
+     * @return Response
      */
-    public function resources(\App\Services\Ed\ResourceAnalyticsService $resourceAnalytics)
+    public function resources(ResourceAnalyticsService $resourceAnalytics)
     {
         return Inertia::render('ED/Analytics/Resources', $resourceAnalytics->build());
     }
@@ -59,9 +70,9 @@ class EDDashboardController extends Controller
     /**
      * Display the ED triage status board.
      *
-     * @return \Inertia\Response
+     * @return Response
      */
-    public function triage(\App\Services\Ed\TriageService $triage)
+    public function triage(TriageService $triage)
     {
         return Inertia::render('ED/Operations/Triage', $triage->build());
     }
@@ -69,9 +80,9 @@ class EDDashboardController extends Controller
     /**
      * Display the ED treatment tracking board.
      *
-     * @return \Inertia\Response
+     * @return Response
      */
-    public function treatment(\App\Services\Ed\TreatmentService $treatment)
+    public function treatment(TreatmentService $treatment)
     {
         return Inertia::render('ED/Operations/Treatment', $treatment->build());
     }
@@ -79,9 +90,9 @@ class EDDashboardController extends Controller
     /**
      * Display the ED resource management dashboard.
      *
-     * @return \Inertia\Response
+     * @return Response
      */
-    public function resourceManagement(\App\Services\Ed\ResourceManagementService $resourceManagement)
+    public function resourceManagement(ResourceManagementService $resourceManagement)
     {
         return Inertia::render('ED/Operations/Resources', $resourceManagement->build());
     }
@@ -89,9 +100,9 @@ class EDDashboardController extends Controller
     /**
      * Display the ED arrival forecast dashboard.
      *
-     * @return \Inertia\Response
+     * @return Response
      */
-    public function arrival(\App\Services\Ed\ArrivalPredictionService $arrivalPrediction)
+    public function arrival(ArrivalPredictionService $arrivalPrediction)
     {
         return Inertia::render('ED/Predictions/Arrival', $arrivalPrediction->build());
     }
@@ -99,9 +110,9 @@ class EDDashboardController extends Controller
     /**
      * Display the ED acuity prediction dashboard.
      *
-     * @return \Inertia\Response
+     * @return Response
      */
-    public function acuity(\App\Services\Ed\AcuityPredictionService $acuityPrediction)
+    public function acuity(AcuityPredictionService $acuityPrediction)
     {
         return Inertia::render('ED/Predictions/Acuity', $acuityPrediction->build());
     }
@@ -109,9 +120,9 @@ class EDDashboardController extends Controller
     /**
      * Display the ED resource planning dashboard.
      *
-     * @return \Inertia\Response
+     * @return Response
      */
-    public function resourcePlanning(\App\Services\Ed\ResourceOptimizationService $resourceOptimization)
+    public function resourcePlanning(ResourceOptimizationService $resourceOptimization)
     {
         return Inertia::render('ED/Predictions/Resources', $resourceOptimization->build());
     }

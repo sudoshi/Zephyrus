@@ -8,6 +8,7 @@ use App\Services\Analytics\MetricLineageService;
 use App\Services\Cockpit\StatusEngine;
 use App\Services\Rtdc\HouseCensusService;
 use App\Support\Operations\DurationFormatter;
+use App\Support\SurgeHeuristic;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -1088,7 +1089,7 @@ class CommandCenterDataService
 
         // Surge probability heuristic (documented, not a trained model) —
         // shared with the Flow Window projections via SurgeHeuristic.
-        $pressures = \App\Support\SurgeHeuristic::pressures(
+        $pressures = SurgeHeuristic::pressures(
             $occupancyPct, $netBeds, $predAdmissions, $sumWtDc, $avgReliability
         );
         $occupancyPressure = $pressures['occupancy_pressure'];

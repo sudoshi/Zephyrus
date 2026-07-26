@@ -225,7 +225,7 @@ jobs:
         run: bash scripts/ci/verify-shard-manifest.sh
 
       - name: Run Pint (code style)
-        run: ./vendor/bin/pint --test
+        run: ./vendor/bin/pint --test --parallel
 
       - name: Run migrations
         run: bash scripts/capture-release-evidence.sh backend-migration php artisan migrate --force

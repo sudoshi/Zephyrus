@@ -3,6 +3,7 @@
 namespace App\Services\Flow;
 
 use App\Models\Bed;
+use App\Models\BedRequest;
 use App\Models\Encounter;
 use App\Models\Evs\EvsRequest;
 use App\Models\ORCase;
@@ -15,10 +16,12 @@ use App\Services\Ed\ArrivalPredictionService;
 use App\Services\Mobile\MobilePatientContextService;
 use App\Support\Hospital\HospitalManifest;
 use App\Support\Operations\DurationFormatter;
+use App\Support\SurgeHeuristic;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * The prediction half of the Flow Window — FLOW-WINDOW-PLAN §6.3 (W3, G5).
@@ -398,7 +401,7 @@ class ForwardProjectionService
     /** @return Collection<int, array<string, mixed>> */
     private function scheduledOrCases(CarbonImmutable $from, CarbonImmutable $to): Collection
     {
-        if (! \Illuminate\Support\Facades\Schema::hasTable('prod.or_cases')) {
+        if (! Schema::hasTable('prod.or_cases')) {
             return collect(); // periop import is optional; degrade to an empty lane
         }
 
@@ -567,7 +570,7 @@ class ForwardProjectionService
         $occupied = (int) ($beds->occupied ?? 0);
         $available = (int) ($beds->available ?? 0);
         $occupancyPct = $staffed > 0 ? (int) round(100 * $occupied / $staffed) : 0;
-        $netBedsNow = $available - \App\Models\BedRequest::pending()->count();
+        $netBedsNow = $available - BedRequest::pending()->count();
 
         $row = RtdcPrediction::query()
             ->where('service_date', $from->toDateString())
@@ -579,7 +582,7 @@ class ForwardProjectionService
         $sumWtDc = (float) ($row->wdc ?? 0);
         $reliability = $this->houseReliability() ?? 0.8;
 
-        $surgePct = \App\Support\SurgeHeuristic::pressures(
+        $surgePct = SurgeHeuristic::pressures(
             $occupancyPct, $netBedsNow, $predAdmissions, $sumWtDc, $reliability
         )['surge_pct'];
 

@@ -7,6 +7,7 @@ use App\Integrations\Healthcare\Contracts\CanonicalEventMapper;
 use App\Integrations\Healthcare\DTO\CanonicalOperationalEvent;
 use App\Integrations\Healthcare\DTO\NormalizedPayload;
 use App\Rtdc\Events\CanonicalEvent as RtdcCanonicalEvent;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -108,7 +109,7 @@ class SyntheticCanonicalEventMapper implements CanonicalEventMapper
     }
 
     /** @return list<CanonicalOperationalEvent> */
-    private function mapAncillary(NormalizedPayload $payload, string $eventId, \Carbon\CarbonInterface $occurredAt): array
+    private function mapAncillary(NormalizedPayload $payload, string $eventId, CarbonInterface $occurredAt): array
     {
         $data = $payload->payload;
         $milestoneCode = $this->requiredString($data, 'milestone_code');

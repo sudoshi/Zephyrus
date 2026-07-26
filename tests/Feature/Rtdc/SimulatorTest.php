@@ -2,11 +2,15 @@
 
 namespace Tests\Feature\Rtdc;
 
+use App\Models\Bed;
+use App\Models\CensusSnapshot;
 use App\Models\Encounter;
+use App\Models\OperationalEvent;
 use App\Models\Unit;
 use App\Rtdc\EventDispatcher;
 use App\Rtdc\Simulator\SimulatorConfig;
 use App\Rtdc\Simulator\SyntheticEventSource;
+use Database\Seeders\RtdcSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,9 +20,9 @@ class SimulatorTest extends TestCase
 
     public function test_seeded_default_unit_mix_creates_units_and_beds(): void
     {
-        $this->seed(\Database\Seeders\RtdcSeeder::class);
+        $this->seed(RtdcSeeder::class);
         $this->assertEquals(25, Unit::count()); // full Summit Regional roster: 23 inpatient + ED + perioperative
-        $this->assertGreaterThan(0, \App\Models\Bed::count());
+        $this->assertGreaterThan(0, Bed::count());
     }
 
     public function test_simulator_with_fixed_seed_is_deterministic(): void
@@ -56,11 +60,11 @@ class SimulatorTest extends TestCase
         // availability. Avoids accumulating migrate:fresh DDL locks inside RefreshDatabase's
         // transaction — which overflowed max_locks_per_transaction at the 25-unit/692-bed
         // scale — and the schema re-bootstrap fragility of repeated migrate:fresh on the test DB.
-        $this->seed(\Database\Seeders\RtdcSeeder::class);
-        \App\Models\OperationalEvent::query()->delete();
-        \App\Models\CensusSnapshot::query()->delete();
+        $this->seed(RtdcSeeder::class);
+        OperationalEvent::query()->delete();
+        CensusSnapshot::query()->delete();
         Encounter::query()->delete();
-        \App\Models\Bed::query()->update(['status' => 'available']);
+        Bed::query()->update(['status' => 'available']);
 
         $dispatcher = app(EventDispatcher::class);
         // Small config: determinism is scale-independent, so we avoid seeding 70% of all
@@ -73,7 +77,7 @@ class SimulatorTest extends TestCase
             $dispatcher->dispatch($event);
         }
 
-        $rows = \App\Models\OperationalEvent::orderBy('operational_event_id')->get(['type', 'payload']);
+        $rows = OperationalEvent::orderBy('operational_event_id')->get(['type', 'payload']);
 
         $this->lastFingerprint = $rows
             ->map(fn ($r) => $r->type.'|'.($r->payload['bed_id'] ?? ''))

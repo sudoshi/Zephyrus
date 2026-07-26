@@ -4,6 +4,7 @@ namespace App\Integrations\Healthcare\Services;
 
 use App\Security\Network\IntegrationUrlPolicy;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -430,7 +431,7 @@ class IntegrationConfigurationService
         }
     }
 
-    private function sourceQuery(): \Illuminate\Database\Query\Builder
+    private function sourceQuery(): Builder
     {
         return DB::table('integration.sources as source')
             ->leftJoin('hosp_org.organizations as organization', 'organization.organization_id', '=', 'source.organization_id')

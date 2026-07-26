@@ -14,6 +14,8 @@ use App\Models\Rounds\RoundPatient;
 use App\Models\Rounds\RoundRun;
 use App\Models\Rounds\RoundTemplate;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -75,7 +77,7 @@ class RoundCommandService
         }
 
         if (! $this->authorization->canStartRun($actor, $unit)) {
-            throw new \Illuminate\Auth\Access\AuthorizationException('You are not authorized to start a round for this unit.');
+            throw new AuthorizationException('You are not authorized to start a round for this unit.');
         }
 
         $run = $this->execute(function () use ($actor, $input, $template, $unit): RoundRun {
@@ -596,7 +598,7 @@ class RoundCommandService
 
         try {
             $result = DB::transaction($fn);
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
             // A concurrent duplicate idempotency key hits the partial unique
             // index; surface it as a conflict, not a 500.
             if (str_contains($e->getMessage(), 'uq_rounds_events_idempotency')) {

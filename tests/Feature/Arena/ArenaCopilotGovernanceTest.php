@@ -3,6 +3,7 @@
 namespace Tests\Feature\Arena;
 
 use App\Domain\Arena\ArenaCopilotService;
+use App\Domain\Arena\ArenaSidecarClient;
 use App\Domain\Arena\Copilot\ArenaQueryCatalog;
 use App\Models\Ops\Approval;
 use App\Models\Ops\OperationalAction;
@@ -180,7 +181,7 @@ class ArenaCopilotGovernanceTest extends TestCase
     public function test_author_map_withholds_a_below_floor_model(): void
     {
         $this->enableCopilot();
-        $this->app->instance(\App\Domain\Arena\ArenaSidecarClient::class, new class extends \App\Domain\Arena\ArenaSidecarClient
+        $this->app->instance(ArenaSidecarClient::class, new class extends ArenaSidecarClient
         {
             public function __construct() {}
 
@@ -206,7 +207,7 @@ class ArenaCopilotGovernanceTest extends TestCase
     public function test_author_map_publishes_a_conformant_model(): void
     {
         $this->enableCopilot();
-        $this->app->instance(\App\Domain\Arena\ArenaSidecarClient::class, new class extends \App\Domain\Arena\ArenaSidecarClient
+        $this->app->instance(ArenaSidecarClient::class, new class extends ArenaSidecarClient
         {
             public function __construct() {}
 

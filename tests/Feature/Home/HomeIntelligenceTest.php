@@ -11,6 +11,7 @@ use App\Services\Flow\ForwardProjectionService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\HomeHospitalDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -62,7 +63,7 @@ class HomeIntelligenceTest extends TestCase
         $service = app(ForwardProjectionService::class);
         $scope = ['type' => 'house', 'floor' => null, 'unit_id' => null, 'patient_ref' => null];
 
-        \Illuminate\Support\Facades\Cache::flush();
+        Cache::flush();
         $items = $service->projections($from, $to, $scope, ['home_slot_free']);
         $this->assertNotEmpty($items);
         $this->assertSame('home_slot_free', $items[0]['kind']);
@@ -70,7 +71,7 @@ class HomeIntelligenceTest extends TestCase
         $this->assertSame('home_hospital.expected_discharge', $items[0]['provenance']['service']);
 
         config()->set('home_hospital.enabled', false);
-        \Illuminate\Support\Facades\Cache::flush();
+        Cache::flush();
         $this->assertSame([], $service->projections($from, $to, $scope, ['home_slot_free']));
     }
 

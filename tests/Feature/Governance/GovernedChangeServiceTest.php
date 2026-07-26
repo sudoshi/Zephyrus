@@ -8,6 +8,7 @@ use App\Models\Governance\GovernedChangeExecution;
 use App\Models\Governance\GovernedChangeRequest;
 use App\Models\User;
 use App\Services\Auth\StepUpAuthenticationService;
+use App\Services\Auth\StepUpRequired;
 use App\Services\Governance\GovernanceViolation;
 use App\Services\Governance\GovernedChangeService;
 use Illuminate\Database\QueryException;
@@ -184,7 +185,7 @@ final class GovernedChangeServiceTest extends TestCase
                 $hash,
             );
             $this->fail('Step-up must be required.');
-        } catch (\App\Services\Auth\StepUpRequired) {
+        } catch (StepUpRequired) {
             $this->addToAssertionCount(1);
         }
 

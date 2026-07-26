@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Jobs\RefreshCockpitMaterializedViews;
 use App\Models\Barrier;
 use App\Models\Bed;
 use App\Models\BedPlacementDecision;
@@ -14,6 +15,7 @@ use App\Models\PdsaCycle;
 use App\Models\RtdcPrediction;
 use App\Models\RtdcReconciliation;
 use App\Models\Unit;
+use App\Services\Demo\DistributionSampler;
 use App\Support\Hospital\HospitalManifest;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -973,7 +975,7 @@ class CommandCenterDemoSeeder extends Seeder
 
         // Afternoon-peaked discharge hour (FEEDBACK Wave 2): a uniform 0–23h gave ~50%
         // discharge-before-noon, which no hospital achieves. This lands ~30% before noon.
-        $sampler = new \App\Services\Demo\DistributionSampler;
+        $sampler = new DistributionSampler;
         $dischargeHourWeights = [
             0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 2, 6 => 3, 7 => 4, 8 => 6, 9 => 8, 10 => 9, 11 => 10,
             12 => 14, 13 => 16, 14 => 16, 15 => 14, 16 => 12, 17 => 10, 18 => 8, 19 => 6, 20 => 5, 21 => 4, 22 => 2, 23 => 1,
@@ -1019,7 +1021,7 @@ class CommandCenterDemoSeeder extends Seeder
      */
     private function refreshCockpitMaterializedViews(): void
     {
-        foreach (\App\Jobs\RefreshCockpitMaterializedViews::VIEWS as $view) {
+        foreach (RefreshCockpitMaterializedViews::VIEWS as $view) {
             try {
                 DB::statement("REFRESH MATERIALIZED VIEW {$view}");
             } catch (\Throwable $e) {
@@ -1627,7 +1629,7 @@ class CommandCenterDemoSeeder extends Seeder
         // little and the crowding term must carry the score: 34 patients
         // currently in the department (none admitted → boarders unchanged),
         // 8 still waiting for a provider, 4 on ventilators.
-        $sampler = new \App\Services\Demo\DistributionSampler;
+        $sampler = new DistributionSampler;
         for ($k = 1; $k <= 34; $k++) {
             $seed = 20260701 + $k * 17;
             $arrivedAt = now()->subMinutes($this->seededRand($seed, 20, 360));

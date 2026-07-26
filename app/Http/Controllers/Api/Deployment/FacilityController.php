@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Deployment;
 
+use App\Casts\PgTextArray;
 use App\Http\Controllers\Controller;
 use App\Models\Org\Facility;
 use Illuminate\Http\JsonResponse;
@@ -120,7 +121,7 @@ class FacilityController extends Controller
             'location_role' => $s->location_role,
             'acuity_level' => $s->acuity_level,
             'service_lines' => $serviceLinesBySpace[(int) $s->facility_space_id] ?? [],
-            'capability_tags' => \App\Casts\PgTextArray::parse($s->capability_tags),
+            'capability_tags' => PgTextArray::parse($s->capability_tags),
             'operational_targets' => $targetsBySpace[(int) $s->facility_space_id] ?? [],
             'status' => $s->status,
         ])->all();
@@ -148,7 +149,7 @@ class FacilityController extends Controller
                 'capability_level' => $r->capability_level,
                 'coverage_model' => $r->coverage_model,
                 'hours' => $r->hours,
-                'programs_present' => \App\Casts\PgTextArray::parse($r->programs_present),
+                'programs_present' => PgTextArray::parse($r->programs_present),
                 'source_evidence_type' => $r->source_evidence_type,
                 'review_status' => $r->review_status,
             ])->all();

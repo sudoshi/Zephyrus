@@ -2,6 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesFlowLens;
+use App\Services\Dashboard\RtdcDashboardService;
+use App\Services\Rtdc\AncillaryServicesService;
+use App\Services\Rtdc\BedTrackingService;
+use App\Services\Rtdc\DemandForecastService;
+use App\Services\Rtdc\DischargePrioritiesService;
+use App\Services\Rtdc\PerformanceAnalyticsService;
+use App\Services\Rtdc\ResourceAnalyticsService;
+use App\Services\Rtdc\ResourcePlanningAnalyticsService;
+use App\Services\Rtdc\RiskAssessmentService;
+use App\Services\Rtdc\ServiceHuddleService;
+use App\Services\Rtdc\TrendsAnalyticsService;
+use App\Services\Rtdc\UtilizationAnalyticsService;
 use App\Services\RtdcService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -9,7 +22,7 @@ use Inertia\Response as InertiaResponse;
 
 class RTDCDashboardController extends Controller
 {
-    use \App\Http\Controllers\Concerns\ResolvesFlowLens;
+    use ResolvesFlowLens;
 
     public function __construct(
         private readonly RtdcService $rtdcService,
@@ -18,7 +31,7 @@ class RTDCDashboardController extends Controller
     /**
      * Display the RTDC dashboard.
      */
-    public function index(Request $request, \App\Services\Dashboard\RtdcDashboardService $dashboard): InertiaResponse
+    public function index(Request $request, RtdcDashboardService $dashboard): InertiaResponse
     {
         $this->rtdcService->activateWorkflow($request);
 
@@ -36,7 +49,7 @@ class RTDCDashboardController extends Controller
     /**
      * Display the bed tracking page.
      */
-    public function bedTracking(\App\Services\Rtdc\BedTrackingService $bedTracking): InertiaResponse
+    public function bedTracking(BedTrackingService $bedTracking): InertiaResponse
     {
         return Inertia::render('RTDC/BedTracking', $bedTracking->build());
     }
@@ -59,7 +72,7 @@ class RTDCDashboardController extends Controller
     /**
      * Display the ancillary services page.
      */
-    public function ancillaryServices(\App\Services\Rtdc\AncillaryServicesService $service): InertiaResponse
+    public function ancillaryServices(AncillaryServicesService $service): InertiaResponse
     {
         return Inertia::render('RTDC/AncillaryServices', [
             'unitServices' => $service->build(),
@@ -69,7 +82,7 @@ class RTDCDashboardController extends Controller
     /**
      * Display the discharge priorities page (live, computed from prod.*).
      */
-    public function dischargePriorities(\App\Services\Rtdc\DischargePrioritiesService $service): InertiaResponse
+    public function dischargePriorities(DischargePrioritiesService $service): InertiaResponse
     {
         return Inertia::render('RTDC/DischargePriorities', $service->build());
     }
@@ -95,7 +108,7 @@ class RTDCDashboardController extends Controller
     /**
      * Display the service huddle page.
      */
-    public function serviceHuddle(Request $request, \App\Services\Rtdc\ServiceHuddleService $serviceHuddle): InertiaResponse
+    public function serviceHuddle(Request $request, ServiceHuddleService $serviceHuddle): InertiaResponse
     {
         $this->rtdcService->activateWorkflow($request);
 
@@ -128,7 +141,7 @@ class RTDCDashboardController extends Controller
     /**
      * Display the utilization page (live, computed from prod.*).
      */
-    public function utilization(\App\Services\Rtdc\UtilizationAnalyticsService $utilization): InertiaResponse
+    public function utilization(UtilizationAnalyticsService $utilization): InertiaResponse
     {
         return Inertia::render('RTDC/Analytics/Utilization', $utilization->build());
     }
@@ -136,7 +149,7 @@ class RTDCDashboardController extends Controller
     /**
      * Display the performance metrics page (live, computed from prod.*).
      */
-    public function performance(\App\Services\Rtdc\PerformanceAnalyticsService $service): InertiaResponse
+    public function performance(PerformanceAnalyticsService $service): InertiaResponse
     {
         return Inertia::render('RTDC/Analytics/Performance', $service->build());
     }
@@ -144,7 +157,7 @@ class RTDCDashboardController extends Controller
     /**
      * Display the resources analytics page (live, computed from prod.*).
      */
-    public function resources(\App\Services\Rtdc\ResourceAnalyticsService $service): InertiaResponse
+    public function resources(ResourceAnalyticsService $service): InertiaResponse
     {
         return Inertia::render('RTDC/Analytics/Resources', $service->build());
     }
@@ -152,7 +165,7 @@ class RTDCDashboardController extends Controller
     /**
      * Display the trends page (live, computed from prod.*).
      */
-    public function trends(\App\Services\Rtdc\TrendsAnalyticsService $trends): InertiaResponse
+    public function trends(TrendsAnalyticsService $trends): InertiaResponse
     {
         return Inertia::render('RTDC/Analytics/Trends', $trends->build());
     }
@@ -160,7 +173,7 @@ class RTDCDashboardController extends Controller
     /**
      * Display the demand forecast page (live, computed from prod.*).
      */
-    public function demandForecast(\App\Services\Rtdc\DemandForecastService $service): InertiaResponse
+    public function demandForecast(DemandForecastService $service): InertiaResponse
     {
         return Inertia::render('RTDC/Predictions/DemandForecast', $service->build());
     }
@@ -168,7 +181,7 @@ class RTDCDashboardController extends Controller
     /**
      * Display the resource planning page (live, computed from prod.*).
      */
-    public function resourcePlanning(\App\Services\Rtdc\ResourcePlanningAnalyticsService $service): InertiaResponse
+    public function resourcePlanning(ResourcePlanningAnalyticsService $service): InertiaResponse
     {
         return Inertia::render('RTDC/Predictions/ResourcePlanning', $service->build());
     }
@@ -176,7 +189,7 @@ class RTDCDashboardController extends Controller
     /**
      * Display the risk assessment page (live, computed from prod.*).
      */
-    public function riskAssessment(\App\Services\Rtdc\RiskAssessmentService $service): InertiaResponse
+    public function riskAssessment(RiskAssessmentService $service): InertiaResponse
     {
         return Inertia::render('RTDC/Predictions/RiskAssessment', $service->build());
     }
