@@ -248,6 +248,20 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         attachScreenshot(named: "Privacy-Cover")
     }
 
+    func testScreenCapturePrivacyCoverHidesCareContentBeforeItCanBeShared() {
+        app.terminate()
+        app = XCUIApplication()
+        app.launchEnvironment["HBP_SYNTHETIC_REFERENCE"] = "1"
+        app.launchEnvironment["HBP_SHOW_SCREEN_CAPTURE_PRIVACY_COVER"] = "1"
+        app.launch()
+
+        let cover = app.descendants(matching: .any)["patient-privacy-cover"]
+        XCTAssertTrue(cover.waitForExistence(timeout: 5))
+        XCTAssertTrue(cover.label.contains("screen recording or sharing"))
+        XCTAssertFalse(app.tabBars.buttons["Today"].isHittable)
+        attachScreenshot(named: "Screen-Capture-Privacy-Cover")
+    }
+
     func testAuthenticationFailureUsesAReadablePatientSafeErrorState() {
         app.terminate()
         app = XCUIApplication()

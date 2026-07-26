@@ -29,6 +29,7 @@ private struct PatientPrivacyProtectedRoot: View {
     @ObservedObject var viewModel: PatientAppViewModel
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @StateObject private var screenCaptureMonitor = PatientScreenCaptureMonitor()
     @State private var shouldRevalidateAccessOnActivation = false
 
     private var presentationPreferences: PatientPresentationPreferences {
@@ -39,8 +40,8 @@ private struct PatientPrivacyProtectedRoot: View {
         ZStack {
             PatientRootView(viewModel: viewModel)
 
-            if privacyCoverVisible {
-                PatientPrivacyCoverView()
+            if let privacyCoverReason {
+                PatientPrivacyCoverView(reason: privacyCoverReason)
                     .transition(effectiveReduceMotion ? .identity : .opacity)
                     .zIndex(100)
             }
@@ -63,16 +64,35 @@ private struct PatientPrivacyProtectedRoot: View {
         }
     }
 
-    private var privacyCoverVisible: Bool {
+    private var privacyCoverReason: PatientPrivacyCoverReason? {
+        if screenCaptureMonitor.isCaptureActive || debugScreenCaptureCoverRequested {
+            return .screenCapture
+        }
+
+        if scenePhase != .active || debugPrivacyCoverRequested {
+            return .inactive
+        }
+
+        if shouldRevalidateAccessOnActivation || viewModel.isForegroundAccessValidationInProgress {
+            return .accessVerification
+        }
+
+        return nil
+    }
+
+    private var debugPrivacyCoverRequested: Bool {
         #if DEBUG
-        scenePhase != .active
-            || shouldRevalidateAccessOnActivation
-            || viewModel.isForegroundAccessValidationInProgress
-            || ProcessInfo.processInfo.environment["HBP_SHOW_PRIVACY_COVER"] == "1"
+        ProcessInfo.processInfo.environment["HBP_SHOW_PRIVACY_COVER"] == "1"
         #else
-        scenePhase != .active
-            || shouldRevalidateAccessOnActivation
-            || viewModel.isForegroundAccessValidationInProgress
+        false
+        #endif
+    }
+
+    private var debugScreenCaptureCoverRequested: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.environment["HBP_SHOW_SCREEN_CAPTURE_PRIVACY_COVER"] == "1"
+        #else
+        false
         #endif
     }
 

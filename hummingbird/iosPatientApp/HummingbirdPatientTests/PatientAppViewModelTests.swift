@@ -1,8 +1,30 @@
 import XCTest
+import UIKit
 @testable import HummingbirdPatient
 
 @MainActor
 final class PatientAppViewModelTests: XCTestCase {
+    func testScreenCaptureMonitorCoversActiveCaptureAndStopsWhenTheSystemReportsItEnded() async {
+        let notificationCenter = NotificationCenter()
+        var captureActive = false
+        let monitor = PatientScreenCaptureMonitor(
+            notificationCenter: notificationCenter,
+            captureState: { captureActive }
+        )
+
+        XCTAssertFalse(monitor.isCaptureActive)
+
+        captureActive = true
+        notificationCenter.post(name: UIScreen.capturedDidChangeNotification, object: nil)
+        await Task.yield()
+        XCTAssertTrue(monitor.isCaptureActive)
+
+        captureActive = false
+        notificationCenter.post(name: UIScreen.capturedDidChangeNotification, object: nil)
+        await Task.yield()
+        XCTAssertFalse(monitor.isCaptureActive)
+    }
+
     func testSyntheticReferenceIsClearlyLabeledAndContainsUncertaintyAndProvenance() {
         let snapshot = PatientExperienceSnapshot.syntheticReference(now: Date(timeIntervalSince1970: 1_700_000_000))
 
