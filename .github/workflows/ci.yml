@@ -782,6 +782,7 @@ jobs:
           node scripts/ci/verify-nightingale-communication-notification-classification.mjs . --self-test
           node scripts/ci/verify-nightingale-journey-preference-release-classification.mjs . --self-test
           node scripts/ci/verify-nightingale-threat-hazard-model.mjs . --self-test
+          node scripts/ci/verify-nightingale-foundation-dependency-inventory.mjs . --self-test
           php scripts/ci/verify-nightingale-backend-foundation.php . --self-test
           bash scripts/ci/verify-nightingale-product-boundary.sh .
 

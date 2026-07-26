@@ -23,7 +23,11 @@ and light/dark contrast matrix; this does not establish product-wide WCAG confor
 human approval. A draft foundation threat and clinical-hazard model now versions the
 current trust boundaries, implemented controls, 22 security/privacy threats, 22 clinical
 hazards, 20 activation gates, incident requirements, and open risks. It is not a safety
-case, compliance claim, residual-risk acceptance, or live-use approval.
+case, compliance claim, residual-risk acceptance, or live-use approval. A generated
+foundation dependency inventory now binds seven direct Android Release runtime
+declarations, 83 resolved components, 457 dependency edges, and the current zero-package
+iOS application target to exact source hashes. It is not a standards-conformant SBOM,
+vulnerability/provenance assessment, or supply-chain approval.
 
 Current product-identity records:
 
@@ -42,6 +46,8 @@ Current product-identity records:
 - [Presentation-preferences foundation decision and evidence](./PRESENTATION-PREFERENCES-FOUNDATION-DECISION-2026-07-26.md)
 - [Foundation accessibility and layout matrix](./FOUNDATION-ACCESSIBILITY-LAYOUT-MATRIX-2026-07-26.md)
 - [Draft foundation threat and clinical-hazard model](./FOUNDATION-THREAT-AND-HAZARD-MODEL-2026-07-26.md)
+- [Foundation dependency inventory decision and evidence](./FOUNDATION-DEPENDENCY-INVENTORY-2026-07-26.md)
+- [Generated foundation dependency inventory](./supply-chain/foundation-dependency-inventory.v0.json)
 - [Empty/default-off contract foundation](./api-contract/nightingale-foundation.v0.json)
 - [Identity candidate and fixtures](./identity/candidates/v0/candidate.json)
 - [Current-inpatient source candidate and fixtures](./source-candidates/current-inpatient/v0/candidate.json)

@@ -180,10 +180,17 @@ text, imply a clinical outcome, or substitute for status language.
       reference.
 - [x] Establish an app-store and support naming checklist; reserve identifiers only through
       authorized Apple/Google/organization processes.
+- [x] Generate and mechanically verify the bounded foundation dependency inventory:
+      seven direct Android Release runtime declarations, 83 resolved components, 457
+      dependency edges, zero iOS third-party packages, and four Apple system-module
+      imports, all bound to exact source hashes. This is not a standards-conformant SBOM,
+      vulnerability/provenance assessment, license review, or supply-chain approval.
 
 **Exit evidence:** both empty Nightingale targets build in Debug and Release, have no staff
 source imports or endpoints, expose only the Nightingale name, and have a generated
-software-bill-of-materials/dependency inventory. No patient feature becomes enabled.
+dependency inventory. The bounded Stream A engineering exit evidence is present; external
+identifier reservation, signing, distribution, and every live-feature gate remain separate
+and open. No patient feature becomes enabled.
 
 ### Stream B — Brand and icon implementation
 
@@ -456,6 +463,12 @@ part of application development work.
         high/critical live-data hazards disabled, records no approval or accepted residual
         risk, and leaves independent ratification, red-team/tabletop, penetration, signed
         artifact, non-production integration, pilot, and release evidence open.
+16. [x] Generate and mechanically enforce the foundation dependency inventory. Resolve the
+        Android Release runtime graph through Gradle’s structured resolution model, bind
+        seven declarations/83 components/457 edges and the zero-package iOS application
+        target to source hashes, and explicitly withhold standards, vulnerability,
+        provenance, license, signing, artifact, distribution, and supply-chain approval
+        claims.
 
 ## 10. Explicit holds
 

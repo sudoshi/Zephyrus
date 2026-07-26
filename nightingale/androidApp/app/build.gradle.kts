@@ -1,3 +1,7 @@
+import groovy.json.JsonOutput
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.result.ResolvedDependencyResult
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -97,4 +101,98 @@ tasks.register("verifyNightingaleProductBoundary") {
 
 tasks.named("check").configure {
     dependsOn("verifyNightingaleProductBoundary")
+}
+
+tasks.register("writeNightingaleReleaseDependencyResolution") {
+    group = "reporting"
+    description =
+        "Writes the resolved Nightingale Release runtime dependency graph for the governed foundation inventory."
+
+    val outputFile =
+        layout.buildDirectory.file(
+            "reports/nightingale/release-runtime-dependency-resolution.json",
+        )
+    outputs.file(outputFile)
+    outputs.upToDateWhen { false }
+
+    doLast {
+        val configuration = configurations.getByName("releaseRuntimeClasspath")
+        val resolution = configuration.incoming.resolutionResult
+
+        fun componentCoordinate(identifier: Any): String =
+            when (identifier) {
+                is ModuleComponentIdentifier ->
+                    "${identifier.group}:${identifier.module}:${identifier.version}"
+
+                else -> identifier.toString()
+            }
+
+        val declaredDependencies =
+            configuration.allDependencies
+                .map { dependency ->
+                    linkedMapOf(
+                        "group" to dependency.group,
+                        "module" to dependency.name,
+                        "requested_version" to dependency.version,
+                    )
+                }.sortedWith(
+                    compareBy(
+                        { it["group"]?.toString().orEmpty() },
+                        { it["module"]?.toString().orEmpty() },
+                        { it["requested_version"]?.toString().orEmpty() },
+                    ),
+                )
+
+        val resolvedComponents =
+            resolution.allComponents
+                .mapNotNull { component ->
+                    val identifier = component.id as? ModuleComponentIdentifier
+                        ?: return@mapNotNull null
+                    linkedMapOf(
+                        "group" to identifier.group,
+                        "module" to identifier.module,
+                        "version" to identifier.version,
+                    )
+                }.sortedWith(
+                    compareBy(
+                        { it["group"].toString() },
+                        { it["module"].toString() },
+                        { it["version"].toString() },
+                    ),
+                )
+
+        val dependencyEdges =
+            resolution.allDependencies
+                .mapNotNull { dependency ->
+                    val resolved = dependency as? ResolvedDependencyResult
+                        ?: return@mapNotNull null
+                    linkedMapOf(
+                        "from" to componentCoordinate(resolved.from.id),
+                        "requested" to resolved.requested.displayName,
+                        "selected" to componentCoordinate(resolved.selected.id),
+                    )
+                }.distinct()
+                .sortedWith(
+                    compareBy(
+                        { it["from"].toString() },
+                        { it["requested"].toString() },
+                        { it["selected"].toString() },
+                    ),
+                )
+
+        val report =
+            linkedMapOf(
+                "configuration" to configuration.name,
+                "declared_dependencies" to declaredDependencies,
+                "resolved_components" to resolvedComponents,
+                "dependency_edges" to dependencyEdges,
+            )
+
+        val destination = outputFile.get().asFile
+        destination.parentFile.mkdirs()
+        destination.writeText(JsonOutput.prettyPrint(JsonOutput.toJson(report)) + "\n")
+        logger.lifecycle(
+            "Wrote ${resolvedComponents.size} resolved Nightingale Release runtime components to ${destination.absolutePath}",
+        )
+    }
 }

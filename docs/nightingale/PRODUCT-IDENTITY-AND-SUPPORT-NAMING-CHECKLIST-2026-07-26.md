@@ -115,6 +115,12 @@ Before a capability is introduced, its identifier must be independent and review
 - [ ] Accessibility identifiers and automated-test hooks.
 - [ ] Localized string catalogs and store metadata.
 - [ ] Build, artifact, SBOM, signing, and release-manifest names.
+- [x] Reserve the repository-local foundation dependency-inventory identity as
+      `net.acumenus.nightingale.foundation-dependency-inventory` at schema version 1 and
+      the canonical path
+      `docs/nightingale/supply-chain/foundation-dependency-inventory.v0.json`. This closes
+      only the current inventory name; the combined build/artifact/SBOM/signing/
+      release-manifest item above remains open.
 - [ ] Privacy, terms, status, support, and account-deletion URLs.
 
 No Nightingale namespace may contain `hummingbird.patient`, and no Hummingbird namespace
@@ -135,6 +141,10 @@ security, clinical, accessibility, or patient-advisor approval:
 - [x] Actual iOS 26.3 and Android API 35 launcher/splash evidence shows the correct marks.
 - [x] Nightingale’s compile-time boundary scan rejects Hummingbird identifiers and network
       clients.
+- [x] The generated, source-hash-bound foundation dependency inventory records seven direct
+      Android Release runtime declarations, 83 resolved components, 457 edges, zero iOS
+      third-party packages, and four Apple system-module imports; it expressly withholds
+      SBOM-conformance, vulnerability, provenance, license, signing, and approval claims.
 - [x] Hummingbird's repository-owned WidgetKit, Live Activity, app-group, APNs, Android
       widget, and notification-channel identities remain staff-only.
 - [x] Nightingale has no unapproved notification, push, widget, extension, app-group,

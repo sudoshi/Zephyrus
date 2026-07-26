@@ -1363,5 +1363,89 @@ deployment authorization.
   named approval are still required.
 - No production database, patient, principal, encounter, identity link, source, projection,
   message, notification, credential, integration, migration, deployment, pilot, or release
-  state was read or changed. Commit/push and exact-SHA CI evidence remain required for this
-  model slice.
+  state was read or changed.
+- Published the model as commit `b772b0e3b45daf75fa60aa83721e0eb4ba163e3c`.
+  Exact-SHA
+  [CI run 30224139839](https://github.com/sudoshi/Zephyrus/actions/runs/30224139839)
+  passed all 18 jobs with no failure or rerun.
+
+## Foundation dependency inventory
+
+### Gap and bounded decision
+
+- Reconciled the Stream A exit evidence against the actual repository and found that the
+  required generated software-bill-of-materials/dependency-inventory evidence did not
+  exist. The identity checklist’s combined build/artifact/SBOM/signing/release-manifest row
+  also remained open.
+- Chose a precise **governed foundation dependency inventory** instead of labeling a custom
+  file as a standards-conformant SBOM. The record explicitly excludes CycloneDX/SPDX
+  conformance, license conclusions, vulnerability/exploitability findings, artifact
+  checksums, registry/source provenance, build-plugin transitive graphs, signed artifacts,
+  and distribution approval.
+- Kept the combined identity-checklist row open. Only the repository-local inventory
+  identity and current bounded inventory evidence are closed; build artifact names,
+  standards-form SBOM naming, signing, and release manifests remain unresolved.
+
+### Deterministic Android graph
+
+- Added the Gradle reporting task
+  `:app:writeNightingaleReleaseDependencyResolution`. It queries the structured
+  `ResolutionResult` for `releaseRuntimeClasspath`, records direct declarations, unique
+  external module components, and unique resolved dependency relationships, then
+  deterministically tuple-sorts the output.
+- Added the cross-platform generator
+  `scripts/ci/generate-nightingale-foundation-dependency-inventory.mjs`. It invokes the
+  Gradle task with JDK 17, parses the structured report, derives declared build
+  requirements, inspects the iOS source boundary, computes exact source hashes, and writes
+  the canonical record without a timestamp.
+- The current graph contains seven direct Android Release runtime declarations, 83 unique
+  resolved external components, and 457 unique dependency edges. The larger transitive
+  count is not represented as 83 first-order product choices.
+- An initial local dependency diagnostic failed closed under the shell’s Java 8 runtime
+  because the build requires at least JVM 11. It is not evidence. Generation was rerun with
+  Android Studio’s JDK 17 and succeeded.
+
+### iOS boundary
+
+- Inspected the XcodeGen application-target source and the bounded iOS root. There is no
+  XcodeGen `packages:` block or target `package:` dependency and no `Package.swift`,
+  `Package.resolved`, `Podfile`, `Podfile.lock`, `Cartfile`, or `Cartfile.resolved`.
+- Recorded zero iOS third-party runtime packages and the four Apple modules imported by the
+  application target: `Combine`, `Foundation`, `Security`, and `SwiftUI`.
+- Explicitly limited the finding: it does not inventory Apple SDK/OS contents, Xcode or
+  compiler components, or a signed archive’s embedded binaries.
+
+### Source identity and enforcement
+
+- Added the canonical generated record at
+  `docs/nightingale/supply-chain/foundation-dependency-inventory.v0.json` using schema
+  `net.acumenus.nightingale.foundation-dependency-inventory`, version 1.
+- Bound it by SHA-256 to the Android app/root/settings Gradle sources, Gradle wrapper
+  properties, iOS XcodeGen source, and generator. Any change to a dependency, repository,
+  plugin, wrapper, SDK declaration, project source, or generator requires regeneration and
+  review.
+- Added
+  `scripts/ci/verify-nightingale-foundation-dependency-inventory.mjs` to the docs-sensitive
+  Nightingale CI job. It verifies product/release identity, scope limitations, source
+  hashes, exact direct declarations, selected component versions, graph uniqueness/order/
+  referential integrity, reconciled counts, build requirements, the zero-package iOS
+  state, and the non-authorization statements.
+- Nine negative mutations prove rejection of patient-data and production-access claims, a
+  standards overclaim, stale source hash, removed direct dependency, duplicate component,
+  unknown graph target, asserted iOS third-party package, and live-release approval claim.
+
+### Documentation and residual risk
+
+- Added the detailed
+  [foundation dependency inventory decision and evidence](../nightingale/FOUNDATION-DEPENDENCY-INVENTORY-2026-07-26.md)
+  and linked the generated record from the Nightingale documentation index.
+- Updated the plan to record the bounded Stream A dependency-inventory exit evidence while
+  leaving external identifier reservation, signing, stores, live features, and release
+  gates open.
+- Updated `THR-SC-001` to reference the generated source-hash-bound Release runtime
+  inventory. `RISK-007` remains open because exact-SHA CI and graph drift detection do not
+  provide an approved vulnerability/provenance response program.
+- No patient, patient record, production database, production API, identity, grant,
+  session, credential, route, network permission, source adapter, disclosure, mutation,
+  message, notification, migration, deployment, pilot, or release state was read or
+  changed. Fresh commit/push and exact-SHA CI evidence remain required for this slice.
