@@ -1,0 +1,1683 @@
+{
+    "schema_version": 1,
+    "classification_id": "nightingale-communication-notification-source-classification.v1",
+    "reviewed_source_commit": "be8405a0f768bf239862b790b3eeae80b8aad2ad",
+    "reviewed_at": "2026-07-26",
+    "status": "evidence_only_not_approved_for_implementation",
+    "scope": [
+        "patient_communication_contract",
+        "patient_mutation_delivery",
+        "staff_handoff_routing",
+        "notification_registration_delivery",
+        "native_patient_experience",
+        "error_offline_urgency"
+    ],
+    "global_constraints": {
+        "implementation_permitted": false,
+        "runtime_adoption_permitted": false,
+        "route_registration_permitted": false,
+        "legacy_route_alias_permitted": false,
+        "legacy_topic_copy_permitted": false,
+        "legacy_urgent_copy_permitted": false,
+        "notification_provider_enabled": false,
+        "notification_device_registration_enabled": false,
+        "patient_push_delivery_enabled": false,
+        "patient_email_delivery_enabled": false,
+        "patient_sms_delivery_enabled": false,
+        "notification_payload_permitted": false,
+        "patient_foreground_polling_enabled": false,
+        "offline_mutation_queue_enabled": false,
+        "retry_identity_regeneration_permitted": false,
+        "server_acceptance_counts_as_care_team_delivery": false,
+        "production_data_used": false,
+        "production_query_permitted": false,
+        "production_replay_permitted": false,
+        "patient_or_principal_created": false
+    },
+    "required_findings": {
+        "patient_push_delivery_absent": true,
+        "patient_native_automatic_refresh_absent": true,
+        "ambiguous_retry_reuses_operation_identity": false,
+        "server_acceptance_proves_staff_projection": false,
+        "ios_accepts_backend_escalated_delivery_state": false,
+        "android_maps_all_backend_ownership_states": false,
+        "android_maps_all_backend_delivery_states": false,
+        "urgent_guidance_is_locale_bound_release_content": false,
+        "notification_preferences_match_available_delivery_channels": false,
+        "staff_close_reason_breaks_patient_thread_decode": false
+    },
+    "dispositions": {
+        "reimplement_principle_only": "A bounded safety property may inform a new Nightingale-owned design, but no code, identifier, route, schema, copy, state, provider, credential, or product policy is approved for reuse.",
+        "evidence_only": "The source or test is retained as evidence about current behavior and coverage. It is not a Nightingale requirement and cannot authorize implementation.",
+        "held": "The behavior depends on unresolved ownership, assurance, clinical, privacy, source, contract, content, accessibility, notification, or patient-language decisions.",
+        "reject": "The behavior is incompatible with the independent Nightingale boundary and must not be migrated."
+    },
+    "decisions": {
+        "contract_evidence_only": {
+            "disposition": "evidence_only",
+            "rationale": "Inventory legacy operations, states, copy, provider assumptions, and hazards only; no path, operation identifier, schema, topic, notification copy, or security scheme becomes Nightingale authority."
+        },
+        "configuration_rejected": {
+            "disposition": "reject",
+            "rationale": "Reject Hummingbird flags, policy/version values, topic copy, urgent guidance, response-window copy, provider settings, token names, and environment activation as Nightingale defaults."
+        },
+        "routes_rejected": {
+            "disposition": "reject",
+            "rationale": "Reject legacy patient and staff routes, middleware compositions, schedules, aliases, redirects, and proxies; Nightingale remains a separate zero-operation contract."
+        },
+        "ledger_principles_held": {
+            "disposition": "held",
+            "rationale": "Append-only events, encrypted content, content-free routing, idempotency, optimistic concurrency, and immutable delivery attempts are candidate properties, but every Nightingale table, state, retention rule, key lifecycle, and projection remains unapproved."
+        },
+        "staff_dispatch_evidence_only": {
+            "disposition": "evidence_only",
+            "rationale": "Consumer heartbeat, bounded dispatch, reconciliation, and escalation scheduling are operational evidence only; no legacy command, queue, cadence, consumer, or worker is approved."
+        },
+        "controller_boundary_evidence_only": {
+            "disposition": "evidence_only",
+            "rationale": "Request-time authorization, generic non-disclosure, no-store response handling, and audit boundaries are evidence; the controllers and their response semantics are not reusable Nightingale endpoints."
+        },
+        "default_off_gates_principle_only": {
+            "disposition": "reimplement_principle_only",
+            "rationale": "Layered default-off product, operation, policy, source, and staff-readiness gates are required in principle; Hummingbird middleware and configuration are rejected."
+        },
+        "request_shapes_held": {
+            "disposition": "held",
+            "rationale": "Bounded text, control-character rejection, explicit concurrency, and correction/retraction separation are candidate controls; patient topics, body limits, close reasons, urgent versioning, and mutation shapes require Nightingale approval."
+        },
+        "notification_registration_held": {
+            "disposition": "held",
+            "rationale": "Token encryption, digest lookup, principal ownership, rebind/revoke transactions, and audit are candidate controls, but registration alone is not delivery and no Nightingale provider, payload, consent, lifecycle, or native registration exists."
+        },
+        "staff_request_shapes_held": {
+            "disposition": "held",
+            "rationale": "Claim, response, close, release, reassignment, reroute, version, and idempotency inputs remain staff-workflow evidence; Nightingale needs independently approved patient-to-team responsibility semantics."
+        },
+        "patient_ledgers_principle_only": {
+            "disposition": "reimplement_principle_only",
+            "rationale": "Immutable encrypted message content, append-only receipts/routing, content-free outbox, and explicit device/delivery records are useful principles; legacy models, states, identifiers, retention, and access relationships are not approved."
+        },
+        "staff_projection_held": {
+            "disposition": "held",
+            "rationale": "Responsibility pools, eligible responders, fresh heartbeats, work-item projection, actions, and round-question promotion are useful evidence but require clinical operations ownership, audit, downtime, and staffing approval."
+        },
+        "messaging_policy_principle_only": {
+            "disposition": "reimplement_principle_only",
+            "rationale": "Reimplement exact current encounter/grant authorization, immutable encrypted content, append-only corrections, content-free routing, and replay safety only after a Nightingale contract and named approvals exist."
+        },
+        "staff_handoff_principle_only": {
+            "disposition": "reimplement_principle_only",
+            "rationale": "Reimplement verified routing readiness, responsibility ownership, bounded escalation, lifecycle reconciliation, and patient-visible receipts as independently specified Nightingale behavior; legacy states and services are evidence only."
+        },
+        "test_evidence_only": {
+            "disposition": "evidence_only",
+            "rationale": "Retain test cases as hazard, privacy, authorization, replay, routing, and rendering evidence; no fixture, assertion vocabulary, test route, synthetic identity, or expected copy authorizes product behavior."
+        },
+        "patient_client_held": {
+            "disposition": "held",
+            "rationale": "The legacy patient clients expose useful failure and accessibility lessons but are not migrated: their retry identity, delivery wording, enum handling, refresh behavior, notification preferences, copy, and offline behavior require new Nightingale decisions."
+        },
+        "staff_client_evidence_only": {
+            "disposition": "evidence_only",
+            "rationale": "Foreground polling, privacy-aware mutation handling, routing controls, and staff state rendering are compatibility evidence only; Nightingale must not copy staff Hummingbird code or operational identity."
+        }
+    },
+    "sources": [
+        {
+            "path": "app/Console/Commands/HummingbirdConsumePatientMessageHandoffCommand.php",
+            "sha256": "3da169d2cbd999e7984c89c12158db852b4b16d5a46143d43b8c467724104797",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_dispatch_evidence_only"
+        },
+        {
+            "path": "app/Console/Commands/HummingbirdEscalatePatientCommunicationsCommand.php",
+            "sha256": "e724fe987d12767781afcd8c66444ed9fb203f1d00e8100c3c1544ecd33c6d17",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_dispatch_evidence_only"
+        },
+        {
+            "path": "app/Console/Commands/HummingbirdReconcilePatientCommunicationsCommand.php",
+            "sha256": "a6c46201878b7bfac3e9b68cda066584791fdb9ee46971ef6e067d4e8a25d0b8",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_dispatch_evidence_only"
+        },
+        {
+            "path": "app/Contracts/Patient/PatientMessageHandoffReadiness.php",
+            "sha256": "247a5268c8cd037b1cad90b210492aaf723a6723e275d4a268fd550bc00db25c",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_dispatch_evidence_only"
+        },
+        {
+            "path": "app/Http/Controllers/Api/Mobile/PatientCommunicationController.php",
+            "sha256": "42c33a3fb4783868d62c02c42eef03ca3b0dee9d5650a8c3998ebb9fcdb0b334",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "controller_boundary_evidence_only"
+        },
+        {
+            "path": "app/Http/Controllers/Api/Patient/EducationClarificationController.php",
+            "sha256": "97a2833c561b9aa963afb82707f1f9ce5c5f8e696b493568a86436bd50bebfb1",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "controller_boundary_evidence_only"
+        },
+        {
+            "path": "app/Http/Controllers/Api/Patient/MessagingController.php",
+            "sha256": "2e2f29809b549f5ee5fbd095557793b261eb69451ad361c2a4690dc561b23f79",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "controller_boundary_evidence_only"
+        },
+        {
+            "path": "app/Http/Controllers/Api/Patient/NotificationDeviceController.php",
+            "sha256": "56c2271d0433c9c4549f3c791619938f77e65156c1ae3413b8997c740f53b6c9",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "controller_boundary_evidence_only"
+        },
+        {
+            "path": "app/Http/Controllers/PatientCommunicationController.php",
+            "sha256": "a050854a23b785647abd791d046c9601b456460f03e32c7a340d17c041b7ff32",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "controller_boundary_evidence_only"
+        },
+        {
+            "path": "app/Http/Middleware/EnsureHummingbirdPatientEnabled.php",
+            "sha256": "0fa5ff4f732b171873450e66f377fd03b51ae5231a7b21464160e999d82b6b9c",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "default_off_gates_principle_only"
+        },
+        {
+            "path": "app/Http/Middleware/EnsureHummingbirdPatientFeatureEnabled.php",
+            "sha256": "087dca7053d8199974589fd81fe88e1e03ff8da54f0ce6ac6305b7014f422b07",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "default_off_gates_principle_only"
+        },
+        {
+            "path": "app/Http/Middleware/EnsurePatientStaffMessagingEnabled.php",
+            "sha256": "9d4420eafd60522768b1d04fee818bdca32c38748e5fe7a4f015798ec7e5f960",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "default_off_gates_principle_only"
+        },
+        {
+            "path": "app/Http/Middleware/ProtectPatientCommunicationResponse.php",
+            "sha256": "885dddde03d5617530d6fffc46f8a25c1d4bb0a73866c19d00241f151002f167",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "default_off_gates_principle_only"
+        },
+        {
+            "path": "app/Http/Requests/Patient/AmendPatientMessageRequest.php",
+            "sha256": "2fa07af6a2ab59417de929a603547e865034581e2480c578e9a47abea3b161b4",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "request_shapes_held"
+        },
+        {
+            "path": "app/Http/Requests/Patient/CloseMessageThreadRequest.php",
+            "sha256": "fe6ec2a51dbcc8361e8fc5c4c09f30060b04b2996b3ba2c94864a89578a72c78",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "request_shapes_held"
+        },
+        {
+            "path": "app/Http/Requests/Patient/CreateEducationClarificationRequest.php",
+            "sha256": "ae9b162f2e2208a9f532b8ce283c13219f87a5a938d5b614e674bec24efbd12f",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "request_shapes_held"
+        },
+        {
+            "path": "app/Http/Requests/Patient/CreateMessageThreadRequest.php",
+            "sha256": "3d6bb0dbecbf3a5f31a79522fc5c86ce68c25f49935d059dc02bf8897173bb7b",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "request_shapes_held"
+        },
+        {
+            "path": "app/Http/Requests/Patient/RegisterPatientNotificationDeviceRequest.php",
+            "sha256": "f62e541cbe4177fb70ef771931fca14780d4ca1b636321cdbb2972673df53b86",
+            "surface": "legacy_backend",
+            "categories": [
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "notification_registration_held"
+        },
+        {
+            "path": "app/Http/Requests/Patient/SendPatientMessageRequest.php",
+            "sha256": "382b0eae026265092fc4ca16ccf66a709c77afa2887ff1e33101246a270ef381",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "request_shapes_held"
+        },
+        {
+            "path": "app/Http/Requests/PatientCommunication/ClaimPatientCommunicationRequest.php",
+            "sha256": "db6347e8e32a4cb24c0b174ae2fd49ec6372013462f328c9f0a5569c416c04c3",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_request_shapes_held"
+        },
+        {
+            "path": "app/Http/Requests/PatientCommunication/ClosePatientCommunicationRequest.php",
+            "sha256": "15da3ae49a6cafb68d0df3ee7334a60a2c76d7a0b476b473950b482f3a58287e",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_request_shapes_held"
+        },
+        {
+            "path": "app/Http/Requests/PatientCommunication/ReassignPatientCommunicationRequest.php",
+            "sha256": "0ea79011e5fd0228d5cd95f11b04937a097879f3205b4fedaab9fea0eaa25ec7",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_request_shapes_held"
+        },
+        {
+            "path": "app/Http/Requests/PatientCommunication/ReleasePatientCommunicationRequest.php",
+            "sha256": "86818ebb9b3a714c3bf7096f6e0a6bfc998dae4b609344f074abe2b31eacf5e5",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_request_shapes_held"
+        },
+        {
+            "path": "app/Http/Requests/PatientCommunication/ReplyPatientCommunicationRequest.php",
+            "sha256": "fcd774d616e427c2bfaafe9ac0a29c580a836334ce4b37103eb6ca9a295acb2e",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_request_shapes_held"
+        },
+        {
+            "path": "app/Http/Requests/PatientCommunication/ReroutePatientCommunicationRequest.php",
+            "sha256": "17fe54dd5d0e288f415631ff7686ddaff955c2c4c251479cda19e69cc670878a",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_request_shapes_held"
+        },
+        {
+            "path": "app/Http/Requests/PatientCommunication/StaffMessageMutationRequest.php",
+            "sha256": "d3bcfe1cd4db6f3782cc9d39a428a9ae9af7587c2a52b64a3b7550088ae1c8de",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_request_shapes_held"
+        },
+        {
+            "path": "app/Models/Patient/PatientEducationClarificationRequest.php",
+            "sha256": "2ee339f245abb261431b9b11b8ec9206ada5bc1392dedca5aced93931a314f4e",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_ledgers_principle_only"
+        },
+        {
+            "path": "app/Models/Patient/PatientMessage.php",
+            "sha256": "300d4d3a7c93326276c5fd6160b1382a4a16ca019f48b8401f6cba3908b079af",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_ledgers_principle_only"
+        },
+        {
+            "path": "app/Models/Patient/PatientMessageDeliveryReceipt.php",
+            "sha256": "1d2c2f68385e7dd93eaf13df4a6673d09a733289ffeeb8c249f46a8219b6cd25",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_ledgers_principle_only"
+        },
+        {
+            "path": "app/Models/Patient/PatientMessageRoutingEvent.php",
+            "sha256": "d8d822f1dcfb4b813ec1f3a58f25000cdbfcc5835d9a383ae1756c1b5db685b3",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_ledgers_principle_only"
+        },
+        {
+            "path": "app/Models/Patient/PatientMessageThread.php",
+            "sha256": "81dad45c8ffc4acdf9ad8a3669fb87f937ccd3a80529777d263698271a6e6848",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_ledgers_principle_only"
+        },
+        {
+            "path": "app/Models/Patient/PatientNotificationDeliveryAttempt.php",
+            "sha256": "f9b548099c7bd82f2c426c765b8b0d52c402ab28063621ba438c61cb37482e48",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_ledgers_principle_only"
+        },
+        {
+            "path": "app/Models/Patient/PatientNotificationDevice.php",
+            "sha256": "d07ed0f4830387121c30a3c97788553e2ee1b83c478346ec348eda425f74dc92",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_ledgers_principle_only"
+        },
+        {
+            "path": "app/Models/Patient/PatientNotificationOutbox.php",
+            "sha256": "49eb137476e21451cc117a872fbe84ffc2208cd693f325a885a8003ed90587b8",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_ledgers_principle_only"
+        },
+        {
+            "path": "app/Models/PatientCommunication/ConsumerHeartbeat.php",
+            "sha256": "5bebca93ccf77d5a5474a779a6dd165c8bdaec39811e2dccc3ed022b81a7cf07",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_projection_held"
+        },
+        {
+            "path": "app/Models/PatientCommunication/PoolMembership.php",
+            "sha256": "4710c13e82ee4061e2b7982a997d014bc7146a8f4483676a0f3022ec31be5a98",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_projection_held"
+        },
+        {
+            "path": "app/Models/PatientCommunication/ResponsibilityPool.php",
+            "sha256": "43913a036643a1bd5661b60b67e1f7b1f9fec3553afae067de5036d3e54844dc",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_projection_held"
+        },
+        {
+            "path": "app/Models/PatientCommunication/RoundQuestionPromotion.php",
+            "sha256": "2bff340ff8d72337549b7673e6ba6cc4b0908945d96bbf71101fb95889ebb4f4",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_projection_held"
+        },
+        {
+            "path": "app/Models/PatientCommunication/RoundQuestionPromotionOutcome.php",
+            "sha256": "4a5972591afb71983d044f96a9140558ef69618e143a7215392e0bf29aae669a",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_projection_held"
+        },
+        {
+            "path": "app/Models/PatientCommunication/StaffActionEvent.php",
+            "sha256": "dcc99b8ebb9d6f4f7f59d6e003d5edc4909303f2f681efa04cb24a710d501ba5",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_projection_held"
+        },
+        {
+            "path": "app/Models/PatientCommunication/ThreadWorkItem.php",
+            "sha256": "7005189c143ef68965581e27d3f89d5be772b3f39ce12ea01c4b2542aec1714f",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_projection_held"
+        },
+        {
+            "path": "app/Policies/Patient/PatientMessageThreadPolicy.php",
+            "sha256": "1f0271f1fd4a8553c2b2e16229c0fc425d41eb6a6466e600b7fa571af8242bd8",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "messaging_policy_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Education/PatientEducationClarificationService.php",
+            "sha256": "fb1e091aecebb0c4f89cf7c32e1a8375f681b704c41054d3710fa0ddcc24faae",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "messaging_policy_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Messaging/DatabasePatientMessageHandoffConsumer.php",
+            "sha256": "a0c46d3c92aa39a5ed16ff9b9d1f04a4e82329649a745f1a86b7854068c67f4f",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_handoff_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Messaging/PatientCommunicationEncounterGuard.php",
+            "sha256": "8a65438b3779252e88c35ee1dd91cc40e0d0d74e8018f5ac1a1d7a210a617976",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "messaging_policy_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Messaging/PatientCommunicationEscalationService.php",
+            "sha256": "265ca6a7cd390d75b605f2cc6195eb0824d7cf45454c90f77505bd25f0d8c876",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_handoff_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Messaging/PatientCommunicationLifecycleReconciliationService.php",
+            "sha256": "2676d63146f7c88ef8a53fc75b4f26abc01a879795edd328e3b3544034787347",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_handoff_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Messaging/PatientCommunicationPoolResolver.php",
+            "sha256": "696ebf72279c21ef718e63b4e8c7ac4049e6dc60ed3795fa6da939a104816e8c",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_handoff_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Messaging/PatientCommunicationResponderEligibility.php",
+            "sha256": "bdfca2bcb190f6647aef4045926e005826860b5c790cfe94eff439412c70ba20",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_handoff_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Messaging/PatientMessageCipher.php",
+            "sha256": "a762991c7f05a4432e1532671d780a74d18da3faf437bc40ee7afb1cdd380ab1",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "messaging_policy_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Messaging/PatientMessagingFailure.php",
+            "sha256": "60b274d0f944bd8882f1ad84b3a5d2194814814ebe235a89a17d8a827c26aac9",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "messaging_policy_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Messaging/PatientMessagingPolicyRegistry.php",
+            "sha256": "44deadecf94ad6321d2da3adc712545fea5667d11ffc0ba3bb9efe54002ae2c8",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "messaging_policy_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Messaging/PatientMessagingService.php",
+            "sha256": "a8cbe9aa98344fcd136a442fc8a41d9f1b5d18d632c927194980107e1183e0bf",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "messaging_policy_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Messaging/StaffPatientCommunicationFailure.php",
+            "sha256": "3f3e217dac9cb7a8ccc258e8f32c7cb9a9a9d3a9f6e942963f88cdb00c5f99da",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_handoff_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Messaging/StaffPatientCommunicationRoutingPolicy.php",
+            "sha256": "bb2dfbea6b8df56f21608f4e3af1446ad499de19c5fb445570c51e9b2e69c8bc",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_handoff_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/Messaging/StaffPatientCommunicationService.php",
+            "sha256": "219ccf3f609404241dcaf33425eeb81c895458af7d1ee4f2a4212fea17bd8905",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_handoff_principle_only"
+        },
+        {
+            "path": "app/Services/Patient/PatientNotificationDeviceCipher.php",
+            "sha256": "084507c176924036bed42be5f0c795cada34b0ad932aa0b188422be2f1791042",
+            "surface": "legacy_backend",
+            "categories": [
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "notification_registration_held"
+        },
+        {
+            "path": "app/Services/Patient/PatientNotificationDeviceFailure.php",
+            "sha256": "df9360add492ff5319bbea8a02b71a44c79881d4e71703798ab6ad5e1c19bca3",
+            "surface": "legacy_backend",
+            "categories": [
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "notification_registration_held"
+        },
+        {
+            "path": "app/Services/Patient/PatientNotificationDeviceRegistry.php",
+            "sha256": "99c3209dd63340489448390139368b9d8d9dc5ee583907a6744ddc3a6bb87b3c",
+            "surface": "legacy_backend",
+            "categories": [
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "notification_registration_held"
+        },
+        {
+            "path": "config/hummingbird-patient-content.php",
+            "sha256": "a4f23f9efba3e8364953cfa6bc2e45183ae8f054fdd49b012f684cd86e80aefa",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "configuration_rejected"
+        },
+        {
+            "path": "config/hummingbird-patient.php",
+            "sha256": "d5dafe054077892e649fd44f95edc6bc1bb499e4dffeb4f4390316823db07625",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "configuration_rejected"
+        },
+        {
+            "path": "database/migrations/2026_07_19_000300_create_patient_experience_messaging_foundation.php",
+            "sha256": "6236292c066ea566ff49f3b9e374b5f2cb592d0b00b322af0dfa95d4dd711cdb",
+            "surface": "legacy_database",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "ledger_principles_held"
+        },
+        {
+            "path": "database/migrations/2026_07_19_000400_create_patient_communications_staff_handoff_foundation.php",
+            "sha256": "3daa37f225734656c6b69462bf6ada4511bc2ed2239758d6b6ffc6049196bcd6",
+            "surface": "legacy_database",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "ledger_principles_held"
+        },
+        {
+            "path": "database/migrations/2026_07_21_000900_limit_patient_message_amendments.php",
+            "sha256": "7a5af7bc231b3997afc6b1c4d5b129bf617b5b5c000d7401c5fdbecfd81e1657",
+            "surface": "legacy_database",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "ledger_principles_held"
+        },
+        {
+            "path": "database/migrations/2026_07_21_001000_extend_patient_message_routing_events_for_amendments.php",
+            "sha256": "7486fca274724d86f63f3f70903d631713877123f05e4a9f26ec11a7b0de45b9",
+            "surface": "legacy_database",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "ledger_principles_held"
+        },
+        {
+            "path": "database/migrations/2026_07_22_001100_create_patient_notification_devices.php",
+            "sha256": "580455e8f54a0abdf25181a39a416d8c4f052dc5503c9ab24c5854683d591178",
+            "surface": "legacy_database",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "ledger_principles_held"
+        },
+        {
+            "path": "docs/hummingbird/api-contract/hummingbird-patient.v1.yaml",
+            "sha256": "fb6220b4ef8eb106223624a9785256fdc1603995f281f430a79897905cb45a1b",
+            "surface": "legacy_contract",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "contract_evidence_only"
+        },
+        {
+            "path": "docs/hummingbird/PUSH.md",
+            "sha256": "80fd3a832af621dfe37a2ea9ba23174a77901c404553ef5dc21d141eabe8c1ff",
+            "surface": "legacy_contract",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "contract_evidence_only"
+        },
+        {
+            "path": "docs/hummingbird/reference/05-notifications-earned-urgency.md",
+            "sha256": "7b8d94cf4353de385ab9b5614be58899798019e2f6f409a01b5e6cfa2247a3cc",
+            "surface": "legacy_contract",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "contract_evidence_only"
+        },
+        {
+            "path": "hummingbird/androidApp/app/src/androidTest/java/net/acumenus/hummingbird/ui/communications/PatientCommunicationsUiTest.kt",
+            "sha256": "f8859812fe8380f41b6238fe3d882557e8eac29de1490cb56f5b1ad43cfff6bc",
+            "surface": "legacy_staff_android",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/data/PatientCommunicationModels.kt",
+            "sha256": "593d9fcc4711f6145bf9b7818dd6aa32318fe2420574386e6c3646257d7bd8f9",
+            "surface": "legacy_staff_android",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/data/PatientCommunicationsViewModel.kt",
+            "sha256": "b48a86f01f7b652a541994fa01baddea65518474618ab097aabd2d6871f3c4dd",
+            "surface": "legacy_staff_android",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/communications/PatientCommunicationsPolling.kt",
+            "sha256": "e2763d1a7e12e0d8889097d7cab9e93d5208a4210d0f1ba1b721b724f4fa9389",
+            "surface": "legacy_staff_android",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/ui/communications/PatientCommunicationsScreens.kt",
+            "sha256": "3d7e4109611bc075107b3560371067fb24a12a8c324205dfd67f919f8cb22cec",
+            "surface": "legacy_staff_android",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/androidApp/app/src/test/java/net/acumenus/hummingbird/data/PatientCommunicationsContractTest.kt",
+            "sha256": "9088fe05f01812f639fe4361ff29e331692c727e4e66bcece6b66c3e22e3ca32",
+            "surface": "legacy_staff_android",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/androidApp/app/src/test/java/net/acumenus/hummingbird/data/PatientCommunicationsViewModelPrivacyTest.kt",
+            "sha256": "90698bfe7734ff088c7aa8addc534ac5dca630a82194eb6f281cc035a1979b5b",
+            "surface": "legacy_staff_android",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientPrimaryJourneyInstrumentedTest.kt",
+            "sha256": "28c26e4de35089445d4080920c4ccda1ce5d3886597f9cb0b5287fef29484c17",
+            "surface": "legacy_android_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/AndroidManifest.xml",
+            "sha256": "42cb31361a537365cf274dfbbb4b9c89e3c9481c01caa0a5bfe2665a27d6864d",
+            "surface": "legacy_android",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/data/PatientApiClient.kt",
+            "sha256": "9f803c7533f5bd7b2d2877777e8274b17a7fa0c8455395b4b3ddfe4ded26e3f5",
+            "surface": "legacy_android",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/data/PatientApiModels.kt",
+            "sha256": "a1932c3dc2f037f4006c72e083d57bc6219f63de42f348c7909737707d25e115",
+            "surface": "legacy_android",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/data/PatientSessionCoordinator.kt",
+            "sha256": "10bfbe8782746390ea71242d1c95ff5f09809b61be40533f91cba1e9acfaada2",
+            "surface": "legacy_android",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/PatientAppViewModel.kt",
+            "sha256": "dfa4d35f325b8199a66af67978e074aafd4364487944f5609a6ec93f5305d63e",
+            "surface": "legacy_android",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/PatientExperienceModels.kt",
+            "sha256": "4b9eb48815c34248d8f6580e4c72dd9c8a014ce6bce3f3810d82a2adadc8fcf8",
+            "surface": "legacy_android",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientExperienceScreen.kt",
+            "sha256": "7b2345a9735451514aec54fe52bf04d28964935c902bb1b13676e76e8065911d",
+            "surface": "legacy_android",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientMessagingPanel.kt",
+            "sha256": "950feca27fdca0823fe8a45ccc58fb976e61de1163324016d49c9cd3f97f25e5",
+            "surface": "legacy_android",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/data/PatientEndpointBoundaryTest.kt",
+            "sha256": "92edaed877c4cd3f2eb02eb3829bc8083a14cc84492592b9bbdc492d54c87c50",
+            "surface": "legacy_android_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/data/PatientEnvelopeDecoderTest.kt",
+            "sha256": "ca83242060bce3c21d62e30ffa3a1bb9566373adb51c5b88788f2b62eb56e81d",
+            "surface": "legacy_android_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/data/PatientSessionCoordinatorTest.kt",
+            "sha256": "7918d69d4e751e0f063c1061db1b3a1289a5d145fc5edb1a9571399d5408e9db",
+            "surface": "legacy_android_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/PatientAppViewModelTest.kt",
+            "sha256": "58bfa794fda3f8b40c72d9f619ebe593668fc1379cafdbb7cb894a4ca468d0e6",
+            "surface": "legacy_android_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosApp/Hummingbird/Features/PatientCommunications/PatientCommunicationDetailView.swift",
+            "sha256": "194ed05a9ae63fbfca4094773a074b9b693e1e85ac439d6af3a708e71796aa86",
+            "surface": "legacy_staff_ios",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosApp/Hummingbird/Features/PatientCommunications/PatientCommunicationRoutingView.swift",
+            "sha256": "8e39d299624db5ae9729ba32ef2342243af8fc5258377dc1c6566811bdef2732",
+            "surface": "legacy_staff_ios",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosApp/Hummingbird/Features/PatientCommunications/PatientCommunicationsView.swift",
+            "sha256": "3d2fc52b0bbaea4f0fc8422bb7ff502f056f7b4a841d2b3a9402b91d8781a023",
+            "surface": "legacy_staff_ios",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosApp/Hummingbird/Features/PatientCommunications/PatientCommunicationsViewModel.swift",
+            "sha256": "5836c9ebed6191e1824c68c7b6b7588b0c5ab56330a74ed3af42ea16a0df43c2",
+            "surface": "legacy_staff_ios",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosApp/Hummingbird/Networking/PatientCommunicationModels.swift",
+            "sha256": "694a1355fbbd4e6042f6ccb6789e194e0c61a6c54045677d9694413e8d74dd88",
+            "surface": "legacy_staff_ios",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosApp/HummingbirdTests/PatientCommunicationRoutingTests.swift",
+            "sha256": "4fd437719b9bcc7980dd2c3fd3ec8d54d7c0671634879adee6fd6a58f3a221ed",
+            "surface": "legacy_staff_ios",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosApp/HummingbirdTests/PatientCommunicationsTests.swift",
+            "sha256": "9693bd6a7ba0f9ee8665bf632d7848282a40929c62ab1c40e66119f77766a4da",
+            "surface": "legacy_staff_ios",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosApp/HummingbirdUITests/PatientCommunicationsUITests.swift",
+            "sha256": "f28a832bb5dda0fed43c0b55d4916ef093c58494235b33210d17e3ead807a5f0",
+            "surface": "legacy_staff_ios",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/App/PatientAppViewModel.swift",
+            "sha256": "74918da1c9af1a263b4535dec933c4c6acf4384bb7afa195997a26e5e1c37694",
+            "surface": "legacy_ios",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Features/Messages/PatientMessagesView.swift",
+            "sha256": "1198deca7ff665bc59bcde856cea92468044eb4db43dc8e04d0bee679a5589fd",
+            "surface": "legacy_ios",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Features/Path/PatientPathView.swift",
+            "sha256": "9943af445dba57ee99d8654c73e86a1ad8bb1225d785d33c06ddf337ae325ffd",
+            "surface": "legacy_ios",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Models/PatientMessagingState.swift",
+            "sha256": "d7704dca1720c643850902cfc1330cb9975ef13f45cf94bbc1a1a1b034737c5a",
+            "surface": "legacy_ios",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Networking/PatientAPIClient.swift",
+            "sha256": "72a8b54098bfd19402812aa0e2ef367154aa589d8f1bd7eb7f03b99b89ba9e8b",
+            "surface": "legacy_ios",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Networking/PatientAPIModels.swift",
+            "sha256": "93c3250b7292c9abe17e3bb932e39c489332c8becc321663b4b8365a1e468759",
+            "surface": "legacy_ios",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "patient_client_held"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatientTests/PatientAPIBoundaryTests.swift",
+            "sha256": "d50f0ad0f003447658df322d061d56157bf08e125d27ab2a4c51a1880c6aef41",
+            "surface": "legacy_ios_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatientTests/PatientAPIClientTests.swift",
+            "sha256": "b96bfbdfca371903c5aba06a609a2c511798a08545ec5889b8d1c9ebf110c608",
+            "surface": "legacy_ios_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatientTests/PatientAPIModelTests.swift",
+            "sha256": "2e461608ad1db8af66e204ba0396e864826adc71ebf4533d494390ebd138b95a",
+            "surface": "legacy_ios_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatientTests/PatientAppViewModelTests.swift",
+            "sha256": "4938eefb40b613e3e43476d4fadc1bdbde04604155b8b268db25818ec2f58b26",
+            "surface": "legacy_ios_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatientTests/PatientRoundsQuestionTopicTests.swift",
+            "sha256": "96865c13ed144ba09247d9c92a31bae4d45654822e76fd880707d040e2baac3e",
+            "surface": "legacy_ios_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientReferenceJourneyUITests.swift",
+            "sha256": "879aabf062fb7ec70a0b71d02fc294b13e8e67d4f6349e67bbf1ac3feb9c23b0",
+            "surface": "legacy_ios_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "notification_registration_delivery",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "resources/js/Pages/PatientCommunications/Index.tsx",
+            "sha256": "ec5f411bd49509df5be7f5d105482b4abe7253640d9700edca6cedee7ff95e32",
+            "surface": "legacy_staff_web",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "resources/js/Pages/PatientCommunications/mutationSafety.ts",
+            "sha256": "4b34f6445c1cabbc238a895244336af3e5d47cdec326f09588ae8b058b02abd9",
+            "surface": "legacy_staff_web",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "resources/js/Pages/PatientCommunications/RoutingControls.tsx",
+            "sha256": "4b86a4f601c52fa637362569929d9f1cc1b3dd29e6e9cdb1d96d9f3320604e81",
+            "surface": "legacy_staff_web",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "resources/js/Pages/PatientCommunications/routingPolicy.ts",
+            "sha256": "2aeb89966282dc77ab33dfa7bfed87c3b2dd5efb2ce42b6512d6408b15001d93",
+            "surface": "legacy_staff_web",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "routes/api.php",
+            "sha256": "a1443123cbee888a55f988aa1ca713fe31eac39fa6cf05a0306eef0def3aad35",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "routes_rejected"
+        },
+        {
+            "path": "routes/console.php",
+            "sha256": "609a681d3e5e068b826514cac0ecf320f4f4d1e99753243707f2941c9ebaaab4",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "routes_rejected"
+        },
+        {
+            "path": "routes/patient.php",
+            "sha256": "e892a9d570668bec6ae54d18cbfd891f7d9df2e2c2f8f6e3689125d6b465af28",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "routes_rejected"
+        },
+        {
+            "path": "routes/web.php",
+            "sha256": "270fdb18801b2fe1b17e64ee1b0092db0f7482ce417740196a165310c8a4ee21",
+            "surface": "legacy_backend",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "routes_rejected"
+        },
+        {
+            "path": "tests/Feature/Patient/PatientCommunicationEscalationServiceTest.php",
+            "sha256": "fe5c4fde7c0eaa9c6b7207281625db16a663fff62935f4f861fce74402bb6bec",
+            "surface": "legacy_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "tests/Feature/Patient/PatientCommunicationLifecycleReconciliationServiceTest.php",
+            "sha256": "46702a03cd2c3701441de93a93f7097688596ae541ee04ea32e641a29c9896d0",
+            "surface": "legacy_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "tests/Feature/Patient/PatientCommunicationPoolResolverTest.php",
+            "sha256": "b52128f82f5757263d90ebe4fb8a5ff7ec3b2e2fdd5f171fe1c9cc4ff77c3447",
+            "surface": "legacy_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "tests/Feature/Patient/PatientEducationClarificationApiTest.php",
+            "sha256": "a25b13e76657090bfd20a90e145941575f353d6b1f12c9c637e28402b188416b",
+            "surface": "legacy_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "tests/Feature/Patient/PatientMessagingApiTest.php",
+            "sha256": "6dd0da4f4fa0a2f5a2f764df09d630d78a0ceda6f42984f1d8269d6607857e8e",
+            "surface": "legacy_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "tests/Feature/Patient/PatientProjectionOutboxTest.php",
+            "sha256": "763a801886bc93527ca34f78eee30e624f11d5379468a1c504c05c6945efc892",
+            "surface": "legacy_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "tests/Feature/Patient/PatientStaffMessageHandoffConsumerTest.php",
+            "sha256": "6c7ecd157a4d571079a1943eaaac93bbe49e2aa3e290f847a2f91755848f7a6d",
+            "surface": "legacy_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "tests/Feature/Patient/StaffPatientCommunicationApiTest.php",
+            "sha256": "962109f6dd6e9d37b02083bd85eb2305766f6b56167fb4fd3a55c70edf12cfb0",
+            "surface": "legacy_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "tests/Feature/Patient/StaffPatientCommunicationWebTest.php",
+            "sha256": "cc9d9d24e0398df2da991c575511f265f383554862621f3c767d8b40524e5e64",
+            "surface": "legacy_test",
+            "categories": [
+                "patient_communication_contract",
+                "patient_mutation_delivery",
+                "staff_handoff_routing",
+                "notification_registration_delivery",
+                "error_offline_urgency"
+            ],
+            "decision_id": "test_evidence_only"
+        },
+        {
+            "path": "tests/js/pages/PatientCommunicationMutationSafety.test.ts",
+            "sha256": "4bb8a7129ca81c36d26632b5f2c412a0bdc5206aa42f777017e968ba6e3504d3",
+            "surface": "legacy_staff_web",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "tests/js/pages/PatientCommunicationRoutingPolicy.test.ts",
+            "sha256": "f1a59d447df5b3f98dc026ce2ecbe6d996af0a14ba3cba63493f0572501e5db8",
+            "surface": "legacy_staff_web",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "tests/js/pages/PatientCommunications.test.tsx",
+            "sha256": "53465b4999055e255406b42f8ef621c53961f8f7d90c97034d292883e8f614e9",
+            "surface": "legacy_staff_web",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        },
+        {
+            "path": "tests/js/pages/PatientCommunicationTransitionPolling.test.tsx",
+            "sha256": "3a9dd4e9c0f29668891c81784b3de22b9fa6cb819739d15612e2abed0079d3b7",
+            "surface": "legacy_staff_web",
+            "categories": [
+                "staff_handoff_routing",
+                "native_patient_experience",
+                "error_offline_urgency"
+            ],
+            "decision_id": "staff_client_evidence_only"
+        }
+    ]
+}

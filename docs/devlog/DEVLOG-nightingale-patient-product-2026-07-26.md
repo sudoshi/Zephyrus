@@ -710,3 +710,108 @@ deployment authorization.
 - Identity, source, privacy/security, legal/HIM, clinical safety, accessibility/language,
   patient-advisor, support, operations, pilot, release, and deployment approvals remain
   open.
+
+## 2026-07-26 — Communication and notification source classification
+
+### Exact evidence inventory
+
+- Added the
+  [communication and notification source classification](../nightingale/COMMUNICATION-AND-NOTIFICATION-SOURCE-CLASSIFICATION-2026-07-26.md)
+  and a machine-readable checksum ledger covering 130 unique files at source commit
+  `be8405a0f768bf239862b790b3eeae80b8aad2ad`.
+- Classified 3 contract/reference sources, 65 backend sources, 5 database migrations, 9
+  backend tests, 12 patient iOS sources/tests, 13 patient Android sources/tests, 8 staff iOS,
+  7 staff Android, and 8 staff web sources/tests.
+- The six overlapping review domains contain 77 patient-contract, 103
+  patient-mutation/delivery, 89 staff-handoff/routing, 69
+  notification-registration/delivery, 48 native-patient-experience, and 130
+  error/offline/urgency sources.
+- Recorded 55 evidence-only, 27 principle-only, 42 held, and 6 rejected dispositions through
+  17 reusable decision records. Every source retains an individual SHA-256 digest.
+
+### Material findings
+
+- Confirmed the server message core has strong candidate safety properties: current
+  encounter/grant and thread revalidation, operation and client-message advisory locks,
+  payload digests, immutable encrypted bodies, append-only receipts and routing, content-free
+  staff outbox facts, optimistic concurrency, explicit responsibility pools, effective
+  eligible responders, fresh consumer heartbeats, and attributable staff actions.
+- Confirmed patient notification delivery is absent. The backend registers, encrypts,
+  rebinds, and revokes provider tokens but has no APNs/FCM patient provider worker, approved
+  payload, delivery lifecycle, or provider receipt reconciliation. The iOS and Android
+  patient clients have no corresponding native registration/permission/service lifecycle.
+- Confirmed patient clients have manual refresh only. Unlike the staff web/iOS/Android
+  surfaces, they have no foreground polling, and patient push is absent.
+- Confirmed a human retry after an ambiguous transport outcome generates fresh idempotency
+  and client-message identities on both patient clients. The server can safely replay the
+  same identifiers, but a later user retry appears as a new mutation and may duplicate a
+  request already committed.
+- Confirmed `server_accepted`/`sent` is written before the asynchronous `staff_inbox`
+  projection. Existing iOS and Android success wording therefore overstates what is proven
+  by saying the message was sent to the care team or responsible pool.
+- Confirmed a decode-breaking state mismatch: escalation appends patient-visible delivery
+  state `escalated`, serialization returns that raw state, while the patient contract and
+  iOS delivery enum omit it. Android accepts raw strings but does not precisely map every
+  valid ownership/delivery state and checks non-contract ownership value
+  `team_acknowledged`.
+- Confirmed topic and urgent-help content are static English configuration/code values
+  rather than locale-, checksum-, review-, effective-period-, and rollback-bound Nightingale
+  release content. iOS and Android do not have proven urgent/offline copy parity.
+- Disproved a suspected staff-close decode problem: staff-specific operational reasons stay
+  on the staff work item while the patient thread is normalized to `question_answered`, an
+  accepted patient contract/iOS value. The negative finding is pinned to prevent future
+  overstatement.
+
+### Mechanical enforcement
+
+- Added
+  `scripts/ci/build-nightingale-communication-notification-classification.mjs` so the
+  explicit curated inventory and hashes can be reproduced after an intentional
+  reclassification.
+- Added
+  `scripts/ci/verify-nightingale-communication-notification-classification.mjs` to pin the
+  exact 130 paths, inventory digest, individual hashes, six domain counts, 11 surface
+  counts, four disposition counts, 17 decisions, and ten material findings.
+- Wired the verifier and its negative self-tests into the docs-sensitive Nightingale CI job.
+- The ledger keeps 20 permissions false, including implementation/runtime/route/legacy
+  alias/copy adoption, provider/device/channel/payload activation, patient polling, offline
+  mutation queuing, retry identity regeneration, acceptance-as-delivery, production
+  data/query/replay, and patient/principal creation.
+- Negative self-tests prove rejection of notification provider activation, patient polling,
+  offline queueing, retry identity regeneration, acceptance-as-delivery, production replay,
+  false resolution of the iOS escalation mismatch, false assertion of the staff-close
+  hypothesis, malformed hashes, source removal, duplicate inventory paths, and an
+  `approved` disposition.
+- Updated the master plan, migration classification, contract/authorization checklist,
+  Nightingale documentation index, and this execution log immediately after the bounded
+  slice passed. The broader all-source classification remains open for journey, preference,
+  presentation, synthetic/debug, and release sources.
+
+### Native and static regression evidence
+
+- The new verifier with all negative mutations, the 65-file source verifier, empty-contract
+  verifier, encounter-access candidate verifier, identity/source candidate verifier,
+  dependency-free backend verifier, native product-boundary verifier, targeted Prettier,
+  and Git whitespace checks passed.
+- Regenerated and compared the Nightingale Xcode project with `project.yml`; no generated
+  drift remained. On iPhone 17 Pro Simulator
+  `0A7FAE8C-8902-462D-BB4D-1E216D5BFDC1`, all five unit tests and two UI tests passed with
+  zero failures. The signed Release simulator build passed.
+- Started the `hb` API 35 / Android 15 AVD and forced fresh execution with the Android Studio
+  JDK 21 and no Gradle build cache. Five instrumentation tests and five JVM boundary tests
+  passed with zero failures. `verifyNightingaleProductBoundary`, `lintVitalRelease`,
+  `assembleDebug`, and `assembleRelease` passed in the same 116-task build.
+- Shut down both emulators after evidence collection.
+
+### Safety and release holds
+
+- This section classifies predecessor evidence; it does not implement Nightingale
+  communication or notification functionality.
+- The Nightingale contract still has zero paths, Laravel still registers no Nightingale
+  route, both apps remain network-disabled, and no provider, payload, patient poller,
+  offline queue, staff handoff, patient message, or delivery channel was added.
+- No production database, patient, principal, grant, session, provider console, runtime
+  credential, feature flag, migration, deployment, or release state was read or changed.
+- Communication product/clinical operations, state vocabulary, patient language,
+  localization, accessibility, privacy/security, identity, source, provider, support,
+  incident/downtime, pilot, release, and deployment approvals remain open.

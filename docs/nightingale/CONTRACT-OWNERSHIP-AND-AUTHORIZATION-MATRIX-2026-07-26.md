@@ -337,6 +337,10 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
       enrollment/recovery, first-read, and error/non-disclosure slice: 65 exact files,
       SHA-256 lineage, platform delta, missing-recovery finding, and negative enforcement of
       zero runtime/route/provider/production adoption.
+- [x] Source-by-source evidence classification for the bounded communication and
+      notification slice: 130 exact files, SHA-256 lineage, patient-to-staff delivery trace,
+      native parity delta, ten pinned findings, and negative enforcement of zero
+      runtime/route/provider/channel/payload/polling/offline-queue/production adoption.
 - [ ] Approved Nightingale identity, representative, enrollment, recovery, and session
       contract.
 - [ ] Approved authoritative current-inpatient source, lifecycle, cohort, linkage,
@@ -353,9 +357,9 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
 
 Until these gates are met, `paths` remains empty.
 
-The encounter-access, identity/source, and 65-file source-classification decisions and
-fixtures are pre-contract evidence for these gates, not proof that an approval gate is
-complete. The route/compatibility ADR, default-deny prerequisite ports, 106 prerequisite
-cases, and detailed native/backend delta exist, but no owner is named, identity
-provider/source adapter is approved, or backend/native operation parity implementation
-exists.
+The encounter-access, identity/source, 65-file identity/first-read classification, and
+130-file communication/notification classification decisions and fixtures are pre-contract
+evidence for these gates, not proof that an approval gate is complete. The
+route/compatibility ADR, default-deny prerequisite ports, 106 prerequisite cases, and
+detailed native/backend deltas exist, but no owner is named, identity provider/source
+adapter is approved, or backend/native operation parity implementation exists.

@@ -255,12 +255,20 @@ human visual review records correct brand, crop, contrast, and no unwanted trans
       substitution, and server-message passthrough; and add a negative verifier that keeps
       all runtime, route, provider, credential-migration, production, and patient-creation
       permissions false.
+- [x] Complete the bounded communication and notification source-classification slice:
+      classify and SHA-256 pin 130 exact contract, backend, database, patient-native,
+      staff-native/web, and test files; trace patient acceptance through staff routing and
+      readback; document absent patient push and automatic refresh, ambiguous-retry
+      duplication, delivery-wording overstatement, iOS escalation decode failure, Android
+      state-label gaps, and ungoverned locale/copy; and add negative enforcement for zero
+      runtime, route, provider, channel, payload, polling, offline-queue, production, and
+      patient-creation permissions.
 - [ ] Classify each existing Hummingbird Patient source file as reusable safety primitive,
       reusable product behavior, test/fixture-only, or rejected legacy behavior. Foundation,
       protected-state, contract, vocabulary, first-read candidate, identity/source candidate,
-      and the 65-file identity-input/enrollment/first-read/error slice are complete; remaining
-      journey, communication, notification, preference, presentation, synthetic/debug, and
-      release sources remain held.
+      the 65-file identity-input/enrollment/first-read/error slice, and the 130-file
+      communication/notification slice are complete; remaining journey, preference,
+      presentation, synthetic/debug, and release sources remain held.
 - [ ] Port primitives into Nightingale by reviewed commits, not a blind directory copy:
       patient API boundary, protected storage, lifecycle/screen-capture privacy cover,
       accessibility presentation preferences, patient-safe vocabulary, and volatile drafts.
@@ -372,6 +380,16 @@ part of application development work.
 6. [x] Update this checklist and its devlog for the verified 65-file classification slice.
        Clinical, privacy, accessibility, identity, source, pilot, and deployment completion
        remain explicitly open.
+7. [x] Complete the bounded 130-file patient communication, staff-handoff, native
+       experience, notification registration/delivery, urgency/offline, and error
+       classification. Mechanically pin the absent patient push and automatic-refresh
+       implementations, human-retry identity loss, acceptance-versus-delivery distinction,
+       iOS escalation-state contract mismatch, Android rendering gaps, and the false
+       staff-close decode hypothesis.
+8. [x] Update the master checklist, migration index, authorization matrix, documentation
+       index, execution log, and CI for the verified communication/notification slice while
+       leaving every Nightingale operation, network client, notification provider, patient
+       mutation, production query, and production activation disabled.
 
 ## 10. Explicit holds
 

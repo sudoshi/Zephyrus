@@ -23,10 +23,12 @@ Current product-identity records:
 - [Route, compatibility, identity, and inpatient-source ADR](./ROUTE-COMPATIBILITY-IDENTITY-SOURCE-ADR-2026-07-26.md)
 - [Identity, session, recovery, and inpatient-source held-candidate decision](./IDENTITY-SESSION-RECOVERY-AND-SOURCE-CANDIDATE-DECISION-2026-07-26.md)
 - [Identity-input, enrollment/recovery, first-read, and error source classification](./IDENTITY-INPUT-FIRST-READ-ERROR-SOURCE-CLASSIFICATION-2026-07-26.md)
+- [Communication and notification source classification](./COMMUNICATION-AND-NOTIFICATION-SOURCE-CLASSIFICATION-2026-07-26.md)
 - [Empty/default-off contract foundation](./api-contract/nightingale-foundation.v0.json)
 - [Identity candidate and fixtures](./identity/candidates/v0/candidate.json)
 - [Current-inpatient source candidate and fixtures](./source-candidates/current-inpatient/v0/candidate.json)
 - [65-file checksum-pinned source ledger](./migration/candidates/v0/source-classification.json)
+- [130-file communication/notification checksum ledger](./migration/candidates/v0/communication-notification-source-classification.json)
 - [Launcher, themed-icon, and splash evidence](../evidence/nightingale/brand-identity-2026-07-26/README.md)
 
 ## Lineage and filing rules
