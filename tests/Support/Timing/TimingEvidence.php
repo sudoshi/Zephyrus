@@ -24,7 +24,9 @@ final class TimingEvidence
             return null;
         }
 
-        return rtrim($dir, '/').'/phpunit-setup-split.ndjson';
+        // Suffixed per process: paratest workers (plan D3) each append
+        // their own file — two processes appending one NDJSON interleave.
+        return rtrim($dir, '/').'/phpunit-setup-split-'.getmypid().'.ndjson';
     }
 
     public static function preparationStarted(string $testId, HRTime $time): void
