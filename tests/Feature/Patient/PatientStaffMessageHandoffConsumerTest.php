@@ -18,9 +18,13 @@ use App\Models\PatientCommunication\StaffActionEvent;
 use App\Models\PatientCommunication\ThreadWorkItem;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Admin\SystemHealthService;
 use App\Services\Patient\Messaging\DatabasePatientMessageHandoffConsumer;
+use App\Services\Patient\Messaging\PatientMessageHandoffHealthReporter;
 use App\Services\Patient\PatientHmac;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -350,24 +354,16 @@ class PatientStaffMessageHandoffConsumerTest extends TestCase
             ['selected' => 1, 'delivered' => 0, 'failed' => 1],
             $consumer->consumeBatch('test-retry-state-worker'),
         );
-        $retryAttempt = $retryOutbox->deliveryAttempts()->firstOrFail();
+        $retryAttempt = $retryOutbox->deliveryAttempts()->orderByDesc('attempt_number')->firstOrFail();
         $this->assertSame('retryable_failure', $retryAttempt->status);
         $this->assertTrue($retryAttempt->next_attempt_at->isFuture());
-
-        $consumeOne = new \ReflectionMethod($consumer, 'consumeOne');
-        $this->assertFalse($consumeOne->invoke(
-            $consumer,
-            $retryOutbox->getKey(),
-            'test-stale-selection-worker',
-        ));
-        $this->assertDatabaseCount('patient_experience.notification_delivery_attempts', 1);
 
         $this->assertSame(
             ['selected' => 0, 'delivered' => 0, 'failed' => 0],
             $consumer->consumeBatch('test-retry-state-worker'),
         );
         $this->assertFalse($consumer->readyForPolicy(self::POLICY_VERSION));
-        $this->assertDatabaseCount('patient_experience.notification_delivery_attempts', 1);
+        $this->assertDatabaseCount('patient_experience.notification_delivery_attempts', 2);
 
         $terminalOutbox = $this->createUnresolvableOutbox();
         PatientNotificationDeliveryAttempt::query()->create([
@@ -400,19 +396,239 @@ class PatientStaffMessageHandoffConsumerTest extends TestCase
     {
         $consumer = $this->app->make(DatabasePatientMessageHandoffConsumer::class);
         $outbox = $this->createUnresolvableOutbox();
+        $claimDueOutbox = new \ReflectionMethod($consumer, 'claimDueOutbox');
         $recordFailure = new \ReflectionMethod($consumer, 'recordFailure');
         $failure = new \RuntimeException('handoff_thread_unavailable');
+        $claims = $claimDueOutbox->invoke($consumer, 'test-claim-worker', 1);
 
-        $recordFailure->invoke($consumer, $outbox->getKey(), 'first-test-worker', $failure);
-        $recordFailure->invoke($consumer, $outbox->getKey(), 'stale-second-test-worker', $failure);
+        $this->assertCount(1, $claims);
+        $claim = $claims[0];
+
+        $recordFailure->invoke($consumer, $claim, 'first-test-worker', $failure);
+        $recordFailure->invoke($consumer, $claim, 'stale-second-test-worker', $failure);
 
         $attempts = $outbox->deliveryAttempts()->orderBy('attempt_number')->get();
-        $this->assertCount(1, $attempts);
-        $this->assertSame(1, $attempts->first()->attempt_number);
-        $this->assertSame('retryable_failure', $attempts->first()->status);
-        $this->assertSame('handoff_thread_unavailable', $attempts->first()->error_code);
-        $this->assertTrue($attempts->first()->next_attempt_at->isFuture());
-        $this->assertSame('first-test-worker', $attempts->first()->worker_ref);
+        $this->assertCount(2, $attempts);
+        $this->assertSame('claimed', $attempts->first()->status);
+        $this->assertSame(2, $attempts->last()->attempt_number);
+        $this->assertSame('retryable_failure', $attempts->last()->status);
+        $this->assertSame('handoff_thread_unavailable', $attempts->last()->error_code);
+        $this->assertTrue($attempts->last()->next_attempt_at->isFuture());
+        $this->assertSame('first-test-worker', $attempts->last()->worker_ref);
+    }
+
+    public function test_active_claim_lease_prevents_a_second_worker_from_selecting_the_same_outbox(): void
+    {
+        [$unit, $staff] = $this->operationalUnitAndResponder();
+        $this->configureMessaging($unit);
+        $pool = $this->createPool($unit);
+        $this->createMembership($pool, $staff);
+        $consumer = $this->app->make(DatabasePatientMessageHandoffConsumer::class);
+        $consumer->consumeBatch('test-lease-bootstrap-worker');
+
+        $outbox = $this->createUnresolvableOutbox();
+        PatientNotificationDeliveryAttempt::query()->create([
+            'delivery_attempt_uuid' => (string) Str::uuid7(),
+            'notification_outbox_id' => $outbox->getKey(),
+            'attempt_number' => 1,
+            'status' => 'claimed',
+            'worker_ref' => 'first-test-worker',
+            'next_attempt_at' => now()->addSeconds(60),
+            'metadata' => [
+                'schema_version' => 1,
+                'content_included' => false,
+                'destination' => 'staff_inbox',
+                'claim_lease_seconds' => 60,
+            ],
+            'occurred_at' => now(),
+        ]);
+
+        $this->assertSame(
+            ['selected' => 0, 'delivered' => 0, 'failed' => 0],
+            $consumer->consumeBatch('test-second-worker'),
+        );
+        $this->assertDatabaseCount('patient_experience.notification_delivery_attempts', 1);
+        $this->assertDatabaseHas('patient_experience.notification_delivery_attempts', [
+            'status' => 'claimed',
+            'worker_ref' => 'first-test-worker',
+        ]);
+        $this->assertFalse($consumer->readyForPolicy(self::POLICY_VERSION));
+    }
+
+    public function test_expired_claim_lease_is_recovered_before_a_worker_reclaims_the_outbox(): void
+    {
+        [$unit, $staff] = $this->operationalUnitAndResponder();
+        $this->configureMessaging($unit);
+        $pool = $this->createPool($unit);
+        $this->createMembership($pool, $staff);
+        $consumer = $this->app->make(DatabasePatientMessageHandoffConsumer::class);
+        $consumer->consumeBatch('test-expired-lease-bootstrap-worker');
+
+        $outbox = $this->createUnresolvableOutbox();
+        PatientNotificationDeliveryAttempt::query()->create([
+            'delivery_attempt_uuid' => (string) Str::uuid7(),
+            'notification_outbox_id' => $outbox->getKey(),
+            'attempt_number' => 1,
+            'status' => 'claimed',
+            'worker_ref' => 'stalled-test-worker',
+            'next_attempt_at' => now()->subSecond(),
+            'metadata' => [
+                'schema_version' => 1,
+                'content_included' => false,
+                'destination' => 'staff_inbox',
+                'claim_lease_seconds' => 60,
+            ],
+            'occurred_at' => now()->subMinutes(2),
+        ]);
+
+        $this->assertSame(
+            ['selected' => 1, 'delivered' => 0, 'failed' => 1],
+            $consumer->consumeBatch('test-expired-lease-recovery-worker'),
+        );
+
+        $attempts = $outbox->deliveryAttempts()->orderBy('attempt_number')->get();
+        $this->assertCount(4, $attempts);
+        $this->assertSame(['claimed', 'retryable_failure', 'claimed', 'retryable_failure'], $attempts->pluck('status')->all());
+        $this->assertSame('handoff_claim_lease_expired', $attempts[1]->error_code);
+        $this->assertSame('handoff_thread_unavailable', $attempts[3]->error_code);
+        $this->assertTrue($attempts[3]->next_attempt_at->isFuture());
+        $this->assertFalse($consumer->readyForPolicy(self::POLICY_VERSION));
+    }
+
+    public function test_operational_health_report_is_content_free_and_escalates_terminal_handoffs(): void
+    {
+        [$unit, $staff] = $this->operationalUnitAndResponder();
+        $this->configureMessaging($unit);
+        $pool = $this->createPool($unit);
+        $this->createMembership($pool, $staff);
+        $consumer = $this->app->make(DatabasePatientMessageHandoffConsumer::class);
+        $consumer->consumeBatch('test-health-bootstrap-worker');
+
+        $retryingOutbox = $this->createUnresolvableOutbox();
+        $this->assertSame(
+            ['selected' => 1, 'delivered' => 0, 'failed' => 1],
+            $consumer->consumeBatch('test-health-retry-worker'),
+        );
+
+        $reporter = $this->app->make(PatientMessageHandoffHealthReporter::class);
+        $report = $reporter->report();
+
+        $this->assertSame('active', $report['activation_state']);
+        $this->assertSame('warning', $report['status']);
+        $this->assertTrue($report['schema_ready']);
+        $this->assertTrue($report['consumer']['heartbeat_present']);
+        $this->assertTrue($report['consumer']['heartbeat_fresh']);
+        $this->assertSame(1, $report['outbox']['total_unexpired']);
+        $this->assertSame(1, $report['outbox']['retry_scheduled']);
+        $this->assertSame(0, $report['outbox']['terminal_failure']);
+        $this->assertStringNotContainsString((string) $retryingOutbox->outbox_uuid, json_encode($report, JSON_THROW_ON_ERROR));
+        foreach (['principal_id', 'access_grant_id', 'aggregate_uuid', 'worker_ref', 'message', 'body'] as $forbiddenKey) {
+            $this->assertArrayNotHasKey($forbiddenKey, $report);
+        }
+
+        $this->assertSame(0, Artisan::call('hummingbird:patient-message-handoff-health', ['--json' => true]));
+        $commandReport = json_decode(Artisan::output(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('warning', $commandReport['status']);
+        $this->assertStringNotContainsString((string) $retryingOutbox->outbox_uuid, Artisan::output());
+
+        $terminalOutbox = $this->createUnresolvableOutbox();
+        PatientNotificationDeliveryAttempt::query()->create([
+            'delivery_attempt_uuid' => (string) Str::uuid7(),
+            'notification_outbox_id' => $terminalOutbox->getKey(),
+            'attempt_number' => 1,
+            'status' => 'terminal_failure',
+            'worker_ref' => 'test-terminal-worker',
+            'error_code' => 'handoff_thread_unavailable',
+            'metadata' => [
+                'schema_version' => 1,
+                'content_included' => false,
+                'destination' => 'staff_inbox',
+            ],
+            'occurred_at' => now(),
+        ]);
+
+        $criticalReport = $reporter->report();
+        $this->assertSame('critical', $criticalReport['status']);
+        $this->assertTrue($criticalReport['requires_operator_action']);
+        $this->assertSame(1, $criticalReport['outbox']['terminal_failure']);
+        $this->assertSame(1, Artisan::call('hummingbird:patient-message-handoff-health'));
+    }
+
+    public function test_disabled_handoff_reports_no_fresh_heartbeat_without_requiring_operator_action(): void
+    {
+        $report = $this->app->make(PatientMessageHandoffHealthReporter::class)->report();
+
+        $this->assertSame('disabled', $report['activation_state']);
+        $this->assertSame('disabled', $report['status']);
+        $this->assertFalse($report['consumer']['heartbeat_present']);
+        $this->assertFalse($report['consumer']['heartbeat_fresh']);
+        $this->assertFalse($report['requires_operator_action']);
+        $this->assertSame(0, Artisan::call('hummingbird:patient-message-handoff-health', ['--json' => true]));
+    }
+
+    public function test_system_health_routes_content_free_handoff_critical_evidence_once_after_activation(): void
+    {
+        $disabledSnapshot = $this->app->make(SystemHealthService::class)->collect('scheduled');
+        $disabledComponent = collect($disabledSnapshot['observations'])->firstWhere('key', 'patient_message_handoff');
+
+        $this->assertSame('healthy', $disabledComponent['status']);
+        $this->assertFalse($disabledComponent['details']['monitoringEnabled']);
+        $this->assertSame(0, $disabledComponent['details']['enabledGateCount']);
+        $this->assertSame(2, $disabledComponent['details']['requiredGateCount']);
+
+        [$unit, $staff] = $this->operationalUnitAndResponder();
+        $this->configureMessaging($unit);
+        $pool = $this->createPool($unit);
+        $this->createMembership($pool, $staff);
+        $consumer = $this->app->make(DatabasePatientMessageHandoffConsumer::class);
+        $consumer->consumeBatch('test-system-health-bootstrap-worker');
+
+        $outbox = $this->createUnresolvableOutbox();
+        PatientNotificationDeliveryAttempt::query()->create([
+            'delivery_attempt_uuid' => (string) Str::uuid7(),
+            'notification_outbox_id' => $outbox->getKey(),
+            'attempt_number' => 1,
+            'status' => 'terminal_failure',
+            'worker_ref' => 'test-system-health-terminal-worker',
+            'error_code' => 'handoff_thread_unavailable',
+            'metadata' => [
+                'schema_version' => 1,
+                'content_included' => false,
+                'destination' => 'staff_inbox',
+            ],
+            'occurred_at' => now(),
+        ]);
+
+        $snapshot = $this->app->make(SystemHealthService::class)->collect('scheduled');
+        $component = collect($snapshot['observations'])->firstWhere('key', 'patient_message_handoff');
+
+        $this->assertSame('critical', $component['status']);
+        $this->assertSame('patient_message_handoff_critical', $component['errorCode']);
+        $this->assertTrue($component['details']['monitoringEnabled']);
+        $this->assertSame('active', $component['details']['activationState']);
+        $this->assertTrue($component['details']['schemaReady']);
+        $this->assertTrue($component['details']['consumer']['heartbeatPresent']);
+        $this->assertTrue($component['details']['consumer']['heartbeatFresh']);
+        $this->assertSame(1, $component['details']['outbox']['terminalFailure']);
+        $this->assertStringNotContainsString((string) $outbox->outbox_uuid, json_encode($component, JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('test-system-health-terminal-worker', json_encode($component, JSON_THROW_ON_ERROR));
+        $this->assertDatabaseHas('integration.operational_alert_deliveries', [
+            'alert_domain' => 'system_health',
+            'alert_code' => 'system_health_component_critical',
+            'subject_type' => 'system_health_component',
+            'subject_reference' => 'patient_message_handoff',
+        ]);
+
+        $alertCount = DB::table('integration.operational_alert_deliveries')
+            ->where('subject_reference', 'patient_message_handoff')
+            ->count();
+        $this->app->make(SystemHealthService::class)->collect('scheduled');
+        $this->assertSame(
+            $alertCount,
+            DB::table('integration.operational_alert_deliveries')
+                ->where('subject_reference', 'patient_message_handoff')
+                ->count(),
+        );
     }
 
     public function test_post_batch_heartbeat_stays_degraded_until_every_unexpired_outbox_is_resolved(): void
@@ -619,7 +835,7 @@ class PatientStaffMessageHandoffConsumerTest extends TestCase
             ['selected' => 0, 'delivered' => 0, 'failed' => 0],
             $consumer->consumeBatch('test-failure-worker'),
         );
-        $this->assertDatabaseCount('patient_experience.notification_delivery_attempts', 1);
+        $this->assertDatabaseCount('patient_experience.notification_delivery_attempts', 2);
         $this->assertSame(
             'degraded',
             ConsumerHeartbeat::query()->findOrFail('patient-message-staff-inbox-v1')->status,
@@ -693,6 +909,7 @@ class PatientStaffMessageHandoffConsumerTest extends TestCase
                 'consumer_key' => 'patient-message-staff-inbox-v1',
                 'pilot_unit_ids' => [$unit->getKey()],
                 'heartbeat_ttl_seconds' => 120,
+                'claim_lease_seconds' => 120,
                 'batch_size' => 100,
             ],
         ]);

@@ -8,6 +8,7 @@ use App\Models\Ops\OperationalAction;
 use App\Models\Ops\Recommendation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -74,10 +75,28 @@ class EddyMobileBffTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user, ['mobile:read']);
 
-        $this->postJson('/api/mobile/v1/eddy/chat', ['message' => 'what is the net bed need?', 'surface' => 'rtdc'])
+        $this->postJson('/api/mobile/v1/eddy/chat', [
+            'message' => 'what is the net bed need?',
+            'surface' => 'rtdc',
+            'page_context' => 'eddy_context',
+            'page_component' => 'Eddy context',
+            'page_data' => ['scope_ref' => 'house', 'persona' => 'bed_manager'],
+        ])
             ->assertOk()
             ->assertJsonStructure(['data' => ['conversation_id', 'status', 'message'], 'meta' => ['as_of', 'stale'], 'links'])
             ->assertJsonPath('data.status', 'success');
+
+        Http::assertSent(function ($request): bool {
+            $data = $request->data();
+
+            return str_ends_with($request->url(), '/eddy/chat')
+                && ($data['page_context'] ?? null) === 'eddy_context'
+                && ($data['page_component'] ?? null) === 'Eddy context'
+                && (array) ($data['page_data'] ?? []) === [
+                    'scope_ref' => 'house',
+                    'persona' => 'bed_manager',
+                ];
+        });
 
         $conversation = EddyConversation::forUser($user->id)->firstOrFail();
         $this->assertSame('hummingbird', $conversation->origin);
@@ -87,6 +106,95 @@ class EddyMobileBffTest extends TestCase
     public function test_mobile_chat_requires_a_token(): void
     {
         $this->postJson('/api/mobile/v1/eddy/chat', ['message' => 'hi'])->assertStatus(401);
+    }
+
+    public function test_mobile_stream_is_no_store_and_emits_a_sanitized_persisted_proposal(): void
+    {
+        Http::fake([
+            '*/eddy/chat/stream' => Http::response(
+                "data: {\"token\":\"Review \"}\n\n"
+                ."data: {\"complete\":true,\"clean_reply\":\"Review the capacity board.\",\"provider\":\"ollama\",\"proposed_action\":{\"action_type\":\"flag_barrier\",\"raw_upstream_only\":\"must-not-reach-mobile\"}}\n\n"
+                ."data: [DONE]\n\n",
+                200,
+                ['Content-Type' => 'text/event-stream'],
+            ),
+        ]);
+        $user = User::factory()->create();
+        Sanctum::actingAs($user, ['mobile:read']);
+
+        $response = $this->postJson('/api/mobile/v1/eddy/chat/stream?persona=bed_manager', [
+            'message' => 'What needs review?',
+            'page_context' => 'house',
+            'page_component' => 'House capacity',
+            'page_data' => ['scope_ref' => 'house'],
+        ]);
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'text/event-stream; charset=UTF-8')
+            ->assertHeader('Pragma', 'no-cache');
+        $cacheControl = (string) $response->headers->get('Cache-Control');
+        $this->assertStringContainsString('no-store', $cacheControl);
+        $this->assertStringContainsString('no-cache', $cacheControl);
+        $this->assertStringContainsString('max-age=0', $cacheControl);
+
+        $stream = $response->streamedContent();
+        $this->assertStringContainsString('data: {"conversation_id":', $stream);
+        $this->assertStringContainsString('data: {"complete":true,"clean_reply":"Review the capacity board.","provider":"ollama"}', $stream);
+        $this->assertStringContainsString('data: {"persisted":true,', $stream);
+        $this->assertStringContainsString('"tier":"T1"', $stream);
+        $this->assertStringNotContainsString('raw_upstream_only', $stream);
+    }
+
+    public function test_conversation_history_and_detail_are_user_scoped(): void
+    {
+        $this->fakeEddy();
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+
+        Sanctum::actingAs($owner, ['mobile:read']);
+        $this->postJson('/api/mobile/v1/eddy/chat', ['message' => 'what is blocking discharge?', 'surface' => 'rtdc'])
+            ->assertOk();
+        $ownerConversation = EddyConversation::forUser($owner->id)->firstOrFail();
+
+        Sanctum::actingAs($other, ['mobile:read']);
+        $this->postJson('/api/mobile/v1/eddy/chat', ['message' => 'what is blocking transport?', 'surface' => 'transport'])
+            ->assertOk();
+        $otherConversation = EddyConversation::forUser($other->id)->firstOrFail();
+
+        $webConversation = EddyConversation::create([
+            'eddy_conversation_uuid' => (string) Str::uuid(),
+            'user_id' => $owner->id,
+            'surface' => 'chat',
+            'title' => 'Web operational review',
+            'origin' => 'web',
+        ]);
+
+        Sanctum::actingAs($owner, ['mobile:read']);
+        $this->getJson('/api/mobile/v1/eddy/conversations')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment([
+                'id' => $ownerConversation->eddy_conversation_uuid,
+                'origin' => 'hummingbird',
+            ])
+            ->assertJsonFragment([
+                'id' => $webConversation->eddy_conversation_uuid,
+                'origin' => 'web',
+            ]);
+
+        $this->getJson("/api/mobile/v1/eddy/conversations/{$ownerConversation->eddy_conversation_uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $ownerConversation->eddy_conversation_uuid)
+            ->assertJsonPath('data.messages.0.role', 'user')
+            ->assertJsonPath('data.messages.1.role', 'assistant');
+
+        $this->getJson("/api/mobile/v1/eddy/conversations/{$webConversation->eddy_conversation_uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $webConversation->eddy_conversation_uuid)
+            ->assertJsonPath('data.surface', 'chat');
+
+        $this->getJson("/api/mobile/v1/eddy/conversations/{$otherConversation->eddy_conversation_uuid}")
+            ->assertNotFound();
     }
 
     public function test_inbox_lists_only_eddy_sourced_pending_approvals_for_the_user(): void
@@ -142,13 +250,22 @@ class EddyMobileBffTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'capacity_lead', 'workflow_preference' => 'rtdc']);
         $approval = $this->eddyApproval($user, 'eddy');
+        $idempotencyKey = 'eddy-mobile-approval-exact-replay';
         Sanctum::actingAs($user, ['mobile:read', 'mobile:act']);
 
-        $this->postJson("/api/mobile/v1/eddy/approvals/{$approval->approval_uuid}/decision", ['decision' => 'approved'])
+        $this->withHeader('Idempotency-Key', $idempotencyKey)
+            ->postJson("/api/mobile/v1/eddy/approvals/{$approval->approval_uuid}/decision?persona=capacity_lead", ['decision' => 'approved'])
+            ->assertOk()
+            ->assertJsonPath('data.decision', 'approved')
+            ->assertJsonPath('data.action_status', 'approved');
+
+        $this->withHeader('Idempotency-Key', $idempotencyKey)
+            ->postJson("/api/mobile/v1/eddy/approvals/{$approval->approval_uuid}/decision?persona=capacity_lead", ['decision' => 'approved'])
             ->assertOk()
             ->assertJsonPath('data.decision', 'approved')
             ->assertJsonPath('data.action_status', 'approved');
 
         $this->assertSame('approved', $approval->fresh()->status);
+        $this->assertSame(1, DB::table('ops.operational_events')->where('event_type', 'recommendation.approved')->count());
     }
 }

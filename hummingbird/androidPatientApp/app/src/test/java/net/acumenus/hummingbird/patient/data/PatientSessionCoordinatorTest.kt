@@ -21,11 +21,31 @@ class PatientSessionCoordinatorTest {
         assertEquals("new-access", store.current?.accessToken)
         assertEquals("new-refresh", store.current?.refreshToken)
         assertEquals("Sample Patient", ready.snapshot.patientDisplayName)
-        assertEquals("Care team rounds", ready.snapshot.todayItems.single().title)
+        assertEquals("Care team rounds", ready.snapshot.todayItems.first().title)
+        assertEquals("Care update", ready.snapshot.todayItems.first().explanation.substringAfter("Type: ").substringBefore('.'))
+        assertEquals(
+            "Result not available yet",
+            ready.snapshot.todayItems.first { it.title == "A test update" }.status,
+        )
+        val delayedItem = ready.snapshot.todayItems.first { it.title == "A delayed update" }
+        assertEquals("Timing is being updated", delayedItem.timing)
+        assertEquals(
+            "The timing for this step has changed. Your care team will explain what happens next.",
+            delayedItem.explanation,
+        )
+        assertEquals("Delayed", delayedItem.status)
+        assertEquals("Planning for leaving the hospital", ready.snapshot.todayItems.last().title)
+        assertEquals("Reference Hospital · Reference inpatient unit · Reference room", ready.snapshot.todayCareLocationLabel)
         assertEquals("Monitoring and treatment", ready.snapshot.pathway.single().title)
         assertEquals("Care Coordinator", ready.snapshot.careTeam.single().name)
         assertEquals("Released summary.", ready.snapshot.todaySummary)
-        assertEquals(listOf("Ask questions during rounds."), ready.snapshot.todayNextSteps)
+        assertEquals(
+            listOf(
+                "Ask questions during rounds.",
+                "Tell your care team what you would like explained today.",
+            ),
+            ready.snapshot.todayNextSteps,
+        )
         assertEquals("Monitoring and treatment", ready.snapshot.pathwayCurrentStage)
         assertEquals("Safe next step", ready.snapshot.pathwayMilestones.single().title)
         assertEquals("Care-team goal", ready.snapshot.pathwayGoals.single().authorLabel)
@@ -34,6 +54,14 @@ class PatientSessionCoordinatorTest {
         assertEquals("Test", ready.snapshot.pathwayEvents?.events?.single()?.category)
         assertEquals("Getting ready to leave", ready.snapshot.dischargeReadiness?.headline)
         assertEquals("Moving safely with the support you need", ready.snapshot.dischargeReadiness?.criteria?.single()?.label)
+        assertEquals(
+            listOf("Your care team is checking whether you need equipment for safe movement at home."),
+            ready.snapshot.dischargeReadiness?.equipment,
+        )
+        assertEquals(
+            listOf("Transportation home is being planned. Your team will confirm the plan before you leave."),
+            ready.snapshot.dischargeReadiness?.transport,
+        )
         assertEquals("Your care-team conversation", ready.snapshot.roundsSummary?.headline)
         assertEquals("How you are doing", ready.snapshot.roundsSummary?.topics?.single()?.title)
         assertEquals(
@@ -447,10 +475,12 @@ internal class MemoryPatientCredentialStore(
 
 internal class FakePatientApiGateway(
     private val encounters: List<PatientEncounter> = listOf(patientEncounter()),
+    private val noActiveEncounterAfterFirstLoad: Boolean = false,
     private val todayUnavailable: Boolean = false,
     private val revokeFailure: Boolean = false,
     private val passwordFailureStatus: Int? = null,
     private val refreshFailureStatus: Int? = null,
+    private val profileTransportAfterFirstLoad: Boolean = false,
     sendFailureCode: String? = null,
     private val messageUnauthorizedOnce: Boolean = false,
     private val refetchedThreadVersion: Int = 2,
@@ -462,6 +492,7 @@ internal class FakePatientApiGateway(
     var passwordExchangeCalls = 0
     var enrollmentCalls = 0
     var profileCalls = 0
+    var encounterCalls = 0
     var refreshCalls = 0
     var revokeCalls = 0
     var todayCalls = 0
@@ -472,12 +503,14 @@ internal class FakePatientApiGateway(
     var messageThreadsCalls = 0
     var messageThreadCalls = 0
     var createThreadCalls = 0
+    var educationClarificationCalls = 0
     var sendMessageCalls = 0
     var amendMessageCalls = 0
     var closeThreadCalls = 0
     var patientSessionsCalls = 0
     var revokePatientSessionCalls = 0
     val createThreadRequests = mutableListOf<PatientCreateThreadRequest>()
+    val educationClarificationRequests = mutableListOf<PatientEducationClarificationRequest>()
     val sendMessageRequests = mutableListOf<PatientSendMessageRequest>()
     val amendMessageRequests = mutableListOf<PatientAmendMessageRequest>()
     val closeThreadRequests = mutableListOf<PatientCloseThreadRequest>()
@@ -509,6 +542,9 @@ internal class FakePatientApiGateway(
 
     override fun profile(accessToken: CharArray): PatientEnvelope<PatientProfile> {
         profileCalls += 1
+        if (profileTransportAfterFirstLoad && profileCalls > 1) {
+            throw PatientApiException(503, "patient_service_unavailable", "Unavailable")
+        }
         if (accessToken.concatToString() == "expired-access") {
             throw PatientApiException(401, "invalid_access_token", "Unauthorized")
         }
@@ -572,8 +608,14 @@ internal class FakePatientApiGateway(
         )
     }
 
-    override fun encounters(accessToken: CharArray): PatientEnvelope<PatientEncounterCollection> =
-        patientEnvelope(PatientEncounterCollection(encounters))
+    override fun encounters(accessToken: CharArray): PatientEnvelope<PatientEncounterCollection> {
+        encounterCalls += 1
+        return patientEnvelope(
+            PatientEncounterCollection(
+                if (noActiveEncounterAfterFirstLoad && encounterCalls > 1) emptyList() else encounters,
+            ),
+        )
+    }
 
     override fun today(
         accessToken: CharArray,
@@ -592,14 +634,51 @@ internal class FakePatientApiGateway(
                             itemUuid = "019f4d7a-3200-7000-8000-000000000011",
                             label = "Care team rounds",
                             detail = "Review today’s care plan.",
+                            category = "other",
                             status = "planned",
                             timeWindow = "This morning",
                             timingConfidence = "estimated",
                             preparation = null,
                             canChange = true,
                         ),
+                        PatientScheduleItem(
+                            itemUuid = "019f4d7a-3200-7000-8000-000000000012",
+                            label = "A test update",
+                            detail = null,
+                            category = "test",
+                            status = "result_pending",
+                            timeWindow = "Later today",
+                            timingConfidence = "unknown",
+                            preparation = "Your care team will explain what happens next.",
+                            canChange = true,
+                        ),
+                        PatientScheduleItem(
+                            itemUuid = "019f4d7a-3200-7000-8000-000000000013",
+                            label = "A delayed update",
+                            detail = "Source-specific delay detail.",
+                            category = "procedure",
+                            status = "delayed",
+                            timeWindow = "3:45 PM",
+                            timingConfidence = "estimated",
+                            preparation = "Source-specific preparation.",
+                            canChange = true,
+                        ),
                     ),
                     nextSteps = listOf("Ask questions during rounds."),
+                    careLocation = PatientCareLocation(
+                        facilityDisplayName = "Reference Hospital",
+                        unitDisplayName = "Reference inpatient unit",
+                        roomDisplayName = "Reference room",
+                        status = "current",
+                    ),
+                    dischargeOutlook = PatientDischargeOutlook(
+                        estimatedRange = "In the next day or two",
+                        confidence = "estimated",
+                        readinessTopics = emptyList(),
+                        remainingSteps = listOf("Ask what still needs to happen before you leave."),
+                        canChange = true,
+                    ),
+                    questions = listOf("Tell your care team what you would like explained today."),
                     notices = listOf("Use the call button for urgent help."),
                 ),
             ),
@@ -686,7 +765,9 @@ internal class FakePatientApiGateway(
                             detail = "Your team will review this with you each day.",
                         ),
                     ),
-                    unresolvedNeeds = listOf("A ride home arranged for the day you leave."),
+                    unresolvedNeeds = listOf("Your team is reviewing the remaining preparations with you."),
+                    equipment = listOf("Your care team is checking whether you need equipment for safe movement at home."),
+                    transport = listOf("Transportation home is being planned. Your team will confirm the plan before you leave."),
                     medications = listOf(
                         PatientDischargeMedication(
                             itemUuid = "019f4d7a-3200-7000-8000-000000000025",
@@ -832,6 +913,17 @@ internal class FakePatientApiGateway(
     ): PatientEnvelope<PatientThreadResult> {
         createThreadCalls += 1
         createThreadRequests += request
+        return patientEnvelope(PatientThreadResult(patientMessageThread()))
+    }
+
+    override fun requestEducationClarification(
+        accessToken: CharArray,
+        encounterUuid: String,
+        educationItemUuid: String,
+        request: PatientEducationClarificationRequest,
+    ): PatientEnvelope<PatientThreadResult> {
+        educationClarificationCalls += 1
+        educationClarificationRequests += request
         return patientEnvelope(PatientThreadResult(patientMessageThread()))
     }
 

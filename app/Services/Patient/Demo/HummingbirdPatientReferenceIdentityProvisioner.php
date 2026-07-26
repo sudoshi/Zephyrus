@@ -83,6 +83,7 @@ final class HummingbirdPatientReferenceIdentityProvisioner
         ?int $encounterId = null,
     ): array {
         $this->assertExecutionSafe();
+        $this->assertCommitAllowed();
 
         return DB::transaction(function () use ($patientRef, $encounterId): array {
             $preLockEncounter = $this->resolveEncounter($patientRef, $encounterId, false);
@@ -168,6 +169,13 @@ final class HummingbirdPatientReferenceIdentityProvisioner
             if (! Schema::hasTable($table)) {
                 throw new RuntimeException('reference_patient_identity_schema_missing');
             }
+        }
+    }
+
+    private function assertCommitAllowed(): void
+    {
+        if ($this->app->environment('production')) {
+            throw new RuntimeException('reference_patient_provisioning_forbidden_in_production');
         }
     }
 

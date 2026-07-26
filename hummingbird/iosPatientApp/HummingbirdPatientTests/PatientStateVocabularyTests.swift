@@ -8,11 +8,25 @@ final class PatientStateVocabularyTests: XCTestCase {
             [
                 "requested": "Requested",
                 "planned": "Planned",
+                "scheduled": "Scheduled",
                 "confirmed": "Confirmed",
+                "waiting": "Waiting",
+                "transport_requested": "Transportation requested",
                 "in_progress": "Happening now",
                 "completed": "Completed",
+                "result_pending": "Result not available yet",
+                "result_released": "Result available",
                 "delayed": "Delayed",
                 "canceled": "No longer planned",
+            ]
+        )
+        XCTAssertEqual(
+            PatientStateVocabulary.labels(for: .scheduleCategory),
+            [
+                "test": "Test",
+                "procedure": "Procedure",
+                "transport": "Transportation",
+                "other": "Care update",
             ]
         )
         XCTAssertEqual(
@@ -89,5 +103,9 @@ final class PatientStateVocabularyTests: XCTestCase {
         XCTAssertEqual(PatientPathwayEventCategory.procedure.patientLabel, "Procedure")
         XCTAssertEqual(PatientPathwayEventCategory.transport.patientLabel, "Transportation")
         XCTAssertEqual(PatientPathwayEventCategory.other.patientLabel, "Care update")
+        XCTAssertEqual(
+            PatientStateVocabulary.label(for: PatientScheduleCategory.transport.rawValue, domain: .scheduleCategory),
+            "Transportation"
+        )
     }
 }

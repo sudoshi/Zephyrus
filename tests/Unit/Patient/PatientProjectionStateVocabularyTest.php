@@ -14,8 +14,10 @@ class PatientProjectionStateVocabularyTest extends TestCase
         $registry = require dirname(__DIR__, 3).'/config/hummingbird-patient-content.php';
         $vocabulary = new PatientProjectionStateVocabulary($registry['state_vocabulary']);
 
-        $this->assertSame('patient-state-vocabulary.v1-draft', $registry['state_vocabulary']['version']);
+        $this->assertSame('patient-state-vocabulary.v2-draft', $registry['state_vocabulary']['version']);
         $this->assertSame('Happening now', $vocabulary->label('stage_status', 'current'));
+        $this->assertSame('Transportation', $vocabulary->label('schedule_category', 'transport'));
+        $this->assertSame('Result not available yet', $vocabulary->label('schedule_status', 'result_pending'));
         $this->assertSame('No longer planned', $vocabulary->label('goal_status', 'canceled'));
         $this->assertSame('Needs attention', $vocabulary->label('discharge_criteria_status', 'at_risk'));
         $this->assertSame('Use your bedside call button for urgent help', $vocabulary->label(

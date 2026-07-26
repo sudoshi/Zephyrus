@@ -42,9 +42,25 @@ interface CommunicationUnit {
     label: string;
 }
 
+interface CommunicationFacility {
+    key: string;
+    label: string;
+}
+
+interface CommunicationServiceLine {
+    code: string;
+    label: string;
+}
+
 interface CommunicationPool {
     pool_uuid: string;
     label: string;
+}
+
+interface CommunicationActions {
+    can_claim: boolean;
+    can_reply: boolean;
+    can_close: boolean;
 }
 
 interface CommunicationMessage {
@@ -63,10 +79,16 @@ interface CommunicationWorkItem {
     patient_context_ref: string | null;
     topic: CommunicationTopic;
     unit: CommunicationUnit | null;
+    facility: CommunicationFacility | null;
+    service_line: CommunicationServiceLine | null;
     pool: CommunicationPool;
     status: string;
     ownership_state: string;
     assigned_to_me: boolean;
+    // A transition response may intentionally omit mutable-action capability
+    // data while the server replaces or withdraws a protected projection.
+    // Treat absence as no authority until a complete detail response arrives.
+    actions?: CommunicationActions;
     work_item_version: number;
     thread_version: number;
     last_message_at: string | null;
@@ -162,10 +184,7 @@ function contextLabel(value: string | null): string {
 }
 
 function isClaimable(item: CommunicationWorkItem): boolean {
-    return (
-        !item.assigned_to_me &&
-        ["pool_owned", "rerouted", "escalated"].includes(item.ownership_state)
-    );
+    return item.actions?.can_claim === true;
 }
 
 function hasSelectedProjectionDrift(
@@ -178,10 +197,15 @@ function hasSelectedProjectionDrift(
         previous.patient_context_ref !== next.patient_context_ref ||
         previous.topic.code !== next.topic.code ||
         previous.unit?.id !== next.unit?.id ||
+        previous.facility?.key !== next.facility?.key ||
+        previous.service_line?.code !== next.service_line?.code ||
         previous.pool.pool_uuid !== next.pool.pool_uuid ||
         previous.status !== next.status ||
         previous.ownership_state !== next.ownership_state ||
         previous.assigned_to_me !== next.assigned_to_me ||
+        previous.actions?.can_claim !== next.actions?.can_claim ||
+        previous.actions?.can_reply !== next.actions?.can_reply ||
+        previous.actions?.can_close !== next.actions?.can_close ||
         previous.work_item_version !== next.work_item_version ||
         previous.thread_version !== next.thread_version
     );
@@ -355,6 +379,8 @@ export default function PatientCommunicationsIndex({
     const [query, setQuery] = useState("");
     const [queueFilter, setQueueFilter] = useState<QueueFilter>("all");
     const [unitFilter, setUnitFilter] = useState("all");
+    const [facilityFilter, setFacilityFilter] = useState("all");
+    const [serviceLineFilter, setServiceLineFilter] = useState("all");
     const [poolFilter, setPoolFilter] = useState("all");
     const [replyBody, setReplyBody] = useState("");
     const [closeReason, setCloseReason] =
@@ -520,6 +546,39 @@ export default function PatientCommunicationsIndex({
         [inbox.items],
     );
 
+    const availableFacilities = useMemo(
+        () =>
+            Array.from(
+                new Map(
+                    inbox.items.flatMap((item) =>
+                        item.facility
+                            ? [[item.facility.key, item.facility.label]]
+                            : [],
+                    ),
+                ).entries(),
+            ).sort((left, right) => left[1].localeCompare(right[1])),
+        [inbox.items],
+    );
+
+    const availableServiceLines = useMemo(
+        () =>
+            Array.from(
+                new Map(
+                    inbox.items.flatMap((item) =>
+                        item.service_line
+                            ? [
+                                  [
+                                      item.service_line.code,
+                                      item.service_line.label,
+                                  ],
+                              ]
+                            : [],
+                    ),
+                ).entries(),
+            ).sort((left, right) => left[1].localeCompare(right[1])),
+        [inbox.items],
+    );
+
     const filteredItems = useMemo(() => {
         const needle = query.trim().toLocaleLowerCase();
 
@@ -538,6 +597,16 @@ export default function PatientCommunicationsIndex({
                 String(item.unit?.id ?? "") !== unitFilter
             )
                 return false;
+            if (
+                facilityFilter !== "all" &&
+                item.facility?.key !== facilityFilter
+            )
+                return false;
+            if (
+                serviceLineFilter !== "all" &&
+                item.service_line?.code !== serviceLineFilter
+            )
+                return false;
             if (poolFilter !== "all" && item.pool.pool_uuid !== poolFilter)
                 return false;
             if (!needle) return true;
@@ -545,11 +614,21 @@ export default function PatientCommunicationsIndex({
             return [
                 item.topic.label,
                 item.unit?.label,
+                item.facility?.label,
+                item.service_line?.label,
                 item.pool.label,
                 contextLabel(item.patient_context_ref),
             ].some((value) => value?.toLocaleLowerCase().includes(needle));
         });
-    }, [inbox.items, poolFilter, query, queueFilter, unitFilter]);
+    }, [
+        facilityFilter,
+        inbox.items,
+        poolFilter,
+        query,
+        queueFilter,
+        serviceLineFilter,
+        unitFilter,
+    ]);
 
     const loadDetail = useCallback(
         async (workItemUuid: string): Promise<boolean> => {
@@ -1411,6 +1490,52 @@ export default function PatientCommunicationsIndex({
                                     </select>
                                 </label>
                                 <label className="block text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                    Facility
+                                    <select
+                                        value={facilityFilter}
+                                        onChange={(event) =>
+                                            setFacilityFilter(
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="mt-1 min-h-10 w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-sm text-healthcare-text-primary focus:border-healthcare-primary focus:ring-healthcare-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark"
+                                    >
+                                        <option value="all">
+                                            All authorized facilities
+                                        </option>
+                                        {availableFacilities.map(
+                                            ([key, label]) => (
+                                                <option key={key} value={key}>
+                                                    {label}
+                                                </option>
+                                            ),
+                                        )}
+                                    </select>
+                                </label>
+                                <label className="block text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                    Service line
+                                    <select
+                                        value={serviceLineFilter}
+                                        onChange={(event) =>
+                                            setServiceLineFilter(
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="mt-1 min-h-10 w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-sm text-healthcare-text-primary focus:border-healthcare-primary focus:ring-healthcare-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark"
+                                    >
+                                        <option value="all">
+                                            All authorized service lines
+                                        </option>
+                                        {availableServiceLines.map(
+                                            ([code, label]) => (
+                                                <option key={code} value={code}>
+                                                    {label}
+                                                </option>
+                                            ),
+                                        )}
+                                    </select>
+                                </label>
+                                <label className="block text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
                                     Responsible team
                                     <select
                                         value={poolFilter}
@@ -1431,9 +1556,11 @@ export default function PatientCommunicationsIndex({
                                 </label>
                             </div>
                             <p className="mt-2 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                Facility and service-line filters remain
-                                unavailable until those governed fields are
-                                added to the content-free staff projection.
+                                Filters contain only current, authorized queue
+                                items. Facility and service-line context comes
+                                from the active encounter's governed location
+                                mapping, not from a team's broader routing
+                                scope.
                             </p>
                         </div>
 
@@ -1686,8 +1813,10 @@ export default function PatientCommunicationsIndex({
                                                     className="size-4"
                                                     aria-hidden="true"
                                                 />{" "}
-                                                This communication is assigned
-                                                to another responder.
+                                                This communication is either
+                                                assigned to another responder or
+                                                unavailable to claim with your
+                                                current team permissions.
                                             </div>
                                         )}
 
@@ -1736,133 +1865,150 @@ export default function PatientCommunicationsIndex({
                                     )}
 
                                     {canRespond &&
-                                        detail.assigned_to_me &&
-                                        detail.status === "open" && (
+                                        detail.status === "open" &&
+                                        (detail.actions?.can_reply ||
+                                            detail.actions?.can_close) && (
                                             <>
-                                                <label className="block text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
-                                                    Patient-visible response
-                                                    <textarea
-                                                        value={replyBody}
-                                                        onChange={(event) =>
-                                                            setReplyBody(
-                                                                event.target
-                                                                    .value,
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            uncertainCommand !==
-                                                            null
-                                                        }
-                                                        maxLength={4000}
-                                                        rows={4}
-                                                        placeholder="Write a clear, non-urgent response for the patient…"
-                                                        className="mt-1 w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-sm font-normal text-healthcare-text-primary placeholder:text-healthcare-text-secondary focus:border-healthcare-primary focus:ring-healthcare-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark dark:placeholder:text-healthcare-text-secondary-dark"
-                                                    />
-                                                </label>
-                                                <div className="flex flex-wrap items-center justify-between gap-3">
-                                                    <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                        {replyBody.length.toLocaleString()}
-                                                        /4,000 characters · sent
-                                                        exactly as
-                                                        patient-visible text
-                                                    </span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={reply}
-                                                        disabled={
-                                                            mutation !== null ||
-                                                            uncertainCommand !==
-                                                                null ||
-                                                            replyBody.trim()
-                                                                .length === 0
-                                                        }
-                                                        className="inline-flex min-h-10 items-center gap-2 rounded-md bg-healthcare-primary px-4 py-2 text-sm font-semibold text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
-                                                    >
-                                                        {mutation ===
-                                                        "reply" ? (
-                                                            <LoaderCircle
-                                                                className="size-4 animate-spin"
-                                                                aria-hidden="true"
+                                                {detail.actions?.can_reply && (
+                                                    <>
+                                                        <label className="block text-sm font-semibold text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                                            Patient-visible
+                                                            response
+                                                            <textarea
+                                                                value={
+                                                                    replyBody
+                                                                }
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
+                                                                    setReplyBody(
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    uncertainCommand !==
+                                                                    null
+                                                                }
+                                                                maxLength={4000}
+                                                                rows={4}
+                                                                placeholder="Write a clear, non-urgent response for the patient…"
+                                                                className="mt-1 w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-sm font-normal text-healthcare-text-primary placeholder:text-healthcare-text-secondary focus:border-healthcare-primary focus:ring-healthcare-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark dark:placeholder:text-healthcare-text-secondary-dark"
                                                             />
-                                                        ) : (
-                                                            <Send
-                                                                className="size-4"
-                                                                aria-hidden="true"
-                                                            />
-                                                        )}
-                                                        Send response
-                                                    </button>
-                                                </div>
+                                                        </label>
+                                                        <div className="flex flex-wrap items-center justify-between gap-3">
+                                                            <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                                {replyBody.length.toLocaleString()}
+                                                                /4,000
+                                                                characters ·
+                                                                sent exactly as
+                                                                patient-visible
+                                                                text
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={reply}
+                                                                disabled={
+                                                                    mutation !==
+                                                                        null ||
+                                                                    uncertainCommand !==
+                                                                        null ||
+                                                                    replyBody.trim()
+                                                                        .length ===
+                                                                        0
+                                                                }
+                                                                className="inline-flex min-h-10 items-center gap-2 rounded-md bg-healthcare-primary px-4 py-2 text-sm font-semibold text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+                                                            >
+                                                                {mutation ===
+                                                                "reply" ? (
+                                                                    <LoaderCircle
+                                                                        className="size-4 animate-spin"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                ) : (
+                                                                    <Send
+                                                                        className="size-4"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                )}
+                                                                Send response
+                                                            </button>
+                                                        </div>
+                                                    </>
+                                                )}
 
-                                                <div className="flex flex-wrap items-end gap-3 border-t border-healthcare-border pt-3 dark:border-healthcare-border-dark">
-                                                    <label className="min-w-60 flex-1 text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
-                                                        Closure reason
-                                                        <select
-                                                            value={closeReason}
-                                                            onChange={(event) =>
-                                                                setCloseReason(
-                                                                    event.target
-                                                                        .value as (typeof CLOSE_REASONS)[number][0],
-                                                                )
-                                                            }
+                                                {detail.actions?.can_close && (
+                                                    <div className="flex flex-wrap items-end gap-3 border-t border-healthcare-border pt-3 dark:border-healthcare-border-dark">
+                                                        <label className="min-w-60 flex-1 text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                            Closure reason
+                                                            <select
+                                                                value={
+                                                                    closeReason
+                                                                }
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
+                                                                    setCloseReason(
+                                                                        event
+                                                                            .target
+                                                                            .value as (typeof CLOSE_REASONS)[number][0],
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    uncertainCommand !==
+                                                                    null
+                                                                }
+                                                                className="mt-1 min-h-10 w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-sm text-healthcare-text-primary focus:border-healthcare-primary focus:ring-healthcare-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark"
+                                                            >
+                                                                {CLOSE_REASONS.map(
+                                                                    ([
+                                                                        value,
+                                                                        label,
+                                                                    ]) => (
+                                                                        <option
+                                                                            key={
+                                                                                value
+                                                                            }
+                                                                            value={
+                                                                                value
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                label
+                                                                            }
+                                                                        </option>
+                                                                    ),
+                                                                )}
+                                                            </select>
+                                                        </label>
+                                                        <button
+                                                            type="button"
+                                                            onClick={close}
                                                             disabled={
+                                                                mutation !==
+                                                                    null ||
                                                                 uncertainCommand !==
-                                                                null
+                                                                    null
                                                             }
-                                                            className="mt-1 min-h-10 w-full rounded-md border border-healthcare-border bg-healthcare-surface px-3 py-2 text-sm text-healthcare-text-primary focus:border-healthcare-primary focus:ring-healthcare-primary dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark dark:text-healthcare-text-primary-dark"
+                                                            className="inline-flex min-h-10 items-center gap-2 rounded-md border border-healthcare-border px-4 py-2 text-sm font-semibold text-healthcare-text-primary hover:bg-healthcare-background disabled:cursor-not-allowed disabled:opacity-50 dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-white/5"
                                                         >
-                                                            {CLOSE_REASONS.map(
-                                                                ([
-                                                                    value,
-                                                                    label,
-                                                                ]) => (
-                                                                    <option
-                                                                        key={
-                                                                            value
-                                                                        }
-                                                                        value={
-                                                                            value
-                                                                        }
-                                                                    >
-                                                                        {label}
-                                                                    </option>
-                                                                ),
+                                                            {mutation ===
+                                                            "close" ? (
+                                                                <LoaderCircle
+                                                                    className="size-4 animate-spin"
+                                                                    aria-hidden="true"
+                                                                />
+                                                            ) : (
+                                                                <CheckCircle2
+                                                                    className="size-4"
+                                                                    aria-hidden="true"
+                                                                />
                                                             )}
-                                                        </select>
-                                                    </label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={close}
-                                                        disabled={
-                                                            mutation !== null ||
-                                                            uncertainCommand !==
-                                                                null ||
-                                                            detail.ownership_state !==
-                                                                "responded"
-                                                        }
-                                                        title={
-                                                            detail.ownership_state !==
-                                                            "responded"
-                                                                ? "Send a patient-visible response before closing."
-                                                                : undefined
-                                                        }
-                                                        className="inline-flex min-h-10 items-center gap-2 rounded-md border border-healthcare-border px-4 py-2 text-sm font-semibold text-healthcare-text-primary hover:bg-healthcare-background disabled:cursor-not-allowed disabled:opacity-50 dark:border-healthcare-border-dark dark:text-healthcare-text-primary-dark dark:hover:bg-white/5"
-                                                    >
-                                                        {mutation ===
-                                                        "close" ? (
-                                                            <LoaderCircle
-                                                                className="size-4 animate-spin"
-                                                                aria-hidden="true"
-                                                            />
-                                                        ) : (
-                                                            <CheckCircle2
-                                                                className="size-4"
-                                                                aria-hidden="true"
-                                                            />
-                                                        )}
-                                                        Close communication
-                                                    </button>
-                                                </div>
+                                                            Close communication
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </>
                                         )}
                                 </div>

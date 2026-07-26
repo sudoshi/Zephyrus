@@ -22,6 +22,8 @@ import net.acumenus.hummingbird.patient.data.PatientSessionCoordinator
 
 class MainActivity : ComponentActivity() {
     private var privacyCovered by mutableStateOf(false)
+    private var patientViewModel: PatientAppViewModel? = null
+    private var wasBackgrounded = false
 
     /** Lifecycle-backed state exposed to same-module instrumentation only. */
     internal val isPrivacyCoverActive: Boolean
@@ -61,7 +63,13 @@ class MainActivity : ComponentActivity() {
                 viewModel.restoreSession()
             }
             DisposableEffect(viewModel) {
-                onDispose(viewModel::close)
+                patientViewModel = viewModel
+                onDispose {
+                    if (patientViewModel === viewModel) {
+                        patientViewModel = null
+                    }
+                    viewModel.close()
+                }
             }
             val presentationPreferences = (viewModel.state.session as? PatientSessionState.Ready)
                 ?.snapshot
@@ -81,11 +89,24 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         privacyCovered = true
+        wasBackgrounded = true
         super.onPause()
     }
 
     override fun onResume() {
         super.onResume()
-        privacyCovered = false
+        if (!wasBackgrounded) {
+            privacyCovered = false
+            return
+        }
+        wasBackgrounded = false
+        val viewModel = patientViewModel
+        if (viewModel == null) {
+            privacyCovered = false
+        } else {
+            viewModel.revalidateCurrentCareAccessAfterForeground {
+                privacyCovered = false
+            }
+        }
     }
 }

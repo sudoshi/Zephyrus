@@ -182,7 +182,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
-          extensions: pdo_pgsql, pgsql, mbstring, bcmath, zip
+          extensions: pdo_pgsql, pgsql, mbstring, bcmath, gd, zip
           coverage: none
 
       - name: Cache Composer dependencies
@@ -206,6 +206,8 @@ jobs:
           php scripts/verify-hummingbird-patient-contract.php
           php scripts/verify-hummingbird-contract-baseline.php
           php scripts/verify-hummingbird-transport-security.php
+          bash scripts/verify-hummingbird-patient-visual-assets.sh
+          php scripts/audit-hummingbird-patient-scenic-contrast.php
           php scripts/generate-hummingbird-route-inventory.php --check
           bash scripts/check-no-tracking-technologies.sh
 
@@ -870,15 +872,7 @@ jobs:
           xcodebuild -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" -list
 
       - name: Decode shared DTO fixtures with Swift
-        run: |
-          swiftc \
-            "$IOS_STAFF_ROOT/Hummingbird/DesignSystem/CapacityStatus.swift" \
-            "$IOS_STAFF_ROOT/Hummingbird/Networking/ISO8601DateFormatter+Flexible.swift" \
-            "$IOS_STAFF_ROOT/Hummingbird/Networking/Models.swift" \
-            "$IOS_STAFF_ROOT/Hummingbird/Features/Flow/FlowModels.swift" \
-            "$IOS_STAFF_ROOT/scripts/decode-shared-fixtures.swift" \
-            -o "$RUNNER_TEMP/hummingbird-fixture-decoder"
-          "$RUNNER_TEMP/hummingbird-fixture-decoder" "$GITHUB_WORKSPACE"
+        run: bash scripts/ci/decode-hummingbird-shared-fixtures.sh
 
       # build-for-testing writes app + test bundles into the derivedDataPath
       # the test steps read, so XCTest/XCUITest run test-without-building

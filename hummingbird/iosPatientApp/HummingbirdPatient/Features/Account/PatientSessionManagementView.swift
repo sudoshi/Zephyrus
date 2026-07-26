@@ -15,7 +15,8 @@ struct PatientSessionManagementView: View {
                         PatientScreenHeader(
                             eyebrow: "Account security",
                             title: "Manage devices",
-                            subtitle: "Review the devices currently signed in to Hummingbird Patient."
+                            subtitle: "Review the devices currently signed in to Hummingbird Patient.",
+                            headingIdentifier: "patient-heading-manage-devices"
                         )
 
                         content
@@ -41,8 +42,11 @@ struct PatientSessionManagementView: View {
             titleVisibility: .visible,
             presenting: viewModel.selectedSessionForRevocation
         ) { session in
-            Button(session.current ? "Sign out here" : "Sign out device", role: .destructive) {
+            Button(role: .destructive) {
                 Task { await viewModel.revokePatientSession(session) }
+            } label: {
+                Text(session.current ? "Sign out here" : "Sign out device")
+                    .patientMinimumInteractiveTarget()
             }
             .accessibilityIdentifier(
                 session.current
@@ -123,7 +127,7 @@ struct PatientSessionManagementView: View {
                     systemImage: "info.circle.fill"
                 )
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .patientSecondaryText()
             }
             .accessibilityElement(children: .combine)
 
@@ -207,7 +211,7 @@ private struct PatientSessionCard: View {
 
                         Text(session.safeDeviceDetails)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
                     }
                 }
 
@@ -218,14 +222,15 @@ private struct PatientSessionCard: View {
                     Label("Session ends \(session.expiryDisplay)", systemImage: "calendar.badge.clock")
                 }
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .patientSecondaryText()
 
                 Button(role: .destructive, action: revoke) {
                     Label(
                         session.current ? "Sign out this device" : "Sign out that device",
                         systemImage: "rectangle.portrait.and.arrow.right"
                     )
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .patientMinimumInteractiveTarget()
                 }
                 .buttonStyle(.bordered)
                 .disabled(isRevoking)

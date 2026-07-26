@@ -7,8 +7,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import net.acumenus.hummingbird.widget.HouseGlanceStore
+import java.util.UUID
 
 class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
     private val api = ApiClient()
@@ -26,6 +30,25 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
     var patientContext by mutableStateOf<PatientOperationalContext?>(null); private set
     var activity by mutableStateOf(ActivityFeed(emptyList(), null)); private set
     var eddyContext by mutableStateOf<EddyContext?>(null); private set
+    var eddyChatTurns by mutableStateOf<List<EddyChatTurn>>(emptyList()); private set
+    var eddyChatLoading by mutableStateOf(false); private set
+    var eddyChatError by mutableStateOf<String?>(null); private set
+    var eddyConversationHistory by mutableStateOf<List<EddyConversationSummary>>(emptyList()); private set
+    var eddyConversationDetail by mutableStateOf<EddyConversationDetail?>(null); private set
+    var eddyHistoryLoading by mutableStateOf(false); private set
+    var eddyHistoryError by mutableStateOf<String?>(null); private set
+    var eddyApprovals by mutableStateOf<List<EddyApprovalSummary>>(emptyList()); private set
+    var eddyApprovalPreview by mutableStateOf<EddyApprovalPreview?>(null); private set
+    var eddyApprovalsLoading by mutableStateOf(false); private set
+    var eddyApprovalsError by mutableStateOf<String?>(null); private set
+    var eddyApprovalWorking by mutableStateOf(false); private set
+    var eddyApprovalDecision by mutableStateOf<EddyApprovalDecisionResult?>(null); private set
+    private val eddyApprovalIdempotencyKeys = mutableMapOf<String, String>()
+    private var eddyConversationId: String? = null
+    private var eddyScopeRef: String? = null
+    private var eddyStreamJob: Job? = null
+    private var eddyStreamGeneration = 0L
+    private var eddyRawStreamText = ""
 
     var loading by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
@@ -86,6 +109,9 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
         drill = null
         patientContext = null
         eddyContext = null
+        resetEddyChat()
+        resetEddyHistory()
+        resetEddyApprovals()
         error = null
     }
 
@@ -127,6 +153,293 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
         eddyContext = api.eddyContext(bearer, scopeRef, selectedRole.id)
     }
 
+    fun loadEddyConversationHistory(bearer: String) {
+        if (eddyHistoryLoading) return
+        val roleId = selectedRole.id
+        eddyHistoryLoading = true
+        eddyHistoryError = null
+        viewModelScope.launch {
+            try {
+                val history = api.eddyConversations(bearer, roleId)
+                    .filter { it.id.isNotBlank() }
+                if (selectedRole.id == roleId) eddyConversationHistory = history
+            } catch (e: ApiException) {
+                if (selectedRole.id != roleId) return@launch
+                if (e.statusCode == 401) needsReauth = true
+                eddyHistoryError = e.message ?: "Eddy conversation history is unavailable right now."
+            } catch (_: Exception) {
+                if (selectedRole.id != roleId) return@launch
+                eddyHistoryError = "Eddy conversation history is unavailable right now."
+            } finally {
+                if (selectedRole.id == roleId) eddyHistoryLoading = false
+            }
+        }
+    }
+
+    fun loadEddyConversation(bearer: String, conversationId: String) {
+        if (conversationId.isBlank() || eddyHistoryLoading) return
+        val roleId = selectedRole.id
+        eddyHistoryLoading = true
+        eddyHistoryError = null
+        eddyConversationDetail = null
+        viewModelScope.launch {
+            try {
+                val conversation = api.eddyConversation(bearer, conversationId, roleId)
+                if (selectedRole.id == roleId) eddyConversationDetail = conversation
+            } catch (e: ApiException) {
+                if (selectedRole.id != roleId) return@launch
+                if (e.statusCode == 401) needsReauth = true
+                eddyHistoryError = e.message ?: "This Eddy conversation is unavailable right now."
+            } catch (_: Exception) {
+                if (selectedRole.id != roleId) return@launch
+                eddyHistoryError = "This Eddy conversation is unavailable right now."
+            } finally {
+                if (selectedRole.id == roleId) eddyHistoryLoading = false
+            }
+        }
+    }
+
+    /** Read the current user's pending Eddy proposals from the server, never from a device cache. */
+    fun loadEddyApprovals(bearer: String) {
+        if (eddyApprovalsLoading) return
+        val roleId = selectedRole.id
+        eddyApprovalsLoading = true
+        eddyApprovalsError = null
+        eddyApprovalDecision = null
+        viewModelScope.launch {
+            try {
+                val approvals = api.eddyApprovals(bearer, roleId)
+                    .filter { it.approvalUuid.isNotBlank() }
+                if (selectedRole.id == roleId) eddyApprovals = approvals
+            } catch (e: ApiException) {
+                if (selectedRole.id != roleId) return@launch
+                if (e.statusCode == 401) needsReauth = true
+                eddyApprovalsError = e.message ?: "Eddy approvals are unavailable right now."
+            } catch (_: Exception) {
+                if (selectedRole.id != roleId) return@launch
+                eddyApprovalsError = "Eddy approvals are unavailable right now."
+            } finally {
+                if (selectedRole.id == roleId) eddyApprovalsLoading = false
+            }
+        }
+    }
+
+    /** Fetch the no-store dry run immediately before the user may confirm a decision. */
+    fun loadEddyApproval(bearer: String, approvalId: String) {
+        if (approvalId.isBlank() || eddyApprovalsLoading) return
+        val roleId = selectedRole.id
+        eddyApprovalsLoading = true
+        eddyApprovalsError = null
+        eddyApprovalPreview = null
+        eddyApprovalDecision = null
+        viewModelScope.launch {
+            try {
+                val preview = api.eddyApproval(bearer, approvalId, roleId)
+                if (selectedRole.id == roleId) eddyApprovalPreview = preview
+            } catch (e: ApiException) {
+                if (selectedRole.id != roleId) return@launch
+                if (e.statusCode == 401) needsReauth = true
+                eddyApprovalsError = e.message ?: "This Eddy approval is unavailable right now."
+            } catch (_: Exception) {
+                if (selectedRole.id != roleId) return@launch
+                eddyApprovalsError = "This Eddy approval is unavailable right now."
+            } finally {
+                if (selectedRole.id == roleId) eddyApprovalsLoading = false
+            }
+        }
+    }
+
+    /**
+     * Send a consciously selected human decision online. The exact idempotency key remains
+     * only in this ViewModel while an explicit retry is possible; it is never persisted or
+     * automatically replayed after an authorization failure.
+     */
+    fun decideEddyApproval(bearer: String, approvalId: String, decision: String) {
+        if (approvalId.isBlank() || decision !in setOf("approved", "rejected") || eddyApprovalWorking) return
+        val roleId = selectedRole.id
+        val keyRef = "$approvalId:$decision"
+        val idempotencyKey = eddyApprovalIdempotencyKeys.getOrPut(keyRef) { UUID.randomUUID().toString() }
+        eddyApprovalWorking = true
+        eddyApprovalsError = null
+        viewModelScope.launch {
+            try {
+                val result = api.decideEddyApproval(
+                    bearer = bearer,
+                    approvalId = approvalId,
+                    persona = roleId,
+                    decision = decision,
+                    idempotencyKey = idempotencyKey,
+                )
+                if (selectedRole.id == roleId) {
+                    eddyApprovalDecision = result
+                    eddyApprovals = eddyApprovals.filterNot { it.approvalUuid == approvalId }
+                    eddyApprovalIdempotencyKeys.remove(keyRef)
+                }
+            } catch (e: ApiException) {
+                if (selectedRole.id != roleId) return@launch
+                if (e.statusCode == 401) needsReauth = true
+                eddyApprovalsError = e.message
+                    ?: "The Eddy decision was not recorded. Check live connectivity and review server status before intentionally trying again."
+            } catch (_: Exception) {
+                if (selectedRole.id != roleId) return@launch
+                eddyApprovalsError = "The Eddy decision was not recorded. Check live connectivity and review server status before intentionally trying again."
+            } finally {
+                if (selectedRole.id == roleId) eddyApprovalWorking = false
+            }
+        }
+    }
+
+    /**
+     * Start an in-memory Eddy transcript for a single authorized operational scope.
+     * Switching scope or persona intentionally drops the prior transcript rather than
+     * persisting potentially sensitive prompts outside the server conversation store.
+     */
+    fun beginEddyChat(scopeRef: String) {
+        if (eddyScopeRef == scopeRef) return
+        resetEddyChat()
+        eddyScopeRef = scopeRef
+    }
+
+    fun sendEddyMessage(bearer: String, scopeRef: String, message: String) {
+        val trimmed = message.trim()
+        if (trimmed.isEmpty() || eddyChatLoading) return
+        if (trimmed.length > EDDY_MESSAGE_MAX_LENGTH) {
+            eddyChatError = "Messages are limited to 8,000 characters."
+            return
+        }
+
+        beginEddyChat(scopeRef)
+        val conversationId = eddyConversationId
+        val roleId = selectedRole.id
+        val streamGeneration = ++eddyStreamGeneration
+        eddyRawStreamText = ""
+        eddyChatTurns = eddyChatTurns + EddyChatTurn(EddyChatRole.USER, trimmed) +
+            EddyChatTurn(EddyChatRole.ASSISTANT, "", pending = true)
+        eddyChatLoading = true
+        eddyChatError = null
+
+        eddyStreamJob = viewModelScope.launch {
+            var terminalReply: EddyStreamReply? = null
+            var streamError: String? = null
+            try {
+                api.eddyChatStream(
+                    bearer = bearer,
+                    message = trimmed,
+                    conversationId = conversationId,
+                    persona = roleId,
+                    pageContext = "eddy_context",
+                    pageComponent = "Eddy context",
+                    pageData = mapOf(
+                        "screen" to "Eddy context",
+                        "persona" to roleId,
+                        "scope_ref" to scopeRef,
+                    ),
+                ).collect { event ->
+                    if (streamGeneration != eddyStreamGeneration || eddyScopeRef != scopeRef) return@collect
+                    when (event) {
+                        is EddyStreamEvent.ConversationStarted -> eddyConversationId = event.conversationId
+                        is EddyStreamEvent.Token -> appendStreamingEddyToken(event.text)
+                        is EddyStreamEvent.Complete -> {
+                            terminalReply = EddyStreamReply(
+                                conversationId = eddyConversationId,
+                                cleanReply = event.cleanReply,
+                                provider = event.provider,
+                            )
+                        }
+                        is EddyStreamEvent.Error -> streamError = event.message
+                        EddyStreamEvent.Done -> Unit
+                    }
+                }
+                if (streamGeneration != eddyStreamGeneration || eddyScopeRef != scopeRef) return@launch
+                if (streamError != null) {
+                    eddyChatError = streamError
+                    resolvePendingEddyTurn(streamError.orEmpty(), null)
+                } else if (terminalReply != null) {
+                    val reply = terminalReply!!
+                    eddyConversationId = reply.conversationId ?: eddyConversationId
+                    resolvePendingEddyTurn(EddyStreamDisplayText.terminal(reply.cleanReply), reply.provider)
+                } else {
+                    val message = "Eddy did not finish this response. Check the server history before intentionally trying again."
+                    eddyChatError = message
+                    resolvePendingEddyTurn(message, null)
+                }
+            } catch (_: CancellationException) {
+                // Scope change and ViewModel teardown deliberately cancel a
+                // non-replayable stream. Do not turn that into a second prompt.
+            } catch (e: ApiException) {
+                if (streamGeneration != eddyStreamGeneration || eddyScopeRef != scopeRef) return@launch
+                if (e.statusCode == 401) needsReauth = true
+                val message = e.message ?: "Eddy is unavailable right now. Please try again shortly."
+                eddyChatError = message
+                resolvePendingEddyTurn(message, null)
+            } catch (_: Exception) {
+                if (streamGeneration != eddyStreamGeneration || eddyScopeRef != scopeRef) return@launch
+                val message = "Eddy is unavailable right now. Please try again shortly."
+                eddyChatError = message
+                resolvePendingEddyTurn(message, null)
+            } finally {
+                if (streamGeneration == eddyStreamGeneration && eddyScopeRef == scopeRef) {
+                    eddyChatLoading = false
+                    eddyStreamJob = null
+                }
+            }
+        }
+    }
+
+    private fun appendStreamingEddyToken(token: String) {
+        if (eddyRawStreamText.length + token.length > EDDY_STREAM_MAX_CHARACTERS) {
+            throw ApiException("Eddy stream response was too large to display safely.", null)
+        }
+        eddyRawStreamText += token
+        val index = eddyChatTurns.indexOfLast { it.pending }
+        if (index < 0) return
+        val pending = eddyChatTurns[index].copy(text = EddyStreamDisplayText.provisional(eddyRawStreamText))
+        eddyChatTurns = eddyChatTurns.toMutableList().also { it[index] = pending }
+    }
+
+    private fun resolvePendingEddyTurn(message: String, provider: String?) {
+        val index = eddyChatTurns.indexOfLast { it.pending }
+        val resolved = EddyChatTurn(
+            role = EddyChatRole.ASSISTANT,
+            text = message.ifBlank { "…" },
+            provider = provider,
+        )
+        eddyChatTurns = if (index >= 0) {
+            eddyChatTurns.toMutableList().also { it[index] = resolved }
+        } else {
+            eddyChatTurns + resolved
+        }
+    }
+
+    private fun resetEddyChat() {
+        eddyStreamGeneration++
+        eddyStreamJob?.cancel()
+        eddyStreamJob = null
+        eddyChatTurns = emptyList()
+        eddyChatLoading = false
+        eddyChatError = null
+        eddyConversationId = null
+        eddyScopeRef = null
+        eddyRawStreamText = ""
+    }
+
+    private fun resetEddyHistory() {
+        eddyConversationHistory = emptyList()
+        eddyConversationDetail = null
+        eddyHistoryLoading = false
+        eddyHistoryError = null
+    }
+
+    private fun resetEddyApprovals() {
+        eddyApprovals = emptyList()
+        eddyApprovalPreview = null
+        eddyApprovalsLoading = false
+        eddyApprovalsError = null
+        eddyApprovalWorking = false
+        eddyApprovalDecision = null
+        eddyApprovalIdempotencyKeys.clear()
+    }
+
     private fun request(block: suspend () -> Unit) {
         loading = true
         viewModelScope.launch {
@@ -144,4 +457,9 @@ class AltitudeViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun profileKey(key: String, userId: Int): String = "hb.$key.$userId"
+
+    private companion object {
+        const val EDDY_MESSAGE_MAX_LENGTH = 8_000
+        const val EDDY_STREAM_MAX_CHARACTERS = 64_000
+    }
 }

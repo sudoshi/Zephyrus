@@ -4,6 +4,74 @@ import XCTest
 final class PatientAPIModelTests: XCTestCase {
     private let decoder = JSONDecoder()
 
+    func testServerDerivedProjectionFixturesDecodeAcrossEveryCareSurface() throws {
+        let today = try decodeFixture("patient-today.json", as: PatientEnvelope<PatientProjectionData<PatientTodayContent>>.self)
+        XCTAssertEqual(today.data.kind, "today")
+        XCTAssertEqual(today.data.content.schedule?.first?.status, "planned")
+        XCTAssertEqual(today.data.content.schedule?.first?.category, .other)
+        XCTAssertTrue(today.data.content.schedule?.first?.canChange == true)
+        XCTAssertEqual(today.data.content.schedule?.last?.status, "result_pending")
+        XCTAssertEqual(today.data.content.schedule?.last?.category, .test)
+        XCTAssertEqual(today.data.content.careLocation?.unitDisplayName, "Reference inpatient unit")
+        XCTAssertEqual(today.data.content.dischargeOutlook?.estimatedRange, "In the next day or two")
+        XCTAssertEqual(today.data.content.questions?.first, "Tell your care team what you would like explained today.")
+        XCTAssertEqual(today.meta.stateVocabularyVersion, "patient-state-vocabulary.v2-draft")
+
+        let pathway = try decodeFixture("patient-pathway.json", as: PatientEnvelope<PatientProjectionData<PatientPathwayContent>>.self)
+        XCTAssertEqual(pathway.data.kind, "pathway")
+        XCTAssertEqual(pathway.data.content.stages?.count, 4)
+        XCTAssertEqual(pathway.data.content.stages?.first?.status, "completed")
+        XCTAssertTrue(pathway.data.content.goals?.contains(where: { $0.authorType == "patient" }) == true)
+
+        let pathwayEvents = try decodeFixture("patient-pathway-events.json", as: PatientEnvelope<PatientProjectionData<PatientPathwayEventsContent>>.self)
+        XCTAssertEqual(pathwayEvents.data.kind, "pathway_events")
+        XCTAssertEqual(pathwayEvents.data.content.events?.count, 4)
+        XCTAssertTrue(pathwayEvents.data.content.events?.contains(where: { $0.category == .transport }) == true)
+
+        let discharge = try decodeFixture("patient-discharge-readiness.json", as: PatientEnvelope<PatientProjectionData<PatientDischargeReadinessContent>>.self)
+        XCTAssertEqual(discharge.data.kind, "discharge_readiness")
+        XCTAssertTrue(discharge.data.content.criteria?.contains(where: { $0.status == "pending" }) == true)
+        XCTAssertEqual(discharge.data.content.contacts?.first?.route, "speak_with_bedside_staff")
+
+        let rounds = try decodeFixture("patient-rounds-summary.json", as: PatientEnvelope<PatientProjectionData<PatientRoundsSummaryContent>>.self)
+        XCTAssertEqual(rounds.data.kind, "rounds_summary")
+        XCTAssertEqual(rounds.data.content.roundWindow, "Earlier today")
+        XCTAssertTrue(rounds.data.content.topics?.contains(where: { $0.status == "current" }) == true)
+
+        let careTeam = try decodeFixture("patient-care-team.json", as: PatientEnvelope<PatientProjectionData<PatientCareTeamContent>>.self)
+        XCTAssertEqual(careTeam.data.kind, "care_team")
+        XCTAssertEqual(careTeam.data.content.members?.first?.role, "Care coordination")
+        XCTAssertTrue(careTeam.data.content.communicationOptions?.contains("call_button_for_urgent_help") == true)
+    }
+
+    func testForwardCompatiblePathwayEventsFixtureFallsBackToPatientSafeVocabulary() throws {
+        let events = try decodeFixture(
+            "patient-pathway-events-forward-compatible.json",
+            as: PatientEnvelope<PatientProjectionData<PatientPathwayEventsContent>>.self
+        )
+
+        XCTAssertEqual(events.data.kind, "pathway_events")
+        XCTAssertEqual(events.data.content.events?.first?.category, .other)
+        XCTAssertNil(events.data.content.events?.first?.detail)
+        XCTAssertEqual(events.meta.version, .integer(9_007_199_254_740_993))
+        XCTAssertEqual(events.data.content.notices?.count, 256)
+    }
+
+    private func decodeFixture<Payload: Codable & Equatable>(
+        _ filename: String,
+        as type: PatientEnvelope<Payload>.Type
+    ) throws -> PatientEnvelope<Payload> {
+        let sourceFile = URL(fileURLWithPath: #filePath)
+        let repositoryRoot = (0..<4).reduce(sourceFile) { path, _ in
+            path.deletingLastPathComponent()
+        }
+        let fixtureURL = repositoryRoot
+            .appendingPathComponent("docs/hummingbird/api-contract/fixtures/patient")
+            .appendingPathComponent(filename)
+
+        return try decoder.decode(PatientEnvelope<Payload>.self, from: Data(contentsOf: fixtureURL))
+    }
+
     func testProfileEnvelopeDecodesCurrentBackendShapeAndNullVersion() throws {
         let json = #"""
         {
@@ -21,6 +89,7 @@ final class PatientAPIModelTests: XCTestCase {
               "text_size": "large",
               "reduced_motion": true,
               "high_contrast": true,
+              "hide_scenery": true,
               "notification_preview": "hidden",
               "preferred_channel": "none"
             }
@@ -38,6 +107,7 @@ final class PatientAPIModelTests: XCTestCase {
         XCTAssertEqual(envelope.data.displayName, "Sample Patient")
         XCTAssertEqual(envelope.data.principalType, "patient")
         XCTAssertEqual(envelope.data.preferences.textSize, .large)
+        XCTAssertEqual(envelope.data.preferences.hideScenery, true)
         XCTAssertEqual(envelope.data.preferences.notificationPreview, .hidden)
         XCTAssertNil(envelope.meta.version)
         XCTAssertNotNil(envelope.meta.asOfDate)
@@ -271,7 +341,7 @@ final class PatientAPIModelTests: XCTestCase {
               "observed_at": "2026-07-19T14:18:00.000000Z"
             },
             "policy_version": "patient-disclosure-v1",
-            "state_vocabulary_version": "patient-state-vocabulary.v1-draft",
+            "state_vocabulary_version": "patient-state-vocabulary.v2-draft",
             "request_id": "request-1",
             "generated_at": "2026-07-19T14:20:01.000000Z"
           },
@@ -287,7 +357,7 @@ final class PatientAPIModelTests: XCTestCase {
         XCTAssertEqual(envelope.data.provenance.reviewState, "clinically_reviewed")
         XCTAssertEqual(envelope.meta.sourceFreshness?.status, "current")
         XCTAssertEqual(envelope.meta.policyVersion, "patient-disclosure-v1")
-        XCTAssertEqual(envelope.meta.stateVocabularyVersion, "patient-state-vocabulary.v1-draft")
+        XCTAssertEqual(envelope.meta.stateVocabularyVersion, "patient-state-vocabulary.v2-draft")
         XCTAssertEqual(envelope.meta.version, .integer(2))
     }
 }

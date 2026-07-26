@@ -1,7 +1,7 @@
 # Hummingbird Patient visual asset provenance
 
 Status: **release-blocking review open**
-Last verified: 2026-07-19
+Last verified: 2026-07-25
 Technical owner: Hummingbird Patient mobile maintainers
 Release approval owner: Product Design and Legal/Compliance (named approver not yet assigned)
 
@@ -37,13 +37,29 @@ attribution review required**.
   near-opaque system-color scrim for readable text.
 - iOS suppresses the photography when Reduce Transparency is enabled. The
   screen remains complete against an opaque system background.
+- Both patient products also honor a default-on, patient-selectable
+  `hide_scenery` presentation preference. It removes decorative photography
+  while retaining the same opaque care surface and all content/actions; it is
+  not a clinical preference or a substitute for system accessibility settings.
 - Runtime aspect-fill is presentation behavior, not a new derivative asset.
-  Product Design must approve focal-point crops on every supported viewport
-  before the release hold can be lifted.
+  Both native renderers explicitly use a static centered aspect-fill policy;
+  native tests pin that policy rather than relying on a framework default.
+  Product Design must still approve the resulting focal-point crops on every
+  supported viewport before the release hold can be lifted.
+- The Android default scenic composition has an independent pixel-level CI
+  gate: `scripts/audit-hummingbird-patient-scenic-contrast.php` scans all four
+  bundled derivatives with the shipped 46% image alpha, 68% -> 84% -> 96%
+  surface scrim, and light/dark semantic foreground colors. This establishes a
+  reproducible numerical contrast floor for that renderer, not asset rights,
+  iOS system-color equivalence, or a substitute for human accessibility review.
 - The first tracked repository commit currently discoverable for these source
   paths is `cd6d1b048ad44763f88e7f1a3474657645a8559b` (2026-07-02,
   “Beautify login with hummingbird slideshow”). That commit is a repository
   lineage marker only and is not licensing evidence.
+- The native scene assignments are deliberately identical where the products
+  share a state: Airy Flight for welcome/loading, Calm Green for Today/account,
+  Warm Motion for pathway/empty, and Care Connection for care team/messages/error.
+  iOS XCTest and Android JVM tests pin those assignments independently.
 
 ## Approval record to complete before release
 
@@ -62,7 +78,15 @@ attribution review required**.
 
 ## Checksum verification
 
-Run from the repository root:
+Run the repository verifier from the root. It pins every source, iOS copy, and
+Android derivative to the ledger hashes above (12 files total), and it runs in
+the Hummingbird CI contract lane:
+
+```bash
+bash scripts/verify-hummingbird-patient-visual-assets.sh
+```
+
+For a human-readable file-by-file listing, run:
 
 ```bash
 sha256sum \

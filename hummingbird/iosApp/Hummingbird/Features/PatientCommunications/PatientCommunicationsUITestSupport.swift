@@ -43,6 +43,9 @@ final class PatientCommunicationsUITestRepository: PatientCommunicationsReposito
     private var threadLoads = 0
     private var candidateLoads = 0
     private var detailWasLoaded = false
+    private var directActionsAllowed: Bool {
+        StaffCommunicationsUITestMode.scenario != "action_forbidden"
+    }
     private var messages: [PatientCommunicationMessage] = [
         .init(
             messageUuid: "33333333-3333-4333-8333-333333333333",
@@ -56,6 +59,11 @@ final class PatientCommunicationsUITestRepository: PatientCommunicationsReposito
     ]
 
     init() {
+        if StaffCommunicationsUITestMode.scenario == "action_forbidden" {
+            // This deliberately looks claimable by ownership state. The direct
+            // affordances below model the server's decisive permission result.
+            ownershipState = "escalated"
+        }
         if [
             "routing",
             "ambiguous_reroute",
@@ -133,6 +141,7 @@ final class PatientCommunicationsUITestRepository: PatientCommunicationsReposito
     ) async throws -> PatientCommunicationMutationData {
         try await briefDelay()
         try assertCurrent(workItemUUID, workItemVersion, threadVersion)
+        guard directActionsAllowed else { throw APIError(message: "Not found.", statusCode: 404) }
         assignedToMe = true
         ownershipState = "acknowledged"
         self.workItemVersion += 1
@@ -167,7 +176,9 @@ final class PatientCommunicationsUITestRepository: PatientCommunicationsReposito
             )
         }
         try assertCurrent(workItemUUID, workItemVersion, threadVersion)
-        guard assignedToMe else { throw APIError(message: "Not found.", statusCode: 404) }
+        guard directActionsAllowed, assignedToMe else {
+            throw APIError(message: "Not found.", statusCode: 404)
+        }
         let reply = PatientCommunicationMessage(
             messageUuid: clientMessageUUID.uuidString.lowercased(),
             senderDisplayRole: "Care team",
@@ -206,7 +217,7 @@ final class PatientCommunicationsUITestRepository: PatientCommunicationsReposito
     ) async throws -> PatientCommunicationMutationData {
         try await briefDelay()
         try assertCurrent(workItemUUID, workItemVersion, threadVersion)
-        guard assignedToMe, ownershipState == "responded" else {
+        guard directActionsAllowed, assignedToMe, ownershipState == "responded" else {
             throw APIError(message: "A patient-visible response is required.", statusCode: 409)
         }
         status = "closed"
@@ -384,7 +395,13 @@ final class PatientCommunicationsUITestRepository: PatientCommunicationsReposito
             isEscalationDue: false,
             closedAt: closedAt,
             messages: includeMessages ? messages : nil,
-            hasEarlierMessages: includeMessages ? false : nil
+            hasEarlierMessages: includeMessages ? false : nil,
+            actions: .init(
+                canClaim: directActionsAllowed && status == "open" && !assignedToMe
+                    && ["pool_owned", "rerouted", "escalated"].contains(ownershipState),
+                canReply: directActionsAllowed && status == "open" && assignedToMe,
+                canClose: directActionsAllowed && status == "open" && assignedToMe && ownershipState == "responded"
+            )
         )
     }
 

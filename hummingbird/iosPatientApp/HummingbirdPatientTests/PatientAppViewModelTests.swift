@@ -1,8 +1,51 @@
 import XCTest
+import UIKit
 @testable import HummingbirdPatient
 
 @MainActor
 final class PatientAppViewModelTests: XCTestCase {
+    func testScreenCaptureMonitorCoversActiveCaptureAndStopsWhenTheSystemReportsItEnded() async {
+        let notificationCenter = NotificationCenter()
+        var captureActive = false
+        let monitor = PatientScreenCaptureMonitor(
+            notificationCenter: notificationCenter,
+            captureState: { captureActive }
+        )
+
+        XCTAssertFalse(monitor.isCaptureActive)
+
+        captureActive = true
+        notificationCenter.post(name: UIScreen.capturedDidChangeNotification, object: nil)
+        await Task.yield()
+        XCTAssertTrue(monitor.isCaptureActive)
+
+        captureActive = false
+        notificationCenter.post(name: UIScreen.capturedDidChangeNotification, object: nil)
+        await Task.yield()
+        XCTAssertFalse(monitor.isCaptureActive)
+    }
+
+    func testActivityMonitorRequiresPrivacyCoverAndKeepsRevalidationRequiredAfterAnInterruption() async {
+        let notificationCenter = NotificationCenter()
+        let monitor = PatientAppActivityMonitor(notificationCenter: notificationCenter)
+
+        XCTAssertFalse(monitor.requiresPrivacyCover)
+        XCTAssertFalse(monitor.requiresAccessRevalidation)
+
+        notificationCenter.post(name: UIApplication.willResignActiveNotification, object: nil)
+        await Task.yield()
+        XCTAssertTrue(monitor.requiresPrivacyCover)
+        XCTAssertTrue(monitor.requiresAccessRevalidation)
+
+        notificationCenter.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+        await Task.yield()
+        XCTAssertFalse(monitor.requiresPrivacyCover)
+        XCTAssertTrue(monitor.requiresAccessRevalidation)
+
+        monitor.markAccessRevalidated()
+        XCTAssertFalse(monitor.requiresAccessRevalidation)
+    }
+
     func testSyntheticReferenceIsClearlyLabeledAndContainsUncertaintyAndProvenance() {
         let snapshot = PatientExperienceSnapshot.syntheticReference(now: Date(timeIntervalSince1970: 1_700_000_000))
 
@@ -95,6 +138,19 @@ final class PatientAppViewModelTests: XCTestCase {
         XCTAssertEqual(store.refreshToken, "rotated-refresh")
         XCTAssertEqual(viewModel.snapshot?.patientName, "Sam Example")
         XCTAssertEqual(viewModel.snapshot?.todayItems.first?.title, "Care team rounds")
+        XCTAssertTrue(viewModel.snapshot?.todayItems.first?.detail.contains("Type: Care update.") == true)
+        XCTAssertEqual(
+            viewModel.snapshot?.todayItems.first(where: { $0.title == "A test update" })?.statusLabel,
+            "Result not available yet"
+        )
+        let delayedItem = viewModel.snapshot?.todayItems.first(where: { $0.title == "A delayed update" })
+        XCTAssertEqual(delayedItem?.timeLabel, "Timing is being updated")
+        XCTAssertEqual(delayedItem?.detail, "The timing for this step has changed. Your care team will explain what happens next.")
+        XCTAssertEqual(delayedItem?.statusLabel, "Delayed")
+        XCTAssertEqual(delayedItem?.certainty, .beingClarified)
+        XCTAssertEqual(viewModel.snapshot?.todayItems.last?.title, "Planning for leaving the hospital")
+        XCTAssertEqual(viewModel.snapshot?.encounterLabel, "5 East · Room 512 · Example Hospital")
+        XCTAssertTrue(viewModel.snapshot?.todayNextSteps.contains("Tell your care team what you would like explained today.") == true)
         XCTAssertEqual(viewModel.snapshot?.pathwayStages.first?.title, "Getting stronger")
         XCTAssertEqual(viewModel.snapshot?.pathwayMilestones.first?.title, "Review medicines before discharge")
         XCTAssertEqual(viewModel.snapshot?.pathwayGoals.first?.authorType, "care_team")
@@ -110,6 +166,14 @@ final class PatientAppViewModelTests: XCTestCase {
         XCTAssertEqual(
             viewModel.snapshot?.dischargeReadiness?.criteria?.first?.label,
             "Moving safely with the support you need"
+        )
+        XCTAssertEqual(
+            viewModel.snapshot?.dischargeReadiness?.equipment,
+            ["Your care team is checking whether you need equipment for safe movement at home."]
+        )
+        XCTAssertEqual(
+            viewModel.snapshot?.dischargeReadiness?.transport,
+            ["Transportation home is being planned. Your team will confirm the plan before you leave."]
         )
         XCTAssertEqual(viewModel.snapshot?.careTeam.first?.name, "Jordan Lee, RN")
         XCTAssertTrue(viewModel.snapshot?.hasTodayProjection == true)
@@ -145,6 +209,89 @@ final class PatientAppViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.snapshot?.hasPathwayProjection == true)
         XCTAssertTrue(viewModel.snapshot?.hasCareTeamProjection == true)
         XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testNoActiveEncounterPurgesTheCareSurfaceAndUsesGenericPatientLanguage() async {
+        let api = MockPatientAPI(noActiveEncounter: true)
+        let store = InMemoryPatientTokenStore(accessToken: "valid-access", refreshToken: "valid-refresh")
+        let viewModel = PatientAppViewModel(
+            configuration: .enabled,
+            api: api,
+            tokenStore: store
+        )
+
+        await viewModel.bootstrap()
+
+        XCTAssertNil(viewModel.snapshot)
+        XCTAssertEqual(viewModel.noActiveEncounter?.displayName, "Sam Example")
+        XCTAssertEqual(
+            viewModel.noActiveEncounter?.message,
+            "No active hospital stay is available in Hummingbird Patient. Ask your care team if you expected to see one."
+        )
+        XCTAssertEqual(viewModel.messagingState, .notGranted)
+        XCTAssertTrue(viewModel.patientSessions.isEmpty)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertEqual(store.accessToken, "valid-access")
+        XCTAssertEqual(store.refreshToken, "valid-refresh")
+
+        let calls = await api.recordedCalls()
+        XCTAssertEqual(calls.profileTokens, ["valid-access"])
+        XCTAssertEqual(calls.encounterTokens, ["valid-access"])
+        XCTAssertTrue(calls.todayTokens.isEmpty)
+        XCTAssertTrue(calls.pathwayTokens.isEmpty)
+        XCTAssertTrue(calls.careTeamTokens.isEmpty)
+    }
+
+    func testForegroundRevalidationPurgesCareWhenTheEncounterGrantIsNoLongerAvailable() async {
+        let api = MockPatientAPI(noActiveEncounterAfterInitialLoad: true)
+        let store = InMemoryPatientTokenStore(accessToken: "valid-access", refreshToken: "valid-refresh")
+        let viewModel = PatientAppViewModel(
+            configuration: .enabled,
+            api: api,
+            tokenStore: store
+        )
+
+        await viewModel.bootstrap()
+        XCTAssertNotNil(viewModel.snapshot)
+
+        await viewModel.revalidateCurrentCareAccessAfterForeground()
+
+        XCTAssertNil(viewModel.snapshot)
+        XCTAssertEqual(viewModel.noActiveEncounter?.availability, .noActiveEncounter)
+        XCTAssertEqual(viewModel.messagingState, .notGranted)
+        XCTAssertTrue(viewModel.patientSessions.isEmpty)
+        XCTAssertEqual(store.accessToken, "valid-access")
+        XCTAssertEqual(store.refreshToken, "valid-refresh")
+
+        let calls = await api.recordedCalls()
+        XCTAssertEqual(calls.profileTokens, ["valid-access", "valid-access"])
+        XCTAssertEqual(calls.encounterTokens, ["valid-access", "valid-access"])
+        XCTAssertEqual(calls.todayTokens.count, 1)
+    }
+
+    func testForegroundRevalidationFailsClosedWhenCareAccessCannotBeVerified() async {
+        let api = MockPatientAPI(profileTransportAfterInitialLoad: true)
+        let store = InMemoryPatientTokenStore(accessToken: "valid-access", refreshToken: "valid-refresh")
+        let viewModel = PatientAppViewModel(
+            configuration: .enabled,
+            api: api,
+            tokenStore: store
+        )
+
+        await viewModel.bootstrap()
+        XCTAssertNotNil(viewModel.snapshot)
+
+        await viewModel.revalidateCurrentCareAccessAfterForeground()
+
+        XCTAssertNil(viewModel.snapshot)
+        XCTAssertEqual(viewModel.noActiveEncounter?.availability, .unableToConfirm)
+        XCTAssertEqual(
+            viewModel.noActiveEncounter?.message,
+            "We cannot confirm your current care access right now. No care information is shown until access is confirmed. Check your connection and try again."
+        )
+        XCTAssertEqual(viewModel.messagingState, .notGranted)
+        XCTAssertEqual(store.accessToken, "valid-access")
+        XCTAssertEqual(store.refreshToken, "valid-refresh")
     }
 
     func testLoginStoresPatientTokenPairAndLoadsThePatientExperience() async {
@@ -707,6 +854,9 @@ private actor MockPatientAPI: PatientAPIService {
     private let sessionManagementUnavailable: Bool
     private let sessionRevocationTransportFailure: Bool
     private let sessionRevocationServerFailure: Bool
+    private let noActiveEncounter: Bool
+    private let noActiveEncounterAfterInitialLoad: Bool
+    private let profileTransportAfterInitialLoad: Bool
     private var revokedPatientSessionUUIDs: Set<String> = []
 
     init(
@@ -720,7 +870,10 @@ private actor MockPatientAPI: PatientAPIService {
         sessionUnauthorized: Bool = false,
         sessionManagementUnavailable: Bool = false,
         sessionRevocationTransportFailure: Bool = false,
-        sessionRevocationServerFailure: Bool = false
+        sessionRevocationServerFailure: Bool = false,
+        noActiveEncounter: Bool = false,
+        noActiveEncounterAfterInitialLoad: Bool = false,
+        profileTransportAfterInitialLoad: Bool = false
     ) {
         shouldRejectNextProfile = profileUnauthorizedOnce
         self.missingToday = missingToday
@@ -733,6 +886,9 @@ private actor MockPatientAPI: PatientAPIService {
         self.sessionManagementUnavailable = sessionManagementUnavailable
         self.sessionRevocationTransportFailure = sessionRevocationTransportFailure
         self.sessionRevocationServerFailure = sessionRevocationServerFailure
+        self.noActiveEncounter = noActiveEncounter
+        self.noActiveEncounterAfterInitialLoad = noActiveEncounterAfterInitialLoad
+        self.profileTransportAfterInitialLoad = profileTransportAfterInitialLoad
     }
 
     func recordedCalls() -> Calls { calls }
@@ -768,6 +924,9 @@ private actor MockPatientAPI: PatientAPIService {
 
     func profile(accessToken: String) async throws -> PatientEnvelope<PatientProfile> {
         calls.profileTokens.append(accessToken)
+        if profileTransportAfterInitialLoad, calls.profileTokens.count > 1 {
+            throw PatientAPIError.transport
+        }
         if shouldRejectNextProfile {
             shouldRejectNextProfile = false
             throw PatientAPIError.unauthorized(code: "access_expired", message: "Access token expired.")
@@ -830,6 +989,13 @@ private actor MockPatientAPI: PatientAPIService {
 
     func encounters(accessToken: String) async throws -> PatientEnvelope<PatientEncounterCollection> {
         calls.encounterTokens.append(accessToken)
+        if noActiveEncounter || (noActiveEncounterAfterInitialLoad && calls.encounterTokens.count > 1) {
+            return PatientEnvelope(
+                data: PatientEncounterCollection(encounters: []),
+                meta: PatientFixtures.meta,
+                links: [:]
+            )
+        }
         return PatientFixtures.encounters
     }
 
@@ -986,6 +1152,7 @@ private actor MockPatientAPI: PatientAPIService {
             body: input.message,
             relatesToMessageUUID: messageUUID,
             deliveryState: .sent,
+            stateUpdatedAt: "2026-07-19T15:21:00.000000Z",
             sentAt: "2026-07-19T15:21:00.000000Z"
         )
         return PatientEnvelope(
@@ -1119,10 +1286,33 @@ private enum PatientFixtures {
                         itemUUID: "019f0000-0000-7000-8000-000000000021",
                         label: "Care team rounds",
                         detail: "Bring your questions.",
+                        category: .other,
                         status: "planned",
                         timeWindow: "This morning",
                         timingConfidence: "estimated",
                         preparation: nil,
+                        canChange: true
+                    ),
+                    PatientScheduleItem(
+                        itemUUID: "019f0000-0000-7000-8000-000000000022",
+                        label: "A test update",
+                        detail: nil,
+                        category: .test,
+                        status: "result_pending",
+                        timeWindow: "Later today",
+                        timingConfidence: "unknown",
+                        preparation: "Your care team will explain what happens next.",
+                        canChange: true
+                    ),
+                    PatientScheduleItem(
+                        itemUUID: "019f0000-0000-7000-8000-000000000023",
+                        label: "A delayed update",
+                        detail: "Source-specific delay detail.",
+                        category: .procedure,
+                        status: "delayed",
+                        timeWindow: "3:45 PM",
+                        timingConfidence: "confirmed",
+                        preparation: "Source-specific preparation.",
                         canChange: true
                     ),
                 ],
@@ -1131,10 +1321,16 @@ private enum PatientFixtures {
                     facilityDisplayName: "Example Hospital",
                     unitDisplayName: "5 East",
                     roomDisplayName: "Room 512",
-                    status: "inpatient"
+                    status: "current"
                 ),
-                dischargeOutlook: nil,
-                questions: [],
+                dischargeOutlook: PatientDischargeOutlook(
+                    estimatedRange: "In the next day or two",
+                    confidence: "estimated",
+                    readinessTopics: ["Your team will review the next safe step with you."],
+                    remainingSteps: ["Ask what still needs to happen before you leave."],
+                    canChange: true
+                ),
+                questions: ["Tell your care team what you would like explained today."],
                 notices: ["Timing can change."]
             ),
             uncertainty: uncertainty,
@@ -1262,7 +1458,9 @@ private enum PatientFixtures {
                         detail: "Your team will review this with you each day."
                     ),
                 ],
-                unresolvedNeeds: ["A ride home arranged for the day you leave."],
+                unresolvedNeeds: ["Your team is reviewing the remaining preparations with you."],
+                equipment: ["Your care team is checking whether you need equipment for safe movement at home."],
+                transport: ["Transportation home is being planned. Your team will confirm the plan before you leave."],
                 medications: [
                     PatientDischargeMedication(
                         itemUUID: "019f0000-0000-7000-8000-000000000037",
@@ -1413,6 +1611,7 @@ private enum PatientFixtures {
         body: "Could someone explain what happens before my walk?",
         relatesToMessageUUID: nil,
         deliveryState: .acknowledged,
+        stateUpdatedAt: "2026-07-19T15:00:00.000000Z",
         sentAt: "2026-07-19T14:45:00.000000Z"
     )
 
@@ -1423,6 +1622,7 @@ private enum PatientFixtures {
         body: "Is there anything I should bring?",
         relatesToMessageUUID: nil,
         deliveryState: .sent,
+        stateUpdatedAt: "2026-07-19T15:20:00.000000Z",
         sentAt: "2026-07-19T15:20:00.000000Z"
     )
 

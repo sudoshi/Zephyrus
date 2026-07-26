@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Rounds;
 
 use App\Http\Requests\Rounds\CreateQuestionRequest;
+use App\Http\Requests\Rounds\DeferPatientRoundQuestionRequest;
 use App\Http\Requests\Rounds\PromotePatientRoundQuestionRequest;
 use App\Models\Rounds\RoundEvent;
 use App\Models\Rounds\RoundQuestion;
@@ -113,5 +114,65 @@ class RoundQuestionController extends RoundsController
         });
 
         return response()->json($this->projection->patientDetail($patient->refresh(), $request->user()));
+    }
+
+    public function defer(DeferPatientRoundQuestionRequest $request, string $questionUuid): JsonResponse
+    {
+        $question = RoundQuestion::query()->where('question_uuid', $questionUuid)->firstOrFail();
+        $patient = $question->patient;
+        $this->authorization->assertCanContribute($request->user(), $patient->run);
+        abort_unless($this->authorization->canResolveQuestion($request->user(), $question, $patient->run), 403);
+
+        return $this->guard(function () use ($request, $question, $patient): JsonResponse {
+            $idempotencyKey = (string) $request->validated('idempotency_key');
+            $replayed = false;
+
+            DB::transaction(function () use ($request, $question, $idempotencyKey, &$replayed): void {
+                $lockedQuestion = RoundQuestion::query()
+                    ->whereKey($question->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $existingEvent = RoundEvent::query()
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->lockForUpdate()
+                    ->first();
+                if ($existingEvent instanceof RoundEvent) {
+                    if ($existingEvent->event_type !== 'question.deferred'
+                        || $existingEvent->aggregate_type !== 'question'
+                        || (int) $existingEvent->aggregate_id !== (int) $lockedQuestion->getKey()
+                        || (int) $existingEvent->actor_user_id !== (int) $request->user()->getKey()
+                    ) {
+                        throw new \App\Exceptions\Rounds\RoundConflictException('This idempotency key was already used for a different question action.');
+                    }
+
+                    $replayed = true;
+
+                    return;
+                }
+
+                $this->patientQuestionPromotions->recordDeferralOutcome(
+                    $request,
+                    $request->user(),
+                    $lockedQuestion,
+                    $idempotencyKey,
+                );
+
+                RoundEvent::record(
+                    'question',
+                    $lockedQuestion->question_id,
+                    $lockedQuestion->question_uuid,
+                    1,
+                    $request->user()->id,
+                    'question.deferred',
+                    ['event_type' => 'patient_question_deferred'],
+                    $idempotencyKey,
+                );
+            });
+
+            return response()->json(
+                $this->projection->patientDetail($patient->refresh(), $request->user()),
+                $replayed ? 200 : 201,
+            );
+        }, $patient->run, $request);
     }
 }

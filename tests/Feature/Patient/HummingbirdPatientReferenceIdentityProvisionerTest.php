@@ -339,6 +339,30 @@ class HummingbirdPatientReferenceIdentityProvisionerTest extends TestCase
         }
     }
 
+    public function test_production_runtime_refuses_reference_identity_commit_without_creating_access_foundation(): void
+    {
+        $encounter = $this->operationalEncounter();
+        $originalEnvironment = $this->app['env'];
+        $this->app['env'] = 'production';
+
+        try {
+            $this->provisioner($this->materials([]))->provision(
+                (string) $encounter->patient_ref,
+                (int) $encounter->getKey(),
+            );
+            $this->fail('Expected a production reference-identity commit to be rejected.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('reference_patient_provisioning_forbidden_in_production', $exception->getMessage());
+        } finally {
+            $this->app['env'] = $originalEnvironment;
+        }
+
+        $this->assertDatabaseCount('patient_experience.principals', 0);
+        $this->assertDatabaseCount('patient_experience.identity_links', 0);
+        $this->assertDatabaseCount('patient_experience.encounter_access_grants', 0);
+        $this->assertDatabaseCount('patient_experience.enrollment_challenges', 0);
+    }
+
     public function test_foreign_owned_principal_link_and_grant_are_refused_without_mutation(): void
     {
         $hmac = $this->app->make(PatientHmac::class);

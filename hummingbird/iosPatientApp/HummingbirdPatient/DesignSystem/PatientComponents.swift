@@ -30,6 +30,7 @@ struct PatientScreenHeader: View {
     let eyebrow: String
     let title: String
     let subtitle: String
+    let headingIdentifier: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -40,11 +41,30 @@ struct PatientScreenHeader: View {
             Text(title)
                 .font(.largeTitle.bold())
                 .foregroundStyle(PatientPalette.ink)
+                .patientAccessibilityHeading(identifier: headingIdentifier)
             Text(subtitle)
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .patientSecondaryText()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+extension View {
+    /// Gives a visible patient-care landmark a stable identifier and the native
+    /// VoiceOver heading trait. The identifier is test evidence only; it does
+    /// not replace device-level VoiceOver navigation validation.
+    func patientAccessibilityHeading(identifier: String) -> some View {
+        accessibilityAddTraits(.isHeader)
+            .accessibilityIdentifier(identifier)
+    }
+
+    /// Apply inside a Button label to establish the 44-point minimum target for
+    /// patient actions that affect care access, a care-team conversation, or
+    /// device security. This is not a substitute for motor-access testing.
+    func patientMinimumInteractiveTarget() -> some View {
+        contentShape(Rectangle())
+            .frame(minWidth: 44, minHeight: 44)
     }
 }
 
@@ -91,7 +111,7 @@ struct PatientFreshnessView: View {
                     .font(.subheadline.weight(.semibold))
                 Text(snapshot.sourceLimitation)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
             }
         }
         .accessibilityElement(children: .combine)
@@ -119,7 +139,7 @@ struct PatientPresentationPreferenceNotice: View {
                         .font(.body)
                     Text("These display choices do not change your care plan, clinical orders, or urgent-help instructions.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .patientSecondaryText()
                 }
             }
             .accessibilityIdentifier("patient-presentation-preference-notice")
@@ -130,6 +150,7 @@ struct PatientPresentationPreferenceNotice: View {
         presentationPreferences.textSize != .standard
             || presentationPreferences.highContrast
             || presentationPreferences.reducedMotion
+            || presentationPreferences.hideScenery
     }
 
     private var summary: String {
@@ -147,6 +168,9 @@ struct PatientPresentationPreferenceNotice: View {
         }
         if presentationPreferences.reducedMotion {
             choices.append("reduced motion")
+        }
+        if presentationPreferences.hideScenery {
+            choices.append("background images off")
         }
         let joinedChoices = ListFormatter.localizedString(byJoining: choices)
         return "Hummingbird Patient is using \(joinedChoices). Your device accessibility settings can make text larger."
@@ -186,7 +210,7 @@ struct PatientUrgentHelpNotice: View {
                     .font(.body)
                 Text("Messages are for nonurgent questions. They are not monitored as an emergency service or live chat.")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
             }
         }
         .accessibilityElement(children: .combine)
@@ -200,7 +224,7 @@ struct PatientProvenanceText: View {
     var body: some View {
         Label("Source: \(value)", systemImage: "checkmark.shield")
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .patientSecondaryText()
             .accessibilityLabel("Information source: \(value)")
     }
 }
@@ -217,7 +241,7 @@ struct PatientProjectionSummaryCard: View {
                     .foregroundStyle(PatientPalette.ink)
                 Text(summary)
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
             }
         }
         .accessibilityElement(children: .combine)
@@ -237,7 +261,7 @@ struct PatientProjectionRevisionNoticeCard: View {
                     .font(.body)
                 Text("Ask your care team if you have questions about what is shown here.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
             }
         }
         .accessibilityElement(children: .combine)

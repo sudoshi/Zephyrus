@@ -2,8 +2,10 @@
 
 namespace App\Models\Rounds;
 
+use App\Models\PatientCommunication\RoundQuestionPromotion;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class RoundQuestion extends Model
 {
@@ -32,5 +34,14 @@ class RoundQuestion extends Model
     public function patient(): BelongsTo
     {
         return $this->belongsTo(RoundPatient::class, 'round_patient_id', 'round_patient_id');
+    }
+
+    public function patientPromotion(): HasOne
+    {
+        return $this->hasOne(
+            RoundQuestionPromotion::class,
+            'round_question_id',
+            'question_id',
+        );
     }
 }

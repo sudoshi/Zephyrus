@@ -1626,6 +1626,7 @@ class PatientMessagingService
                 ? (string) $message->relatesTo->message_uuid
                 : null,
             'delivery_state' => $latestReceipt?->patient_visible_state ?? 'sent',
+            'state_updated_at' => $latestReceipt?->occurred_at?->toISOString() ?? $message->sent_at?->toISOString(),
             'sent_at' => $message->sent_at?->toISOString(),
         ];
     }

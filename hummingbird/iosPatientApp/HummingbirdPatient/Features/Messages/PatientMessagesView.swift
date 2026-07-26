@@ -12,7 +12,8 @@ struct PatientMessagesView: View {
                 PatientScreenHeader(
                     eyebrow: "Nonurgent care questions",
                     title: "Messages",
-                    subtitle: "Ask a question about your care and follow the conversation with your care team. Messages are not live chat."
+                    subtitle: "Ask a question about your care and follow the conversation with your care team. Messages are not live chat.",
+                    headingIdentifier: "patient-heading-messages"
                 )
 
                 #if DEBUG
@@ -97,6 +98,7 @@ struct PatientMessagesView: View {
             Text("Your conversations")
                 .font(.title2.bold())
                 .foregroundStyle(PatientPalette.ink)
+                .patientAccessibilityHeading(identifier: "patient-heading-your-conversations")
 
             if overview.threads.isEmpty {
                 PatientPhotoStateCard(
@@ -173,7 +175,7 @@ private struct PatientImmediateHelpCard: View {
                     .font(.body)
                 Text("Do not wait for a message response when you need immediate help.")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
             }
         }
         .accessibilityElement(children: .combine)
@@ -189,7 +191,7 @@ private struct PatientNoOfflineQueueCard: View {
                 systemImage: "wifi"
             )
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.secondary)
+            .patientSecondaryText()
         }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("messages-no-offline-queue")
@@ -223,22 +225,27 @@ private struct PatientMessageThreadSummaryCard: View {
                     Spacer(minLength: 8)
                     Image(systemName: "chevron.right")
                         .font(.caption.bold())
-                        .foregroundStyle(.secondary)
+                        .patientSecondaryText()
                         .accessibilityHidden(true)
                 }
                 Label(thread.ownershipState.patientLabel, systemImage: thread.status == .open ? "message.badge.fill" : "checkmark.circle.fill")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(thread.status == .open ? PatientPalette.blue : PatientPalette.teal)
+                Label("Typical response", systemImage: "clock")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PatientPalette.blue)
                 Text(thread.expectedResponseWindow)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
                 Text("Last update \(PatientMessageDateFormatting.display(thread.lastMessageAt))")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Conversation: \(thread.topic.label). \(thread.ownershipState.patientLabel). \(thread.expectedResponseWindow)")
+        .accessibilityLabel(
+            "Conversation: \(thread.topic.label). \(thread.ownershipState.patientLabel). Typical response: \(thread.expectedResponseWindow)"
+        )
     }
 }
 
@@ -259,7 +266,7 @@ private struct PatientNewMessageComposer: View {
                 if topics.isEmpty {
                     Text("No approved message topics are available right now.")
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .patientSecondaryText()
                 } else {
                     Picker("Question topic", selection: $selectedTopicCode) {
                         ForEach(topics) { topic in
@@ -272,10 +279,30 @@ private struct PatientNewMessageComposer: View {
                     if let topic = topics.first(where: { $0.code == selectedTopicCode }) {
                         Text(topic.description)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Text(topic.expectedResponseWindow)
+                            .patientSecondaryText()
+                        Label("Typical response", systemImage: "clock")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(PatientPalette.blue)
+                        Text(topic.expectedResponseWindow)
+                            .font(.subheadline)
+                            .patientSecondaryText()
+
+                        if topic.code == "rounds_question" {
+                            PatientCard {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Label(
+                                        "For a nonurgent question before a care-team conversation",
+                                        systemImage: "clock.badge.questionmark"
+                                    )
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(PatientPalette.teal)
+                                    Text("Your care team may review it before a care conversation, but it may not be discussed in a particular round. For immediate help, use the urgent-help option above.")
+                                        .font(.footnote)
+                                        .patientSecondaryText()
+                                }
+                            }
+                            .accessibilityIdentifier("rounds-question-safety-notice")
+                        }
                     }
 
                     PatientMessageEditor(
@@ -537,8 +564,11 @@ private struct PatientMessageThreadView: View {
                     .font(.title2.bold())
                 Text(thread.topic.description)
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
                 Label(thread.ownershipState.patientLabel, systemImage: "message.badge.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PatientPalette.blue)
+                Label("Typical response", systemImage: "clock")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PatientPalette.blue)
                 Text(thread.expectedResponseWindow)
@@ -546,6 +576,9 @@ private struct PatientMessageThreadView: View {
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "Conversation: \(thread.topic.label). \(thread.ownershipState.patientLabel). Typical response: \(thread.expectedResponseWindow)"
+        )
         .accessibilityIdentifier("message-thread-header")
     }
 }
@@ -566,27 +599,33 @@ private struct PatientVisibleMessageCard: View {
                     Spacer(minLength: 8)
                     Text(PatientMessageDateFormatting.display(message.sentAt))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .patientSecondaryText()
                 }
                 Text(visibleBody)
                     .font(.body)
                 if message.senderDisplayRole == .patient {
-                    Text(message.deliveryState.patientLabel)
+                    Text(deliveryLabel)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .patientSecondaryText()
                 }
                 if canAmend {
                     HStack(spacing: 8) {
-                        Button("Correct message", action: onCorrect)
+                        Button(action: onCorrect) {
+                            Text("Correct message")
+                                .patientMinimumInteractiveTarget()
+                        }
                             .buttonStyle(.bordered)
                             .accessibilityIdentifier("correct-message-\(message.messageUUID)")
-                        Button("Withdraw message", role: .destructive, action: onWithdraw)
+                        Button(role: .destructive, action: onWithdraw) {
+                            Text("Withdraw message")
+                                .patientMinimumInteractiveTarget()
+                        }
                             .buttonStyle(.bordered)
                             .accessibilityIdentifier("withdraw-message-\(message.messageUUID)")
                     }
                     Text("A correction or withdrawal adds a new record. It does not erase the message already in this conversation.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .patientSecondaryText()
                 }
             }
         }
@@ -603,6 +642,13 @@ private struct PatientVisibleMessageCard: View {
         case .retraction: "A previous message was withdrawn. The earlier message remains in this conversation."
         case .systemStatus: "The conversation status changed."
         }
+    }
+
+    private var deliveryLabel: String {
+        guard let updatedAt = message.stateUpdatedAt else {
+            return message.deliveryState.patientLabel
+        }
+        return "\(message.deliveryState.patientLabel) \(PatientMessageDateFormatting.display(updatedAt))"
     }
 }
 
@@ -621,7 +667,7 @@ private struct PatientCorrectionComposer: View {
                     .foregroundStyle(PatientPalette.blue)
                 Text("Your correction is sent as a new message. The earlier message stays visible in the conversation history.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
                 PatientMessageEditor(title: "Your corrected nonurgent message", text: $correction)
                 HStack(spacing: 10) {
                     Button {
@@ -633,13 +679,17 @@ private struct PatientCorrectionComposer: View {
                         } else {
                             Label("Send correction", systemImage: "paperplane.fill")
                                 .frame(maxWidth: .infinity)
+                                .patientMinimumInteractiveTarget()
                         }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(isBusy || correction.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .accessibilityIdentifier("message-correction-send-\(originalMessage.messageUUID)")
 
-                    Button("Cancel", action: onCancel)
+                    Button(action: onCancel) {
+                        Text("Cancel")
+                            .patientMinimumInteractiveTarget()
+                    }
                         .buttonStyle(.bordered)
                         .disabled(isBusy)
                 }
@@ -670,6 +720,7 @@ private struct PatientReplyComposer: View {
                     } else {
                         Label("Send reply", systemImage: "paperplane.fill")
                             .frame(maxWidth: .infinity)
+                            .patientMinimumInteractiveTarget()
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -705,7 +756,7 @@ private struct PatientMessageEditor: View {
                 }
             Text("\(text.count) of 2,000 characters")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .patientSecondaryText()
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }

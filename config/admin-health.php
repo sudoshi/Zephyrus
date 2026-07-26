@@ -23,6 +23,17 @@ return [
         'critical_open_exceptions' => max(1, (int) env('ADMIN_HEALTH_INTEGRATION_CRITICAL_EXCEPTIONS', 25)),
     ],
 
+    // Patient-pathway projection monitoring is an internal, PHI-free control.
+    // Its probes never access source payloads or patient-facing projection
+    // content. The component becomes an active readiness signal only once all
+    // draft-projection gates are intentionally enabled.
+    'patient_projection' => [
+        'warning_lag_minutes' => max(1, (int) env('ADMIN_HEALTH_PATIENT_PROJECTION_WARNING_LAG_MINUTES', 30)),
+        'critical_lag_minutes' => max(1, (int) env('ADMIN_HEALTH_PATIENT_PROJECTION_CRITICAL_LAG_MINUTES', 240)),
+        'failure_window_minutes' => max(1, (int) env('ADMIN_HEALTH_PATIENT_PROJECTION_FAILURE_WINDOW_MINUTES', 60)),
+        'critical_failure_count' => max(1, (int) env('ADMIN_HEALTH_PATIENT_PROJECTION_CRITICAL_FAILURE_COUNT', 3)),
+    ],
+
     'database' => [
         'expected_replica_count' => max(0, (int) env('ADMIN_HEALTH_EXPECTED_DB_REPLICAS', 0)),
     ],
@@ -58,6 +69,11 @@ return [
         'cache' => ['label' => 'Cache round trip', 'category' => 'Application runtime', 'required' => true, 'owner' => 'Platform Engineering', 'runbook' => 'cache'],
         'sessions' => ['label' => 'Session security', 'category' => 'Security', 'required' => true, 'owner' => 'Security Engineering', 'runbook' => 'sessions'],
         'integration_runtime' => ['label' => 'Integration runtime', 'category' => 'Interoperability', 'required' => true, 'owner' => 'Integration Operations', 'runbook' => 'integration-runtime'],
+        'patient_projection_pipeline' => ['label' => 'Patient pathway projections', 'category' => 'Patient experience', 'required' => true, 'owner' => 'Clinical Integration Operations', 'runbook' => 'hummingbird-patient-projection-pipeline'],
+        // Reuses a dedicated aggregate-only reporter. The probe is healthy while
+        // both staff-handoff gates are off and only becomes a readiness signal
+        // after intentional enablement plus governance approval.
+        'patient_message_handoff' => ['label' => 'Patient message handoff', 'category' => 'Patient experience', 'required' => true, 'owner' => 'Clinical Response Operations', 'runbook' => 'hummingbird-patient-message-handoff'],
         'realtime' => ['label' => 'Realtime broadcasting', 'category' => 'Application runtime', 'required' => false, 'owner' => 'Platform Engineering', 'runbook' => 'realtime'],
         'object_storage' => ['label' => 'Object storage', 'category' => 'Data plane', 'required' => true, 'owner' => 'Platform Engineering', 'runbook' => 'object-storage'],
         'disk_capacity' => ['label' => 'Local disk capacity', 'category' => 'Infrastructure', 'required' => true, 'owner' => 'Platform Engineering', 'runbook' => 'disk-capacity'],

@@ -93,7 +93,7 @@ struct PatientWelcomeView: View {
                 .foregroundStyle(PatientPalette.ink)
             Text("Understand what is happening today, what may come next, and who is helping with your care.")
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .patientSecondaryText()
         }
     }
 
@@ -115,7 +115,7 @@ struct PatientWelcomeView: View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Use the invitation details given to you by your hospital. These values are verified once and are not stored as care identifiers on this device.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .patientSecondaryText()
             TextField("Invitation ID", text: $challengeUUID)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -151,7 +151,7 @@ struct PatientWelcomeView: View {
                 .font(.headline)
             Text("Credentials are kept in this app’s device-only secure storage. The screen is covered whenever the app moves out of the foreground.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .patientSecondaryText()
         }
         .padding(.top, 6)
     }
@@ -163,8 +163,8 @@ struct PatientWelcomeView: View {
         return UUID(uuidString: challengeUUID) != nil
             && challengeToken.count >= 32
             && verificationCode.count >= 6
-            && !displayName.isEmpty
-            && email.contains("@")
+            && !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && email.trimmingCharacters(in: .whitespacesAndNewlines).contains("@")
             && password.count >= 12
             && password == passwordConfirmation
     }

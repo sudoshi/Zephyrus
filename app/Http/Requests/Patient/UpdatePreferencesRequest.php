@@ -20,6 +20,7 @@ class UpdatePreferencesRequest extends FormRequest
             'text_size' => ['sometimes', 'string', 'in:standard,large,extra_large'],
             'reduced_motion' => ['sometimes', 'boolean'],
             'high_contrast' => ['sometimes', 'boolean'],
+            'hide_scenery' => ['sometimes', 'boolean'],
             'notification_preview' => ['sometimes', 'string', 'in:hidden,generic'],
             'preferred_channel' => ['sometimes', 'string', 'in:push,email,sms,none'],
         ];

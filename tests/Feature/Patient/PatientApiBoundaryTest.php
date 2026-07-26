@@ -411,6 +411,9 @@ class PatientApiBoundaryTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data.encounters')
             ->assertJsonPath('data.encounters.0.encounter_uuid', (string) $active->encounter_uuid)
+            ->assertJsonMissingPath('data.encounters.0.mrn')
+            ->assertJsonMissingPath('data.encounters.0.patient_ref')
+            ->assertJsonMissingPath('data.encounters.0.encounter_ref')
             ->assertJsonMissing(['source_encounter_id'])
             ->assertJsonMissing(['encrypted_source_encounter_ref'])
             ->assertJsonMissing(['source_encounter_ref_digest'])
@@ -423,16 +426,19 @@ class PatientApiBoundaryTest extends TestCase
                 'timezone' => 'America/New_York',
                 'text_size' => 'large',
                 'high_contrast' => true,
+                'hide_scenery' => true,
                 'notification_preview' => 'generic',
             ])
             ->assertOk()
             ->assertJsonPath('data.locale', 'es-US')
             ->assertJsonPath('data.preferences.text_size', 'large')
-            ->assertJsonPath('data.preferences.high_contrast', true);
+            ->assertJsonPath('data.preferences.high_contrast', true)
+            ->assertJsonPath('data.preferences.hide_scenery', true);
 
         $principal->refresh();
         $this->assertSame('large', $principal->preferences['text_size']);
         $this->assertTrue($principal->preferences['high_contrast']);
+        $this->assertTrue($principal->preferences['hide_scenery']);
         $this->assertSame($staffAuditCount, UserEvent::query()->count());
         $this->assertDatabaseHas('patient_experience.access_audit_events', [
             'principal_id' => $principal->getKey(),

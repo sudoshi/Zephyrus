@@ -29,7 +29,7 @@ class PatientProjectionContentGuard
         ],
         'discharge_readiness' => [
             'headline', 'summary', 'estimated_range', 'estimated_confidence',
-            'criteria', 'unresolved_needs', 'medications', 'follow_up',
+            'criteria', 'unresolved_needs', 'equipment', 'transport', 'medications', 'follow_up',
             'warning_signs', 'contacts', 'questions', 'notices',
         ],
         'rounds_summary' => [
@@ -242,6 +242,11 @@ class PatientProjectionContentGuard
                 $this->assertStringList($content[$field]);
             }
         }
+        foreach (['equipment', 'transport'] as $field) {
+            if (array_key_exists($field, $content)) {
+                $this->assertDischargePreparationList($content[$field]);
+            }
+        }
         if (array_key_exists('medications', $content)) {
             $this->assertObjectList($content['medications'], [
                 'item_uuid' => 'uuid',
@@ -307,6 +312,7 @@ class PatientProjectionContentGuard
                 'item_uuid' => 'uuid',
                 'label' => 'string',
                 'detail' => 'string',
+                'category' => 'schedule_category',
                 'status' => 'schedule_status',
                 'time_window' => 'string',
                 'timing_confidence' => 'timing_confidence',
@@ -462,6 +468,7 @@ class PatientProjectionContentGuard
             'bool' => is_bool($value) ?: throw new InvalidArgumentException('patient_projection_content_type_invalid'),
             'string_list' => $this->assertStringList($value),
             'schedule_status',
+            'schedule_category',
             'stage_status',
             'milestone_status',
             'pathway_event_status',
@@ -513,6 +520,24 @@ class PatientProjectionContentGuard
 
         foreach ($value as $item) {
             $this->assertString($item);
+        }
+    }
+
+    /**
+     * Equipment and getting-home preparation must remain patient-language guidance,
+     * never a leak of dispatch, staff, capacity, route, or exact-time operations.
+     */
+    private function assertDischargePreparationList(mixed $value): void
+    {
+        $this->assertStringList($value);
+
+        foreach ($value as $item) {
+            if (preg_match(
+                '/\\b(?:eta|dispatch(?:ed)?|driver|vehicle|route|capacity|queue(?:\\s+(?:rank|position))?|assigned\\s+(?:driver|vehicle|transport))\\b|\\b\\d{1,2}:\\d{2}(?:\\s*[ap]\\.?m\\.?)?\\b/i',
+                $item,
+            ) === 1) {
+                throw new InvalidArgumentException('patient_projection_discharge_preparation_operational_detail_forbidden');
+            }
         }
     }
 

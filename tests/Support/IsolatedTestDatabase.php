@@ -9,6 +9,17 @@ use RuntimeException;
 
 final class IsolatedTestDatabase
 {
+    /**
+     * A test runner may only terminate its own sessions. Terminating every
+     * connection to a test database can fail when an administrator, monitor,
+     * or backup process owns a session, which would leave the isolated
+     * database behind even though the runner has no authority over that
+     * other process.
+     */
+    public const TERMINATE_OWNED_CONNECTIONS_QUERY =
+        'SELECT pg_terminate_backend(pid) FROM pg_stat_activity '
+        .'WHERE datname = :database AND pid <> pg_backend_pid() AND usename = current_user';
+
     private static ?string $database = null;
 
     public static function provision(): void
@@ -95,9 +106,7 @@ final class IsolatedTestDatabase
 
         try {
             $admin = self::adminConnection();
-            $statement = $admin->prepare(
-                'SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = :database AND pid <> pg_backend_pid()',
-            );
+            $statement = $admin->prepare(self::TERMINATE_OWNED_CONNECTIONS_QUERY);
             $statement->execute(['database' => $database]);
             $admin->exec('DROP DATABASE IF EXISTS '.self::identifier($database));
         } catch (\Throwable $exception) {

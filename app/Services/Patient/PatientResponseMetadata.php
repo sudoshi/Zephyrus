@@ -29,7 +29,7 @@ class PatientResponseMetadata
             // inferring a label from an internal code.
             'state_vocabulary_version' => (string) config(
                 'hummingbird-patient-content.state_vocabulary.version',
-                'patient-state-vocabulary.v1-draft',
+                'patient-state-vocabulary.v2-draft',
             ),
             // Compatibility aliases retained while native clients move to the
             // patient response contract above.

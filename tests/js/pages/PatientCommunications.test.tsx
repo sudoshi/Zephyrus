@@ -32,6 +32,8 @@ const workItem = {
     patient_context_ref: "ptok_abcdef1234567890abcdef12",
     topic: { code: "care_question", label: "Question for my care team" },
     unit: { id: 85, label: "5 East — Medical/Surgical" },
+    facility: { key: "SUMMIT_REGIONAL", label: "Summit Regional Hospital" },
+    service_line: { code: "hospital_medicine", label: "Hospital Medicine" },
     pool: {
         pool_uuid: "019f0000-0000-7000-8000-000000000003",
         label: "5 East Care Team",
@@ -39,6 +41,11 @@ const workItem = {
     status: "open",
     ownership_state: "pool_owned",
     assigned_to_me: false,
+    actions: {
+        can_claim: true,
+        can_reply: false,
+        can_close: false,
+    },
     work_item_version: 1,
     thread_version: 2,
     last_message_at: "2026-07-20T12:00:00Z",
@@ -142,7 +149,7 @@ describe("Patient Communications workspace", () => {
         } as ReturnType<typeof usePage>);
     });
 
-    it("renders explicit authorized unit and responsible-team filters", () => {
+    it("renders governed facility and service-line filters only from the authorized queue", () => {
         render(
             <PatientCommunicationsIndex
                 initialInbox={{ items: [workItem], count: 1 }}
@@ -155,15 +162,110 @@ describe("Patient Communications workspace", () => {
         expect(
             screen.getByRole("option", { name: workItem.unit.label }),
         ).toBeInTheDocument();
+        expect(screen.getByLabelText("Facility")).toHaveValue("all");
+        expect(
+            screen.getByRole("option", { name: workItem.facility.label }),
+        ).toBeInTheDocument();
+        expect(screen.getByLabelText("Service line")).toHaveValue("all");
+        expect(
+            screen.getByRole("option", { name: workItem.service_line.label }),
+        ).toBeInTheDocument();
         expect(screen.getByLabelText("Responsible team")).toHaveValue("all");
         expect(
             screen.getByRole("option", { name: workItem.pool.label }),
         ).toBeInTheDocument();
         expect(
-            screen.getByText(
-                /Facility and service-line filters remain unavailable/i,
+            screen.getByText(/active encounter's governed location mapping/i),
+        ).toBeInTheDocument();
+    });
+
+    it("filters facility and service line without using routing-team scope", () => {
+        const otherItem = {
+            ...workItem,
+            work_item_uuid: "019f0000-0000-7000-8000-000000000010",
+            thread_uuid: "019f0000-0000-7000-8000-000000000011",
+            topic: { code: "discharge", label: "Discharge planning" },
+            facility: {
+                key: "NORTH_CAMPUS",
+                label: "North Campus Hospital",
+            },
+            service_line: {
+                code: "cardiovascular",
+                label: "Cardiovascular Services",
+            },
+        };
+
+        render(
+            <PatientCommunicationsIndex
+                initialInbox={{ items: [workItem, otherItem], count: 2 }}
+                endpoints={endpoints}
+                auth={{ user: null }}
+            />,
+        );
+
+        fireEvent.change(screen.getByLabelText("Facility"), {
+            target: { value: otherItem.facility.key },
+        });
+        expect(screen.getByText(otherItem.topic.label)).toBeInTheDocument();
+        expect(
+            screen.queryByText(workItem.topic.label),
+        ).not.toBeInTheDocument();
+
+        fireEvent.change(screen.getByLabelText("Service line"), {
+            target: { value: workItem.service_line.code },
+        });
+        expect(
+            screen.getByText("No communications match these filters."),
+        ).toBeInTheDocument();
+    });
+
+    it("uses server-computed action affordances instead of guessing from an escalated state", async () => {
+        vi.spyOn(axios, "get").mockResolvedValueOnce(
+            envelope({
+                ...detail,
+                ownership_state: "escalated",
+                actions: {
+                    can_claim: false,
+                    can_reply: false,
+                    can_close: false,
+                },
+            }),
+        );
+        render(
+            <PatientCommunicationsIndex
+                initialInbox={{
+                    items: [
+                        {
+                            ...workItem,
+                            ownership_state: "escalated",
+                            actions: {
+                                can_claim: false,
+                                can_reply: false,
+                                can_close: false,
+                            },
+                        },
+                    ],
+                    count: 1,
+                }}
+                endpoints={endpoints}
+                auth={{ user: null }}
+            />,
+        );
+
+        fireEvent.click(
+            screen.getByRole("button", {
+                name: /Question for my care team/i,
+            }),
+        );
+
+        expect(
+            await screen.findByText(
+                /unavailable to claim with your current team permissions/i,
             ),
         ).toBeInTheDocument();
+        expect(
+            screen.queryByRole("button", { name: "Assign to me" }),
+        ).not.toBeInTheDocument();
     });
 
     it("locks an unknown claim outcome and retries the exact command without changing its key or payload", async () => {
@@ -505,6 +607,11 @@ describe("Patient Communications workspace", () => {
             ...detail,
             ownership_state: "acknowledged",
             assigned_to_me: false,
+            actions: {
+                can_claim: false,
+                can_reply: false,
+                can_close: false,
+            },
         };
         vi.spyOn(axios, "get").mockResolvedValueOnce(
             envelope(assignedElsewhere),
@@ -527,7 +634,7 @@ describe("Patient Communications workspace", () => {
 
         expect(
             await screen.findByText(
-                "This communication is assigned to another responder.",
+                /either assigned to another responder or unavailable to claim/i,
             ),
         ).toBeInTheDocument();
         expect(
@@ -700,8 +807,7 @@ describe("Patient Communications workspace", () => {
             envelope({
                 work_item: {
                     ...detail,
-                    work_item_uuid:
-                        "019f0000-0000-7000-8000-000000000099",
+                    work_item_uuid: "019f0000-0000-7000-8000-000000000099",
                     work_item_version: 1,
                     thread_version: 2,
                 },

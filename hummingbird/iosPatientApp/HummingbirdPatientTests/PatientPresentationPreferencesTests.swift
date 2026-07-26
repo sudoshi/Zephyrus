@@ -33,4 +33,15 @@ final class PatientPresentationPreferencesTests: XCTestCase {
         XCTAssertFalse(preferences.highContrast)
         XCTAssertFalse(preferences.reducedMotion)
     }
+
+    func testPatientCanHideDecorativeSceneryWithoutChangingTheReadingPreference() {
+        let preferences = PatientPresentationPreferences(
+            PatientPreferences(textSize: .large, hideScenery: true)
+        )
+
+        XCTAssertTrue(preferences.hideScenery)
+        XCTAssertTrue(preferences.hidesDecorativeScenery)
+        XCTAssertFalse(PatientPresentationPreferences().hidesDecorativeScenery)
+        XCTAssertEqual(preferences.effectiveDynamicTypeSize(systemSize: .large), .xLarge)
+    }
 }

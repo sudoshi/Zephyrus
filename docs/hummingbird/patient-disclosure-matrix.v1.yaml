@@ -347,6 +347,8 @@ disclosures:
         estimate_confidence,
         approved_readiness_topics,
         approved_remaining_steps,
+        approved_equipment_preparation,
+        approved_transport_preparation,
         approved_contact_route,
         observed_at,
       ]

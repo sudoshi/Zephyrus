@@ -56,6 +56,7 @@ data class PatientPreferences(
     val highContrast: Boolean?,
     val notificationPreview: String?,
     val preferredChannel: String?,
+    val hideScenery: Boolean? = null,
 )
 
 /**
@@ -69,6 +70,7 @@ data class PatientPreferencesUpdate(
     val textSize: String? = null,
     val reducedMotion: Boolean? = null,
     val highContrast: Boolean? = null,
+    val hideScenery: Boolean? = null,
     val notificationPreview: String? = null,
     val preferredChannel: String? = null,
 ) {
@@ -78,6 +80,7 @@ data class PatientPreferencesUpdate(
         textSize?.let { put("text_size", it) }
         reducedMotion?.let { put("reduced_motion", it) }
         highContrast?.let { put("high_contrast", it) }
+        hideScenery?.let { put("hide_scenery", it) }
         notificationPreview?.let { put("notification_preview", it) }
         preferredChannel?.let { put("preferred_channel", it) }
     }
@@ -172,16 +175,35 @@ data class PatientTodayContent(
     val schedule: List<PatientScheduleItem>,
     val nextSteps: List<String>,
     val notices: List<String>,
+    val careLocation: PatientCareLocation? = null,
+    val dischargeOutlook: PatientDischargeOutlook? = null,
+    val questions: List<String> = emptyList(),
 )
 
 data class PatientScheduleItem(
     val itemUuid: String,
     val label: String,
     val detail: String?,
+    val category: String? = null,
     val status: String,
     val timeWindow: String,
     val timingConfidence: String?,
     val preparation: String?,
+    val canChange: Boolean,
+)
+
+data class PatientCareLocation(
+    val facilityDisplayName: String?,
+    val unitDisplayName: String?,
+    val roomDisplayName: String?,
+    val status: String,
+)
+
+data class PatientDischargeOutlook(
+    val estimatedRange: String,
+    val confidence: String,
+    val readinessTopics: List<String>,
+    val remainingSteps: List<String>,
     val canChange: Boolean,
 )
 
@@ -255,6 +277,8 @@ data class PatientDischargeReadinessContent(
     val estimatedConfidence: String?,
     val criteria: List<PatientDischargeCriterion>,
     val unresolvedNeeds: List<String>,
+    val equipment: List<String>,
+    val transport: List<String>,
     val medications: List<PatientDischargeMedication>,
     val followUp: List<PatientDischargeFollowUp>,
     val warningSigns: List<String>,
@@ -378,6 +402,7 @@ data class PatientThreadMessage(
     val relatesToMessageUuid: String?,
     val deliveryState: String,
     val sentAt: String?,
+    val stateUpdatedAt: String? = null,
 )
 
 data class PatientThreadResult(val thread: PatientMessageThread)
@@ -503,6 +528,7 @@ object PatientEnvelopeDecoder {
                         textSize = preferences.nullableString("text_size"),
                         reducedMotion = preferences.nullableBoolean("reduced_motion"),
                         highContrast = preferences.nullableBoolean("high_contrast"),
+                        hideScenery = preferences.nullableBoolean("hide_scenery"),
                         notificationPreview = preferences.nullableString("notification_preview"),
                         preferredChannel = preferences.nullableString("preferred_channel"),
                     )
@@ -631,6 +657,7 @@ object PatientEnvelopeDecoder {
                         itemUuid = item.getString("item_uuid"),
                         label = item.getString("label"),
                         detail = item.nullableString("detail"),
+                        category = item.nullableString("category"),
                         status = item.getString("status"),
                         timeWindow = item.getString("time_window"),
                         timingConfidence = item.nullableString("timing_confidence"),
@@ -640,6 +667,24 @@ object PatientEnvelopeDecoder {
                 },
                 nextSteps = content.stringList("next_steps"),
                 notices = content.stringList("notices"),
+                careLocation = content.optJSONObject("care_location")?.let { location ->
+                    PatientCareLocation(
+                        facilityDisplayName = location.nullableString("facility_display_name"),
+                        unitDisplayName = location.nullableString("unit_display_name"),
+                        roomDisplayName = location.nullableString("room_display_name"),
+                        status = location.getString("status"),
+                    )
+                },
+                dischargeOutlook = content.optJSONObject("discharge_outlook")?.let { outlook ->
+                    PatientDischargeOutlook(
+                        estimatedRange = outlook.getString("estimated_range"),
+                        confidence = outlook.getString("confidence"),
+                        readinessTopics = outlook.stringList("readiness_topics"),
+                        remainingSteps = outlook.stringList("remaining_steps"),
+                        canChange = outlook.optBoolean("can_change", true),
+                    )
+                },
+                questions = content.stringList("questions"),
             )
         }
 
@@ -711,6 +756,8 @@ object PatientEnvelopeDecoder {
                     )
                 },
                 unresolvedNeeds = content.stringList("unresolved_needs"),
+                equipment = content.stringList("equipment"),
+                transport = content.stringList("transport"),
                 medications = content.objects("medications") { medication ->
                     PatientDischargeMedication(
                         itemUuid = medication.getString("item_uuid"),
@@ -964,6 +1011,7 @@ object PatientEnvelopeDecoder {
         relatesToMessageUuid = value.nullableString("relates_to_message_uuid"),
         deliveryState = value.getString("delivery_state"),
         sentAt = value.nullableString("sent_at"),
+        stateUpdatedAt = value.nullableString("state_updated_at"),
     )
 
     private fun JSONObject.links(): Map<String, String> {

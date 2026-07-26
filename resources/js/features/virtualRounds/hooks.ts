@@ -7,6 +7,7 @@ import {
     createQuestion,
     createRoundRun,
     createTask,
+    deferPatientQuestion,
     fetchAvailablePatientQuestions,
     fetchRoundBoard,
     fetchRoundPatient,
@@ -214,6 +215,15 @@ export function usePromotePatientQuestion() {
                 message_uuid: string;
             };
         }) => promotePatientQuestion(roundPatientUuid, input),
+        onSettled: invalidate,
+    });
+}
+
+export function useDeferPatientQuestion() {
+    const invalidate = useRoundsInvalidation();
+    return useMutation({
+        mutationFn: ({ questionUuid }: { questionUuid: string }) =>
+            deferPatientQuestion(questionUuid),
         onSettled: invalidate,
     });
 }

@@ -37,6 +37,9 @@ import net.acumenus.hummingbird.patient.PatientMessagingState
 import net.acumenus.hummingbird.patient.data.PatientMessageAmendmentAction
 import net.acumenus.hummingbird.patient.data.PatientMessageThread
 import net.acumenus.hummingbird.patient.data.PatientMessageTopic
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 internal fun PatientMessagingPanel(
@@ -275,8 +278,35 @@ private fun NewThreadComposer(
                 )
                 Text(topic.description, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    text = "Expected response: ${topic.expectedResponseWindow}",
+                    text = "Typical response: ${topic.expectedResponseWindow}",
                     style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+    }
+    if (selectedTopicCode == "rounds_question") {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("rounds-question-safety-notice"),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ),
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "For a nonurgent question before a care-team conversation",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+                Text(
+                    text = "Your care team may review it before a care conversation, but it may not be discussed in a particular round. For immediate help, use the urgent-help guidance above.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             }
         }
@@ -340,7 +370,7 @@ private fun ThreadConversation(
     )
     Text(thread.patientVisibleState(), style = MaterialTheme.typography.bodyMedium)
     Text(
-        text = "Expected response: ${thread.expectedResponseWindow}",
+        text = "Typical response: ${thread.expectedResponseWindow}",
         style = MaterialTheme.typography.bodySmall,
     )
     HorizontalDivider()
@@ -377,7 +407,7 @@ private fun ThreadConversation(
                     },
                 )
                 Text(
-                    text = message.deliveryState.patientVisibleDeliveryState(),
+                    text = message.deliveryState.patientVisibleDeliveryStateAt(message.stateUpdatedAt),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 if (canAmend) {
@@ -525,21 +555,47 @@ private fun StatusText(message: String, error: Boolean = false) {
     )
 }
 
-private fun PatientMessageThread.patientVisibleState(): String = when (status) {
-    "closed" -> "Closed"
+/**
+ * Patient-language presentation for the exact thread states accepted by the
+ * patient BFF. This deliberately excludes pool names, individual assignees,
+ * routing reasons, and operational escalation details.
+ *
+ * iOS decodes this field as a closed enum. Android keeps the wire model as a
+ * string, so an unknown value must fail safely to neutral language rather than
+ * inventing an operational meaning.
+ */
+internal fun PatientMessageThread.patientVisibleState(): String = when {
+    status == "closed" || ownershipState == "closed" -> "Conversation closed"
     else -> when (ownershipState) {
-        "awaiting_team" -> "Sent to your care team"
-        "team_acknowledged" -> "Your care team acknowledged this conversation"
-        "assigned" -> "Your care team is reviewing this conversation"
-        else -> "Open with your care team"
+        "awaiting_team" -> "Waiting for your care team"
+        "assigned" -> "With your care team"
+        "acknowledged" -> "Seen by your care team"
+        "responded" -> "Care team responded"
+        "rerouted" -> "Finding the right care team member"
+        "escalated" -> "Receiving added attention"
+        else -> "Status being confirmed"
     }
 }
 
-private fun String.patientVisibleDeliveryState(): String = when (this) {
-    "sent", "server_accepted" -> "Sent"
+/** Patient-language delivery state with no claim about a named recipient. */
+internal fun String.patientVisibleDeliveryState(): String = when (this) {
+    "sent" -> "Sent"
     "delivered" -> "Delivered"
-    "acknowledged", "read" -> "Acknowledged by care team"
-    else -> "Status available in this conversation"
+    "assigned" -> "With your care team"
+    "acknowledged" -> "Seen by your care team"
+    "responded" -> "Responded"
+    "closed" -> "Closed"
+    else -> "Status being confirmed"
+}
+
+internal fun String.patientVisibleDeliveryStateAt(updatedAt: String?): String {
+    val label = patientVisibleDeliveryState()
+    val time = updatedAt?.let { value ->
+        runCatching {
+            OffsetDateTime.parse(value).format(DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.US))
+        }.getOrNull()
+    }
+    return if (time == null) label else "$label $time"
 }
 
 private const val MAX_MESSAGE_LENGTH = 2_000

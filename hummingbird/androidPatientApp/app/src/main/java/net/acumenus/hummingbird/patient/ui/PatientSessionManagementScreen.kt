@@ -57,7 +57,7 @@ internal fun PatientSessionManagementScreen(
     onConfirmRevocation: () -> Unit,
 ) {
     BackHandler(onBack = onDismiss)
-    PatientScenicBackground(scene = PatientScene.LOADING_OR_EMPTY) {
+    PatientScenicBackground(scene = PatientScene.ACCOUNT) {
         Scaffold(
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
             topBar = {
@@ -241,7 +241,10 @@ private fun PatientDeviceSessionCard(
             OutlinedButton(
                 onClick = { onSelectForRevocation(session.sessionUuid) },
                 enabled = !working,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .patientMinimumInteractiveTarget()
+                    .testTag("patient-session-revoke-${session.sessionUuid}"),
             ) {
                 Text(if (session.current) "Sign out this device" else "Sign out device")
             }
@@ -270,12 +273,20 @@ private fun PatientDeviceSessionConfirmation(
             )
         },
         confirmButton = {
-            Button(onClick = onConfirm) {
+            Button(
+                onClick = onConfirm,
+                modifier = Modifier
+                    .patientMinimumInteractiveTarget()
+                    .testTag("confirm-session-revocation"),
+            ) {
                 Text(if (session.current) "Sign out this device" else "Sign out other device")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Keep device signed in") }
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.patientMinimumInteractiveTarget(),
+            ) { Text("Keep device signed in") }
         },
     )
 }

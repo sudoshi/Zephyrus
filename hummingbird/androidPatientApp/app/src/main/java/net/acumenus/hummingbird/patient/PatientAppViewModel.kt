@@ -31,6 +31,8 @@ internal class PatientAppViewModel(
         scope ?: CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     }
     private var sessionManagementJob: Job? = null
+    private var accessValidationJob: Job? = null
+    private var accessValidationGeneration = 0
     private var sessionRevocationInFlight = false
 
     val networkEnabled: Boolean
@@ -91,6 +93,92 @@ internal class PatientAppViewModel(
         }
     }
 
+    /**
+     * Revalidates the current encounter after the app returns from the background. A prior care
+     * snapshot is replaced with a privacy-safe access screen before the request starts and stays
+     * unavailable after any transient verification failure. Credentials remain protected only for
+     * an explicit retry; no old care content is retained or redisplayed.
+     */
+    fun revalidateCurrentCareAccessAfterForeground(onFinished: () -> Unit = {}) {
+        val ready = state.session as? PatientSessionState.Ready ?: run {
+            onFinished()
+            return
+        }
+        if (ready.synthetic || !apiEnabled || coordinator == null) {
+            onFinished()
+            return
+        }
+
+        val displayName = ready.snapshot.patientDisplayName
+        accessValidationJob?.cancel()
+        val generation = ++accessValidationGeneration
+        state = PatientUiState(
+            session = PatientSessionState.Loading("Checking your current hospital stay securely"),
+        )
+        accessValidationJob = operationScope.launch {
+            try {
+                val outcome = withContext(workDispatcher) {
+                    coordinator.restore()
+                        ?: PatientSessionOutcome.Empty(
+                            displayName = displayName,
+                            message = SIGNED_OUT_SENTINEL,
+                        )
+                }
+                if (generation != accessValidationGeneration) return@launch
+                state = stateForAccessOutcome(outcome)
+                if (outcome is PatientSessionOutcome.Ready) {
+                    loadMessaging(outcome.snapshot)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: PatientApiException) {
+                if (generation != accessValidationGeneration) return@launch
+                state = if (error.statusCode == 401 || error.statusCode == 403) {
+                    PatientUiState(session = PatientSessionState.SignedOut())
+                } else {
+                    PatientUiState(
+                        session = PatientSessionState.AccessVerificationUnavailable(
+                            patientDisplayName = displayName,
+                            message = ACCESS_VERIFICATION_UNAVAILABLE_MESSAGE,
+                        ),
+                    )
+                }
+            } catch (_: Exception) {
+                if (generation != accessValidationGeneration) return@launch
+                state = PatientUiState(
+                    session = PatientSessionState.AccessVerificationUnavailable(
+                        patientDisplayName = displayName,
+                        message = ACCESS_VERIFICATION_UNAVAILABLE_MESSAGE,
+                    ),
+                )
+            } finally {
+                if (generation == accessValidationGeneration) {
+                    accessValidationJob = null
+                    onFinished()
+                }
+            }
+        }
+    }
+
+    fun retryCurrentCareAccess() {
+        when (state.session) {
+            is PatientSessionState.Empty,
+            is PatientSessionState.AccessVerificationUnavailable
+            -> {
+                val availableCoordinator = coordinator ?: return
+                execute("Checking your current hospital stay securely") {
+                    availableCoordinator.restore()
+                        ?: PatientSessionOutcome.Empty(
+                            displayName = "Patient",
+                            message = SIGNED_OUT_SENTINEL,
+                        )
+                }
+            }
+
+            else -> Unit
+        }
+    }
+
     fun selectAuthMode(mode: PatientAuthMode) {
         val signedOut = state.session as? PatientSessionState.SignedOut ?: return
         state = state.copy(session = signedOut.copy(authMode = mode, status = PatientAuthStatus.Idle))
@@ -99,9 +187,9 @@ internal class PatientAppViewModel(
     fun submitSignIn(email: String, password: String) {
         val signedOut = state.session as? PatientSessionState.SignedOut ?: return
         when {
-            email.isBlank() || password.isBlank() -> {
+            !email.isLikelyPatientEmail() || password.isBlank() -> {
                 state = state.copy(session = signedOut.copy(
-                    status = PatientAuthStatus.ValidationError("Enter both your email and password."),
+                    status = PatientAuthStatus.ValidationError("Enter a valid email address and password."),
                 ))
             }
             !apiEnabled -> unavailable(
@@ -127,20 +215,7 @@ internal class PatientAppViewModel(
 
     fun submitEnrollment(form: PatientEnrollmentForm) {
         val signedOut = state.session as? PatientSessionState.SignedOut ?: return
-        val validation = when {
-            listOf(
-                form.challengeUuid,
-                form.challengeToken,
-                form.verificationCode,
-                form.displayName,
-                form.email,
-                form.password,
-                form.passwordConfirmation,
-            ).any(String::isBlank) -> "Complete every invitation and account field."
-            form.password != form.passwordConfirmation -> "The passwords do not match."
-            form.password.length < 12 -> "Use a password with at least 12 characters."
-            else -> null
-        }
+        val validation = form.clientValidationMessage()
         when {
             validation != null -> {
                 state = state.copy(session = signedOut.copy(
@@ -574,6 +649,7 @@ internal class PatientAppViewModel(
         }
         val encounterUuid = ready.snapshot.encounterUuid ?: return
         val availableCoordinator = coordinator ?: return
+        val originDestination = state.destination
         val trimmed = message.trim()
         state = state.copy(
             messaging = messaging.copy(
@@ -589,6 +665,9 @@ internal class PatientAppViewModel(
                         message = trimmed,
                         urgentGuidanceVersion = messaging.immediateHelp.version,
                     )
+                }
+                if (state.destination == originDestination) {
+                    state = state.copy(destination = PatientDestination.MESSAGES)
                 }
                 updateMessaging { current ->
                     current.copy(
@@ -819,6 +898,7 @@ internal class PatientAppViewModel(
 
     fun close() {
         sessionManagementJob?.cancel()
+        accessValidationJob?.cancel()
         operationScope.cancel()
     }
 
@@ -877,18 +957,7 @@ internal class PatientAppViewModel(
         operationScope.launch {
             try {
                 val outcome = withContext(workDispatcher) { operation() }
-                state = when (outcome) {
-                    is PatientSessionOutcome.Ready -> PatientUiState(
-                        session = PatientSessionState.Ready(outcome.snapshot, synthetic = false),
-                    )
-                    is PatientSessionOutcome.Empty -> if (outcome.message == SIGNED_OUT_SENTINEL) {
-                        PatientUiState(session = PatientSessionState.SignedOut())
-                    } else {
-                        PatientUiState(
-                            session = PatientSessionState.Empty(outcome.displayName, outcome.message),
-                        )
-                    }
-                }
+                state = stateForAccessOutcome(outcome)
                 if (outcome is PatientSessionOutcome.Ready) {
                     loadMessaging(outcome.snapshot)
                 }
@@ -899,6 +968,19 @@ internal class PatientAppViewModel(
                     ),
                 )
             }
+        }
+    }
+
+    private fun stateForAccessOutcome(outcome: PatientSessionOutcome): PatientUiState = when (outcome) {
+        is PatientSessionOutcome.Ready -> PatientUiState(
+            session = PatientSessionState.Ready(outcome.snapshot, synthetic = false),
+        )
+        is PatientSessionOutcome.Empty -> if (outcome.message == SIGNED_OUT_SENTINEL) {
+            PatientUiState(session = PatientSessionState.SignedOut())
+        } else {
+            PatientUiState(
+                session = PatientSessionState.Empty(outcome.displayName, outcome.message),
+            )
         }
     }
 
@@ -1031,5 +1113,7 @@ internal class PatientAppViewModel(
 
     private companion object {
         const val SIGNED_OUT_SENTINEL = "signed-out"
+        const val ACCESS_VERIFICATION_UNAVAILABLE_MESSAGE =
+            "We cannot confirm your current care access right now. No care information is shown until access is confirmed. Check your connection and try again."
     }
 }

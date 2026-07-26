@@ -12,6 +12,7 @@ internal enum class PatientLaunchPreview {
     NONE,
     LOADING,
     EMPTY,
+    ACCESS_VERIFICATION_UNAVAILABLE,
     UNAVAILABLE,
     RECOVERABLE_ERROR,
 }

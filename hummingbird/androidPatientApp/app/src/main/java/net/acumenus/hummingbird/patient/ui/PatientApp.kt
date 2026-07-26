@@ -46,64 +46,90 @@ internal fun PatientApp(
             .fillMaxSize()
             .testTag(presentation.accessibilityTag),
     ) {
-        when (val session = state.session) {
-            is PatientSessionState.SignedOut -> PatientAuthenticationScreen(
-                state = session,
-                networkEnabled = viewModel.networkEnabled,
-                onAuthModeSelected = viewModel::selectAuthMode,
-                onSignIn = viewModel::submitSignIn,
-                onEnroll = viewModel::submitEnrollment,
-            )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (privacyCovered) {
+                        Modifier.clearAndSetSemantics { }
+                    } else {
+                        Modifier
+                    },
+                ),
+        ) {
+            when (val session = state.session) {
+                is PatientSessionState.SignedOut -> PatientAuthenticationScreen(
+                    state = session,
+                    networkEnabled = viewModel.networkEnabled,
+                    onAuthModeSelected = viewModel::selectAuthMode,
+                    onSignIn = viewModel::submitSignIn,
+                    onEnroll = viewModel::submitEnrollment,
+                )
 
-            is PatientSessionState.Ready -> {
-                if (state.preferences !is PatientPreferencesState.Hidden) {
-                    PatientPreferencesScreen(
-                        state = state.preferences,
-                        onDismiss = viewModel::dismissPreferences,
-                        onSave = viewModel::savePreferences,
-                    )
-                } else if (state.deviceSessions is PatientDeviceSessionsState.Hidden) {
-                    PatientExperienceScreen(
-                        snapshot = session.snapshot,
-                        syntheticNotice = if (session.synthetic) {
-                            SyntheticReferencePatientScenario.noticeOrNull()
-                        } else {
-                            null
-                        },
-                        selectedDestination = state.destination,
-                        messagingState = state.messaging,
-                        onDestinationSelected = viewModel::selectDestination,
-                        onMessagesRefresh = viewModel::refreshMessages,
-                        onMessageThreadSelected = viewModel::selectMessageThread,
-                        onLeaveMessageThread = viewModel::leaveMessageThread,
-                        onCreateMessageThread = viewModel::createMessageThread,
-                        onRequestEducationClarification = viewModel::requestEducationClarification,
-                        onSendMessage = viewModel::sendMessage,
-                        onAmendMessage = viewModel::amendMessage,
-                        onCloseMessageThread = viewModel::closeMessageThread,
-                        onManagePreferences = viewModel::openPreferences,
-                        onManageDevices = viewModel::openDeviceSessions,
-                        onSignOut = viewModel::signOut,
-                    )
-                } else {
-                    PatientSessionManagementScreen(
-                        state = state.deviceSessions,
-                        onDismiss = viewModel::dismissDeviceSessions,
-                        onRetry = viewModel::openDeviceSessions,
-                        onSelectForRevocation = viewModel::selectDeviceSessionForRevocation,
-                        onCancelRevocation = viewModel::cancelDeviceSessionRevocation,
-                        onConfirmRevocation = viewModel::confirmDeviceSessionRevocation,
-                    )
+                is PatientSessionState.Ready -> {
+                    if (state.preferences !is PatientPreferencesState.Hidden) {
+                        PatientPreferencesScreen(
+                            state = state.preferences,
+                            onDismiss = viewModel::dismissPreferences,
+                            onSave = viewModel::savePreferences,
+                        )
+                    } else if (state.deviceSessions is PatientDeviceSessionsState.Hidden) {
+                        PatientExperienceScreen(
+                            snapshot = session.snapshot,
+                            syntheticNotice = if (session.synthetic) {
+                                SyntheticReferencePatientScenario.noticeOrNull()
+                            } else {
+                                null
+                            },
+                            selectedDestination = state.destination,
+                            messagingState = state.messaging,
+                            onDestinationSelected = viewModel::selectDestination,
+                            onMessagesRefresh = viewModel::refreshMessages,
+                            onMessageThreadSelected = viewModel::selectMessageThread,
+                            onLeaveMessageThread = viewModel::leaveMessageThread,
+                            onCreateMessageThread = viewModel::createMessageThread,
+                            onRequestEducationClarification = viewModel::requestEducationClarification,
+                            onSendMessage = viewModel::sendMessage,
+                            onAmendMessage = viewModel::amendMessage,
+                            onCloseMessageThread = viewModel::closeMessageThread,
+                            onManagePreferences = viewModel::openPreferences,
+                            onManageDevices = viewModel::openDeviceSessions,
+                            onSignOut = viewModel::signOut,
+                        )
+                    } else {
+                        PatientSessionManagementScreen(
+                            state = state.deviceSessions,
+                            onDismiss = viewModel::dismissDeviceSessions,
+                            onRetry = viewModel::openDeviceSessions,
+                            onSelectForRevocation = viewModel::selectDeviceSessionForRevocation,
+                            onCancelRevocation = viewModel::cancelDeviceSessionRevocation,
+                            onConfirmRevocation = viewModel::confirmDeviceSessionRevocation,
+                        )
+                    }
                 }
+
+                is PatientSessionState.Loading -> PatientLoadingScreen(session.message)
+
+                is PatientSessionState.Empty -> PatientEmptyScreen(
+                    displayName = session.patientDisplayName,
+                    title = "No active hospital stay",
+                    message = session.message,
+                    retryLabel = "Check again",
+                    scene = PatientScene.EMPTY,
+                    onRetry = viewModel::retryCurrentCareAccess,
+                    onExit = viewModel::signOut,
+                )
+
+                is PatientSessionState.AccessVerificationUnavailable -> PatientEmptyScreen(
+                    displayName = session.patientDisplayName,
+                    title = "We can’t confirm your care access",
+                    message = session.message,
+                    retryLabel = "Try again",
+                    scene = PatientScene.ERROR,
+                    onRetry = viewModel::retryCurrentCareAccess,
+                    onExit = viewModel::signOut,
+                )
             }
-
-            is PatientSessionState.Loading -> PatientLoadingScreen(session.message)
-
-            is PatientSessionState.Empty -> PatientEmptyScreen(
-                displayName = session.patientDisplayName,
-                message = session.message,
-                onExit = viewModel::signOut,
-            )
         }
 
         if (privacyCovered) {
@@ -113,6 +139,7 @@ internal fun PatientApp(
                     .background(MaterialTheme.colorScheme.surface)
                     .clearAndSetSemantics {
                         contentDescription = "Hummingbird Patient is hidden for privacy"
+                        liveRegion = LiveRegionMode.Assertive
                     },
                 contentAlignment = Alignment.Center,
             ) {
@@ -127,7 +154,7 @@ internal fun PatientApp(
 
 @Composable
 private fun PatientLoadingScreen(message: String) {
-    PatientScenicBackground(scene = PatientScene.LOADING_OR_EMPTY) {
+    PatientScenicBackground(scene = PatientScene.LOADING) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -155,10 +182,14 @@ private fun PatientLoadingScreen(message: String) {
 @Composable
 private fun PatientEmptyScreen(
     displayName: String,
+    title: String,
     message: String,
+    retryLabel: String,
+    scene: PatientScene,
+    onRetry: () -> Unit,
     onExit: () -> Unit,
 ) {
-    PatientScenicBackground(scene = PatientScene.LOADING_OR_EMPTY) {
+    PatientScenicBackground(scene = scene) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -172,6 +203,12 @@ private fun PatientEmptyScreen(
                 modifier = Modifier.semantics { heading() },
             )
             Text(
+                text = title,
+                modifier = Modifier.padding(top = 8.dp),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
                 text = message,
                 modifier = Modifier.padding(top = 12.dp),
                 style = MaterialTheme.typography.bodyLarge,
@@ -182,8 +219,20 @@ private fun PatientEmptyScreen(
                 style = MaterialTheme.typography.bodyMedium,
             )
             Button(
+                onClick = onRetry,
+                modifier = Modifier
+                    .padding(top = 24.dp)
+                    .patientMinimumInteractiveTarget()
+                    .testTag("patient-care-access-retry"),
+            ) {
+                Text(retryLabel)
+            }
+            Button(
                 onClick = onExit,
-                modifier = Modifier.padding(top = 24.dp),
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .patientMinimumInteractiveTarget()
+                    .testTag("patient-care-access-exit"),
             ) {
                 Text("Exit securely")
             }

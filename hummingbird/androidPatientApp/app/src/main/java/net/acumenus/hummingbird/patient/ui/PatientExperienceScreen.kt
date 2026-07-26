@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.DevicesOther
@@ -36,6 +37,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -110,6 +112,12 @@ internal fun PatientExperienceScreen(
         },
         stale = true,
     )
+    val contentListState = rememberLazyListState()
+    LaunchedEffect(selectedDestination) {
+        // Each top-level patient destination is a separate care surface. Do
+        // not leave someone at a deep vertical offset from a different one.
+        contentListState.scrollToItem(0)
+    }
     PatientScenicBackground(scene = scene) {
         Scaffold(
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -121,6 +129,7 @@ internal fun PatientExperienceScreen(
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.semantics { heading() },
                         )
                     },
                     actions = {
@@ -168,6 +177,7 @@ internal fun PatientExperienceScreen(
             },
         ) { contentPadding ->
             LazyColumn(
+                state = contentListState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(contentPadding)
@@ -196,6 +206,7 @@ internal fun PatientExperienceScreen(
                         snapshot = snapshot,
                         canRequestEducationClarification = (messagingState as? PatientMessagingState.Ready)?.canWrite == true,
                         onEducationSelected = { selectedEducation = it },
+                        onOpenMessages = { onDestinationSelected(PatientDestination.MESSAGES) },
                     )
                     PatientDestination.CARE_TEAM -> careTeamContent(
                         snapshot = snapshot,
@@ -238,6 +249,7 @@ private fun PatientPresentationPreferenceNotice(modifier: Modifier = Modifier) {
         }
         if (presentation.highContrast) add("high contrast")
         if (presentation.reducedMotion) add("reduced motion")
+        if (presentation.hideScenery) add("background images off")
     }
     if (choices.isEmpty()) return
 
@@ -254,6 +266,100 @@ private fun androidx.compose.foundation.lazy.LazyListScope.todayContent(snapshot
             title = "Today",
             subtitle = snapshot.todaySummary
                 ?: "What is completed, planned, or still uncertain in your care today.",
+        )
+    }
+    snapshot.todayCareLocationLabel?.let { location ->
+        item {
+            GuidanceCard(
+                title = "Your care location",
+                body = location,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+    }
+    snapshot.pathwayCurrentStage?.let { stage ->
+        val stageDetail = snapshot.pathway.firstOrNull { it.title == stage }
+        item {
+            PatientInformationCard(
+                title = "Where you are in your care",
+                badge = "Current stage",
+                primary = stage,
+                explanation = stageDetail?.explanation
+                    ?: "This stage comes from the patient pathway your care team released.",
+                provenance = stageDetail?.provenance ?: snapshot.sourceLabel,
+                modifier = Modifier.padding(horizontal = 16.dp).testTag("today-current-care-stage"),
+            )
+        }
+    }
+    if (snapshot.careTeam.isNotEmpty()) {
+        item {
+            PatientInformationCard(
+                title = "Your care team today",
+                badge = "Released care-team summary",
+                primary = snapshot.careTeamSummary
+                    ?: "Your released care team is listed below.",
+                explanation = snapshot.careTeam.joinToString(" · ") { member ->
+                    "${member.name} — ${member.role}"
+                } + ". Open Care Team for ways to connect with your team.",
+                provenance = snapshot.careTeam.first().provenance,
+                modifier = Modifier.padding(horizontal = 16.dp).testTag("today-care-team-summary"),
+            )
+        }
+    }
+    if (snapshot.pathwayGoals.isNotEmpty()) {
+        item {
+            SectionHeading(
+                title = "Goals for your care",
+                subtitle = "Released goals that can guide today’s questions and next steps.",
+            )
+        }
+        items(snapshot.pathwayGoals, key = { it.id }) { goal ->
+            PatientInformationCard(
+                title = "Goal for your care",
+                badge = goal.status,
+                primary = goal.label,
+                explanation = listOf(goal.authorLabel, goal.detail)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" · "),
+                provenance = goal.provenance,
+                modifier = Modifier.padding(horizontal = 16.dp).testTag("today-care-goal-${goal.id}"),
+            )
+        }
+    }
+    snapshot.roundsSummary?.let { rounds ->
+        item {
+            PatientInformationCard(
+                title = "After your care-team conversation",
+                badge = rounds.roundWindow?.takeIf { it.isNotBlank() } ?: "Released care-team summary",
+                primary = rounds.headline,
+                explanation = rounds.summary,
+                provenance = rounds.provenance,
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .testTag("today-rounds-summary"),
+            )
+        }
+        if (rounds.topics.isNotEmpty()) {
+            item {
+                SectionHeading(
+                    title = "Topics from your care-team conversation",
+                    subtitle = "Patient-facing topics your team released after reviewing your care.",
+                )
+            }
+            items(rounds.topics, key = { it.id }) { topic ->
+                PatientInformationCard(
+                    title = topic.title,
+                    badge = topic.status,
+                    primary = topic.status,
+                    explanation = topic.summary,
+                    provenance = rounds.provenance,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+        }
+        patientListCard(
+            title = "Next steps from your conversation",
+            entries = rounds.nextSteps + rounds.questions,
         )
     }
     items(snapshot.todayItems, key = { it.title }) { item ->
@@ -289,6 +395,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.pathwayContent(
     snapshot: PatientSnapshot,
     canRequestEducationClarification: Boolean,
     onEducationSelected: (PatientEducation) -> Unit,
+    onOpenMessages: () -> Unit,
 ) {
     item {
         SectionHeading(
@@ -364,9 +471,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.pathwayContent(
         }
     }
     item {
-        GuidanceCard(
-            title = "Share what matters to you",
-            body = "Your experiences, needs, and personal priorities can be important to your care. If Messages is available, choose \"What matters to you\" for a preference or \"A personal goal for my stay\" for a personal goal. Sending a message does not automatically change your care plan or create a clinical order. Your team will review it with you.",
+        PatientPreferenceGuidanceCard(
+            onOpenMessages = onOpenMessages,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -471,6 +577,14 @@ private fun androidx.compose.foundation.lazy.LazyListScope.pathwayContent(
             entries = readiness.unresolvedNeeds,
         )
         patientListCard(
+            title = "Equipment and supplies for home",
+            entries = readiness.equipment,
+        )
+        patientListCard(
+            title = "Getting home",
+            entries = readiness.transport,
+        )
+        patientListCard(
             title = "Medicines to review",
             entries = readiness.medications.map { medication ->
                 listOf(medication.name, medication.purpose)
@@ -497,7 +611,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.pathwayContent(
         item {
             GuidanceCard(
                 title = "Your team confirms the details",
-                body = "This is a released summary to help you prepare. Your care team will confirm medicines, follow-up, warning signs, and the safe time to leave.",
+                body = "This is a released summary to help you prepare. Your care team will confirm equipment, your getting-home plan, medicines, follow-up, warning signs, and the safe time to leave.",
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
         }
@@ -838,7 +952,9 @@ private fun PatientEducationCard(
             if (canRequestClarification) {
                 TextButton(
                     onClick = onRequestClarification,
-                    modifier = Modifier.testTag("request-education-clarification-${education.id}"),
+                    modifier = Modifier
+                        .patientMinimumInteractiveTarget()
+                        .testTag("request-education-clarification-${education.id}"),
                 ) {
                     Text("Ask for an explanation")
                 }
@@ -970,6 +1086,42 @@ private fun GuidanceCard(
                 fontWeight = FontWeight.SemiBold,
             )
             Text(text = body, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@Composable
+private fun PatientPreferenceGuidanceCard(
+    onOpenMessages: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = "Share what matters to you",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "Your experiences, needs, and personal priorities can be important to your care. If Messages is available, choose \"What matters to you\" for a preference or \"A personal goal for my stay\" for a personal goal. Sending a message does not automatically change your care plan or create a clinical order. Your team will review it with you.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            TextButton(
+                onClick = onOpenMessages,
+                modifier = Modifier
+                    .patientMinimumInteractiveTarget()
+                    .testTag("open-messages-from-preferences"),
+            ) {
+                Text("Open Messages")
+            }
         }
     }
 }

@@ -21,10 +21,15 @@ class PatientCommunicationsContractTest {
 
         assertEquals("Medication question", item.topic.label)
         assertEquals("5 East", item.unit?.label)
+        assertEquals("Summit Regional Hospital", item.facility?.label)
+        assertEquals("Hospital Medicine", item.serviceLine?.label)
         assertEquals("5 East care team", item.pool.label)
         assertEquals(7, item.workItemVersion)
         assertEquals(11, item.threadVersion)
         assertTrue(item.isEscalationDue)
+        assertTrue(item.actions?.canClaim == true)
+        assertFalse(item.actions?.canReply == true)
+        assertFalse(item.actions?.canClose == true)
         assertEquals("I have a question about tonight's medicine.", item.messages.single().body)
 
         val exposedFields = PatientCommunicationWorkItem::class.java.declaredFields.map { it.name }.toSet()
@@ -512,15 +517,19 @@ class PatientCommunicationsContractTest {
     }
 
     @Test
-    fun `pool owned rerouted and escalated unassigned work remain claimable`() {
+    fun `claim availability follows server affordances and missing metadata fails closed`() {
         val item = api.parsePatientCommunicationWorkItem(workItemFixture())
 
-        assertTrue(PatientCommunicationPresentation.isClaimable(item.copy(ownershipState = "pool_owned")))
-        assertTrue(PatientCommunicationPresentation.isClaimable(item.copy(ownershipState = "rerouted")))
-        assertTrue(PatientCommunicationPresentation.isClaimable(item.copy(ownershipState = "escalated")))
-        assertFalse(PatientCommunicationPresentation.isClaimable(item.copy(ownershipState = "assigned")))
-        assertFalse(PatientCommunicationPresentation.isClaimable(item.copy(assignedToMe = true)))
-        assertFalse(PatientCommunicationPresentation.isClaimable(item.copy(status = "closed")))
+        assertTrue(PatientCommunicationPresentation.isClaimable(item))
+        assertFalse(
+            PatientCommunicationPresentation.isClaimable(
+                item.copy(
+                    ownershipState = "escalated",
+                    actions = PatientCommunicationActions(false, false, false),
+                ),
+            ),
+        )
+        assertFalse(PatientCommunicationPresentation.isClaimable(item.copy(actions = null)))
     }
 
     @Test
@@ -616,10 +625,13 @@ class PatientCommunicationsContractTest {
           "patient_context_ref": "ptok_test_only",
           "topic": {"code": "medication_question", "label": "Medication question"},
           "unit": {"id": 85, "label": "5 East"},
+          "facility": {"key": "SUMMIT_REGIONAL", "label": "Summit Regional Hospital"},
+          "service_line": {"code": "hospital_medicine", "label": "Hospital Medicine"},
           "pool": {"pool_uuid": "019f7cb6-4d44-73e1-b28c-82bea62c4190", "label": "5 East care team"},
           "status": "open",
           "ownership_state": "pool_owned",
           "assigned_to_me": false,
+          "actions": {"can_claim": true, "can_reply": false, "can_close": false},
           "work_item_version": 7,
           "thread_version": 11,
           "last_message_at": "2026-07-19T14:00:00-04:00",

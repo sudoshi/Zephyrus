@@ -416,6 +416,56 @@ object PatientSnapshotFactory {
         val fallbackContext = contexts[PatientDestination.TODAY]
             ?: contexts.values.firstOrNull()
             ?: unavailableContext("Your hospital stay")
+        val todayContent = today?.data?.content
+        val todayItems = todayContent?.schedule?.map { item ->
+            val isDelayed = item.status == "delayed"
+            PatientTodayItem(
+                title = item.label,
+                timing = if (isDelayed) "Timing is being updated" else item.timeWindow,
+                status = PatientStateVocabulary.label(item.status, PatientStateDomain.SCHEDULE),
+                explanation = if (isDelayed) {
+                    "The timing for this step has changed. Your care team will explain what happens next."
+                } else {
+                    listOfNotNull(
+                        item.category?.let {
+                            "Type: ${PatientStateVocabulary.label(it, PatientStateDomain.SCHEDULE_CATEGORY)}."
+                        },
+                        item.detail,
+                        item.preparation?.let { "Preparation: $it" },
+                        item.timingConfidence?.let {
+                            "Timing confidence: ${PatientStateVocabulary.label(it, PatientStateDomain.TIMING_CONFIDENCE)}."
+                        },
+                    ).joinToString(" ").ifBlank {
+                        "This item is part of your currently released plan for today."
+                    }
+                },
+                provenance = today.provenanceLabel(),
+            )
+        }.orEmpty().toMutableList()
+        todayContent?.dischargeOutlook?.let { outlook ->
+            todayItems += PatientTodayItem(
+                title = "Planning for leaving the hospital",
+                timing = outlook.estimatedRange,
+                status = PatientStateVocabulary.label(
+                    outlook.confidence,
+                    PatientStateDomain.TIMING_CONFIDENCE,
+                ),
+                explanation = (outlook.remainingSteps + outlook.readinessTopics)
+                    .joinToString(" ")
+                    .ifBlank {
+                        "Your team is reviewing what needs to happen before you leave."
+                    },
+                provenance = today.provenanceLabel(),
+            )
+        }
+        val todayCareLocationLabel = todayContent?.careLocation
+            ?.let { location ->
+                listOfNotNull(
+                    location.facilityDisplayName,
+                    location.unitDisplayName,
+                    location.roomDisplayName,
+                ).joinToString(" · ").ifBlank { null }
+            }
 
         return PatientSnapshot(
             encounterUuid = encounterUuid,
@@ -426,23 +476,7 @@ object PatientSnapshotFactory {
             asOfLabel = fallbackContext.asOfLabel,
             sourceLabel = fallbackContext.sourceLabel,
             uncertaintyNotice = fallbackContext.uncertaintyNotice,
-            todayItems = today?.data?.content?.schedule?.map { item ->
-                PatientTodayItem(
-                    title = item.label,
-                    timing = item.timeWindow,
-                    status = PatientStateVocabulary.label(item.status, PatientStateDomain.SCHEDULE),
-                    explanation = listOfNotNull(
-                        item.detail,
-                        item.preparation?.let { "Preparation: $it" },
-                        item.timingConfidence?.let {
-                            "Timing confidence: ${PatientStateVocabulary.label(it, PatientStateDomain.TIMING_CONFIDENCE)}."
-                        },
-                    ).joinToString(" ").ifBlank {
-                        "This item is part of your currently released plan for today."
-                    },
-                    provenance = today.provenanceLabel(),
-                )
-            }.orEmpty(),
+            todayItems = todayItems,
             pathway = pathway?.data?.content?.stages?.map { stage ->
                 PatientPathStep(
                     title = stage.title,
@@ -470,9 +504,10 @@ object PatientSnapshotFactory {
                 )
             }.orEmpty(),
             contexts = contexts,
-            todaySummary = today?.data?.content?.summary,
-            todayNextSteps = today?.data?.content?.nextSteps.orEmpty(),
-            todayNotices = today?.data?.content?.notices.orEmpty(),
+            todaySummary = todayContent?.summary,
+            todayCareLocationLabel = todayCareLocationLabel,
+            todayNextSteps = todayContent?.nextSteps.orEmpty() + todayContent?.questions.orEmpty(),
+            todayNotices = todayContent?.notices.orEmpty(),
             pathwaySummary = pathway?.data?.content?.summary,
             pathwayCurrentStage = pathway?.data?.content?.currentStage,
             pathwayMilestones = pathway?.data?.content?.milestones.orEmpty().map { milestone ->
@@ -551,6 +586,8 @@ object PatientSnapshotFactory {
                         )
                     },
                     unresolvedNeeds = content.unresolvedNeeds,
+                    equipment = content.equipment,
+                    transport = content.transport,
                     medications = content.medications.map { medication ->
                         PatientDischargeReadinessMedication(
                             id = medication.itemUuid,

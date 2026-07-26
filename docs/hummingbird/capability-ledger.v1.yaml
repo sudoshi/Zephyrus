@@ -1164,7 +1164,13 @@ capabilities:
     phase: staff_p1
     owners: { product: Eddy Product, engineering: Hummingbird Platform }
     user_roles: ["@all_staff"]
-    verification_evidence: [tests/Feature/Mobile/Eddy/EddyMobileBffTest.php]
+    verification_evidence:
+      - tests/Feature/Mobile/Eddy/EddyMobileBffTest.php
+      - hummingbird/androidApp/app/src/test/java/net/acumenus/hummingbird/data/SharedDtoFixtureDecodeTest.kt
+      - hummingbird/androidApp/app/src/test/java/net/acumenus/hummingbird/data/EddyStreamingTransportTest.kt
+      - hummingbird/androidApp/app/src/androidTest/java/net/acumenus/hummingbird/ui/altitude/EddyConversationHistoryUiTest.kt
+      - hummingbird/iosApp/HummingbirdTests/EddyConversationHistoryTests.swift
+      - hummingbird/iosApp/HummingbirdTests/EddyStreamingTests.swift
     web_routes: []
     staff_bff_operations:
       - POST /api/mobile/v1/eddy/chat
@@ -1306,6 +1312,7 @@ capabilities:
       - tests/Feature/Patient/PatientProjectionApiTest.php
       - tests/Feature/Patient/PatientProjectionKernelTest.php
       - tests/Feature/Patient/PatientProjectionOutboxTest.php
+      - tests/Feature/Patient/PatientProjectionPipelineHealthTest.php
       - tests/Feature/Patient/PatientPathwayInstanceHistoryTest.php
       - tests/Feature/Patient/PatientSessionManagementTest.php
       - tests/Feature/Patient/PatientMessagingApiTest.php

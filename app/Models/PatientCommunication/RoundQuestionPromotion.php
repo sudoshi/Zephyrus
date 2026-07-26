@@ -91,4 +91,13 @@ class RoundQuestionPromotion extends Model
             'round_question_promotion_id',
         );
     }
+
+    public function deferral(): HasOne
+    {
+        return $this->hasOne(
+            RoundQuestionPromotionDeferral::class,
+            'round_question_promotion_id',
+            'round_question_promotion_id',
+        );
+    }
 }

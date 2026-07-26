@@ -29,7 +29,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * `mobile:act` (route middleware). Conversations are tagged origin=hummingbird.
  *
  * The native Compose/SwiftUI Eddy screens (separate hummingbird/ repo) consume
- * these endpoints via the shared Ktor BFF client — see
+ * these endpoints via their native BFF transports — see
  * docs/hummingbird/api-contract/hummingbird-bff.v1.yaml and
  * docs/hummingbird/reference/08-eddy-mobile.md.
  */
@@ -63,7 +63,7 @@ class EddyController extends Controller
         );
     }
 
-    /** SSE token stream (Ktor consumes it natively). Origin tagged hummingbird. */
+    /** SSE token stream. Both native transports consume it without automatic replay. */
     public function stream(EddyChatRequest $request): StreamedResponse
     {
         return $this->streamEddyChat($this->chat, $request->user(), $this->mobileInput($request));

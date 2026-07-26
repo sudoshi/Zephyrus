@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -52,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -82,6 +84,10 @@ import net.acumenus.hummingbird.ui.altitude.ActivityFeedScreen
 import net.acumenus.hummingbird.ui.altitude.AltitudeHomeScreen
 import net.acumenus.hummingbird.ui.altitude.DebugAltitudeExplorerScreen
 import net.acumenus.hummingbird.ui.altitude.DrillDetailScreen
+import net.acumenus.hummingbird.ui.altitude.EddyConversationDetailScreen
+import net.acumenus.hummingbird.ui.altitude.EddyConversationHistoryScreen
+import net.acumenus.hummingbird.ui.altitude.EddyApprovalDetailScreen
+import net.acumenus.hummingbird.ui.altitude.EddyApprovalsScreen
 import net.acumenus.hummingbird.ui.altitude.EddyContextScreen
 import net.acumenus.hummingbird.ui.altitude.PatientContextScreen
 import net.acumenus.hummingbird.ui.capacity.ApprovalDetailScreen
@@ -110,6 +116,13 @@ import net.acumenus.hummingbird.ui.transport.TransportJobsScreen
 
 private enum class HummingbirdTab { Home, ForYou, Activity, Communications }
 
+/**
+ * Android's global Eddy entry intentionally starts from the existing server-authorized house
+ * lens. It never derives a patient scope from the visible UI or carries patient-message state
+ * into the chat request.
+ */
+internal const val GLOBAL_EDDY_SCOPE_REF = "house"
+
 data class HummingbirdLaunchConfig(
     val roleId: String? = null,
     val tab: String? = null,
@@ -123,6 +136,10 @@ private sealed interface AltitudeDetail {
     data class Drill(val itemUuid: String) : AltitudeDetail
     data class Patient(val patientContextRef: String) : AltitudeDetail
     data class Eddy(val scopeRef: String) : AltitudeDetail
+    data class EddyHistory(val scopeRef: String) : AltitudeDetail
+    data class EddyConversation(val scopeRef: String, val conversationId: String) : AltitudeDetail
+    data class EddyApprovals(val scopeRef: String) : AltitudeDetail
+    data class EddyApproval(val scopeRef: String, val approvalId: String) : AltitudeDetail
     data class Transport(val job: TransportJob, val webLink: String?) : AltitudeDetail
     data class Evs(val turn: EvsTurn, val webLink: String?) : AltitudeDetail
     data class ORCase(val room: ORRoom, val webLink: String?) : AltitudeDetail
@@ -386,6 +403,10 @@ fun MainScreen(
                         onOpenThread = { detail = AltitudeDetail.PatientCommunication(it) },
                     )
                 }
+                GlobalEddyAccessButton(
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                    onOpenEddy = { detail = AltitudeDetail.Eddy(GLOBAL_EDDY_SCOPE_REF) },
+                )
             } else {
                 when (currentDetail) {
                     is AltitudeDetail.Drill -> DrillDetailScreen(
@@ -408,6 +429,36 @@ fun MainScreen(
                         bearer = bearer,
                         scopeRef = currentDetail.scopeRef,
                         onBack = { detail = null },
+                        onOpenHistory = { detail = AltitudeDetail.EddyHistory(currentDetail.scopeRef) },
+                        onOpenApprovals = { detail = AltitudeDetail.EddyApprovals(currentDetail.scopeRef) },
+                    )
+                    is AltitudeDetail.EddyHistory -> EddyConversationHistoryScreen(
+                        vm = vm,
+                        bearer = bearer,
+                        onBack = { detail = AltitudeDetail.Eddy(currentDetail.scopeRef) },
+                        onOpenConversation = { conversationId ->
+                            detail = AltitudeDetail.EddyConversation(currentDetail.scopeRef, conversationId)
+                        },
+                    )
+                    is AltitudeDetail.EddyConversation -> EddyConversationDetailScreen(
+                        vm = vm,
+                        bearer = bearer,
+                        conversationId = currentDetail.conversationId,
+                        onBack = { detail = AltitudeDetail.EddyHistory(currentDetail.scopeRef) },
+                    )
+                    is AltitudeDetail.EddyApprovals -> EddyApprovalsScreen(
+                        vm = vm,
+                        bearer = bearer,
+                        onBack = { detail = AltitudeDetail.Eddy(currentDetail.scopeRef) },
+                        onOpenApproval = { approvalId ->
+                            detail = AltitudeDetail.EddyApproval(currentDetail.scopeRef, approvalId)
+                        },
+                    )
+                    is AltitudeDetail.EddyApproval -> EddyApprovalDetailScreen(
+                        vm = vm,
+                        bearer = bearer,
+                        approvalId = currentDetail.approvalId,
+                        onBack = { detail = AltitudeDetail.EddyApprovals(currentDetail.scopeRef) },
                     )
                     is AltitudeDetail.Transport -> TransportJobDetailScreen(
                         auth = auth,
@@ -511,6 +562,22 @@ fun MainScreen(
             }
         }
     }
+}
+
+/** Persistent signed-in entry matching iOS's global Eddy affordance, without widening scope. */
+@Composable
+internal fun GlobalEddyAccessButton(
+    modifier: Modifier = Modifier,
+    onOpenEddy: () -> Unit,
+) {
+    ExtendedFloatingActionButton(
+        onClick = onOpenEddy,
+        modifier = modifier.testTag("global-eddy-access"),
+        containerColor = Z.primary,
+        contentColor = Color.White,
+        icon = { Icon(Icons.Filled.Forum, contentDescription = null) },
+        text = { Text("Ask Eddy") },
+    )
 }
 
 private fun iconForRole(role: MobileRole): ImageVector = when (role.androidIconName) {

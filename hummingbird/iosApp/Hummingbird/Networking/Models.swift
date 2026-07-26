@@ -1159,6 +1159,137 @@ struct EddyReplyMessage: Decodable, Equatable {
     let provider: String?
 }
 
+/// The deliberately narrow native projection of one Eddy SSE exchange. Raw model
+/// proposals never cross this type: approval remains a separate human workflow.
+enum EddyStreamEvent: Equatable {
+    case conversationStarted(String)
+    case token(String)
+    case complete(EddyStreamReply)
+    case error(String)
+    case done
+}
+
+/// Server-sanitized terminal reply from an Eddy SSE exchange.
+struct EddyStreamReply: Equatable {
+    let conversationId: String?
+    let cleanReply: String
+    let provider: String?
+}
+
+/// Server-owned staff chat metadata. Native clients keep these values only in view state.
+struct EddyConversationSummary: Decodable, Identifiable, Equatable {
+    let id: String
+    let title: String
+    let surface: String
+    let origin: String
+    let updatedAt: String?
+
+    private enum CodingKeys: String, CodingKey { case id, title, surface, origin, updatedAt }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        let decodedTitle = (try container.decodeIfPresent(String.self, forKey: .title))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let decodedSurface = (try container.decodeIfPresent(String.self, forKey: .surface))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let decodedOrigin = (try container.decodeIfPresent(String.self, forKey: .origin))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        title = decodedTitle.isEmpty ? "Eddy conversation" : decodedTitle
+        surface = decodedSurface.isEmpty ? "chat" : decodedSurface
+        origin = decodedOrigin.isEmpty ? "unknown" : decodedOrigin
+        updatedAt = try container.decodeIfPresent(String.self, forKey: .updatedAt)
+    }
+}
+
+struct EddyConversationDetail: Decodable, Equatable {
+    let id: String
+    let title: String
+    let surface: String
+    let messages: [EddyConversationMessage]
+}
+
+struct EddyConversationMessage: Decodable, Equatable, Identifiable {
+    let id = UUID()
+    let role: String
+    let content: String
+    let provider: String?
+    let createdAt: String?
+    let hasProposedAction: Bool
+
+    private enum CodingKeys: String, CodingKey { case role, content, provider, createdAt, proposedAction }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        role = (try container.decodeIfPresent(String.self, forKey: .role)) == "user" ? "user" : "assistant"
+        content = try container.decodeIfPresent(String.self, forKey: .content) ?? ""
+        provider = try container.decodeIfPresent(String.self, forKey: .provider)
+        createdAt = try container.decodeIfPresent(String.self, forKey: .createdAt)
+        hasProposedAction = (try container.decodeIfPresent(JSONValue.self, forKey: .proposedAction)) != nil
+    }
+}
+
+/// A PHI-minimized pending proposal. The backend—not this DTO—determines whether the
+/// selected signed-in persona may decide it.
+struct EddyApprovalSummary: Decodable, Identifiable, Equatable {
+    let approvalUuid: String
+    let actionUuid: String?
+    let actionType: String
+    let title: String
+    let surface: String
+    let tier: String
+    let risk: String?
+    let requestedAt: String?
+
+    var id: String { approvalUuid }
+
+    private enum CodingKeys: String, CodingKey {
+        case approvalUuid, actionUuid, actionType, title, surface, tier, risk, requestedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        approvalUuid = try container.decode(String.self, forKey: .approvalUuid)
+        actionUuid = try container.decodeIfPresent(String.self, forKey: .actionUuid)
+        actionType = try container.decodeIfPresent(String.self, forKey: .actionType) ?? ""
+        let decodedTitle = (try container.decodeIfPresent(String.self, forKey: .title))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let decodedSurface = (try container.decodeIfPresent(String.self, forKey: .surface))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        title = decodedTitle.isEmpty ? "Eddy proposal" : decodedTitle
+        surface = decodedSurface.isEmpty ? "operations" : decodedSurface
+        tier = try container.decodeIfPresent(String.self, forKey: .tier) ?? "T1"
+        risk = try container.decodeIfPresent(String.self, forKey: .risk)
+        requestedAt = try container.decodeIfPresent(String.self, forKey: .requestedAt)
+    }
+}
+
+/// The server's fetch-on-open dry run. `params` is rendered only as bounded labels,
+/// never persisted, and never interpreted as a command by the client.
+struct EddyApprovalPreview: Decodable {
+    let summary: EddyApprovalSummary
+    let rationale: String?
+    let runnerUp: String?
+    let preview: String?
+    let params: [String: JSONValue]
+
+    private enum CodingKeys: String, CodingKey {
+        case rationale, runnerUp, preview, params
+    }
+
+    init(from decoder: Decoder) throws {
+        summary = try EddyApprovalSummary(from: decoder)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        rationale = try container.decodeIfPresent(String.self, forKey: .rationale)
+        runnerUp = try container.decodeIfPresent(String.self, forKey: .runnerUp)
+        preview = try container.decodeIfPresent(String.self, forKey: .preview)
+        params = try container.decodeIfPresent([String: JSONValue].self, forKey: .params) ?? [:]
+    }
+}
+
+/// A server acknowledgement of a recorded human decision; it is not evidence that
+/// Eddy made the decision.
+struct EddyApprovalDecisionResult: Decodable, Equatable {
+    let approvalUuid: String
+    let decision: String
+    let actionStatus: String?
+}
+
 struct EddyContextPacket: Decodable {
     let scopeRef: String
     let scopeType: String?

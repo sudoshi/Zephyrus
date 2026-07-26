@@ -163,6 +163,7 @@ extension PatientMessageThreadDetail {
                 body: "Could someone explain what I should expect before my walk this afternoon?",
                 relatesToMessageUUID: nil,
                 deliveryState: .acknowledged,
+                stateUpdatedAt: "2026-07-19T15:00:00.000000Z",
                 sentAt: "2026-07-19T14:45:00.000000Z"
             ),
             PatientVisibleMessage(
@@ -172,6 +173,7 @@ extension PatientMessageThreadDetail {
                 body: "Your mobility team will check how you are feeling and review safe support before you begin. Timing can still change.",
                 relatesToMessageUUID: nil,
                 deliveryState: .responded,
+                stateUpdatedAt: "2026-07-19T15:12:00.000000Z",
                 sentAt: "2026-07-19T15:12:00.000000Z"
             ),
         ]
@@ -200,6 +202,7 @@ extension PatientMessageThreadDetail {
                 body: "Could my care team consider my question before the next care conversation?",
                 relatesToMessageUUID: nil,
                 deliveryState: .acknowledged,
+                stateUpdatedAt: "2026-07-19T15:20:00.000000Z",
                 sentAt: "2026-07-19T15:18:00.000000Z"
             ),
             PatientVisibleMessage(
@@ -209,6 +212,7 @@ extension PatientMessageThreadDetail {
                 body: "Your question was shared with your care team for possible review. It may not be discussed in a particular round.",
                 relatesToMessageUUID: nil,
                 deliveryState: .sent,
+                stateUpdatedAt: "2026-07-19T15:24:00.000000Z",
                 sentAt: "2026-07-19T15:24:00.000000Z"
             ),
             PatientVisibleMessage(
@@ -218,6 +222,7 @@ extension PatientMessageThreadDetail {
                 body: "Your care team has completed their review of the question you shared. If you still need help, please send a message to your care team.",
                 relatesToMessageUUID: nil,
                 deliveryState: .sent,
+                stateUpdatedAt: "2026-07-19T15:30:00.000000Z",
                 sentAt: "2026-07-19T15:30:00.000000Z"
             ),
         ]
@@ -246,6 +251,7 @@ extension PatientMessageThreadDetail {
                 body: "Could I ask about the next care-team conversation?",
                 relatesToMessageUUID: nil,
                 deliveryState: .sent,
+                stateUpdatedAt: "2026-07-19T16:02:00.000000Z",
                 sentAt: "2026-07-19T16:02:00.000000Z"
             ),
         ]

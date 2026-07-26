@@ -31,7 +31,11 @@ struct PatientTabShellView: View {
             .tabItem { Label("Today", systemImage: "sun.max.fill") }
             .tag(PatientTab.today)
 
-            PatientPathView(snapshot: snapshot, viewModel: viewModel)
+            PatientPathView(
+                snapshot: snapshot,
+                viewModel: viewModel,
+                openMessages: { selection = .messages }
+            )
             .tabItem { Label("My Path", systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
             .tag(PatientTab.path)
 

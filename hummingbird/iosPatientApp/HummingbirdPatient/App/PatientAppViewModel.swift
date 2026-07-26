@@ -1,9 +1,40 @@
 import Foundation
 
+struct PatientNoActiveEncounterState: Equatable {
+    enum Availability: Equatable {
+        case noActiveEncounter
+        case unableToConfirm
+    }
+
+    let displayName: String
+    let availability: Availability
+    let message: String
+
+    var title: String {
+        switch availability {
+        case .noActiveEncounter:
+            "No active hospital stay"
+        case .unableToConfirm:
+            "We can’t confirm your care access"
+        }
+    }
+
+    var actionLabel: String {
+        switch availability {
+        case .noActiveEncounter:
+            "Check again"
+        case .unableToConfirm:
+            "Try again"
+        }
+    }
+}
+
 @MainActor
 final class PatientAppViewModel: ObservableObject {
     @Published private(set) var snapshot: PatientExperienceSnapshot?
+    @Published private(set) var noActiveEncounter: PatientNoActiveEncounterState?
     @Published private(set) var isBusy = false
+    @Published private(set) var isForegroundAccessValidationInProgress = false
     @Published var errorMessage: String?
     @Published private(set) var messagingState: PatientMessagingState = .notGranted
     @Published private(set) var selectedMessageThread: PatientMessageThreadDetailResult?
@@ -37,9 +68,17 @@ final class PatientAppViewModel: ObservableObject {
     }
 
     func bootstrap() async {
-        guard snapshot == nil else { return }
+        guard snapshot == nil, noActiveEncounter == nil else { return }
 
         #if DEBUG
+        if ProcessInfo.processInfo.environment["HBP_NO_ACTIVE_ENCOUNTER_PREVIEW"] == "1" {
+            activateNoActiveEncounterPreview()
+            return
+        }
+        if ProcessInfo.processInfo.environment["HBP_ACCESS_VERIFICATION_UNAVAILABLE_PREVIEW"] == "1" {
+            activateAccessVerificationUnavailablePreview()
+            return
+        }
         if configuration.syntheticReferenceRequested {
             activateSyntheticReference()
             return
@@ -55,6 +94,49 @@ final class PatientAppViewModel: ObservableObject {
     func retry() async {
         guard liveAccessAvailable else { return }
         await loadPatientExperience()
+    }
+
+    /// A prior care snapshot is never shown after the app returns from the background until
+    /// the server confirms that the current patient session still has an active encounter grant.
+    /// A transient verification failure is intentionally fail-closed: care content is removed,
+    /// while the protected token remains available only for the patient's explicit retry.
+    func revalidateCurrentCareAccessAfterForeground() async {
+        guard let currentSnapshot = snapshot,
+              !currentSnapshot.isSynthetic,
+              noActiveEncounter == nil
+        else { return }
+
+        guard let api, liveAccessAvailable else {
+            enterAccessVerificationUnavailable(displayName: currentSnapshot.patientName)
+            return
+        }
+
+        isForegroundAccessValidationInProgress = true
+        isBusy = true
+        errorMessage = nil
+        defer {
+            isBusy = false
+            isForegroundAccessValidationInProgress = false
+        }
+
+        do {
+            let accessToken: String
+            if let existingAccessToken = tokenStore.accessToken {
+                accessToken = existingAccessToken
+            } else if let refreshToken = tokenStore.refreshToken {
+                accessToken = try await rotateTokens(using: refreshToken, api: api).accessToken
+            } else {
+                throw PatientSessionFailure.expired
+            }
+
+            try await installPatientExperience(accessToken: accessToken)
+        } catch PatientSessionFailure.expired {
+            expireLocalSession()
+        } catch PatientAPIError.unauthorized {
+            expireLocalSession()
+        } catch {
+            enterAccessVerificationUnavailable(displayName: currentSnapshot.patientName)
+        }
     }
 
     func signIn(email: String, password: String) async {
@@ -87,6 +169,7 @@ final class PatientAppViewModel: ObservableObject {
         let revokeToken = tokenStore.refreshToken ?? tokenStore.accessToken
         tokenStore.clear()
         snapshot = nil
+        noActiveEncounter = nil
         errorMessage = nil
         resetMessaging()
         resetSessionManagement()
@@ -100,11 +183,40 @@ final class PatientAppViewModel: ObservableObject {
     func activateSyntheticReference() {
         tokenStore.clear()
         errorMessage = nil
+        noActiveEncounter = nil
         resetSessionManagement()
         let syntheticSnapshot = PatientExperienceSnapshot.syntheticReference(now: Date())
         snapshot = syntheticSnapshot
         patientPreferences = syntheticSnapshot.preferences
         messagingState = .ready(.syntheticReference)
+    }
+
+    private func activateNoActiveEncounterPreview() {
+        tokenStore.clear()
+        snapshot = nil
+        noActiveEncounter = PatientNoActiveEncounterState(
+            displayName: "Patient",
+            availability: .noActiveEncounter,
+            message: "No active hospital stay is available in Hummingbird Patient. Ask your care team if you expected to see one."
+        )
+        errorMessage = nil
+        resetMessaging()
+        resetSessionManagement()
+        resetPreferences()
+    }
+
+    private func activateAccessVerificationUnavailablePreview() {
+        tokenStore.clear()
+        snapshot = nil
+        noActiveEncounter = PatientNoActiveEncounterState(
+            displayName: "Patient",
+            availability: .unableToConfirm,
+            message: "We cannot confirm your current care access right now. No care information is shown until access is confirmed. Check your connection and try again."
+        )
+        errorMessage = nil
+        resetMessaging()
+        resetSessionManagement()
+        resetPreferences()
     }
     #endif
 
@@ -265,6 +377,7 @@ final class PatientAppViewModel: ObservableObject {
                 textSize: input.textSize,
                 reducedMotion: input.reducedMotion,
                 highContrast: input.highContrast,
+                hideScenery: input.hideScenery,
                 notificationPreview: input.notificationPreview,
                 preferredChannel: input.preferredChannel
             )
@@ -305,6 +418,7 @@ final class PatientAppViewModel: ObservableObject {
     ) async {
         isBusy = true
         errorMessage = nil
+        noActiveEncounter = nil
         defer { isBusy = false }
 
         do {
@@ -381,10 +495,37 @@ final class PatientAppViewModel: ObservableObject {
 
     private func installPatientExperience(accessToken: String) async throws {
         let loadedSnapshot = try await fetchPatientExperience(accessToken: accessToken)
+        guard loadedSnapshot.encounterUUID != nil else {
+            snapshot = nil
+            noActiveEncounter = PatientNoActiveEncounterState(
+                displayName: loadedSnapshot.patientName,
+                availability: .noActiveEncounter,
+                message: "No active hospital stay is available in Hummingbird Patient. Ask your care team if you expected to see one."
+            )
+            resetMessaging()
+            resetSessionManagement()
+            resetPreferences()
+            return
+        }
+
+        noActiveEncounter = nil
         snapshot = loadedSnapshot
         patientPreferences = loadedSnapshot.preferences
         preferencesMessage = nil
         await loadMessagingOverview(for: loadedSnapshot, preferredAccessToken: accessToken)
+    }
+
+    private func enterAccessVerificationUnavailable(displayName: String) {
+        snapshot = nil
+        noActiveEncounter = PatientNoActiveEncounterState(
+            displayName: displayName,
+            availability: .unableToConfirm,
+            message: "We cannot confirm your current care access right now. No care information is shown until access is confirmed. Check your connection and try again."
+        )
+        errorMessage = nil
+        resetMessaging()
+        resetSessionManagement()
+        resetPreferences()
     }
 
     private func fetchPatientExperience(accessToken: String) async throws -> PatientExperienceSnapshot {
@@ -1148,6 +1289,7 @@ final class PatientAppViewModel: ObservableObject {
     ) {
         tokenStore.clear()
         snapshot = nil
+        noActiveEncounter = nil
         resetMessaging()
         resetSessionManagement()
         resetPreferences()

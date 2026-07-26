@@ -338,9 +338,12 @@ struct PatientCommunicationDetailView: View {
         } else if item.canReply {
             composer(item)
         } else {
+            let unavailableMessage = item.assignedToMe
+                ? "Responding is unavailable with your current team permissions."
+                : "This conversation is either owned by another team member or unavailable to claim with your current team permissions."
             PatientCommunicationCard {
                 Label(
-                    "Another eligible care-team member owns this conversation.",
+                    unavailableMessage,
                     systemImage: "person.crop.circle.badge.checkmark"
                 )
                 .font(.subheadline)

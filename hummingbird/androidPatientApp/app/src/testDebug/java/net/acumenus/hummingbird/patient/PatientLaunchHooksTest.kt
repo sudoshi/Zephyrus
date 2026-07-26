@@ -25,6 +25,7 @@ class PatientLaunchHooksTest {
         val supported = mapOf(
             "loading" to PatientLaunchPreview.LOADING,
             "empty" to PatientLaunchPreview.EMPTY,
+            "access-verification-unavailable" to PatientLaunchPreview.ACCESS_VERIFICATION_UNAVAILABLE,
             "unavailable" to PatientLaunchPreview.UNAVAILABLE,
             "recoverable-error" to PatientLaunchPreview.RECOVERABLE_ERROR,
         )

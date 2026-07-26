@@ -2,6 +2,12 @@ package net.acumenus.hummingbird.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import net.acumenus.hummingbird.BuildConfig
 import org.json.JSONArray
@@ -253,6 +259,9 @@ class ApiClient(
     }
 
     companion object {
+        private const val unavailableEddyMessage = "Eddy is unavailable right now. Please try again shortly."
+        private const val STREAM_CONNECT_TIMEOUT_MS = 15_000
+        private const val STREAM_INACTIVITY_TIMEOUT_MS = 45_000
         val BASE_URL: String = BuildConfig.ZEPHYRUS_BASE_URL
         val REVERB_SCHEME: String = BuildConfig.ZEPHYRUS_REVERB_SCHEME
         val REVERB_HOST: String = BuildConfig.ZEPHYRUS_REVERB_HOST
@@ -848,6 +857,202 @@ class ApiClient(
         )
     }
 
+    /**
+     * Send one non-retryable staff Eddy turn. The BFF deliberately returns a
+     * decodable unavailable notice at HTTP 503; preserve that notice
+     * for the UI rather than replacing it with a transport error.
+     */
+    suspend fun eddyChat(
+        bearer: String,
+        message: String,
+        conversationId: String?,
+        persona: String,
+        pageContext: String,
+        pageComponent: String,
+        pageData: Map<String, String>,
+    ): EddyChatReply = withContext(Dispatchers.IO) {
+        val body = JSONObject().apply {
+            put("message", message)
+            put("surface", "hummingbird")
+            conversationId?.takeIf(String::isNotBlank)?.let { put("conversation_id", it) }
+            put("page_context", pageContext)
+            put("page_component", pageComponent)
+            if (pageData.isNotEmpty()) put("page_data", JSONObject(pageData))
+        }.toString()
+        val (code, text) = send(
+            "POST",
+            withPersona("/api/mobile/v1/eddy/chat", persona),
+            body,
+            bearer,
+        )
+        if (code !in 200..299 && code != 503) {
+            throw ApiException(errorMessage(text, code), code, errorCode(text))
+        }
+        parseEddyChatReply(JSONObject(text).getJSONObject("data"))
+    }
+
+    /**
+     * Consume one non-idempotent Eddy SSE exchange. This is intentionally a
+     * dedicated transport instead of [send]: a stream must never receive an
+     * automatic 401 replay or a generated Idempotency-Key after its user turn
+     * may already have been persisted server-side.
+     *
+     * The returned flow is upstreamed on [Dispatchers.IO]. It holds no durable
+     * cache; callers own only transient screen state and must cancel when the
+     * visible scope disappears.
+     */
+    fun eddyChatStream(
+        bearer: String,
+        message: String,
+        conversationId: String?,
+        persona: String,
+        pageContext: String,
+        pageComponent: String,
+        pageData: Map<String, String>,
+    ): Flow<EddyStreamEvent> = flow {
+        val body = JSONObject().apply {
+            put("message", message)
+            put("surface", "hummingbird")
+            conversationId?.takeIf(String::isNotBlank)?.let { put("conversation_id", it) }
+            put("page_context", pageContext)
+            put("page_component", pageComponent)
+            if (pageData.isNotEmpty()) put("page_data", JSONObject(pageData))
+        }.toString()
+        val path = withPersona("/api/mobile/v1/eddy/chat/stream", persona)
+
+        // Rotation may complete before the request is sent, but this POST is
+        // never replayed after a response or transport failure.
+        val effectiveBearer = tokenCoordinator.bearerBeforeRequest(bearer) { refreshToken ->
+            refreshSession(refreshToken)
+        }
+        val connection = (URL(baseUrl + path).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            instanceFollowRedirects = false
+            connectTimeout = STREAM_CONNECT_TIMEOUT_MS
+            // The server sends no heartbeats. A read timeout therefore bounds a
+            // silent stream rather than silently holding an in-flight prompt.
+            readTimeout = STREAM_INACTIVITY_TIMEOUT_MS
+            useCaches = false
+            setRequestProperty("Accept", "text/event-stream")
+            noStoreHeaders().forEach { (name, value) -> setRequestProperty(name, value) }
+            setRequestProperty("Authorization", "Bearer $effectiveBearer")
+            setRequestProperty("Content-Type", "application/json")
+            doOutput = true
+        }
+        val cancellation = currentCoroutineContext()[Job]?.invokeOnCompletion {
+            connection.disconnect()
+        }
+
+        try {
+            connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+            val status = connection.responseCode
+            if (status !in 200..299) {
+                val errorBody = connection.errorStream
+                    ?.bufferedReader()
+                    ?.use(BufferedReader::readText)
+                    .orEmpty()
+                throw ApiException(errorMessage(errorBody, status), status, errorCode(errorBody))
+            }
+            val contentType = connection.contentType.orEmpty().lowercase()
+            if (!contentType.contains("text/event-stream")) {
+                throw ApiException("Eddy returned an invalid stream response.", status)
+            }
+
+            val parser = EddySseFrameParser()
+            connection.inputStream.bufferedReader().use { reader ->
+                while (true) {
+                    currentCoroutineContext().ensureActive()
+                    val line = reader.readLine() ?: break
+                    parser.consume(line).forEach { emit(it) }
+                }
+            }
+            parser.finish().forEach { emit(it) }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            // HttpURLConnection surfaces cancellation as an IOException after
+            // disconnecting; preserve coroutine cancellation for the caller.
+            currentCoroutineContext().ensureActive()
+            if (error is ApiException) throw error
+            throw ApiException("Eddy is unavailable right now. Please try again shortly.", null)
+        } finally {
+            cancellation?.dispose()
+            connection.disconnect()
+        }
+    }.flowOn(Dispatchers.IO)
+
+    /**
+     * Read the signed-in user's server-persisted Eddy history. The API contract
+     * explicitly forbids offline caching; callers retain this only in screen state.
+     */
+    suspend fun eddyConversations(bearer: String, persona: String): List<EddyConversationSummary> = withContext(Dispatchers.IO) {
+        getEnvelope(withPersona("/api/mobile/v1/eddy/conversations", persona), bearer)
+            .optJSONArray("data")
+            .objects()
+            .map(::parseEddyConversationSummary)
+    }
+
+    /** Read one server-authorized conversation without persisting it locally. */
+    suspend fun eddyConversation(
+        bearer: String,
+        conversationId: String,
+        persona: String,
+    ): EddyConversationDetail = withContext(Dispatchers.IO) {
+        parseEddyConversationDetail(
+            getData(
+                withPersona("/api/mobile/v1/eddy/conversations/${urlPart(conversationId)}", persona),
+                bearer,
+            ),
+        )
+    }
+
+    /** Pending, server-scoped Eddy proposals. This transient inbox is never cached offline. */
+    suspend fun eddyApprovals(bearer: String, persona: String): List<EddyApprovalSummary> = withContext(Dispatchers.IO) {
+        getEnvelope(withPersona("/api/mobile/v1/eddy/approvals", persona), bearer)
+            .optJSONArray("data")
+            .objects()
+            .map(::parseEddyApprovalSummary)
+    }
+
+    /** Fetch the dry-run preview immediately before a human considers a decision. */
+    suspend fun eddyApproval(
+        bearer: String,
+        approvalId: String,
+        persona: String,
+    ): EddyApprovalPreview = withContext(Dispatchers.IO) {
+        parseEddyApprovalPreview(
+            getData(
+                withPersona("/api/mobile/v1/eddy/approvals/${urlPart(approvalId)}", persona),
+                bearer,
+            ),
+        )
+    }
+
+    /**
+     * Send one online-only human decision. Callers own the idempotency key in view state so an
+     * explicit retry can replay exactly the same decision; this method never retries a mutation.
+     */
+    suspend fun decideEddyApproval(
+        bearer: String,
+        approvalId: String,
+        persona: String,
+        decision: String,
+        idempotencyKey: String,
+    ): EddyApprovalDecisionResult = withContext(Dispatchers.IO) {
+        require(decision in setOf("approved", "rejected")) { "An explicit approval decision is required." }
+        require(idempotencyKey.isNotBlank()) { "A decision key is required." }
+        val body = JSONObject().put("decision", decision).toString()
+        val (code, text) = send(
+            "POST",
+            withPersona("/api/mobile/v1/eddy/approvals/${urlPart(approvalId)}/decision", persona),
+            body,
+            bearer,
+            idempotencyKey,
+        )
+        if (code !in 200..299) throw ApiException(errorMessage(text, code), code, errorCode(text))
+        parseEddyApprovalDecision(JSONObject(text).getJSONObject("data"))
+    }
+
     suspend fun flowWindow(
         bearer: String,
         persona: String,
@@ -1084,6 +1289,7 @@ class ApiClient(
 
     private fun isSensitiveNoStorePath(path: String): Boolean =
         isPatientCommunicationPath(path) ||
+            path.startsWith("/api/mobile/v1/eddy/") ||
             path.substringBefore('?') == "/api/mobile/v1/me/sessions" ||
             path.substringBefore('?').startsWith("/api/mobile/v1/me/sessions/")
 
@@ -1224,7 +1430,19 @@ class ApiClient(
     internal fun parsePatientCommunicationWorkItem(o: JSONObject): PatientCommunicationWorkItem {
         val topic = o.optJSONObject("topic") ?: JSONObject()
         val unit = o.optJSONObject("unit")
+        val facility = o.optJSONObject("facility")
+        val serviceLine = o.optJSONObject("service_line")
         val pool = o.optJSONObject("pool") ?: JSONObject()
+        val actions = o.optJSONObject("actions")?.let { raw ->
+            val claim = raw.opt("can_claim")
+            val reply = raw.opt("can_reply")
+            val close = raw.opt("can_close")
+            if (claim is Boolean && reply is Boolean && close is Boolean) {
+                PatientCommunicationActions(claim, reply, close)
+            } else {
+                null
+            }
+        }
 
         return PatientCommunicationWorkItem(
             workItemUuid = o.optString("work_item_uuid"),
@@ -1257,6 +1475,19 @@ class ApiClient(
             closedAt = o.optStringOrNull("closed_at"),
             messages = o.optJSONArray("messages").objects().map(::parsePatientCommunicationMessage),
             hasEarlierMessages = o.optBoolean("has_earlier_messages", false),
+            facility = facility?.let {
+                PatientCommunicationFacility(
+                    key = it.optString("key"),
+                    label = it.optStringOrNull("label") ?: "Facility",
+                )
+            },
+            serviceLine = serviceLine?.let {
+                PatientCommunicationServiceLine(
+                    code = it.optString("code"),
+                    label = it.optStringOrNull("label") ?: "Service line",
+                )
+            },
+            actions = actions,
         )
     }
 
@@ -1580,6 +1811,101 @@ class ApiClient(
         context = summarizeContext(data.optJSONObject("context")),
         questionsSupported = data.optJSONArray("questions_supported").strings(),
     )
+
+    /** Visible to JVM contract tests: 503 returns `message` as a string, not an object. */
+    internal fun parseEddyChatReply(data: JSONObject): EddyChatReply {
+        val rawMessage = data.opt("message")
+        val message = if (rawMessage is JSONObject) {
+            EddyReplyMessage(
+                role = rawMessage.optString("role", "assistant"),
+                content = rawMessage.optString("content").ifBlank { unavailableEddyMessage },
+                provider = rawMessage.optStringOrNull("provider"),
+            )
+        } else {
+            EddyReplyMessage(
+                role = "assistant",
+                content = (rawMessage as? String)?.ifBlank { unavailableEddyMessage } ?: unavailableEddyMessage,
+                provider = null,
+            )
+        }
+
+        return EddyChatReply(
+            conversationId = data.optStringOrNull("conversation_id"),
+            message = message,
+        )
+    }
+
+    internal fun parseEddyConversationSummary(data: JSONObject): EddyConversationSummary =
+        EddyConversationSummary(
+            id = data.optString("id"),
+            title = data.optStringOrNull("title")?.ifBlank { null } ?: "Eddy conversation",
+            surface = data.optStringOrNull("surface")?.ifBlank { null } ?: "chat",
+            origin = data.optStringOrNull("origin")?.ifBlank { null } ?: "unknown",
+            updatedAt = data.optStringOrNull("updated_at"),
+        )
+
+    internal fun parseEddyConversationDetail(data: JSONObject): EddyConversationDetail =
+        EddyConversationDetail(
+            id = data.optString("id"),
+            title = data.optStringOrNull("title")?.ifBlank { null } ?: "Eddy conversation",
+            surface = data.optStringOrNull("surface")?.ifBlank { null } ?: "chat",
+            messages = data.optJSONArray("messages").objects().map(::parseEddyConversationMessage),
+        )
+
+    private fun parseEddyConversationMessage(data: JSONObject): EddyConversationMessage =
+        EddyConversationMessage(
+            role = if (data.optString("role") == "user") EddyChatRole.USER else EddyChatRole.ASSISTANT,
+            content = data.optString("content"),
+            provider = data.optStringOrNull("provider"),
+            createdAt = data.optStringOrNull("created_at"),
+            hasProposedAction = data.has("proposed_action") && !data.isNull("proposed_action"),
+        )
+
+    internal fun parseEddyApprovalSummary(data: JSONObject): EddyApprovalSummary =
+        EddyApprovalSummary(
+            approvalUuid = data.optStringOrNull("approval_uuid") ?: "",
+            actionUuid = data.optStringOrNull("action_uuid"),
+            actionType = data.optStringOrNull("action_type") ?: "",
+            title = data.optStringOrNull("title")?.ifBlank { null } ?: "Eddy proposal",
+            surface = data.optStringOrNull("surface")?.ifBlank { null } ?: "operations",
+            tier = data.optStringOrNull("tier")?.ifBlank { null } ?: "T1",
+            risk = data.optStringOrNull("risk"),
+            requestedAt = data.optStringOrNull("requested_at"),
+        )
+
+    internal fun parseEddyApprovalPreview(data: JSONObject): EddyApprovalPreview =
+        EddyApprovalPreview(
+            summary = parseEddyApprovalSummary(data),
+            rationale = data.optStringOrNull("rationale"),
+            runnerUp = data.optStringOrNull("runner_up"),
+            preview = data.optStringOrNull("preview"),
+            params = parseEddyApprovalParameters(data.optJSONObject("params")),
+        )
+
+    internal fun parseEddyApprovalDecision(data: JSONObject): EddyApprovalDecisionResult =
+        EddyApprovalDecisionResult(
+            approvalUuid = data.optStringOrNull("approval_uuid") ?: "",
+            decision = data.optStringOrNull("decision") ?: "",
+            actionStatus = data.optStringOrNull("action_status"),
+        )
+
+    private fun parseEddyApprovalParameters(params: JSONObject?): List<EddyApprovalParameter> {
+        if (params == null) return emptyList()
+        val keys = params.keys()
+        val names = buildList {
+            while (keys.hasNext()) add(keys.next())
+        }.sorted().take(20)
+        return names.map { name ->
+            val raw = params.opt(name)
+            val value = when (raw) {
+                null, JSONObject.NULL -> "—"
+                is JSONObject -> "Operational detail"
+                is JSONArray -> "${raw.length()} item${if (raw.length() == 1) "" else "s"}"
+                else -> raw.toString().take(240)
+            }
+            EddyApprovalParameter(name = name, value = value)
+        }
+    }
 
     private fun parsePersona(o: JSONObject?): PersonaData {
         val roleId = o?.optStringOrNull("role_id") ?: MobileRoleCatalog.default.id
@@ -2444,6 +2770,100 @@ class ApiClient(
             .split(' ')
             .filter { it.isNotBlank() }
             .joinToString(" ") { part -> part.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } }
+}
+
+/**
+ * Strict, bounded parser for the one-data-line Eddy SSE grammar. Unknown and
+ * malformed frames fail closed (they are ignored); the raw proposed action is
+ * deliberately never projected into a native action surface.
+ */
+internal class EddySseFrameParser {
+    private val dataLines = mutableListOf<String>()
+    private var frameLength = 0
+
+    fun consume(line: String): List<EddyStreamEvent> {
+        val normalized = line.removeSuffix("\r")
+        if (normalized.isEmpty()) {
+            return flush()
+        }
+        if (!normalized.startsWith("data:")) return emptyList()
+
+        val payload = normalized.removePrefix("data:").removePrefix(" ")
+        // The versioned Eddy contract emits one data line per frame. Some
+        // reader implementations omit blank delimiter lines, so receiving the
+        // next data line is also a safe frame boundary for this contract.
+        val previous = flush()
+        frameLength += payload.length
+        if (frameLength > MAX_FRAME_CHARACTERS) {
+            throw ApiException("Eddy stream response was too large to process safely.", null)
+        }
+        dataLines += payload
+        return previous
+    }
+
+    /** Flush the final one-data-line frame when a transport omits its final blank line. */
+    fun finish(): List<EddyStreamEvent> = flush()
+
+    private fun flush(): List<EddyStreamEvent> {
+        if (dataLines.isEmpty()) return emptyList()
+        val payload = dataLines.joinToString("\n")
+        dataLines.clear()
+        frameLength = 0
+        return decode(payload)
+    }
+
+    private fun decode(payload: String): List<EddyStreamEvent> {
+        if (payload == "[DONE]") return listOf(EddyStreamEvent.Done)
+        val data = try {
+            JSONObject(payload)
+        } catch (_: Exception) {
+            return emptyList()
+        }
+        return when {
+            data.optStringOrNull("conversation_id") != null -> listOf(
+                EddyStreamEvent.ConversationStarted(data.optString("conversation_id")),
+            )
+            data.has("token") && !data.isNull("token") -> {
+                val token = data.opt("token") as? String ?: return emptyList()
+                listOf(EddyStreamEvent.Token(token))
+            }
+            data.optBoolean("complete", false) -> listOf(
+                EddyStreamEvent.Complete(
+                    cleanReply = data.optStringOrNull("clean_reply").orEmpty(),
+                    provider = data.optStringOrNull("provider"),
+                ),
+            )
+            data.optStringOrNull("error") != null -> listOf(EddyStreamEvent.Error(data.optString("error")))
+            else -> emptyList()
+        }
+    }
+
+    private companion object {
+        const val MAX_FRAME_CHARACTERS = 128 * 1024
+    }
+}
+
+/**
+ * Raw token frames can contain an incomplete model proposal before the server
+ * emits its sanitized terminal response. Keep the longest possible opening-tag
+ * suffix hidden so neither proposal markup nor proposal content becomes visible
+ * during the live preview.
+ */
+internal object EddyStreamDisplayText {
+    private const val proposalMarker = "<propose_action>"
+
+    fun provisional(raw: String): String {
+        val normalized = raw.lowercase()
+        val markerAt = normalized.indexOf(proposalMarker)
+        if (markerAt >= 0) return raw.substring(0, markerAt)
+
+        val hiddenSuffixLength = (1 until proposalMarker.length)
+            .lastOrNull { length -> normalized.endsWith(proposalMarker.take(length)) }
+            ?: 0
+        return if (hiddenSuffixLength == 0) raw else raw.dropLast(hiddenSuffixLength)
+    }
+
+    fun terminal(cleanReply: String): String = provisional(cleanReply)
 }
 
 private fun JSONObject.optStringOrNull(key: String): String? =

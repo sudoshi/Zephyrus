@@ -6,6 +6,7 @@ import Foundation
 /// registry must preserve the codes and replace only this approved copy.
 enum PatientStateDomain: CaseIterable {
     case schedule
+    case scheduleCategory
     case pathway
     case milestone
     case pathwayEvent
@@ -16,17 +17,28 @@ enum PatientStateDomain: CaseIterable {
 }
 
 enum PatientStateVocabulary {
-    static let version = "patient-state-vocabulary.v1-draft"
+    static let version = "patient-state-vocabulary.v2-draft"
 
     private static let labels: [PatientStateDomain: [String: String]] = [
         .schedule: [
             "requested": "Requested",
             "planned": "Planned",
+            "scheduled": "Scheduled",
             "confirmed": "Confirmed",
+            "waiting": "Waiting",
+            "transport_requested": "Transportation requested",
             "in_progress": "Happening now",
             "completed": "Completed",
+            "result_pending": "Result not available yet",
+            "result_released": "Result available",
             "delayed": "Delayed",
             "canceled": "No longer planned",
+        ],
+        .scheduleCategory: [
+            "test": "Test",
+            "procedure": "Procedure",
+            "transport": "Transportation",
+            "other": "Care update",
         ],
         .pathway: [
             "planned": "Planned",

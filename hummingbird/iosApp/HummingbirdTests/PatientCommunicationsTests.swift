@@ -10,12 +10,33 @@ final class PatientCommunicationsContractTests: XCTestCase {
         let envelope = try decoder.decode(Envelope<PatientCommunicationWorkItem>.self, from: data)
 
         XCTAssertEqual(envelope.data.topic.label, "Discharge planning")
+        XCTAssertEqual(envelope.data.facility?.label, "Summit Regional Hospital")
+        XCTAssertEqual(envelope.data.serviceLine?.label, "Hospital Medicine")
         XCTAssertEqual(envelope.data.pool.label, "5 East care team")
         XCTAssertEqual(envelope.data.pool.poolUuid, "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
         XCTAssertEqual(envelope.data.workItemVersion, 4)
         XCTAssertEqual(envelope.data.threadVersion, 8)
         XCTAssertEqual(envelope.data.messages?.first?.body, "When can I go home?")
+        XCTAssertFalse(envelope.data.canClaim)
         XCTAssertTrue(envelope.data.canReply)
+        XCTAssertFalse(envelope.data.canClose)
+    }
+
+    func testMissingActionAffordancesFailClosedRatherThanUsingOwnershipState() throws {
+        let legacy = Self.threadEnvelope.replacingOccurrences(
+            of: "\"actions\": {\"can_claim\": false, \"can_reply\": true, \"can_close\": false},",
+            with: ""
+        )
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+
+        let envelope = try decoder.decode(
+            Envelope<PatientCommunicationWorkItem>.self,
+            from: Data(legacy.utf8)
+        )
+
+        XCTAssertFalse(envelope.data.canClaim)
+        XCTAssertFalse(envelope.data.canReply)
         XCTAssertFalse(envelope.data.canClose)
     }
 
@@ -47,10 +68,13 @@ final class PatientCommunicationsContractTests: XCTestCase {
         "patient_context_ref": "ptok_0123456789abcdef01234567",
         "topic": {"code": "discharge_planning", "label": "Discharge planning"},
         "unit": {"id": 85, "label": "5 East"},
+        "facility": {"key": "SUMMIT_REGIONAL", "label": "Summit Regional Hospital"},
+        "service_line": {"code": "hospital_medicine", "label": "Hospital Medicine"},
         "pool": {"pool_uuid": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "label": "5 East care team"},
         "status": "open",
         "ownership_state": "acknowledged",
         "assigned_to_me": true,
+        "actions": {"can_claim": false, "can_reply": true, "can_close": false},
         "work_item_version": 4,
         "thread_version": 8,
         "last_message_at": "2026-07-19T14:05:00Z",
@@ -152,8 +176,11 @@ final class PatientCommunicationsAPIClientTests: XCTestCase {
           "patient_context_ref": null,
           "topic": {"code": "discharge_planning", "label": "Discharge planning"},
           "unit": {"id": 85, "label": "5 East"},
+          "facility": {"key": "SUMMIT_REGIONAL", "label": "Summit Regional Hospital"},
+          "service_line": {"code": "hospital_medicine", "label": "Hospital Medicine"},
           "pool": {"pool_uuid": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "label": "5 East care team"},
           "status": "open", "ownership_state": "responded", "assigned_to_me": true,
+          "actions": {"can_claim": false, "can_reply": true, "can_close": true},
           "work_item_version": 5, "thread_version": 9,
           "last_message_at": "2026-07-19T14:07:00Z",
           "due_at": "2026-07-19T15:05:00Z", "escalate_at": "2026-07-19T16:05:00Z",
@@ -685,7 +712,8 @@ private final class PatientCommunicationsFakeRepository: PatientCommunicationsRe
             senderDisplayRole: "Patient", visibility: "patient_visible", messageKind: "message",
             body: "Question", deliveryState: "acknowledged", sentAt: "2026-07-19T14:05:00Z"
         )],
-        hasEarlierMessages: false
+        hasEarlierMessages: false,
+        actions: .init(canClaim: false, canReply: true, canClose: false)
     )
 
     func patientCommunicationsInbox(bearer: String) async throws -> PatientCommunicationInboxData {
@@ -741,7 +769,8 @@ private final class PatientCommunicationsFakeRepository: PatientCommunicationsRe
             isEscalationDue: item.isEscalationDue,
             closedAt: nil,
             messages: (item.messages ?? []) + [reply],
-            hasEarlierMessages: item.hasEarlierMessages
+            hasEarlierMessages: item.hasEarlierMessages,
+            actions: .init(canClaim: false, canReply: true, canClose: true)
         )
         currentItemOverride = projection
         return .init(

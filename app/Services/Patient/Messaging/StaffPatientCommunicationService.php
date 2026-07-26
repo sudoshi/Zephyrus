@@ -4,6 +4,7 @@ namespace App\Services\Patient\Messaging;
 
 use App\Authorization\Capability;
 use App\Models\Encounter;
+use App\Models\Org\Facility;
 use App\Models\Patient\PatientEncounterAccessGrant;
 use App\Models\Patient\PatientMessage;
 use App\Models\Patient\PatientMessageDeliveryReceipt;
@@ -39,6 +40,10 @@ class StaffPatientCommunicationService
 
     private const MAX_ROUTE_CANDIDATES = 50;
 
+    private const MAX_SCOPE_CODE_LENGTH = 120;
+
+    private const MAX_SCOPE_LABEL_LENGTH = 160;
+
     private const REQUIRED_TABLES = [
         'patient_experience.encounter_access_grants',
         'patient_experience.message_threads',
@@ -67,7 +72,10 @@ class StaffPatientCommunicationService
     {
         $this->assertAvailable();
         $this->assertCapability($user, Capability::ViewPatientCommunications);
-        $poolIds = $this->effectiveMemberships($user)->pluck('responsibility_pool_id');
+        $memberships = $this->effectiveMemberships($user);
+        $poolIds = $memberships->pluck('responsibility_pool_id');
+        $membershipsByPoolId = $memberships->keyBy('responsibility_pool_id');
+        $canRespond = $this->canDirectlyRespond($request, $user);
 
         $items = $poolIds->isEmpty()
             ? collect()
@@ -81,9 +89,24 @@ class StaffPatientCommunicationService
                 ->limit(200)
                 ->get();
 
-        $data = $items
+        $eligibleItems = $items
             ->filter(fn (ThreadWorkItem $item): bool => $this->matchesCanonicalEncounterScope($item))
-            ->map(fn (ThreadWorkItem $item): array => $this->serializeWorkItem($item, $user))
+            ->values();
+        $contexts = $this->workItemContexts($eligibleItems);
+
+        $data = $eligibleItems
+            ->map(fn (ThreadWorkItem $item): array => $this->serializeWorkItem(
+                $item,
+                $user,
+                false,
+                $contexts[(int) $item->getKey()] ?? null,
+                $this->workItemActions(
+                    $item,
+                    $user,
+                    $membershipsByPoolId->get((int) $item->responsibility_pool_id),
+                    $canRespond,
+                ),
+            ))
             ->values()
             ->all();
 
@@ -113,7 +136,18 @@ class StaffPatientCommunicationService
             'assignee',
         ]);
 
-        $data = $this->serializeWorkItem($workItem, $user, true);
+        $data = $this->serializeWorkItem(
+            $workItem,
+            $user,
+            true,
+            null,
+            $this->workItemActions(
+                $workItem,
+                $user,
+                null,
+                $this->canDirectlyRespond($request, $user),
+            ),
+        );
 
         $this->audit->record('patient_communications.thread_viewed', 'access', 'success', [
             'request' => $request,
@@ -1027,6 +1061,20 @@ class StaffPatientCommunicationService
         }
     }
 
+    /**
+     * Web sessions have no personal-access token, while mobile read tokens may
+     * deliberately omit mobile:act. A role capability by itself must never
+     * cause a read-only mobile session to render a direct mutation control.
+     */
+    private function canDirectlyRespond(Request $request, User $user): bool
+    {
+        if (! $this->authorization->allows($user, Capability::RespondPatientCommunications)) {
+            return false;
+        }
+
+        return $user->currentAccessToken() === null || $user->tokenCan('mobile:act');
+    }
+
     private function effectiveMemberships(User $user): Collection
     {
         return PoolMembership::query()
@@ -1571,14 +1619,20 @@ class StaffPatientCommunicationService
     }
 
     /** @return array<string, mixed> */
-    private function serializeWorkItem(ThreadWorkItem $workItem, User $viewer, bool $includeMessages = false): array
-    {
+    private function serializeWorkItem(
+        ThreadWorkItem $workItem,
+        User $viewer,
+        bool $includeMessages = false,
+        ?array $context = null,
+        ?array $actions = null,
+    ): array {
         $thread = $workItem->thread;
         $grant = $workItem->accessGrant;
         $pool = $workItem->pool;
-        $encounter = $grant?->source_encounter_id !== null
-            ? Encounter::query()->with('unit')->find((int) $grant->source_encounter_id)
-            : null;
+        $context ??= $this->workItemContexts(collect([$workItem]))[(int) $workItem->getKey()] ?? null;
+        $context ??= $this->emptyWorkItemContext();
+        $actions ??= $this->workItemActions($workItem, $viewer);
+        $encounter = $context['encounter'] ?? null;
 
         $patientContextRef = null;
         if ($encounter !== null && trim((string) $encounter->patient_ref) !== '') {
@@ -1601,6 +1655,11 @@ class StaffPatientCommunicationService
                 'id' => (int) $encounter->unit->getKey(),
                 'label' => (string) $encounter->unit->name,
             ] : null,
+            // These content-free labels derive only from the active encounter's
+            // governed unit -> facility-space mapping. They never use the pool's
+            // broader facility/enterprise scope as a surrogate patient location.
+            'facility' => $context['facility'] ?? null,
+            'service_line' => $context['service_line'] ?? null,
             'pool' => [
                 'pool_uuid' => (string) $pool?->pool_uuid,
                 'label' => (string) $pool?->display_name,
@@ -1609,6 +1668,11 @@ class StaffPatientCommunicationService
             'ownership_state' => (string) $workItem->ownership_state,
             'assigned_to_me' => $workItem->assigned_user_id !== null
                 && (int) $workItem->assigned_user_id === (int) $viewer->getKey(),
+            // These affordances are advisory UI state only. Every write still
+            // re-evaluates capability, effective membership, canonical scope,
+            // assignment, and optimistic versions under lock. Clients must not
+            // infer availability from ownership_state or a stale local row.
+            'actions' => $actions,
             'work_item_version' => (int) $workItem->row_version,
             'thread_version' => (int) $thread?->version,
             'last_message_at' => $workItem->last_message_at?->toISOString(),
@@ -1638,6 +1702,211 @@ class StaffPatientCommunicationService
         }
 
         return $data;
+    }
+
+    /**
+     * Produces the current viewer's bounded direct-action affordances without
+     * disclosing the assignee's identity or wider pool membership. The inbox
+     * passes its already-effective membership collection to avoid a query per
+     * row; detail and mutation responses resolve one current membership.
+     *
+     * @return array{can_claim: bool, can_reply: bool, can_close: bool}
+     */
+    private function workItemActions(
+        ThreadWorkItem $workItem,
+        User $viewer,
+        ?PoolMembership $membership = null,
+        ?bool $canRespond = null,
+    ): array {
+        $membership ??= PoolMembership::query()
+            ->effective()
+            ->where('responsibility_pool_id', $workItem->responsibility_pool_id)
+            ->where('staff_user_id', $viewer->getKey())
+            ->first();
+        $canRespond ??= $this->authorization->allows(
+            $viewer,
+            Capability::RespondPatientCommunications,
+        );
+        $open = $workItem->status === 'open';
+        $assignedToViewer = $workItem->assigned_user_id !== null
+            && (int) $workItem->assigned_user_id === (int) $viewer->getKey();
+
+        return [
+            'can_claim' => $canRespond
+                && $membership instanceof PoolMembership
+                && $membership->can_claim
+                && $open
+                && $workItem->assigned_user_id === null
+                && in_array(
+                    $workItem->ownership_state,
+                    ['pool_owned', 'rerouted', 'escalated'],
+                    true,
+                ),
+            'can_reply' => $canRespond
+                && $membership instanceof PoolMembership
+                && $membership->can_reply
+                && $open
+                && $assignedToViewer,
+            // The server independently verifies that a patient-visible reply
+            // follows the latest patient message before it will close. The
+            // state check only prevents exposing an impossible close control.
+            'can_close' => $canRespond
+                && $membership instanceof PoolMembership
+                && $membership->can_close
+                && $open
+                && $assignedToViewer
+                && $workItem->ownership_state === 'responded',
+        ];
+    }
+
+    /**
+     * Builds a content-free facility/service-line projection for already
+     * authorized work items. Inbox callers batch the lookup to avoid one
+     * location/registry query per row; detail and mutation callers reuse the
+     * same strict projector for one item.
+     *
+     * @param  Collection<int, ThreadWorkItem>  $workItems
+     * @return array<int, array{encounter: Encounter|null, facility: array{key: string, label: string}|null, service_line: array{code: string, label: string}|null}>
+     */
+    private function workItemContexts(Collection $workItems): array
+    {
+        $encounterIds = $workItems
+            ->map(fn (ThreadWorkItem $workItem): int => (int) ($workItem->accessGrant?->source_encounter_id ?? 0))
+            ->filter(fn (int $encounterId): bool => $encounterId > 0)
+            ->unique()
+            ->values();
+
+        if ($encounterIds->isEmpty()) {
+            return $workItems
+                ->mapWithKeys(fn (ThreadWorkItem $workItem): array => [
+                    (int) $workItem->getKey() => $this->emptyWorkItemContext(),
+                ])
+                ->all();
+        }
+
+        $locationRegistryReady = Schema::hasTable('hosp_space.facility_spaces')
+            && Schema::hasTable('hosp_org.facilities')
+            && Schema::hasTable('hosp_space.facility_space_service_lines')
+            && Schema::hasTable('hosp_ref.service_lines');
+
+        $relations = ['unit'];
+        if ($locationRegistryReady) {
+            $relations[] = 'unit.facilitySpace.primaryServiceLine.serviceLine';
+        }
+
+        /** @var Collection<int, Encounter> $encounters */
+        $encounters = Encounter::query()
+            ->with($relations)
+            ->whereIn('encounter_id', $encounterIds->all())
+            ->get()
+            ->keyBy(fn (Encounter $encounter): int => (int) $encounter->getKey());
+
+        $facilitiesByKey = collect();
+        if ($locationRegistryReady) {
+            $facilityKeys = $encounters
+                ->map(fn (Encounter $encounter): string => trim((string) $encounter->unit?->facilitySpace?->facility_key))
+                ->filter(fn (string $facilityKey): bool => $this->boundedScopeValue(
+                    $facilityKey,
+                    self::MAX_SCOPE_CODE_LENGTH,
+                ) !== null)
+                ->unique()
+                ->values();
+
+            if ($facilityKeys->isNotEmpty()) {
+                $facilitiesByKey = Facility::query()
+                    ->active()
+                    ->whereIn('facility_key', $facilityKeys->all())
+                    ->get(['facility_key', 'facility_name'])
+                    ->keyBy('facility_key');
+            }
+        }
+
+        return $workItems
+            ->mapWithKeys(function (ThreadWorkItem $workItem) use ($encounters, $facilitiesByKey, $locationRegistryReady): array {
+                $encounterId = (int) ($workItem->accessGrant?->source_encounter_id ?? 0);
+                $encounter = $encounterId > 0 ? $encounters->get($encounterId) : null;
+
+                return [
+                    (int) $workItem->getKey() => $this->workItemContext(
+                        $encounter instanceof Encounter ? $encounter : null,
+                        $facilitiesByKey,
+                        $locationRegistryReady,
+                    ),
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * @param  Collection<string, Facility>  $facilitiesByKey
+     * @return array{encounter: Encounter|null, facility: array{key: string, label: string}|null, service_line: array{code: string, label: string}|null}
+     */
+    private function workItemContext(
+        ?Encounter $encounter,
+        Collection $facilitiesByKey,
+        bool $locationRegistryReady,
+    ): array {
+        if (! $locationRegistryReady || ! $encounter instanceof Encounter) {
+            return [
+                'encounter' => $encounter,
+                'facility' => null,
+                'service_line' => null,
+            ];
+        }
+
+        $facilitySpace = $encounter->unit?->facilitySpace;
+        $facilityKey = $facilitySpace !== null
+            ? $this->boundedScopeValue((string) $facilitySpace->facility_key, self::MAX_SCOPE_CODE_LENGTH)
+            : null;
+        $facility = $facilityKey !== null ? $facilitiesByKey->get($facilityKey) : null;
+        $facilityLabel = $facility instanceof Facility
+            ? $this->boundedScopeValue((string) $facility->facility_name, self::MAX_SCOPE_LABEL_LENGTH)
+            : null;
+
+        if ($facilityKey === null || $facilityLabel === null) {
+            return [
+                'encounter' => $encounter,
+                'facility' => null,
+                'service_line' => null,
+            ];
+        }
+
+        $primaryServiceLine = $facilitySpace?->primaryServiceLine;
+        $serviceLine = $primaryServiceLine?->serviceLine;
+        $serviceLineCode = $serviceLine !== null
+            ? $this->boundedScopeValue((string) $serviceLine->service_line_code, self::MAX_SCOPE_CODE_LENGTH)
+            : null;
+        $serviceLineLabel = $serviceLine !== null
+            ? $this->boundedScopeValue((string) $serviceLine->display_name, self::MAX_SCOPE_LABEL_LENGTH)
+            : null;
+        $scopeDate = now()->startOfDay();
+        $serviceLineCurrent = $primaryServiceLine !== null
+            && ($primaryServiceLine->effective_start === null
+                || ! $primaryServiceLine->effective_start->startOfDay()->isAfter($scopeDate))
+            && ($primaryServiceLine->effective_end === null
+                || ! $primaryServiceLine->effective_end->startOfDay()->isBefore($scopeDate))
+            && $serviceLine?->is_active === true;
+
+        return [
+            'encounter' => $encounter,
+            'facility' => ['key' => $facilityKey, 'label' => $facilityLabel],
+            'service_line' => $serviceLineCurrent && $serviceLineCode !== null && $serviceLineLabel !== null
+                ? ['code' => $serviceLineCode, 'label' => $serviceLineLabel]
+                : null,
+        ];
+    }
+
+    /** @return array{encounter: null, facility: null, service_line: null} */
+    private function emptyWorkItemContext(): array
+    {
+        return ['encounter' => null, 'facility' => null, 'service_line' => null];
+    }
+
+    private function boundedScopeValue(string $value, int $maximumLength): ?string
+    {
+        $value = trim($value);
+
+        return $value !== '' && mb_strlen($value) <= $maximumLength ? $value : null;
     }
 
     private function responsePending(ThreadWorkItem $workItem): bool

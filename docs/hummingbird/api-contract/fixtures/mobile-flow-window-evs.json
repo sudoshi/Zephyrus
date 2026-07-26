@@ -1,9 +1,9 @@
 {
     "data": {
         "window": {
-            "from": "2026-07-04T03:05:15+00:00",
-            "to": "2026-07-06T03:05:15+00:00",
-            "now": "2026-07-05T03:05:15+00:00",
+            "from": "2026-07-23T03:05:15+00:00",
+            "to": "2026-07-25T03:05:15+00:00",
+            "now": "2026-07-24T03:05:15+00:00",
             "since": null
         },
         "lens": {
@@ -46,7 +46,7 @@
             "label": "Floor 3"
         },
         "spaces": {
-            "plates_version": "v1-a8f91dc9a9e4",
+            "plates_version": "v1-e29607d2bd54",
             "floors": [
                 {
                     "floor": 1,
@@ -682,13 +682,13 @@
         "snapshots": [],
         "events": [
             {
-                "t": "2026-07-05T02:20:14+00:00",
+                "t": "2026-07-24T02:20:15+00:00",
                 "kind": "evs_status",
                 "entity": {
                     "type": "evs",
                     "ref": "1"
                 },
-                "patient_context_ref": "ptok_dcf6bf35b952bc96d48730ad",
+                "patient_context_ref": "ptok_218d4954a28dfba430527a95",
                 "from_space": null,
                 "to_space": "MICU-01",
                 "unit_id": 1,
@@ -701,7 +701,7 @@
         ],
         "projections": [
             {
-                "t": "2026-07-05T04:05:14+00:00",
+                "t": "2026-07-24T04:05:15+00:00",
                 "kind": "evs_due",
                 "confidence": "definite",
                 "unit_id": 1,
@@ -711,7 +711,7 @@
                     "type": "evs",
                     "ref": "1"
                 },
-                "patient_context_ref": "ptok_dcf6bf35b952bc96d48730ad",
+                "patient_context_ref": "ptok_218d4954a28dfba430527a95",
                 "label": "Turn due \u00b7 MICU-01",
                 "value": null,
                 "band": null,
@@ -723,7 +723,7 @@
                 }
             },
             {
-                "t": "2026-07-05T11:00:00+00:00",
+                "t": "2026-07-24T11:00:00+00:00",
                 "kind": "expected_discharge",
                 "confidence": "definite",
                 "unit_id": 1,
@@ -745,7 +745,7 @@
                 }
             },
             {
-                "t": "2026-07-05T11:20:00+00:00",
+                "t": "2026-07-24T11:20:00+00:00",
                 "kind": "evs_due",
                 "confidence": "probable",
                 "unit_id": 1,
@@ -1348,12 +1348,12 @@
         ]
     },
     "meta": {
-        "as_of": "2026-07-05T03:05:15.400626Z",
+        "as_of": "2026-07-24T03:05:15.000000Z",
         "stale": false,
         "version": null,
         "count": 4
     },
     "links": {
-        "web": "http://localhost/rtdc/patient-flow-navigator?persona=evs&scope=floor%3A3&t=2026-07-05T03%3A05%3A15%2B00%3A00"
+        "web": "http://zephyrus.test/rtdc/patient-flow-navigator?persona=evs&scope=floor%3A3&t=2026-07-24T03%3A05%3A15%2B00%3A00"
     }
 }

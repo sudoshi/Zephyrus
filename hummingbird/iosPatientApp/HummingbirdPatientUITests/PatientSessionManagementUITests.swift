@@ -28,13 +28,16 @@ final class PatientSessionManagementUITests: XCTestCase {
 
         let revokeOther = app.descendants(matching: .any)["revoke-other-session-\(otherSessionUUID)"]
         XCTAssertTrue(scrollUntilHittable(revokeOther))
+        assertMinimumInteractiveTarget(revokeOther)
         revokeOther.tap()
 
         XCTAssertTrue(app.staticTexts["Sign out Home tablet?"].waitForExistence(timeout: 2))
         XCTAssertTrue(
             app.staticTexts["This signs out Home tablet from Hummingbird Patient. It will not sign out this device."].exists
         )
-        app.buttons.matching(identifier: "confirm-other-session-revocation").firstMatch.tap()
+        let confirmOther = app.buttons.matching(identifier: "confirm-other-session-revocation").firstMatch
+        assertMinimumInteractiveTarget(confirmOther)
+        confirmOther.tap()
 
         XCTAssertFalse(app.staticTexts["Home tablet"].waitForExistence(timeout: 1))
         XCTAssertTrue(app.staticTexts["That device is now signed out."].waitForExistence(timeout: 2))
@@ -78,10 +81,10 @@ final class PatientSessionManagementUITests: XCTestCase {
                 .firstMatch.exists
         )
         app.buttons["save-patient-preferences"].tap()
-        XCTAssertTrue(
-            app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "No patient account was changed"))
-                .firstMatch.waitForExistence(timeout: 3)
-        )
+        let savedStatus = app.staticTexts
+            .containing(NSPredicate(format: "label CONTAINS %@", "No patient account was changed"))
+            .firstMatch
+        XCTAssertTrue(scrollUntilHittable(savedStatus, maximumSwipes: 4))
         attachScreenshot(named: "Patient-Preferences-Reference")
     }
 
@@ -107,16 +110,30 @@ final class PatientSessionManagementUITests: XCTestCase {
         }
         expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: highContrast)
         waitForExpectations(timeout: 2)
+
+        let showScenery = app.switches["patient-preference-show-scenery"]
+        XCTAssertTrue(showScenery.waitForExistence(timeout: 2))
+        if (showScenery.value as? String) == "1" {
+            showScenery.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        }
+        expectation(for: NSPredicate(format: "value == '0'"), evaluatedWith: showScenery)
+        waitForExpectations(timeout: 2)
         app.buttons["save-patient-preferences"].tap()
 
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 2))
         app.buttons["Done"].tap()
+        let presentationRoot = app.descendants(matching: .any)["patient-presentation-extra_large-high-contrast"].firstMatch
         XCTAssertTrue(
-            app.descendants(matching: .any)["patient-presentation-preference-notice"]
-                .waitForExistence(timeout: 3)
+            presentationRoot.waitForExistence(timeout: 3)
         )
+        let presentationNotice = app.descendants(matching: .any)["patient-presentation-preference-notice"].firstMatch
+        XCTAssertTrue(presentationNotice.waitForExistence(timeout: 3))
         XCTAssertTrue(
             app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "high contrast"))
+                .firstMatch.waitForExistence(timeout: 2)
+        )
+        XCTAssertTrue(
+            app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "background images off"))
                 .firstMatch.waitForExistence(timeout: 2)
         )
         attachScreenshot(named: "Patient-Preferences-High-Contrast-Extra-Large")
@@ -145,6 +162,15 @@ final class PatientSessionManagementUITests: XCTestCase {
             if element.waitForExistence(timeout: 0.35), element.isHittable { return true }
         }
         return false
+    }
+
+    private func assertMinimumInteractiveTarget(
+        _ element: XCUIElement,
+        minimum: CGFloat = 44
+    ) {
+        XCTAssertTrue(element.waitForExistence(timeout: 2))
+        XCTAssertGreaterThanOrEqual(element.frame.width, minimum)
+        XCTAssertGreaterThanOrEqual(element.frame.height, minimum)
     }
 
     private func attachScreenshot(named name: String) {

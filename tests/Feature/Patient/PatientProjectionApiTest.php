@@ -101,6 +101,8 @@ class PatientProjectionApiTest extends TestCase
                         'summary',
                         'estimated_range',
                         'criteria' => [['item_uuid', 'label', 'status']],
+                        'equipment',
+                        'transport',
                         'medications' => [['item_uuid', 'name']],
                         'follow_up' => [['item_uuid', 'label', 'when']],
                         'contacts' => [['item_uuid', 'label', 'route']],
@@ -111,7 +113,7 @@ class PatientProjectionApiTest extends TestCase
         // Discharge summary is plain-language and PHI-safe: no raw source refs,
         // no exact ETA, no unreleased result.
         $serialized = strtolower($response->getContent());
-        foreach (['unreleased_result', 'exact_time', 'mrn', 'patient_ref', 'staff_note'] as $forbidden) {
+        foreach (['unreleased_result', 'exact_time', '"eta"', 'dispatch_rank', 'mrn', 'patient_ref', 'staff_note'] as $forbidden) {
             $this->assertStringNotContainsString($forbidden, $serialized);
         }
     }

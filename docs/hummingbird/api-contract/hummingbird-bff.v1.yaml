@@ -436,7 +436,12 @@ paths:
             content:
               {
                 application/json:
-                  { schema: { $ref: "#/components/schemas/Envelope" } },
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/EddyApprovalDecisionEnvelope",
+                      },
+                  },
               },
           }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -664,7 +669,9 @@ paths:
         Returns at most 200 open work items ordered by escalation state and response target.
         The response contains restricted patient-communication context and must not be cached
         offline. Capability alone is insufficient: the caller must also have an effective
-        membership in the work item's active responsibility pool.
+        membership in the work item's active responsibility pool. Each returned work item
+        includes only server-computed direct-action affordances for the current caller;
+        clients must not infer claim/reply/close permission from ownership state.
       x-authorization-capability:
         enum_case: ViewPatientCommunications
         gate: viewPatientCommunications
@@ -2384,7 +2391,12 @@ paths:
         diagnostic_detail_exposed: false
         expected_statuses: [401, 403, 413, 415, 422, 429, 500]
       tags: [eddy]
-      summary: SSE token stream. Frames - conversation_id, then token, a terminal persisted (with proposed_action), then [DONE].
+      summary: >-
+        No-store SSE stream. Frames: conversation_id; zero or more token frames;
+        a server-persisted clean complete reply; a sanitized persisted proposal;
+        then [DONE]. The upstream terminal frame is never relayed verbatim. Clients
+        must not infer or execute an action from stream content and must fetch the
+        authorized approval preview before a human decision.
       requestBody:
         {
           required: true,
@@ -2430,7 +2442,12 @@ paths:
             content:
               {
                 application/json:
-                  { schema: { $ref: "#/components/schemas/Envelope" } },
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/EddyConversationListEnvelope",
+                      },
+                  },
               },
           }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -2471,7 +2488,12 @@ paths:
             content:
               {
                 application/json:
-                  { schema: { $ref: "#/components/schemas/Envelope" } },
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/EddyConversationDetailEnvelope",
+                      },
+                  },
               },
           }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -2586,6 +2608,12 @@ paths:
             in: path,
             required: true,
             schema: { type: string, format: uuid },
+          },
+          {
+            name: persona,
+            in: query,
+            schema: { $ref: "#/components/schemas/MobilePersonaId" },
+            description: Current authorized staff persona; the server independently validates it before accepting a decision.,
           },
         ]
       requestBody:
@@ -2801,6 +2829,20 @@ components:
         id: { type: integer, minimum: 1 }
         label: { type: string, minLength: 1 }
       required: [id, label]
+    PatientCommunicationFacility:
+      type: object
+      additionalProperties: false
+      properties:
+        key: { type: string, minLength: 1, maxLength: 120 }
+        label: { type: string, minLength: 1, maxLength: 160 }
+      required: [key, label]
+    PatientCommunicationServiceLine:
+      type: object
+      additionalProperties: false
+      properties:
+        code: { type: string, minLength: 1, maxLength: 120 }
+        label: { type: string, minLength: 1, maxLength: 160 }
+      required: [code, label]
     PatientCommunicationPool:
       type: object
       additionalProperties: false
@@ -2808,6 +2850,18 @@ components:
         pool_uuid: { type: string, format: uuid }
         label: { type: string, minLength: 1, maxLength: 120 }
       required: [pool_uuid, label]
+    PatientCommunicationActions:
+      type: object
+      additionalProperties: false
+      description: >
+        Current caller's advisory direct-action affordances. They are not authorization
+        grants: every mutation rechecks capability, effective membership, canonical scope,
+        ownership, and optimistic versions at commit time.
+      properties:
+        can_claim: { type: boolean }
+        can_reply: { type: boolean }
+        can_close: { type: boolean }
+      required: [can_claim, can_reply, can_close]
     PatientCommunicationRoutingActions:
       type: object
       additionalProperties: false
@@ -3016,6 +3070,14 @@ components:
           oneOf:
             - $ref: "#/components/schemas/PatientCommunicationUnit"
             - { type: "null" }
+        facility:
+          oneOf:
+            - $ref: "#/components/schemas/PatientCommunicationFacility"
+            - { type: "null" }
+        service_line:
+          oneOf:
+            - $ref: "#/components/schemas/PatientCommunicationServiceLine"
+            - { type: "null" }
         pool: { $ref: "#/components/schemas/PatientCommunicationPool" }
         status: { type: string, enum: [open, closed] }
         ownership_state:
@@ -3033,6 +3095,7 @@ components:
               ],
           }
         assigned_to_me: { type: boolean }
+        actions: { $ref: "#/components/schemas/PatientCommunicationActions" }
         work_item_version: { type: integer, minimum: 1 }
         thread_version: { type: integer, minimum: 1 }
         last_message_at: { type: string, format: date-time }
@@ -3056,10 +3119,13 @@ components:
           patient_context_ref,
           topic,
           unit,
+          facility,
+          service_line,
           pool,
           status,
           ownership_state,
           assigned_to_me,
+          actions,
           work_item_version,
           thread_version,
           last_message_at,
@@ -5052,7 +5118,7 @@ components:
         surface:
           {
             type: string,
-            description: "ed|rtdc|periop|transport|evs|staffing|improvement|command_center|chat",
+            description: "hummingbird|ed|rtdc|periop|transport|evs|staffing|improvement|command_center|chat",
             default: chat,
           }
         conversation_id:
@@ -5065,6 +5131,18 @@ components:
           {
             type: string,
             description: The mobile screen Eddy is invoked from (process-awareness hint).,
+          }
+        page_component:
+          {
+            type: string,
+            maxLength: 160,
+            description: A short visible component or summary from the invoking screen.,
+          }
+        page_data:
+          {
+            type: object,
+            additionalProperties: true,
+            description: "Optional screen-context hints. The client must not cache this request or response and the server remains the authorization and disclosure authority.",
           }
       required: [message]
     EddyProposedAction:
@@ -5118,6 +5196,70 @@ components:
                 { type: "null" },
               ],
           }
+    EddyConversationSummary:
+      type: object
+      description: >
+        A server-owned, user-scoped Eddy conversation summary. Native clients may render it
+        only in transient view state and must not persist it offline.
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        surface: { type: string }
+        origin: { type: string, enum: [hummingbird, web] }
+        updated_at:
+          { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
+      required: [id, title, surface, origin]
+    EddyConversationMessage:
+      type: object
+      description: >
+        One read-only message in an authorized server transcript. A proposed action remains a
+        draft and the history route provides no decision operation.
+      properties:
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string }
+        provider: { type: [string, "null"] }
+        created_at:
+          { oneOf: [{ type: string, format: date-time }, { type: "null" }] }
+        proposed_action:
+          {
+            oneOf:
+              [
+                { $ref: "#/components/schemas/EddyProposedAction" },
+                { type: "null" },
+              ],
+          }
+      required: [role, content]
+    EddyConversationDetail:
+      type: object
+      description: >
+        A full user-scoped Eddy transcript. This is read-only conversation history, not the
+        Eddy approval workflow.
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        surface: { type: string }
+        messages:
+          {
+            type: array,
+            items: { $ref: "#/components/schemas/EddyConversationMessage" },
+          }
+      required: [id, title, surface, messages]
+    EddyConversationListEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data:
+              {
+                type: array,
+                items: { $ref: "#/components/schemas/EddyConversationSummary" },
+              }
+    EddyConversationDetailEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/EddyConversationDetail" }
     EddyChatEnvelope:
       allOf:
         - { $ref: "#/components/schemas/Envelope" }
@@ -5187,3 +5329,21 @@ components:
         decision: { type: string, enum: [approved, rejected] }
         reason: { type: string, maxLength: 1000 }
       required: [decision]
+    EddyApprovalDecisionResult:
+      type: object
+      description: >
+        Server-recorded outcome of one explicit human decision. The server may return the
+        exact replay for the same idempotency key and payload; clients must not infer that
+        Eddy made this decision.
+      properties:
+        approval_uuid: { type: string, format: uuid }
+        action_uuid: { type: [string, "null"], format: uuid }
+        decision: { type: string, enum: [approved, rejected] }
+        action_status: { type: [string, "null"] }
+      required: [approval_uuid, decision]
+    EddyApprovalDecisionEnvelope:
+      allOf:
+        - { $ref: "#/components/schemas/Envelope" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/EddyApprovalDecisionResult" }

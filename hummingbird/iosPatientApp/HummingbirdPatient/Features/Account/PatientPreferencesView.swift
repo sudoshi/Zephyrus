@@ -6,6 +6,7 @@ struct PatientPreferencesView: View {
     @State private var textSize: PatientTextSizePreference
     @State private var reducedMotion: Bool
     @State private var highContrast: Bool
+    @State private var showScenery: Bool
     @State private var notificationPreview: PatientNotificationPreviewPreference
     @State private var preferredChannel: PatientPreferredChannel
 
@@ -15,6 +16,7 @@ struct PatientPreferencesView: View {
         _textSize = State(initialValue: preferences.textSize ?? .standard)
         _reducedMotion = State(initialValue: preferences.reducedMotion ?? false)
         _highContrast = State(initialValue: preferences.highContrast ?? false)
+        _showScenery = State(initialValue: preferences.hideScenery != true)
         _notificationPreview = State(initialValue: preferences.notificationPreview ?? .hidden)
         _preferredChannel = State(initialValue: preferences.preferredChannel ?? .push)
     }
@@ -29,7 +31,7 @@ struct PatientPreferencesView: View {
                     Section {
                         Text("Choose how Hummingbird Patient presents non-clinical account information. These choices never change your care plan, clinical orders, or urgent-help instructions.")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
                     }
 
                     Section("Reading and movement") {
@@ -44,10 +46,12 @@ struct PatientPreferencesView: View {
                             .accessibilityIdentifier("patient-preference-reduced-motion")
                         Toggle("Prefer high contrast", isOn: $highContrast)
                             .accessibilityIdentifier("patient-preference-high-contrast")
+                        Toggle("Show Hummingbird background images", isOn: $showScenery)
+                            .accessibilityIdentifier("patient-preference-show-scenery")
 
-                        Text("Hummingbird also respects the accessibility settings on this device.")
+                        Text("You can hide decorative background images at any time. High contrast and Reduce Transparency also hide them. Hummingbird respects the accessibility settings on this device.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
                     }
 
                     Section("Notifications") {
@@ -65,18 +69,18 @@ struct PatientPreferencesView: View {
 
                         Text("This records a preference; it does not guarantee delivery, replace bedside communication, or change emergency guidance.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
                     }
 
                     if let message = viewModel.preferencesMessage {
                         Section {
                             VStack(alignment: .leading, spacing: 8) {
                                 Label(message, systemImage: "checkmark.shield.fill")
-                                    .foregroundStyle(.secondary)
+                                    .patientSecondaryText()
                                 if textSize == .extraLarge && highContrast {
                                     Text("Extra Large text and high contrast are applied in Hummingbird Patient. Your device accessibility settings remain in effect.")
                                         .font(.footnote)
-                                        .foregroundStyle(.secondary)
+                                        .patientSecondaryText()
                                         .accessibilityIdentifier("patient-preferences-applied-accessibility")
                                 }
                             }
@@ -100,6 +104,7 @@ struct PatientPreferencesView: View {
                                     textSize: textSize,
                                     reducedMotion: reducedMotion,
                                     highContrast: highContrast,
+                                    hideScenery: !showScenery,
                                     notificationPreview: notificationPreview,
                                     preferredChannel: preferredChannel
                                 )

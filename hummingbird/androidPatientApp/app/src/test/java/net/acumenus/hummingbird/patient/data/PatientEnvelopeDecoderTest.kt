@@ -58,6 +58,7 @@ class PatientEnvelopeDecoderTest {
                   "text_size": "large",
                   "reduced_motion": true,
                   "high_contrast": true,
+                  "hide_scenery": true,
                   "notification_preview": "generic",
                   "preferred_channel": "push"
                 }
@@ -74,6 +75,7 @@ class PatientEnvelopeDecoderTest {
         assertEquals("large", envelope.data.preferences.textSize)
         assertEquals(true, envelope.data.preferences.reducedMotion)
         assertEquals(true, envelope.data.preferences.highContrast)
+        assertEquals(true, envelope.data.preferences.hideScenery)
         assertEquals("generic", envelope.data.preferences.notificationPreview)
         assertEquals("push", envelope.data.preferences.preferredChannel)
     }
@@ -85,6 +87,7 @@ class PatientEnvelopeDecoderTest {
             textSize = "extra_large",
             reducedMotion = true,
             highContrast = false,
+            hideScenery = true,
             preferredChannel = "none",
         ).json()
 
@@ -93,11 +96,13 @@ class PatientEnvelopeDecoderTest {
             "text_size",
             "reduced_motion",
             "high_contrast",
+            "hide_scenery",
             "preferred_channel",
         ), json.keys().asSequence().toSet())
         assertEquals("extra_large", json.getString("text_size"))
         assertTrue(json.getBoolean("reduced_motion"))
         assertFalse(json.getBoolean("high_contrast"))
+        assertTrue(json.getBoolean("hide_scenery"))
     }
 
     @Test
@@ -141,6 +146,7 @@ class PatientEnvelopeDecoderTest {
                     "item_uuid": "019f4d7a-3200-7000-8000-000000000011",
                     "label": "Care team rounds",
                     "detail": "Review your plan.",
+                    "category": "other",
                     "status": "planned",
                     "time_window": "This morning",
                     "timing_confidence": "estimated",
@@ -148,6 +154,19 @@ class PatientEnvelopeDecoderTest {
                     "can_change": true
                   }],
                   "next_steps": ["Ask questions during rounds."],
+                  "care_location": {
+                    "facility_display_name": "Reference Hospital",
+                    "unit_display_name": "Reference inpatient unit",
+                    "room_display_name": "Reference room",
+                    "status": "current"
+                  },
+                  "discharge_outlook": {
+                    "estimated_range": "In the next day or two",
+                    "confidence": "estimated",
+                    "remaining_steps": ["Ask what still needs to happen before you leave."],
+                    "can_change": true
+                  },
+                  "questions": ["Tell your care team what you would like explained today."],
                   "notices": ["Timing can change."]
                 }
                 """.trimIndent(),
@@ -156,7 +175,14 @@ class PatientEnvelopeDecoderTest {
 
         assertEquals("today", envelope.data.kind)
         assertEquals("Care team rounds", envelope.data.content.schedule.single().label)
+        assertEquals("other", envelope.data.content.schedule.single().category)
         assertNull(envelope.data.content.schedule.single().preparation)
+        assertEquals("Reference inpatient unit", envelope.data.content.careLocation?.unitDisplayName)
+        assertEquals("In the next day or two", envelope.data.content.dischargeOutlook?.estimatedRange)
+        assertEquals(
+            listOf("Tell your care team what you would like explained today."),
+            envelope.data.content.questions,
+        )
         assertEquals("medium", envelope.data.uncertainty.level)
         assertEquals("clinically_reviewed", envelope.data.provenance.reviewState)
         assertEquals("correction", envelope.data.revisionNotice?.kind)
@@ -166,7 +192,7 @@ class PatientEnvelopeDecoderTest {
         )
         assertEquals("current", envelope.meta.sourceFreshness?.status)
         assertEquals("patient-disclosure-v1", envelope.meta.policyVersion)
-        assertEquals("patient-state-vocabulary.v1-draft", envelope.meta.stateVocabularyVersion)
+        assertEquals("patient-state-vocabulary.v2-draft", envelope.meta.stateVocabularyVersion)
         assertEquals("request-test", envelope.meta.requestId)
         assertEquals("/api/patient/v1/encounters/test/today", envelope.links["self"])
     }
@@ -305,7 +331,9 @@ class PatientEnvelopeDecoderTest {
                     "status": "pending",
                     "detail": "Your team will review this with you each day."
                   }],
-                  "unresolved_needs": ["A ride home arranged for the day you leave."],
+                  "unresolved_needs": ["Your team is reviewing the remaining preparations with you."],
+                  "equipment": ["Your care team is checking whether you need equipment for safe movement at home."],
+                  "transport": ["Transportation home is being planned. Your team will confirm the plan before you leave."],
                   "medications": [{
                     "item_uuid": "019f4d7a-3200-7000-8000-000000000025",
                     "name": "Your updated medicine list",
@@ -331,6 +359,14 @@ class PatientEnvelopeDecoderTest {
 
         assertEquals("estimated", envelope.data.content.estimatedConfidence)
         assertEquals("pending", envelope.data.content.criteria.single().status)
+        assertEquals(
+            listOf("Your care team is checking whether you need equipment for safe movement at home."),
+            envelope.data.content.equipment,
+        )
+        assertEquals(
+            listOf("Transportation home is being planned. Your team will confirm the plan before you leave."),
+            envelope.data.content.transport,
+        )
         assertEquals("Your updated medicine list", envelope.data.content.medications.single().name)
         assertEquals("Within a week or two of leaving", envelope.data.content.followUp.single().whenLabel)
         assertEquals("speak_with_bedside_staff", envelope.data.content.contacts.single().route)
@@ -436,6 +472,7 @@ class PatientEnvelopeDecoderTest {
                   "body": "We will discuss your goals during rounds.",
                   "relates_to_message_uuid": null,
                   "delivery_state": "delivered",
+                  "state_updated_at": "2026-07-19T12:06:00Z",
                   "sent_at": "2026-07-19T12:05:00Z",
                   "responsibility_pool_ref_digest": "must-be-ignored"
                 }, {
@@ -455,6 +492,7 @@ class PatientEnvelopeDecoderTest {
         assertEquals("awaiting_team", thread.ownershipState)
         assertEquals(2, thread.messages.size)
         assertEquals("Care team", thread.messages.first().senderDisplayRole)
+        assertEquals("2026-07-19T12:06:00Z", thread.messages.first().stateUpdatedAt)
         assertNull(thread.messages.last().body)
         assertEquals("retraction", thread.messages.last().messageKind)
     }
@@ -586,7 +624,7 @@ class PatientEnvelopeDecoderTest {
           "meta": {
             "source_freshness": {"status": "current", "observed_at": "2026-07-19T11:59:00Z"},
             "policy_version": "patient-disclosure-v1",
-            "state_vocabulary_version": "patient-state-vocabulary.v1-draft",
+            "state_vocabulary_version": "patient-state-vocabulary.v2-draft",
             "version": 3,
             "as_of": "2026-07-19T12:00:00Z",
             "stale": false,

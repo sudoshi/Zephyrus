@@ -52,6 +52,34 @@ class PatientAppViewModelTest {
     }
 
     @Test
+    fun malformedEnrollmentIsRejectedBeforeAnyNetworkRequest() = runTest {
+        val api = FakePatientApiGateway()
+        val viewModel = PatientAppViewModel(
+            apiEnabled = true,
+            coordinator = coordinator(api),
+            scope = this,
+            workDispatcher = StandardTestDispatcher(testScheduler),
+        )
+
+        viewModel.submitEnrollment(
+            PatientEnrollmentForm(
+                challengeUuid = "not-an-invitation-id",
+                challengeToken = "invalid-token",
+                verificationCode = "438201",
+                displayName = "Sample Patient",
+                email = "sample@example.test",
+                password = "patient-password",
+                passwordConfirmation = "patient-password",
+            ),
+        )
+
+        val status = (viewModel.state.session as PatientSessionState.SignedOut).status
+        assertTrue(status is PatientAuthStatus.ValidationError)
+        assertTrue((status as PatientAuthStatus.ValidationError).message.contains("invitation ID"))
+        assertEquals(0, api.enrollmentCalls)
+    }
+
+    @Test
     fun navigationIsIgnoredWhileSignedOut() {
         val signedOut = PatientAppViewModel(apiEnabled = false)
         signedOut.selectDestination(PatientDestination.CARE_TEAM)
@@ -111,6 +139,62 @@ class PatientAppViewModelTest {
     }
 
     @Test
+    fun foregroundRevalidationPurgesCareWhenTheActiveEncounterIsNoLongerAvailable() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val api = FakePatientApiGateway(noActiveEncounterAfterFirstLoad = true)
+        val store = MemoryPatientCredentialStore()
+        val viewModel = PatientAppViewModel(
+            apiEnabled = true,
+            coordinator = coordinator(api, store),
+            scope = this,
+            workDispatcher = dispatcher,
+        )
+
+        viewModel.submitSignIn("patient@example.test", "test-password")
+        advanceUntilIdle()
+        assertTrue(viewModel.state.session is PatientSessionState.Ready)
+
+        var completed = false
+        viewModel.revalidateCurrentCareAccessAfterForeground { completed = true }
+        assertTrue(viewModel.state.session is PatientSessionState.Loading)
+        advanceUntilIdle()
+
+        val empty = viewModel.state.session as PatientSessionState.Empty
+        assertTrue(empty.message.contains("No active hospital stay"))
+        assertTrue(viewModel.state.messaging is PatientMessagingState.Hidden)
+        assertEquals(2, api.profileCalls)
+        assertEquals(2, api.encounterCalls)
+        assertTrue(completed)
+        assertTrue(store.current != null)
+    }
+
+    @Test
+    fun foregroundRevalidationFailsClosedWhenCareAccessCannotBeVerified() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val api = FakePatientApiGateway(profileTransportAfterFirstLoad = true)
+        val store = MemoryPatientCredentialStore()
+        val viewModel = PatientAppViewModel(
+            apiEnabled = true,
+            coordinator = coordinator(api, store),
+            scope = this,
+            workDispatcher = dispatcher,
+        )
+
+        viewModel.submitSignIn("patient@example.test", "test-password")
+        advanceUntilIdle()
+        assertTrue(viewModel.state.session is PatientSessionState.Ready)
+
+        viewModel.revalidateCurrentCareAccessAfterForeground()
+        advanceUntilIdle()
+
+        val unavailable = viewModel.state.session as PatientSessionState.AccessVerificationUnavailable
+        assertTrue(unavailable.message.contains("No care information is shown"))
+        assertTrue(viewModel.state.messaging is PatientMessagingState.Hidden)
+        assertEquals(2, api.profileCalls)
+        assertTrue(store.current != null)
+    }
+
+    @Test
     fun messagingLoadsServerGuidanceAndSendsANewThreadWithoutAnOfflineQueue() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val api = FakePatientApiGateway(
@@ -145,6 +229,80 @@ class PatientAppViewModelTest {
         assertEquals(1, api.createThreadCalls)
         assertEquals("test-guidance-v1", api.createThreadRequests.single().urgentGuidanceVersion)
         assertEquals("Please explain today's plan.", api.createThreadRequests.single().message)
+    }
+
+    @Test
+    fun educationClarificationOpensMessagesAfterItIsSecurelyCreated() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val api = FakePatientApiGateway(
+            encounters = listOf(
+                patientEncounter().copy(
+                    scopes = patientEncounter().scopes + listOf("messaging:read", "messaging:write"),
+                ),
+            ),
+        )
+        val viewModel = PatientAppViewModel(
+            apiEnabled = true,
+            coordinator = coordinator(api),
+            scope = this,
+            workDispatcher = dispatcher,
+        )
+
+        viewModel.submitSignIn("patient@example.test", "test-password")
+        advanceUntilIdle()
+        viewModel.selectDestination(PatientDestination.PATH)
+        val educationItemUuid = (viewModel.state.session as PatientSessionState.Ready)
+            .snapshot.pathwayEducation.single().id
+
+        viewModel.requestEducationClarification(
+            educationItemUuid,
+            "Could you explain this in simpler words?",
+        )
+        advanceUntilIdle()
+
+        val messaging = viewModel.state.messaging as PatientMessagingState.Ready
+        assertEquals(PatientDestination.MESSAGES, viewModel.state.destination)
+        assertEquals(1, api.educationClarificationCalls)
+        assertEquals(
+            "Could you explain this in simpler words?",
+            api.educationClarificationRequests.single().message,
+        )
+        assertTrue(messaging.operation is PatientMessagingOperation.Notice)
+        assertTrue(messaging.threads.isNotEmpty())
+    }
+
+    @Test
+    fun educationClarificationDoesNotOverridePatientNavigationWhileSending() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val api = FakePatientApiGateway(
+            encounters = listOf(
+                patientEncounter().copy(
+                    scopes = patientEncounter().scopes + listOf("messaging:read", "messaging:write"),
+                ),
+            ),
+        )
+        val viewModel = PatientAppViewModel(
+            apiEnabled = true,
+            coordinator = coordinator(api),
+            scope = this,
+            workDispatcher = dispatcher,
+        )
+
+        viewModel.submitSignIn("patient@example.test", "test-password")
+        advanceUntilIdle()
+        viewModel.selectDestination(PatientDestination.PATH)
+        val educationItemUuid = (viewModel.state.session as PatientSessionState.Ready)
+            .snapshot.pathwayEducation.single().id
+
+        viewModel.requestEducationClarification(
+            educationItemUuid,
+            "Could you explain this in simpler words?",
+        )
+        viewModel.selectDestination(PatientDestination.CARE_TEAM)
+        advanceUntilIdle()
+
+        assertEquals(PatientDestination.CARE_TEAM, viewModel.state.destination)
+        assertEquals(1, api.educationClarificationCalls)
     }
 
     @Test

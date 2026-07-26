@@ -11,51 +11,49 @@
             "web": "/rtdc/bed-placement"
         },
         "patient": {
-            "patient_context_ref": "ptok_demo_flow_42",
-            "display": "Patient context",
+            "patient_context_ref": "ptok_b7bcb2722b70379b981b528d",
+            "display": "Authorized operational patient context",
             "detail_authorized": true,
             "phi_minimized": true
         },
         "header": {
-            "current_location": "ED Bay 12",
-            "target_location": "MICU",
-            "service": "Cardiology",
+            "current_location": "ED",
+            "target_location": "4 West",
+            "service": "Medicine",
             "isolation_required": false,
-            "responsible_team": "Flow",
-            "as_of": "2026-07-02T14:03:00Z"
+            "responsible_team": "Capacity",
+            "as_of": "2026-07-24T12:00:00.000000Z"
         },
         "status_spine": [
             {
                 "domain": "rtdc",
-                "label": "Bed placement",
-                "status": "critical",
-                "at": "2026-07-02T13:52:00Z"
+                "label": "Bed request",
+                "status": "pending",
+                "at": "2026-07-24T12:00:00.000000Z"
             },
             {
                 "domain": "transport",
                 "label": "Transport",
-                "status": "warning",
-                "at": "2026-07-02T14:02:00Z"
+                "status": "requested",
+                "at": "2026-07-24T11:55:00.000000Z"
             }
         ],
         "timeline": [
             {
-                "event_type": "bed_request.created",
-                "domain": "rtdc",
-                "actor_role": "charge_nurse",
-                "status_before": null,
-                "status_after": "pending",
-                "occurred_at": "2026-07-02T13:52:00Z",
-                "affected_dependency": "bed_request"
-            },
-            {
                 "event_type": "transport.progressed",
                 "domain": "transport",
                 "actor_role": "transport",
-                "status_before": "assigned",
-                "status_after": "in_progress",
-                "occurred_at": "2026-07-02T14:02:00Z",
-                "affected_dependency": "transport_request"
+                "status_after": "requested",
+                "occurred_at": "2026-07-24T11:55:00.000000Z",
+                "patient_context_ref": "ptok_b7bcb2722b70379b981b528d"
+            },
+            {
+                "event_type": "bed_request.created",
+                "domain": "rtdc",
+                "actor_role": "bed_manager",
+                "status_after": "pending",
+                "occurred_at": "2026-07-24T12:00:00.000000Z",
+                "patient_context_ref": "ptok_b7bcb2722b70379b981b528d"
             }
         ],
         "dependencies": [
@@ -63,88 +61,117 @@
                 "dependency_type": "bed_request",
                 "owner_role": "bed_manager",
                 "status": "pending",
-                "label": "MICU placement",
-                "entity_ref": "42"
+                "label": "Pending bed placement",
+                "entity_ref": "2"
             },
             {
-                "dependency_type": "transport_request",
+                "dependency_type": "transport",
                 "owner_role": "transport",
-                "status": "in_progress",
-                "label": "ED to 6 East",
-                "entity_ref": "17"
+                "status": "requested",
+                "label": "ED to 4 West",
+                "entity_ref": "2"
             }
         ],
-        "recommendations": [
-            {
-                "recommendation_uuid": "33333333-3333-4333-8333-333333333333",
-                "source": "eddy",
-                "title": "Review MICU placement runner-up",
-                "status": "draft",
-                "risk_level": "high",
-                "rationale": "The requested unit has one safe admit slot remaining.",
-                "runner_up": "Step-down with intensivist review"
-            }
-        ],
+        "recommendations": [],
         "actions": [
             {
+                "kind": "acknowledge",
+                "label": "Acknowledge",
+                "requires_online": true
+            },
+            {
                 "kind": "place",
-                "label": "Review placement",
-                "endpoint": "/api/mobile/v1/rtdc/bed-requests/42/decision",
-                "method": "POST",
+                "label": "Place bed",
                 "requires_online": true
             }
         ],
         "relay": {
-            "will_notify_roles": ["bed_manager"],
-            "activity_roles": ["house_supervisor", "charge_nurse"]
+            "will_notify_roles": [
+                "bed_manager",
+                "transport"
+            ],
+            "activity_roles": [
+                "capacity_lead",
+                "house_supervisor",
+                "pi_lead"
+            ]
         },
         "activity": [
             {
-                "event_uuid": "22222222-2222-4222-8222-222222222222",
-                "event_type": "transport.progressed",
-                "occurred_at": "2026-07-02T14:02:00Z",
-                "actor_user_id": 11,
-                "actor_role": "transport",
+                "event_uuid": "019f0000-0000-7000-8000-000000000001",
+                "event_type": "bed_request.created",
+                "occurred_at": "2026-07-24T12:00:00.000000Z",
+                "actor_user_id": 9,
+                "actor_role": "bed_manager",
                 "source_surface": "hummingbird",
-                "domain": "transport",
+                "domain": "rtdc",
                 "scope": {
-                    "transport_request_id": 17
+                    "bed_request_id": 2
                 },
-                "patient_context_ref": "ptok_transport_17",
+                "patient_context_ref": "ptok_b7bcb2722b70379b981b528d",
                 "status": {
-                    "previous": "assigned",
-                    "current": "in_progress",
-                    "severity": "warning",
-                    "label": "At risk"
+                    "current": "pending",
+                    "previous": "none",
+                    "severity": "warning"
                 },
                 "recommendation": null,
                 "relay": {
-                    "will_notify_roles": ["charge_nurse"],
-                    "activity_roles": ["bed_manager"]
+                    "push_tier": "activity",
+                    "notify_now": [],
+                    "activity_only": [
+                        "house_supervisor",
+                        "executive",
+                        "pi_lead"
+                    ],
+                    "affected_roles": [
+                        "bed_manager",
+                        "charge_nurse",
+                        "evs",
+                        "transport",
+                        "capacity_lead",
+                        "house_supervisor",
+                        "executive",
+                        "pi_lead"
+                    ]
                 },
                 "phi_policy": {
                     "list_safe": true,
                     "push_safe": true,
                     "requires_detail_auth": true
-                }
+                },
+                "entities": [
+                    {
+                        "entity_type": "bed_request",
+                        "entity_ref": "2",
+                        "patient_context_ref": "ptok_b7bcb2722b70379b981b528d",
+                        "encounter_ref": null
+                    },
+                    {
+                        "entity_type": "patient",
+                        "entity_ref": "ptok_b7bcb2722b70379b981b528d",
+                        "patient_context_ref": "ptok_b7bcb2722b70379b981b528d",
+                        "encounter_ref": null
+                    }
+                ]
             }
         ],
         "web": {
-            "href": "http://localhost/rtdc/bed-placement",
+            "href": "http://zephyrus.test/rtdc/bed-tracking",
+            "label": "Open in Zephyrus",
             "altitude": "A3"
         },
         "phi_policy": {
-            "list_safe": true,
+            "list_safe": false,
             "push_safe": false,
             "requires_detail_auth": true
         }
     },
     "meta": {
-        "as_of": "2026-07-02T14:03:00Z",
+        "as_of": "2026-07-24T12:00:00.000000Z",
         "stale": false,
-        "version": 1
+        "version": null
     },
     "links": {
-        "web": "http://localhost/rtdc/bed-placement"
+        "web": "http://zephyrus.test/rtdc/bed-tracking"
     }
 }

@@ -661,6 +661,113 @@ data class EddyContext(
 )
 
 /**
+ * One persisted turn returned by the staff-only Eddy mobile BFF. This state is
+ * intentionally in-memory only: Eddy prompts and replies must not enter the
+ * general mobile offline cache.
+ */
+data class EddyChatReply(
+    val conversationId: String?,
+    val message: EddyReplyMessage,
+)
+
+data class EddyReplyMessage(
+    val role: String,
+    val content: String,
+    val provider: String?,
+)
+
+enum class EddyChatRole { USER, ASSISTANT }
+
+data class EddyChatTurn(
+    val role: EddyChatRole,
+    val text: String,
+    val provider: String? = null,
+    val pending: Boolean = false,
+)
+
+/**
+ * The only client-visible states of a streamed Eddy response. A raw model
+ * proposal is intentionally not represented here: the server persists and
+ * sanitizes proposals, and the separate approval inbox owns human decisions.
+ */
+sealed interface EddyStreamEvent {
+    data class ConversationStarted(val conversationId: String) : EddyStreamEvent
+    data class Token(val text: String) : EddyStreamEvent
+    data class Complete(val cleanReply: String, val provider: String?) : EddyStreamEvent
+    data class Error(val message: String) : EddyStreamEvent
+    data object Done : EddyStreamEvent
+}
+
+/** Server-sanitized terminal response after a complete Eddy SSE exchange. */
+data class EddyStreamReply(
+    val conversationId: String?,
+    val cleanReply: String,
+    val provider: String?,
+)
+
+/** Server-persisted staff conversation metadata; Hummingbird intentionally keeps no local copy. */
+data class EddyConversationSummary(
+    val id: String,
+    val title: String,
+    val surface: String,
+    val origin: String,
+    val updatedAt: String?,
+)
+
+data class EddyConversationMessage(
+    val role: EddyChatRole,
+    val content: String,
+    val provider: String?,
+    val createdAt: String?,
+    val hasProposedAction: Boolean,
+)
+
+data class EddyConversationDetail(
+    val id: String,
+    val title: String,
+    val surface: String,
+    val messages: List<EddyConversationMessage>,
+)
+
+/**
+ * Server-derived, PHI-minimized pending action. A native client may show the
+ * approval only transiently; the server remains responsible for whether the
+ * active user and persona can actually decide it.
+ */
+data class EddyApprovalSummary(
+    val approvalUuid: String,
+    val actionUuid: String?,
+    val actionType: String,
+    val title: String,
+    val surface: String,
+    val tier: String,
+    val risk: String?,
+    val requestedAt: String?,
+)
+
+/** Fetch-on-open, dry-run detail for one pending Eddy proposal. */
+data class EddyApprovalPreview(
+    val summary: EddyApprovalSummary,
+    val rationale: String?,
+    val runnerUp: String?,
+    val preview: String?,
+    val params: List<EddyApprovalParameter>,
+)
+
+/** A bounded, display-safe operational parameter rendered from the server preview. */
+data class EddyApprovalParameter(
+    val name: String,
+    val value: String,
+)
+
+/** Server confirmation of the human's decision, retained only in current view state. */
+data class EddyApprovalDecisionResult(
+    val approvalUuid: String,
+    val decision: String,
+    val actionStatus: String?,
+)
+
+/**
  * Carries an HTTP status so the UI can react to 401 (re-auth). `errorCode` mirrors the
  * envelope's `error.code` (e.g. "invalid_since" on a 422 delta rejection).
  */

@@ -1,0 +1,77 @@
+{
+    "data": {
+        "projection_uuid": "444ac094-9478-5fd9-ac20-faa2245a2c8e",
+        "encounter_uuid": "d941e97f-9db3-5a3b-af7d-2cc68096d159",
+        "kind": "pathway_events",
+        "content": {
+            "events": [
+                {
+                    "when": "Two days ago",
+                    "title": "Admitted to the hospital",
+                    "detail": "Your care team reviewed your history and started your plan.",
+                    "status": "completed",
+                    "category": "other",
+                    "event_uuid": "fe84d124-9c3d-5a8a-8e40-3db0500c4775"
+                },
+                {
+                    "when": "Two days ago",
+                    "title": "Initial tests completed",
+                    "status": "completed",
+                    "category": "test",
+                    "event_uuid": "cef9ffad-acd6-56c0-a43e-8ddc3b9dbe5a"
+                },
+                {
+                    "when": "Today",
+                    "title": "Preparing for a bedside procedure",
+                    "detail": "Your team will explain what to expect and how to prepare before it happens.",
+                    "status": "current",
+                    "category": "procedure",
+                    "event_uuid": "f5b65a1d-6117-59ea-bb1b-ba52aa6ed41d"
+                },
+                {
+                    "when": "When you are ready",
+                    "title": "Planning transportation after you leave",
+                    "detail": "Your team will confirm whether you need a ride or other transportation support.",
+                    "status": "planned",
+                    "category": "transport",
+                    "event_uuid": "938b53de-1c6e-5ee8-8e31-6fe1eb8f652d"
+                }
+            ],
+            "notices": [
+                "This timeline is a summary and may not include every detail."
+            ],
+            "summary": "A simple timeline of key moments in your hospital stay. Timing is approximate.",
+            "headline": "What has happened so far"
+        },
+        "uncertainty": {
+            "level": "low",
+            "can_change": true,
+            "explanation": "Plans can change as your care needs change.",
+            "reviewed_at": "2026-01-15T12:12:00.000000Z"
+        },
+        "provenance": {
+            "review_state": "automated_test_only",
+            "source_class": "synthetic_clinical_record",
+            "input_classes": ["synthetic_schedule", "synthetic_care_plan"],
+            "producer_version": "fixture-v1",
+            "projection_method": "deterministic_fixture"
+        },
+        "observed_at": "2026-01-15T12:12:00.000000Z",
+        "generated_at": "2026-01-15T12:12:00.000000Z",
+        "released_at": "2026-01-15T12:12:00.000000Z"
+    },
+    "meta": {
+        "request_id": "447e53a3-4ee1-55be-947d-ab4b176b6136",
+        "generated_at": "2026-07-25T14:00:00.000000Z",
+        "source_freshness": {
+            "status": "current",
+            "observed_at": "2026-01-15T12:12:00.000000Z"
+        },
+        "policy_version": "patient-disclosure-v1-test",
+        "state_vocabulary_version": "patient-state-vocabulary.v2-draft",
+        "as_of": "2026-01-15T12:12:00.000000Z",
+        "stale": false,
+        "version": 1
+    },
+    "links": {}
+}

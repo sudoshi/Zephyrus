@@ -18,6 +18,8 @@ nurse working a unit, to the CMO glancing at house status between meetings. It i
 > the separately secured inpatient-facing product. The older implementation and reference
 > documents remain design history and supporting evidence.
 >
+> **ASAP execution overlay:** [controlled-pilot and full-program completion plan](../plans/hummingbird-asap-pilot-completion-2026-07-24.md) — the current critical path, release sequencing, and daily-evidence rules; its paired [devlog](../devlog/DEVLOG-hummingbird-asap-pilot-completion-2026-07-24.md) is the control board.
+>
 > ## Direction overlay: [**ALTITUDE-PERSONA-OPERATING-PLAN.md**](ALTITUDE-PERSONA-OPERATING-PLAN.md)
 >
 > The Zephyrus 2.0 alignment plan for Hummingbird: persona-specific Altitude descent,

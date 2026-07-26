@@ -15,6 +15,16 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["synthetic-reference-banner"].exists)
         XCTAssertTrue(app.descendants(matching: .any)["patient-freshness"].exists)
         XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["urgent-help-notice"]))
+        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["today-current-care-stage"]))
+        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["today-care-team-summary"]))
+        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["today-care-goals"]))
+        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["today-rounds-summary"]))
+        XCTAssertTrue(scrollUntilExists(app.staticTexts["After your care-team conversation"]))
+        XCTAssertTrue(scrollUntilExists(app.staticTexts["Next steps from your conversation"]))
+        XCTAssertTrue(scrollUntilExists(app.staticTexts["A test update"]))
+        XCTAssertTrue(scrollUntilExists(app.staticTexts["Result not available yet"]))
+        XCTAssertTrue(scrollUntilExists(app.staticTexts["Schedule update"]))
+        XCTAssertTrue(scrollUntilExists(app.staticTexts["Timing is being updated"]))
         attachScreenshot(named: "Today")
 
         app.tabBars.buttons["My Path"].tap()
@@ -27,6 +37,12 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["patient-preference-guidance"]))
         XCTAssertTrue(scrollUntilExists(app.staticTexts["Share what matters to you"]))
         XCTAssertTrue(scrollUntilExists(staticText(containing: "does not automatically change your care plan")))
+        let openMessages = app.buttons["Open Messages"]
+        XCTAssertTrue(scrollUntilHittable(openMessages))
+        openMessages.tap()
+        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["messages-read-only-state"]))
+        app.tabBars.buttons["My Path"].tap()
+        XCTAssertTrue(app.staticTexts["My Path"].waitForExistence(timeout: 2))
         XCTAssertTrue(scrollUntilExists(app.staticTexts["Learning and preparation"]))
         XCTAssertTrue(scrollUntilExists(staticText(containing: "Preparing for the next setting")))
         XCTAssertTrue(scrollUntilExists(app.staticTexts["Want to talk it through?"]))
@@ -41,6 +57,10 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         XCTAssertTrue(scrollUntilExists(staticText(containing: "Planning transportation after you leave")))
         XCTAssertTrue(scrollUntilExists(app.staticTexts["Getting ready to leave"]))
         XCTAssertTrue(scrollUntilExists(app.staticTexts["What needs to happen"]))
+        XCTAssertTrue(scrollUntilExists(app.staticTexts["Equipment and supplies for home"]))
+        XCTAssertTrue(scrollUntilExists(staticText(containing: "checking whether you need equipment")))
+        XCTAssertTrue(scrollUntilExists(app.staticTexts["Getting home"]))
+        XCTAssertTrue(scrollUntilExists(staticText(containing: "Transportation home is being planned")))
         XCTAssertTrue(scrollUntilExists(staticText(containing: "Your updated medicine list")))
         XCTAssertTrue(scrollUntilExists(staticText(containing: "Your team confirms the details")))
         XCTAssertTrue(scrollUntilExists(app.staticTexts["Your care-team conversation"]))
@@ -68,7 +88,10 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         XCTAssertTrue(scrollUntilHittable(threadTopic))
         threadTopic.tap()
         XCTAssertTrue(app.descendants(matching: .any)["message-immediate-help"].waitForExistence(timeout: 3))
-        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["message-thread-header"]))
+        let threadHeader = app.descendants(matching: .any)["message-thread-header"]
+        XCTAssertTrue(scrollUntilExists(threadHeader))
+        XCTAssertTrue(threadHeader.label.contains("Typical response"))
+        XCTAssertTrue(threadHeader.label.contains("usually responds"))
         XCTAssertTrue(scrollUntilExists(app.staticTexts["Your mobility team will check how you are feeling and review safe support before you begin. Timing can still change."]))
         XCTAssertFalse(app.descendants(matching: .any)["message-reply-composer"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["correct-message-019f0000-0000-7000-8000-000000000062"].exists)
@@ -95,6 +118,29 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         attachScreenshot(named: "Rounds-Question-Read-Only")
     }
 
+    func testPrimaryCareLandmarksRemainDiscoverableAcrossEveryPatientTab() {
+        XCTAssertTrue(app.tabBars.buttons["Today"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["patient-heading-today"].exists)
+        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["patient-heading-todays-plan"]))
+
+        app.tabBars.buttons["My Path"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["patient-heading-my-path"].waitForExistence(timeout: 2))
+        XCTAssertTrue(
+            scrollUntilExists(
+                app.descendants(matching: .any)["patient-heading-learning-and-preparation"]
+            )
+        )
+
+        app.tabBars.buttons["Care Team"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["patient-heading-care-team"].waitForExistence(timeout: 2))
+        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["patient-heading-your-team"]))
+
+        app.tabBars.buttons["Messages"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["patient-heading-messages"].waitForExistence(timeout: 2))
+        XCTAssertTrue(scrollUntilExists(app.descendants(matching: .any)["patient-heading-your-conversations"]))
+        attachScreenshot(named: "Primary-Care-Heading-Landmarks")
+    }
+
     func testDefaultBuildFailsClosedWithAReadableWelcomeAndNoPatientRequest() {
         app.terminate()
         app = XCUIApplication()
@@ -108,6 +154,87 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         attachScreenshot(named: "Welcome-API-Off")
     }
 
+    func testNoActiveEncounterHidesAllCareTabsAndKeepsUrgentHelpVisible() {
+        app.terminate()
+        app = XCUIApplication()
+        app.launchEnvironment["HBP_SYNTHETIC_REFERENCE"] = "0"
+        app.launchEnvironment["HBP_NO_ACTIVE_ENCOUNTER_PREVIEW"] = "1"
+        app.launch()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["patient-no-active-encounter"]
+                .waitForExistence(timeout: 5)
+        )
+        XCTAssertTrue(app.staticTexts["No active hospital stay"].exists)
+        XCTAssertTrue(app.staticTexts["Your care view is not available"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["urgent-help-notice"].exists)
+        XCTAssertTrue(app.buttons["Check again"].exists)
+        XCTAssertTrue(app.buttons["Exit securely"].exists)
+        assertMinimumInteractiveTarget(app.buttons["patient-care-access-retry"])
+        assertMinimumInteractiveTarget(app.buttons["patient-care-access-exit"])
+        XCTAssertFalse(app.tabBars.buttons["Today"].exists)
+        attachScreenshot(named: "No-Active-Encounter")
+    }
+
+    func testForegroundAccessVerificationFailureHidesAllCareTabsAndKeepsUrgentHelpVisible() {
+        app.terminate()
+        app = XCUIApplication()
+        app.launchEnvironment["HBP_SYNTHETIC_REFERENCE"] = "0"
+        app.launchEnvironment["HBP_ACCESS_VERIFICATION_UNAVAILABLE_PREVIEW"] = "1"
+        app.launch()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["patient-care-access-unavailable"]
+                .waitForExistence(timeout: 5)
+        )
+        XCTAssertTrue(app.staticTexts["We can’t confirm your care access"].exists)
+        XCTAssertTrue(app.staticTexts["Your care view is not available"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["urgent-help-notice"].exists)
+        XCTAssertTrue(app.buttons["Try again"].exists)
+        XCTAssertTrue(app.buttons["Exit securely"].exists)
+        XCTAssertFalse(app.tabBars.buttons["Today"].exists)
+        attachScreenshot(named: "Foreground-Access-Verification-Unavailable")
+    }
+
+    func testEnrollmentRequiresACompleteInvitationBeforeItCanSubmit() {
+        app.terminate()
+        app = XCUIApplication()
+        app.launchEnvironment["HBP_SYNTHETIC_REFERENCE"] = "0"
+        app.launchEnvironment["HBP_PATIENT_API_ENABLED"] = "1"
+        app.launchEnvironment["HBP_PATIENT_API_BASE_URL"] = "https://127.0.0.1:1"
+        app.launch()
+
+        let invitationMode = app.buttons["Join with invite"]
+        XCTAssertTrue(invitationMode.waitForExistence(timeout: 5))
+        invitationMode.tap()
+
+        let submit = app.buttons["Verify and join"]
+        XCTAssertTrue(submit.waitForExistence(timeout: 3))
+        XCTAssertFalse(submit.isEnabled)
+
+        app.textFields["Invitation ID"].tap()
+        app.textFields["Invitation ID"].typeText("019f0000-0000-7000-8000-000000000051")
+        app.secureTextFields["Invitation token"].tap()
+        app.secureTextFields["Invitation token"].typeText("0123456789abcdef0123456789abcdef")
+        app.textFields["Verification code"].tap()
+        app.textFields["Verification code"].typeText("438201")
+        app.textFields["Your name"].tap()
+        app.textFields["Your name"].typeText("Sample Patient")
+        app.textFields["Email"].tap()
+        app.textFields["Email"].typeText("sample@example.test")
+        let createPassword = app.secureTextFields["Create password"]
+        createPassword.tap()
+        dismissStrongPasswordSuggestionIfPresent()
+        createPassword.typeText("patient-password")
+        let confirmPassword = app.secureTextFields["Confirm password"]
+        confirmPassword.tap()
+        dismissStrongPasswordSuggestionIfPresent()
+        confirmPassword.typeText("patient-password")
+
+        XCTAssertTrue(submit.isEnabled)
+        attachScreenshot(named: "Enrollment-Validated-Without-Submission")
+    }
+
     func testPrivacyCoverHidesCareContentWithCalmBranding() {
         app.terminate()
         app = XCUIApplication()
@@ -117,8 +244,25 @@ final class PatientReferenceJourneyUITests: XCTestCase {
 
         let cover = app.descendants(matching: .any)["patient-privacy-cover"]
         XCTAssertTrue(cover.waitForExistence(timeout: 5))
+        XCTAssertTrue(cover.label.contains("Privacy cover"))
+        XCTAssertFalse(app.tabBars.buttons["Today"].exists)
         XCTAssertFalse(app.tabBars.buttons["Today"].isHittable)
         attachScreenshot(named: "Privacy-Cover")
+    }
+
+    func testScreenCapturePrivacyCoverHidesCareContentBeforeItCanBeShared() {
+        app.terminate()
+        app = XCUIApplication()
+        app.launchEnvironment["HBP_SYNTHETIC_REFERENCE"] = "1"
+        app.launchEnvironment["HBP_SHOW_SCREEN_CAPTURE_PRIVACY_COVER"] = "1"
+        app.launch()
+
+        let cover = app.descendants(matching: .any)["patient-privacy-cover"]
+        XCTAssertTrue(cover.waitForExistence(timeout: 5))
+        XCTAssertTrue(cover.label.contains("screen recording or sharing"))
+        XCTAssertFalse(app.tabBars.buttons["Today"].exists)
+        XCTAssertFalse(app.tabBars.buttons["Today"].isHittable)
+        attachScreenshot(named: "Screen-Capture-Privacy-Cover")
     }
 
     func testAuthenticationFailureUsesAReadablePatientSafeErrorState() {
@@ -172,6 +316,15 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         return false
     }
 
+    private func assertMinimumInteractiveTarget(
+        _ element: XCUIElement,
+        minimum: CGFloat = 44
+    ) {
+        XCTAssertTrue(element.waitForExistence(timeout: 2))
+        XCTAssertGreaterThanOrEqual(element.frame.width, minimum)
+        XCTAssertGreaterThanOrEqual(element.frame.height, minimum)
+    }
+
     private func scrollUntilHittable(
         _ element: XCUIElement,
         maximumSwipes: Int = 12
@@ -188,5 +341,12 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         app.staticTexts
             .matching(NSPredicate(format: "label CONTAINS %@", text))
             .firstMatch
+    }
+
+    private func dismissStrongPasswordSuggestionIfPresent() {
+        let close = app.buttons["Close"]
+        if close.waitForExistence(timeout: 1) {
+            close.tap()
+        }
     }
 }

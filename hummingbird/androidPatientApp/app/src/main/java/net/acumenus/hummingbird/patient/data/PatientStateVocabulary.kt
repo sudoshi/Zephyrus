@@ -8,6 +8,7 @@ package net.acumenus.hummingbird.patient.data
  */
 internal enum class PatientStateDomain {
     SCHEDULE,
+    SCHEDULE_CATEGORY,
     PATHWAY,
     MILESTONE,
     PATHWAY_EVENT,
@@ -19,17 +20,28 @@ internal enum class PatientStateDomain {
 }
 
 internal object PatientStateVocabulary {
-    const val VERSION = "patient-state-vocabulary.v1-draft"
+    const val VERSION = "patient-state-vocabulary.v2-draft"
 
     private val labelsByDomain: Map<PatientStateDomain, Map<String, String>> = mapOf(
         PatientStateDomain.SCHEDULE to mapOf(
             "requested" to "Requested",
             "planned" to "Planned",
+            "scheduled" to "Scheduled",
             "confirmed" to "Confirmed",
+            "waiting" to "Waiting",
+            "transport_requested" to "Transportation requested",
             "in_progress" to "Happening now",
             "completed" to "Completed",
+            "result_pending" to "Result not available yet",
+            "result_released" to "Result available",
             "delayed" to "Delayed",
             "canceled" to "No longer planned",
+        ),
+        PatientStateDomain.SCHEDULE_CATEGORY to mapOf(
+            "test" to "Test",
+            "procedure" to "Procedure",
+            "transport" to "Transportation",
+            "other" to "Care update",
         ),
         PatientStateDomain.PATHWAY to mapOf(
             "planned" to "Planned",

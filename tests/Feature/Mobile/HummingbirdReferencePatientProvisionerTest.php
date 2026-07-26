@@ -15,12 +15,20 @@ class HummingbirdReferencePatientProvisionerTest extends TestCase
     public function test_command_is_dry_run_by_default_and_commit_is_idempotent(): void
     {
         $unit = $this->unit('Reference Unit');
+        $preview = app(HummingbirdReferencePatientProvisioner::class)->preview((int) $unit->unit_id);
+
+        $this->assertFalse($preview['committed']);
+        $this->assertFalse($preview['patient_context_ref_issued']);
+        $this->assertMatchesRegularExpression('/^ptok_[a-f0-9]{24}$/D', (string) $preview['patient_context_ref']);
 
         $this->artisan('hummingbird:seed-reference-patient', [
             '--unit-id' => $unit->unit_id,
         ])->assertSuccessful();
 
         $this->assertDatabaseMissing('prod.encounters', [
+            'patient_ref' => HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
+        ]);
+        $this->assertDatabaseMissing('ops.patient_operational_context_cache', [
             'patient_ref' => HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
         ]);
 
@@ -81,6 +89,34 @@ class HummingbirdReferencePatientProvisionerTest extends TestCase
         $this->assertDatabaseHas('prod.encounters', [
             'patient_ref' => 'demo-foreign-owned-reference',
             'created_by' => 'external-source',
+        ]);
+    }
+
+    public function test_production_runtime_refuses_a_synthetic_reference_commit_but_keeps_preview_read_only(): void
+    {
+        $unit = $this->unit('Production Guard Unit');
+        $originalEnvironment = $this->app['env'];
+        $this->app['env'] = 'production';
+
+        try {
+            $preview = app(HummingbirdReferencePatientProvisioner::class)->preview((int) $unit->unit_id);
+            $this->assertFalse($preview['committed']);
+            $this->assertFalse($preview['patient_context_ref_issued']);
+
+            $this->artisan('hummingbird:seed-reference-patient', [
+                '--unit-id' => $unit->unit_id,
+                '--commit' => true,
+            ])->expectsOutputToContain('reference_patient_provisioning_forbidden_in_production')
+                ->assertFailed();
+        } finally {
+            $this->app['env'] = $originalEnvironment;
+        }
+
+        $this->assertDatabaseMissing('prod.encounters', [
+            'patient_ref' => HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
+        ]);
+        $this->assertDatabaseMissing('ops.patient_operational_context_cache', [
+            'patient_ref' => HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
         ]);
     }
 

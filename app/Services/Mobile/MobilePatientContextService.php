@@ -33,6 +33,19 @@ class MobilePatientContextService
         return $this->references->issue($patientRef);
     }
 
+    /**
+     * Return the deterministic opaque handle a later issuance would use without
+     * persisting a resolver row. This is restricted to dry-run/status output.
+     */
+    public function previewContextRefFor(?string $patientRef): ?string
+    {
+        if (! $patientRef) {
+            return null;
+        }
+
+        return $this->references->preview($patientRef);
+    }
+
     /** @return array<string, mixed> */
     public function build(string $contextRef, ?User $user = null, ?string $roleId = null): array
     {
@@ -102,7 +115,14 @@ class MobilePatientContextService
                     ?? $this->periopLocation($patientRef),
                 'target_location' => $this->targetLocation($bedRequests, $transport),
                 'service' => $bedRequests->first()?->service ?? $transport->first()?->clinical_service,
-                'isolation_required' => $bedRequests->first()?->isolation_required ?? (bool) $evs->first()?->isolation_required,
+                // The mobile BFF contract intentionally exposes this as a Boolean.
+                // Source systems represent "not required" inconsistently (`none`,
+                // false, 0, or null); never leak that source vocabulary to strict
+                // native decoders.
+                'isolation_required' => $this->isolationRequired(
+                    $bedRequests->first()?->isolation_required,
+                    (bool) $evs->first()?->isolation_required,
+                ),
                 'responsible_team' => $this->responsibleTeam($roleId),
                 'as_of' => now()->toISOString(),
             ],
@@ -324,6 +344,23 @@ class MobilePatientContextService
 
         return $activeTransport?->destination
             ?? $pendingBedRequest?->required_unit_type;
+    }
+
+    private function isolationRequired(mixed $bedIsolationRequired, bool $evsIsolationRequired): bool
+    {
+        if (is_bool($bedIsolationRequired)) {
+            return $bedIsolationRequired || $evsIsolationRequired;
+        }
+
+        if ($bedIsolationRequired === null) {
+            return $evsIsolationRequired;
+        }
+
+        return ! in_array(
+            strtolower(trim((string) $bedIsolationRequired)),
+            ['', '0', 'false', 'no', 'none'],
+            true,
+        ) || $evsIsolationRequired;
     }
 
     private function responsibleTeam(string $roleId): string

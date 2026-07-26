@@ -10,7 +10,13 @@ struct PatientRootView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if let snapshot = viewModel.snapshot {
+                if let noActiveEncounter = viewModel.noActiveEncounter {
+                    PatientNoActiveEncounterView(
+                        state: noActiveEncounter,
+                        onRetry: { Task { await viewModel.retry() } },
+                        onExit: { Task { await viewModel.signOut() } }
+                    )
+                } else if let snapshot = viewModel.snapshot {
                     PatientTabShellView(viewModel: viewModel, snapshot: snapshot) {
                         Task { await viewModel.signOut() }
                     }
@@ -27,5 +33,76 @@ struct PatientRootView: View {
             }
         }
         .accessibilityIdentifier(presentationPreferences.accessibilityIdentifier)
+    }
+}
+
+private struct PatientNoActiveEncounterView: View {
+    let state: PatientNoActiveEncounterState
+    let onRetry: () -> Void
+    let onExit: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                PatientScreenHeader(
+                    eyebrow: "Care access",
+                    title: "Hello, \(firstName)",
+                    subtitle: state.title,
+                    headingIdentifier: "patient-heading-care-access"
+                )
+                PatientCard {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("Your care view is not available", systemImage: "lock.shield")
+                            .font(.headline)
+                            .foregroundStyle(PatientPalette.blue)
+                        Text(state.message)
+                            .font(.body)
+                        if state.availability == .noActiveEncounter {
+                            Text("No care information is shown while your account has no active hospital stay.")
+                                .font(.subheadline)
+                                .patientSecondaryText()
+                        }
+                    }
+                }
+                PatientUrgentHelpNotice()
+                Button(action: onRetry) {
+                    Text(state.actionLabel)
+                        .frame(maxWidth: .infinity)
+                        .patientMinimumInteractiveTarget()
+                }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityHint("Checks whether current care access is available. No patient message is sent.")
+                    .accessibilityIdentifier("patient-care-access-retry")
+                Button(action: onExit) {
+                    Text("Exit securely")
+                        .frame(maxWidth: .infinity)
+                        .patientMinimumInteractiveTarget()
+                }
+                    .buttonStyle(.bordered)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityHint("Clears this device's patient session.")
+                    .accessibilityIdentifier("patient-care-access-exit")
+            }
+            .padding(22)
+        }
+        .background {
+            PatientPhotoBackground(scene: .empty)
+                .ignoresSafeArea()
+        }
+        .navigationTitle("Patient access")
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier(
+            state.availability == .noActiveEncounter
+                ? "patient-no-active-encounter"
+                : "patient-care-access-unavailable"
+        )
+    }
+
+    private var firstName: String {
+        state.displayName
+            .split(separator: " ")
+            .first
+            .map(String.init) ?? "there"
     }
 }

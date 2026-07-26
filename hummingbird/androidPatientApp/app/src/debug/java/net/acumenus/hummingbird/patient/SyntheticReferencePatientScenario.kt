@@ -20,6 +20,11 @@ internal object SyntheticReferencePatientScenario {
             patientDisplayName = "Sample inpatient",
             message = "No active hospital stay is available in Hummingbird Patient.",
         )
+        PatientLaunchPreview.ACCESS_VERIFICATION_UNAVAILABLE ->
+            PatientSessionState.AccessVerificationUnavailable(
+                patientDisplayName = "Sample inpatient",
+                message = "We cannot confirm your current care access right now. No care information is shown until access is confirmed. Check your connection and try again.",
+            )
         PatientLaunchPreview.UNAVAILABLE -> PatientSessionState.SignedOut(
             status = PatientAuthStatus.Unavailable(
                 "Patient access is temporarily unavailable. Ask your care team for current information.",
@@ -38,6 +43,7 @@ internal object SyntheticReferencePatientScenario {
         asOfLabel = "Updated today at 8:42 AM",
         sourceLabel = "Source: inpatient care plan and care-team directory",
         uncertaintyNotice = "Some times and next steps are estimates. Your care team may update them as your needs change.",
+        todayCareLocationLabel = "Example Hospital · 5 East · Room 512",
         todayItems = listOf(
             PatientTodayItem(
                 title = "Morning medicines",
@@ -60,6 +66,27 @@ internal object SyntheticReferencePatientScenario {
                 explanation = "The timing depends on staff availability and how you are feeling.",
                 provenance = "Source: current inpatient care plan • updated 8:40 AM",
             ),
+            PatientTodayItem(
+                title = "A test update",
+                timing = "Later today",
+                status = "Result not available yet",
+                explanation = "Your care team will explain what happens next.",
+                provenance = "Synthetic test-plan placeholder • no result content",
+            ),
+            PatientTodayItem(
+                title = "Schedule update",
+                timing = "Timing is being updated",
+                status = "Delayed",
+                explanation = "The timing for this step has changed. Your care team will explain what happens next.",
+                provenance = "Synthetic schedule update • no operational reason or ETA",
+            ),
+            PatientTodayItem(
+                title = "Planning for leaving the hospital",
+                timing = "In the next day or two",
+                status = "Estimated",
+                explanation = "Your team will review what still needs to happen before you leave.",
+                provenance = "Source: released discharge-planning outlook • updated 8:42 AM",
+            ),
         ),
         pathway = listOf(
             PatientPathStep(
@@ -81,6 +108,7 @@ internal object SyntheticReferencePatientScenario {
                 provenance = "Source: discharge-planning pathway • timing not yet confirmed",
             ),
         ),
+        pathwayCurrentStage = "Stabilize symptoms and review tests",
         pathwayMilestones = listOf(
             PatientMilestone(
                 id = "01982e0c-709a-7ef0-9000-000000000011",
@@ -176,7 +204,9 @@ internal object SyntheticReferencePatientScenario {
                     detail = "Your care team will review this with you each day.",
                 ),
             ),
-            unresolvedNeeds = listOf("A ride home arranged for the day you leave."),
+            unresolvedNeeds = listOf("Your team is reviewing the remaining preparations with you."),
+            equipment = listOf("Your care team is checking whether you need equipment for safe movement at home."),
+            transport = listOf("Transportation home is being planned. Your team will confirm the plan before you leave."),
             medications = listOf(
                 PatientDischargeReadinessMedication(
                     id = "01982e0c-709a-7ef0-9000-000000000017",
@@ -226,6 +256,7 @@ internal object SyntheticReferencePatientScenario {
             notices = listOf("This summary can change after your team reassesses you. It does not replace a conversation with your care team."),
             provenance = "Source: released care-conversation summary • updated 8:42 AM",
         ),
+        careTeamSummary = "The released teams below are coordinating today’s care and next steps.",
         careTeam = listOf(
             PatientCareTeamMember(
                 name = "Dr. Morgan",
@@ -333,7 +364,7 @@ internal object SyntheticReferencePatientScenario {
                     description = "A non-urgent question routed to the responsible team.",
                 ),
                 status = "open",
-                ownershipState = "team_acknowledged",
+                ownershipState = "acknowledged",
                 expectedResponseWindow = "A team member usually responds during this shift.",
                 version = 2,
                 lastMessageAt = "2026-07-19T09:05:00-04:00",
@@ -369,7 +400,7 @@ internal object SyntheticReferencePatientScenario {
                     description = "A non-urgent question for possible care-team review.",
                 ),
                 status = "open",
-                ownershipState = "team_acknowledged",
+                ownershipState = "acknowledged",
                 expectedResponseWindow = "A team member usually responds during this shift.",
                 version = 3,
                 lastMessageAt = "2026-07-19T09:18:00-04:00",
@@ -385,6 +416,7 @@ internal object SyntheticReferencePatientScenario {
                         relatesToMessageUuid = null,
                         deliveryState = "acknowledged",
                         sentAt = "2026-07-19T09:08:00-04:00",
+                        stateUpdatedAt = "2026-07-19T09:10:00-04:00",
                     ),
                     PatientThreadMessage(
                         messageUuid = "01982e0c-709a-7ef0-9000-000000000007",

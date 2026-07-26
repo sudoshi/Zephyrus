@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.view.WindowManager
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -14,6 +16,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.lifecycle.Lifecycle
@@ -26,6 +31,24 @@ import org.junit.Test
 class PatientPrimaryJourneyInstrumentedTest {
     @get:Rule
     val composeRule = createEmptyComposeRule()
+
+    private val hasHeadingSemantics = SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)
+
+    private fun assertMinimumInteractiveTarget(testTag: String) {
+        composeRule.onNodeWithTag(testTag)
+            .assertWidthIsAtLeast(48.dp)
+            .assertHeightIsAtLeast(48.dp)
+    }
+
+    /**
+     * A patient surface can recompose after a prior scroll. Synchronize before
+     * traversing the lazy content semantics so the test never reads a tree
+     * while Android is laying it out on the UI thread.
+     */
+    private fun patientContent() = composeRule.run {
+        waitForIdle()
+        onNodeWithTag("patient-content")
+    }
 
     @Test
     fun syntheticPreferencesAreVisiblePatientSafeAndNeverClaimToChangeCare() {
@@ -41,14 +64,17 @@ class PatientPrimaryJourneyInstrumentedTest {
                 .assertIsDisplayed()
             composeRule.onNodeWithTag("patient-preference-text-size-extra_large").performClick()
             composeRule.onNodeWithTag("patient-preference-high-contrast").performClick()
+            composeRule.onNodeWithTag("patient-preference-show-scenery").performClick()
             composeRule.onNodeWithTag("patient-preferences")
                 .performScrollToNode(hasText("Save preferences"))
+            assertMinimumInteractiveTarget("save-patient-preferences")
             composeRule.onNodeWithTag("save-patient-preferences").performClick()
             composeRule.onNodeWithContentDescription("Back to Hummingbird").performClick()
-            composeRule.onNodeWithTag("patient-presentation-high-contrast").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            composeRule.onNodeWithTag("patient-presentation-extra_large-high-contrast").assertIsDisplayed()
+            patientContent()
                 .performScrollToNode(hasText("Your reading preferences"))
             composeRule.onNodeWithTag("patient-presentation-preference-notice").assertIsDisplayed()
+            composeRule.onNodeWithText("background images off", substring = true).assertIsDisplayed()
         }
     }
 
@@ -60,99 +86,165 @@ class PatientPrimaryJourneyInstrumentedTest {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         ActivityScenario.launch<MainActivity>(intent).use { scenario ->
-            composeRule.onNodeWithText("Hummingbird Patient").assertIsDisplayed()
+            composeRule.onNodeWithText("Hummingbird Patient")
+                .assertIsDisplayed()
+                .assert(hasHeadingSemantics)
             composeRule.onNodeWithText("Synthetic reference scenario — not a real patient record")
                 .performScrollTo()
                 .assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Morning medicines"))
             composeRule.onNodeWithText("Morning medicines").assertIsDisplayed()
+            patientContent()
+                .performScrollToNode(hasText("Where you are in your care"))
+            composeRule.onNodeWithText("Where you are in your care").assertIsDisplayed()
+            patientContent()
+                .performScrollToNode(hasText("Your care team today"))
+            composeRule.onNodeWithText("Your care team today").assertIsDisplayed()
+            patientContent()
+                .performScrollToNode(hasText("Goals for your care"))
+            composeRule.onNodeWithText("Goals for your care").assertIsDisplayed()
+            patientContent()
+                .performScrollToNode(hasText("After your care-team conversation"))
+            composeRule.onNodeWithTag("today-rounds-summary").assertIsDisplayed()
+            composeRule.onNodeWithText("After your care-team conversation").assertIsDisplayed()
+            patientContent()
+                .performScrollToNode(hasText("Topics from your care-team conversation"))
+            composeRule.onNodeWithText("Topics from your care-team conversation").assertIsDisplayed()
+            patientContent()
+                .performScrollToNode(hasText("Next steps from your conversation"))
+            composeRule.onNodeWithText("Next steps from your conversation").assertIsDisplayed()
+            patientContent()
+                .performScrollToNode(hasText("A test update"))
+            composeRule.onNodeWithText("A test update").assertIsDisplayed()
+            composeRule.onNodeWithText("Result not available yet").assertIsDisplayed()
+            patientContent()
+                .performScrollToNode(hasText("Schedule update"))
+            composeRule.onNodeWithText("Schedule update").assertIsDisplayed()
+            composeRule.onNodeWithText("Timing is being updated").assertIsDisplayed()
+            patientContent()
+                .performScrollToNode(hasText("Your care location"))
+            composeRule.onNodeWithText("Your care location").assertIsDisplayed()
+            patientContent()
+                .performScrollToNode(hasText("Planning for leaving the hospital"))
+            composeRule.onNodeWithText("Planning for leaving the hospital").assertIsDisplayed()
 
             composeRule.onNodeWithText("My Path").performClick()
             composeRule.onNodeWithText("Information updated").assertIsDisplayed()
             composeRule.onNodeWithText(
                 "Your care team updated this information. Please use the details shown here.",
             ).assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("A guide, not a guarantee"))
             composeRule.onNodeWithText("A guide, not a guarantee").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Milestones your team released"))
             composeRule.onNodeWithText("Milestones your team released").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Goals for your care"))
             composeRule.onNodeWithText("Goals for your care").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Your goal"))
             composeRule.onNodeWithText("Your goal").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Share what matters to you"))
             composeRule.onNodeWithText("Share what matters to you").assertIsDisplayed()
             composeRule.onNodeWithText(
                 "Sending a message does not automatically change your care plan or create a clinical order.",
                 substring = true,
             ).assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            composeRule.onNodeWithTag("open-messages-from-preferences")
+                .performScrollTo()
+            assertMinimumInteractiveTarget("open-messages-from-preferences")
+            composeRule.onNodeWithTag("open-messages-from-preferences")
+                .performClick()
+            patientContent()
+                .performScrollToNode(hasText("Messages are for non-urgent questions and are not live emergency chat."))
+            composeRule.onNodeWithText(
+                "Messages are for non-urgent questions and are not live emergency chat.",
+            ).assertIsDisplayed()
+            composeRule.onNodeWithText("My Path").performClick()
+            composeRule.onNodeWithText("Information updated").assertIsDisplayed()
+            patientContent()
                 .performScrollToNode(hasText("Learning and preparation"))
-            composeRule.onNodeWithText("Learning and preparation").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            composeRule.onNodeWithText("Learning and preparation")
+                .assertIsDisplayed()
+                .assert(hasHeadingSemantics)
+            patientContent()
                 .performScrollToNode(hasText("Preparing for the next setting"))
             composeRule.onNodeWithText("Preparing for the next setting").assertIsDisplayed()
+            patientContent()
+                .performScrollToNode(
+                    hasText(
+                        "A request for an explanation does not record consent, completion, or that you understand the information.",
+                        substring = true,
+                    ),
+                )
             composeRule.onNodeWithText(
                 "A request for an explanation does not record consent, completion, or that you understand the information.",
                 substring = true,
-            ).performScrollTo().assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            ).assertIsDisplayed()
+            patientContent()
                 .performScrollToNode(hasText("What has happened so far"))
             composeRule.onNodeWithText("What has happened so far").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Key moments your team released"))
             composeRule.onNodeWithText("Key moments your team released").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Admitted to the hospital"))
             composeRule.onNodeWithText("Admitted to the hospital").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Initial tests completed"))
             composeRule.onNodeWithText("Initial tests completed").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Preparing for a bedside procedure"))
             composeRule.onNodeWithText("Preparing for a bedside procedure").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Planning transportation after you leave"))
             composeRule.onNodeWithText("Planning transportation after you leave").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Getting ready to leave"))
             composeRule.onNodeWithText("Getting ready to leave").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("What needs to happen"))
             composeRule.onNodeWithText("What needs to happen").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
+                .performScrollToNode(hasText("Equipment and supplies for home"))
+            composeRule.onNodeWithText("Equipment and supplies for home").assertIsDisplayed()
+            patientContent()
+                .performScrollToNode(hasText("Transportation home is being planned", substring = true))
+            composeRule.onNodeWithText("Transportation home is being planned", substring = true).assertIsDisplayed()
+            patientContent()
                 .performScrollToNode(hasText("Your care-team conversation"))
             composeRule.onNodeWithText("Your care-team conversation").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Topics your team released"))
             composeRule.onNodeWithText("Topics your team released").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("A released summary, not the full conversation"))
             composeRule.onNodeWithText("A released summary, not the full conversation").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Medicines to review"))
             composeRule.onNodeWithText("Medicines to review").assertIsDisplayed()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("Your team confirms the details"))
             composeRule.onNodeWithText("Your team confirms the details").assertIsDisplayed()
 
             composeRule.onNodeWithText("Care Team").performClick()
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("How to reach your team"))
             composeRule.onNodeWithText("How to reach your team").assertIsDisplayed()
 
             composeRule.onNodeWithText("Messages").performClick()
-            composeRule.onNodeWithTag("patient-content")
+            composeRule.onNodeWithText("Hummingbird Patient").assert(hasHeadingSemantics)
+            patientContent()
                 .performScrollToNode(hasText("Message your care team"))
             composeRule.onNodeWithText("Message your care team").assertIsDisplayed()
             composeRule.onNodeWithText("Messages go to the responsible care-team pool", substring = true)
                 .assertIsDisplayed()
+            patientContent()
+                .performScrollToNode(hasText("Your conversations"))
+            composeRule.onNodeWithText("Your conversations").assert(hasHeadingSemantics)
 
             scenario.onActivity { activity ->
                 assertTrue(
@@ -171,7 +263,7 @@ class PatientPrimaryJourneyInstrumentedTest {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         ActivityScenario.launch<MainActivity>(intent).use {
-            composeRule.onNodeWithTag("patient-content")
+            patientContent()
                 .performScrollToNode(hasText("For immediate or urgent help"))
             composeRule.onNodeWithText("For immediate or urgent help").assertIsDisplayed()
             composeRule.onNodeWithText("Messages are not monitored for emergencies", substring = true)
@@ -193,9 +285,21 @@ class PatientPrimaryJourneyInstrumentedTest {
                 .assertIsDisplayed()
             composeRule.onNodeWithTag("message-topic-patient_goal")
                 .assert(hasText("does not change your care plan", substring = true))
+            composeRule.onNodeWithTag("message-topic-rounds_question")
+                .performScrollTo()
+                .performClick()
+            composeRule.onNodeWithTag("rounds-question-safety-notice")
+                .performScrollTo()
+                .assertIsDisplayed()
+            composeRule.onNodeWithText("For a nonurgent question before a care-team conversation")
+                .assertIsDisplayed()
+            composeRule.onNodeWithText("may not be discussed in a particular round", substring = true)
+                .assertIsDisplayed()
             composeRule.onNodeWithTag("message-topic-care_question")
                 .performScrollTo()
                 .performClick()
+            composeRule.onNodeWithTag("message-topic-care_question")
+                .assert(hasText("Typical response:", substring = true))
             composeRule.onNodeWithTag("new-message-input")
                 .performScrollTo()
                 .performTextInput("Please explain today's plan.")
@@ -208,6 +312,9 @@ class PatientPrimaryJourneyInstrumentedTest {
                 .performScrollTo()
                 .performClick()
             composeRule.onNodeWithText("Could someone explain what the team plans", substring = true)
+                .performScrollTo()
+                .assertIsDisplayed()
+            composeRule.onNodeWithText("Seen by your care team")
                 .performScrollTo()
                 .assertIsDisplayed()
             composeRule.onNodeWithText("Your team plans to review your symptoms", substring = true)
@@ -230,6 +337,9 @@ class PatientPrimaryJourneyInstrumentedTest {
                 .performScrollTo()
                 .performClick()
             composeRule.onNodeWithText("shared with your care team for possible review", substring = true)
+                .performScrollTo()
+                .assertIsDisplayed()
+            composeRule.onNodeWithText("Seen by your care team Jul 19, 9:10 AM")
                 .performScrollTo()
                 .assertIsDisplayed()
             composeRule.onNodeWithText("may not be discussed in a particular round", substring = true)
@@ -271,6 +381,7 @@ class PatientPrimaryJourneyInstrumentedTest {
         val expectedStates = mapOf(
             "loading" to "Checking your secure patient session",
             "empty" to "No active hospital stay is available",
+            "access-verification-unavailable" to "We can’t confirm your care access",
             "unavailable" to "Patient access is temporarily unavailable",
             "recoverable-error" to "Hummingbird Patient could not connect securely",
         )
@@ -304,7 +415,10 @@ class PatientPrimaryJourneyInstrumentedTest {
                 assertEquals(false, activity.isPrivacyCoverActive)
             }
 
-            scenario.moveToState(Lifecycle.State.STARTED)
+            // CREATED models a fully backgrounded task. It still invokes
+            // onPause (the security boundary under test) without relying on
+            // the emulator-sensitive RESUMED -> STARTED-only transition.
+            scenario.moveToState(Lifecycle.State.CREATED)
             scenario.onActivity { activity ->
                 assertEquals(true, activity.isPrivacyCoverActive)
             }

@@ -156,12 +156,23 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
                 'schedule' => [[
                     'item_uuid' => (string) Str::uuid(),
                     'label' => 'Care team rounds',
-                    'status' => 'planned',
+                    'category' => 'other',
+                    'status' => 'result_pending',
                     'time_window' => 'This morning',
                     'timing_confidence' => 'estimated',
                     'can_change' => true,
                 ]],
                 'next_steps' => ['Speak with bedside staff if you have questions.'],
+                'care_location' => [
+                    'unit_display_name' => 'Reference inpatient unit',
+                    'status' => 'current',
+                ],
+                'discharge_outlook' => [
+                    'estimated_range' => 'In the next day or two',
+                    'confidence' => 'estimated',
+                    'remaining_steps' => ['Ask what still needs to happen before you leave.'],
+                    'can_change' => true,
+                ],
             ],
             'pathway' => [
                 'headline' => 'My Path',
@@ -204,6 +215,8 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
                     'label' => 'Comfortable with your pain plan',
                     'status' => 'met',
                 ]],
+                'equipment' => ['Your care team is checking whether you need equipment for safe movement at home.'],
+                'transport' => ['Your team will confirm your plan for getting home before you leave.'],
                 'warning_signs' => ['Call your team if symptoms get worse at home.'],
             ],
             'rounds_summary' => [
@@ -239,6 +252,7 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
 
         $invalid = [
             ['today', ['headline' => 'Today', 'summary' => 'Released plan.', 'schedule' => [['label' => 'Rounds', 'risk_score' => 0.91]]]],
+            ['today', ['headline' => 'Today', 'summary' => 'Released plan.', 'schedule' => [['item_uuid' => (string) Str::uuid(), 'label' => 'Rounds', 'category' => 'internal_dispatch', 'status' => 'planned', 'time_window' => 'This morning', 'can_change' => true]]]],
             ['today', ['headline' => 'Today', 'summary' => 'Released plan.', 'discharge_outlook' => ['internal_priority' => 1]]],
             ['pathway', ['headline' => 'My Path', 'summary' => 'Released path.', 'stages' => [['title' => 'Monitoring', 'staff_note' => 'private']]]],
             ['pathway', ['headline' => 'My Path', 'summary' => 'Released path.', 'milestones' => ['a plain string milestone is no longer allowed']]],
@@ -249,6 +263,7 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
             ['pathway_events', ['headline' => 'Timeline', 'summary' => 'Released.', 'events' => [['event_uuid' => (string) Str::uuid(), 'title' => 'Bad category', 'when' => 'Today', 'category' => 'private', 'status' => 'planned']]]],
             ['discharge_readiness', ['headline' => 'Discharge', 'summary' => 'Released.', 'criteria' => [['item_uuid' => (string) Str::uuid(), 'label' => 'Bad', 'status' => 'bogus']]]],
             ['discharge_readiness', ['headline' => 'Discharge', 'summary' => 'Released.', 'medications' => [['item_uuid' => (string) Str::uuid(), 'name' => 'Med', 'unreleased_result' => 'leak']]]],
+            ['discharge_readiness', ['headline' => 'Discharge', 'summary' => 'Released.', 'transport' => ['Your transport ETA is 3:15 PM.']]],
             ['rounds_summary', ['headline' => 'Rounds', 'summary' => 'Released.', 'topics' => ['A plain string topic is not allowed']]],
             ['rounds_summary', ['headline' => 'Rounds', 'summary' => 'Released.', 'topics' => [['topic_uuid' => (string) Str::uuid(), 'title' => 'Bad status', 'summary' => 'Not safe.', 'status' => 'private']]]],
             ['rounds_summary', ['headline' => 'Rounds', 'summary' => 'Released.', 'topics' => [['topic_uuid' => (string) Str::uuid(), 'title' => 'Leaks a note', 'summary' => 'Not safe.', 'status' => 'current', 'staff_note' => 'private']]]],

@@ -578,6 +578,7 @@ class PatientCommunicationsViewModel internal constructor(
     fun claim(bearer: String) {
         if (pendingMutation != null) return
         val item = detail ?: return
+        if (item.actions?.canClaim != true) return
         submit(
             bearer,
             PendingPatientCommunicationMutation.Claim(
@@ -592,6 +593,7 @@ class PatientCommunicationsViewModel internal constructor(
     fun reply(bearer: String) {
         if (pendingMutation != null) return
         val item = detail ?: return
+        if (item.actions?.canReply != true) return
         val body = replyDraft.trim()
         if (body.isBlank() || body.length > MAX_MESSAGE_LENGTH) return
         submit(
@@ -610,6 +612,7 @@ class PatientCommunicationsViewModel internal constructor(
     fun close(bearer: String, reason: PatientCommunicationCloseReason) {
         if (pendingMutation != null) return
         val item = detail ?: return
+        if (item.actions?.canClose != true) return
         submit(
             bearer,
             PendingPatientCommunicationMutation.Close(

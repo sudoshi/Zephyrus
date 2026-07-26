@@ -6,6 +6,7 @@ final class PatientRoundsQuestionTopicTests: XCTestCase {
         let topic = PatientMessagingOverview.syntheticReference.topics.first { $0.code == "rounds_question" }
 
         XCTAssertEqual(topic?.label, "Question for care-team rounds")
+        XCTAssertTrue(topic?.description.localizedCaseInsensitiveContains("nonurgent") == true)
         XCTAssertTrue(topic?.description.contains("does not promise") == true)
 
         let thread = PatientMessageThreadDetail.syntheticReferenceThreads

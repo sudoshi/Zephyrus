@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -46,6 +47,8 @@ import net.acumenus.hummingbird.patient.PatientAuthMode
 import net.acumenus.hummingbird.patient.PatientAuthStatus
 import net.acumenus.hummingbird.patient.PatientEnrollmentForm
 import net.acumenus.hummingbird.patient.PatientSessionState
+import net.acumenus.hummingbird.patient.clientValidationMessage
+import net.acumenus.hummingbird.patient.isLikelyPatientEmail
 
 @Composable
 internal fun PatientAuthenticationScreen(
@@ -112,18 +115,20 @@ internal fun PatientAuthenticationScreen(
                 FilterChip(
                     selected = state.authMode == PatientAuthMode.ENROLL,
                     onClick = { onAuthModeSelected(PatientAuthMode.ENROLL) },
+                    modifier = Modifier.testTag("patient-auth-mode-enroll"),
                     label = { Text("Use invitation") },
                 )
                 FilterChip(
                     selected = state.authMode == PatientAuthMode.SIGN_IN,
                     onClick = { onAuthModeSelected(PatientAuthMode.SIGN_IN) },
+                    modifier = Modifier.testTag("patient-auth-mode-sign-in"),
                     label = { Text("Sign in") },
                 )
             }
 
             when (state.authMode) {
-                PatientAuthMode.ENROLL -> EnrollmentForm(onEnroll)
-                PatientAuthMode.SIGN_IN -> SignInForm(onSignIn)
+                PatientAuthMode.ENROLL -> EnrollmentForm(networkEnabled, onEnroll)
+                PatientAuthMode.SIGN_IN -> SignInForm(networkEnabled, onSignIn)
             }
 
             when (val status = state.status) {
@@ -144,9 +149,10 @@ internal fun PatientAuthenticationScreen(
 
             if (!networkEnabled) {
                 Text(
-                    text = "Online patient access is off by default in this pilot build.",
+                    text = "Live access is off. No care information will be requested until patient API access is explicitly configured.",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("patient-api-off-state"),
                 )
             }
 
@@ -160,7 +166,10 @@ internal fun PatientAuthenticationScreen(
 }
 
 @Composable
-private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
+private fun EnrollmentForm(
+    networkEnabled: Boolean,
+    onEnroll: (PatientEnrollmentForm) -> Unit,
+) {
     // Enrollment secrets and identifiers stay in volatile composition memory;
     // they must never be serialized into Activity saved state.
     var challengeUuid by remember { mutableStateOf("") }
@@ -171,19 +180,21 @@ private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
     var password by remember { mutableStateOf("") }
     var passwordConfirmation by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
+    val form = PatientEnrollmentForm(
+        challengeUuid = challengeUuid,
+        challengeToken = challengeToken,
+        verificationCode = verificationCode,
+        displayName = displayName,
+        email = email,
+        password = password,
+        passwordConfirmation = passwordConfirmation,
+    )
+    val canSubmit = networkEnabled && form.clientValidationMessage() == null
+
     fun submit() {
+        if (!canSubmit) return
         focusManager.clearFocus()
-        onEnroll(
-            PatientEnrollmentForm(
-                challengeUuid = challengeUuid,
-                challengeToken = challengeToken,
-                verificationCode = verificationCode,
-                displayName = displayName,
-                email = email,
-                password = password,
-                passwordConfirmation = passwordConfirmation,
-            ),
-        )
+        onEnroll(form)
         challengeToken = ""
         verificationCode = ""
         password = ""
@@ -202,7 +213,9 @@ private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
         OutlinedTextField(
             value = challengeUuid,
             onValueChange = { challengeUuid = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-enrollment-challenge-uuid"),
             label = { Text("Invitation ID") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
@@ -214,8 +227,10 @@ private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
         OutlinedTextField(
             value = challengeToken,
             onValueChange = { challengeToken = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Invitation secret") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-enrollment-challenge-token"),
+            label = { Text("Invitation token") },
             supportingText = { Text("Invitation details expire and can only be used as directed.") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
@@ -228,7 +243,9 @@ private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
         OutlinedTextField(
             value = verificationCode,
             onValueChange = { verificationCode = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-enrollment-verification-code"),
             label = { Text("Verification code") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
@@ -241,7 +258,9 @@ private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
         OutlinedTextField(
             value = displayName,
             onValueChange = { displayName = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-enrollment-display-name"),
             label = { Text("Name") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -250,7 +269,9 @@ private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-enrollment-email"),
             label = { Text("Email") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
@@ -262,7 +283,9 @@ private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-enrollment-password"),
             label = { Text("Create password") },
             supportingText = { Text("Use at least 12 characters with mixed character types.") },
             singleLine = true,
@@ -276,7 +299,9 @@ private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
         OutlinedTextField(
             value = passwordConfirmation,
             onValueChange = { passwordConfirmation = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-enrollment-password-confirmation"),
             label = { Text("Confirm password") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
@@ -288,7 +313,10 @@ private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
         )
         Button(
             onClick = ::submit,
-            modifier = Modifier.fillMaxWidth(),
+            enabled = canSubmit,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-enrollment-submit"),
         ) {
             Text("Continue securely")
         }
@@ -296,11 +324,23 @@ private fun EnrollmentForm(onEnroll: (PatientEnrollmentForm) -> Unit) {
 }
 
 @Composable
-private fun SignInForm(onSignIn: (String, String) -> Unit) {
+private fun SignInForm(
+    networkEnabled: Boolean,
+    onSignIn: (String, String) -> Unit,
+) {
     // Credentials are intentionally not part of Activity saved state.
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
+    val canSubmit = networkEnabled && email.isLikelyPatientEmail() && password.isNotEmpty()
+
+    fun submit() {
+        if (!canSubmit) return
+        focusManager.clearFocus()
+        onSignIn(email, password)
+        password = ""
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = "Sign in to your patient account",
@@ -310,7 +350,9 @@ private fun SignInForm(onSignIn: (String, String) -> Unit) {
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-sign-in-email"),
             label = { Text("Email") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
@@ -324,7 +366,9 @@ private fun SignInForm(onSignIn: (String, String) -> Unit) {
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-sign-in-password"),
             label = { Text("Password") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
@@ -332,19 +376,14 @@ private fun SignInForm(onSignIn: (String, String) -> Unit) {
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done,
             ),
-            keyboardActions = KeyboardActions(onDone = {
-                focusManager.clearFocus()
-                onSignIn(email, password)
-                password = ""
-            }),
+            keyboardActions = KeyboardActions(onDone = { submit() }),
         )
         Button(
-            onClick = {
-                focusManager.clearFocus()
-                onSignIn(email, password)
-                password = ""
-            },
-            modifier = Modifier.fillMaxWidth(),
+            onClick = ::submit,
+            enabled = canSubmit,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-sign-in-submit"),
         ) {
             Text("Sign in")
         }

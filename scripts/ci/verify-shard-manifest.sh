@@ -11,6 +11,14 @@ set -Eeuo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
+# The local release workflow is maintained on macOS Bash 3.2. The shard
+# runner is used there for pre-release proof, so it must not regress to a
+# Bash 4+ line-array builtin even though Linux CI would accept one.
+if grep -Eq '(^|[[:space:];])(mapfile|readarray)([[:space:];]|$)' scripts/ci/run-backend-test-shard.sh; then
+    echo "Shard runner must remain compatible with macOS Bash 3.2." >&2
+    exit 1
+fi
+
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 

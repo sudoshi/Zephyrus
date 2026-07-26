@@ -129,6 +129,7 @@ struct PatientPreferences: Codable, Equatable {
     let textSize: PatientTextSizePreference?
     let reducedMotion: Bool?
     let highContrast: Bool?
+    let hideScenery: Bool?
     let notificationPreview: PatientNotificationPreviewPreference?
     let preferredChannel: PatientPreferredChannel?
 
@@ -136,12 +137,14 @@ struct PatientPreferences: Codable, Equatable {
         textSize: PatientTextSizePreference? = nil,
         reducedMotion: Bool? = nil,
         highContrast: Bool? = nil,
+        hideScenery: Bool? = nil,
         notificationPreview: PatientNotificationPreviewPreference? = nil,
         preferredChannel: PatientPreferredChannel? = nil
     ) {
         self.textSize = textSize
         self.reducedMotion = reducedMotion
         self.highContrast = highContrast
+        self.hideScenery = hideScenery
         self.notificationPreview = notificationPreview
         self.preferredChannel = preferredChannel
     }
@@ -150,6 +153,7 @@ struct PatientPreferences: Codable, Equatable {
         case textSize = "text_size"
         case reducedMotion = "reduced_motion"
         case highContrast = "high_contrast"
+        case hideScenery = "hide_scenery"
         case notificationPreview = "notification_preview"
         case preferredChannel = "preferred_channel"
     }
@@ -161,6 +165,7 @@ struct PatientPreferencesInput: Codable, Equatable {
     let textSize: PatientTextSizePreference?
     let reducedMotion: Bool?
     let highContrast: Bool?
+    let hideScenery: Bool?
     let notificationPreview: PatientNotificationPreviewPreference?
     let preferredChannel: PatientPreferredChannel?
 
@@ -170,6 +175,7 @@ struct PatientPreferencesInput: Codable, Equatable {
         textSize: PatientTextSizePreference? = nil,
         reducedMotion: Bool? = nil,
         highContrast: Bool? = nil,
+        hideScenery: Bool? = nil,
         notificationPreview: PatientNotificationPreviewPreference? = nil,
         preferredChannel: PatientPreferredChannel? = nil
     ) {
@@ -178,6 +184,7 @@ struct PatientPreferencesInput: Codable, Equatable {
         self.textSize = textSize
         self.reducedMotion = reducedMotion
         self.highContrast = highContrast
+        self.hideScenery = hideScenery
         self.notificationPreview = notificationPreview
         self.preferredChannel = preferredChannel
     }
@@ -188,6 +195,7 @@ struct PatientPreferencesInput: Codable, Equatable {
         case textSize = "text_size"
         case reducedMotion = "reduced_motion"
         case highContrast = "high_contrast"
+        case hideScenery = "hide_scenery"
         case notificationPreview = "notification_preview"
         case preferredChannel = "preferred_channel"
     }
@@ -587,6 +595,7 @@ struct PatientVisibleMessage: Codable, Equatable, Identifiable {
     let body: String?
     let relatesToMessageUUID: String?
     let deliveryState: PatientMessageDeliveryState
+    let stateUpdatedAt: String?
     let sentAt: String
 
     var id: String { messageUUID }
@@ -598,6 +607,7 @@ struct PatientVisibleMessage: Codable, Equatable, Identifiable {
         case body
         case relatesToMessageUUID = "relates_to_message_uuid"
         case deliveryState = "delivery_state"
+        case stateUpdatedAt = "state_updated_at"
         case sentAt = "sent_at"
     }
 }
@@ -766,6 +776,7 @@ struct PatientScheduleItem: Codable, Equatable, Identifiable {
     let itemUUID: String
     let label: String
     let detail: String?
+    let category: PatientScheduleCategory?
     let status: String
     let timeWindow: String
     let timingConfidence: String?
@@ -778,11 +789,32 @@ struct PatientScheduleItem: Codable, Equatable, Identifiable {
         case itemUUID = "item_uuid"
         case label
         case detail
+        case category
         case status
         case timeWindow = "time_window"
         case timingConfidence = "timing_confidence"
         case preparation
         case canChange = "can_change"
+    }
+}
+
+/// A released patient-facing class for a Today schedule item. This is not an
+/// internal operational queue type and an unknown future value intentionally
+/// falls back to a generic care update rather than exposing a raw code.
+enum PatientScheduleCategory: String, Codable, Equatable {
+    case test
+    case procedure
+    case transport
+    case other
+
+    init(from decoder: Decoder) throws {
+        let rawValue = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: rawValue) ?? .other
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 
@@ -931,6 +963,16 @@ enum PatientPathwayEventCategory: String, Codable, Equatable {
     case transport
     case other
 
+    init(from decoder: Decoder) throws {
+        let rawValue = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: rawValue) ?? .other
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
     var patientLabel: String {
         switch self {
         case .test: "Test"
@@ -968,6 +1010,8 @@ struct PatientDischargeReadinessContent: Codable, Equatable {
     let estimatedConfidence: String?
     let criteria: [PatientDischargeCriterion]?
     let unresolvedNeeds: [String]?
+    let equipment: [String]?
+    let transport: [String]?
     let medications: [PatientDischargeMedication]?
     let followUp: [PatientDischargeFollowUp]?
     let warningSigns: [String]?
@@ -982,6 +1026,8 @@ struct PatientDischargeReadinessContent: Codable, Equatable {
         case estimatedConfidence = "estimated_confidence"
         case criteria
         case unresolvedNeeds = "unresolved_needs"
+        case equipment
+        case transport
         case medications
         case followUp = "follow_up"
         case warningSigns = "warning_signs"

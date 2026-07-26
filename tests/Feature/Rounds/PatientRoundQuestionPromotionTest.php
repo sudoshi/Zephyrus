@@ -12,6 +12,7 @@ use App\Models\Patient\PatientPrincipal;
 use App\Models\PatientCommunication\PoolMembership;
 use App\Models\PatientCommunication\ResponsibilityPool;
 use App\Models\PatientCommunication\RoundQuestionPromotion;
+use App\Models\PatientCommunication\RoundQuestionPromotionDeferral;
 use App\Models\PatientCommunication\RoundQuestionPromotionOutcome;
 use App\Models\PatientCommunication\ThreadWorkItem;
 use App\Models\Rounds\RoundPatient;
@@ -40,6 +41,8 @@ class PatientRoundQuestionPromotionTest extends TestCase
     private const PATIENT_STATUS = 'Your question was shared with your care team for possible review. It may not be discussed in a particular round.';
 
     private const PATIENT_OUTCOME_STATUS = 'Your care team has completed their review of the question you shared. If you still need help, please send a message to your care team.';
+
+    private const PATIENT_DEFERRED_STATUS = 'Your question will be reviewed later by your care team. If you need help now, use your bedside call button or speak with a staff member.';
 
     private User $staff;
 
@@ -304,6 +307,83 @@ class PatientRoundQuestionPromotionTest extends TestCase
         $this->assertDatabaseCount('patient_experience.messages', 2);
     }
 
+    public function test_staff_can_defer_a_promoted_question_once_with_a_timestamped_patient_safe_update(): void
+    {
+        $this->actingAs($this->staff)
+            ->withHeader('Idempotency-Key', (string) Str::uuid7())
+            ->postJson(
+                "/api/rounds/patients/{$this->roundPatientUuid}/patient-question-threads/{$this->thread->thread_uuid}/promote",
+                [
+                    'message_uuid' => (string) $this->message->message_uuid,
+                    'thread_version' => $this->thread->version,
+                ],
+            )
+            ->assertCreated();
+
+        $question = RoundQuestion::query()->firstOrFail();
+        $promotion = RoundQuestionPromotion::query()->firstOrFail();
+        $deferralKey = (string) Str::uuid7();
+
+        $this->app['auth']->forgetGuards();
+        $deferResponse = $this->actingAs($this->staff)
+            ->withHeader('Idempotency-Key', $deferralKey)
+            ->postJson("/api/rounds/questions/{$question->question_uuid}/defer", [])
+            ->assertCreated();
+        $this->assertIsString($deferResponse->json('data.questions.0.patient_question_lifecycle.deferred_at'));
+
+        $deferral = RoundQuestionPromotionDeferral::query()->firstOrFail();
+        $this->assertSame($promotion->getKey(), $deferral->round_question_promotion_id);
+        $this->assertSame($this->staff->getKey(), $deferral->deferred_by_user_id);
+        $this->assertSame('open', $question->refresh()->status);
+        $this->assertDatabaseCount('patient_communications.round_question_promotion_deferrals', 1);
+        $this->assertDatabaseCount('patient_experience.messages', 3);
+        $this->assertSame(3, $this->thread->refresh()->version);
+        $this->assertSame(3, ThreadWorkItem::query()->firstOrFail()->source_thread_version);
+
+        $patientThread = $this->app->make(PatientMessagingService::class)->showThread(
+            Request::create('/api/patient/v1/threads/'.$this->thread->thread_uuid, 'GET'),
+            $this->grant->principal,
+            (string) $this->thread->thread_uuid,
+        );
+        $statuses = collect($patientThread['thread']['messages'])
+            ->where('message_kind', 'system_status')
+            ->values();
+        $this->assertCount(2, $statuses);
+        $this->assertSame(self::PATIENT_DEFERRED_STATUS, $statuses->last()['body'] ?? null);
+        $this->assertIsString($statuses->last()['state_updated_at'] ?? null);
+        $this->assertStringNotContainsString(self::QUESTION, json_encode($statuses, JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('round', Str::lower(json_encode($statuses->last(), JSON_THROW_ON_ERROR)));
+
+        $this->assertDatabaseHas('rounds.events', [
+            'aggregate_type' => 'question',
+            'aggregate_id' => $question->getKey(),
+            'event_type' => 'question.deferred',
+            'idempotency_key' => $deferralKey,
+        ]);
+        $audit = UserEvent::query()
+            ->where('action', 'rounds.patient_question_deferral_published')
+            ->firstOrFail();
+        $this->assertStringNotContainsString(self::QUESTION, json_encode([
+            'metadata' => $audit->metadata,
+            'changes' => $audit->changes,
+        ], JSON_THROW_ON_ERROR));
+
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($this->staff)
+            ->withHeader('Idempotency-Key', $deferralKey)
+            ->postJson("/api/rounds/questions/{$question->question_uuid}/defer", [])
+            ->assertOk();
+        $this->assertDatabaseCount('patient_communications.round_question_promotion_deferrals', 1);
+        $this->assertDatabaseCount('patient_experience.messages', 3);
+
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($this->staff)
+            ->withHeader('Idempotency-Key', (string) Str::uuid7())
+            ->postJson("/api/rounds/questions/{$question->question_uuid}/defer", [])
+            ->assertConflict()
+            ->assertJsonPath('error.code', 'rounds_conflict');
+    }
+
     public function test_bridge_fails_closed_when_disabled_or_the_selected_round_patient_is_not_the_granted_encounter(): void
     {
         $url = "/api/rounds/patients/{$this->roundPatientUuid}/patient-question-threads/{$this->thread->thread_uuid}/promote";
@@ -374,6 +454,43 @@ class PatientRoundQuestionPromotionTest extends TestCase
             ->assertJsonPath('error.code', 'rounds_policy');
         $this->assertDatabaseCount('rounds.questions', 0);
         $this->assertDatabaseCount('patient_communications.round_question_promotions', 0);
+    }
+
+    public function test_deferral_requires_current_patient_communications_capability_and_pool_membership(): void
+    {
+        $this->actingAs($this->staff)
+            ->withHeader('Idempotency-Key', (string) Str::uuid7())
+            ->postJson(
+                "/api/rounds/patients/{$this->roundPatientUuid}/patient-question-threads/{$this->thread->thread_uuid}/promote",
+                [
+                    'message_uuid' => (string) $this->message->message_uuid,
+                    'thread_version' => $this->thread->version,
+                ],
+            )
+            ->assertCreated();
+        $question = RoundQuestion::query()->firstOrFail();
+        $membership = PoolMembership::query()
+            ->where('staff_user_id', $this->staff->getKey())
+            ->firstOrFail();
+        $membership->forceFill([
+            'availability_state' => 'ended',
+            'effective_until' => now()->subSecond(),
+        ])->save();
+
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($this->staff)
+            ->withHeader('Idempotency-Key', (string) Str::uuid7())
+            ->postJson("/api/rounds/questions/{$question->question_uuid}/defer", [])
+            ->assertForbidden();
+
+        $this->assertSame('open', $question->refresh()->status);
+        $this->assertDatabaseCount('patient_communications.round_question_promotion_deferrals', 0);
+        $this->assertDatabaseCount('patient_experience.messages', 2);
+        $this->assertDatabaseMissing('rounds.events', [
+            'aggregate_type' => 'question',
+            'aggregate_id' => $question->getKey(),
+            'event_type' => 'question.deferred',
+        ]);
     }
 
     public function test_staff_can_only_discover_and_promote_a_superseding_correction(): void

@@ -6,6 +6,7 @@ import net.acumenus.hummingbird.patient.data.PatientMessageThread
 import net.acumenus.hummingbird.patient.data.PatientMessageTopic
 import net.acumenus.hummingbird.patient.data.PatientPreferences
 import net.acumenus.hummingbird.patient.data.PatientPreferencesUpdate
+import java.util.UUID
 
 enum class PatientDestination(val label: String) {
     TODAY("Today"),
@@ -33,6 +34,15 @@ sealed interface PatientSessionState {
     data class Loading(val message: String) : PatientSessionState
 
     data class Empty(
+        val patientDisplayName: String,
+        val message: String,
+    ) : PatientSessionState
+
+    /**
+     * The app removed its prior snapshot because it could not confirm that the
+     * current protected session still has care access after returning to foreground.
+     */
+    data class AccessVerificationUnavailable(
         val patientDisplayName: String,
         val message: String,
     ) : PatientSessionState
@@ -69,6 +79,7 @@ internal fun PatientPreferencesUpdate.applyTo(current: PatientPreferences): Pati
         textSize = textSize ?: current.textSize,
         reducedMotion = reducedMotion ?: current.reducedMotion,
         highContrast = highContrast ?: current.highContrast,
+        hideScenery = hideScenery ?: current.hideScenery,
         notificationPreview = notificationPreview ?: current.notificationPreview,
         preferredChannel = preferredChannel ?: current.preferredChannel,
     )
@@ -126,6 +137,7 @@ data class PatientSnapshot(
     val careTeam: List<PatientCareTeamMember>,
     val contexts: Map<PatientDestination, PatientDataContext> = emptyMap(),
     val todaySummary: String? = null,
+    val todayCareLocationLabel: String? = null,
     val todayNextSteps: List<String> = emptyList(),
     val todayNotices: List<String> = emptyList(),
     val pathwaySummary: String? = null,
@@ -163,6 +175,26 @@ data class PatientEnrollmentForm(
     val password: String,
     val passwordConfirmation: String,
 )
+
+/**
+ * Local plausibility checks shared by the Android enrollment form and its
+ * view model. They prevent avoidable requests, while the server remains the
+ * authority for challenge validity, identity, grant state, one-time use,
+ * password policy, and enrollment.
+ */
+internal fun PatientEnrollmentForm.clientValidationMessage(): String? = when {
+    challengeUuid.length != 36 || runCatching { UUID.fromString(challengeUuid) }.isFailure ->
+        "Enter the complete invitation ID."
+    challengeToken.length < 32 -> "Enter the complete invitation token."
+    verificationCode.length < 6 -> "Enter the complete verification code."
+    displayName.trim().isEmpty() -> "Enter your name."
+    !email.isLikelyPatientEmail() -> "Enter a valid email address."
+    password.length < 12 -> "Use a password with at least 12 characters."
+    password != passwordConfirmation -> "The passwords do not match."
+    else -> null
+}
+
+internal fun String.isLikelyPatientEmail(): Boolean = trim().contains("@")
 
 data class PatientTodayItem(
     val title: String,
@@ -228,6 +260,8 @@ data class PatientDischargeReadinessView(
     val estimatedConfidence: String?,
     val criteria: List<PatientDischargeReadinessCriterion>,
     val unresolvedNeeds: List<String>,
+    val equipment: List<String>,
+    val transport: List<String>,
     val medications: List<PatientDischargeReadinessMedication>,
     val followUp: List<PatientDischargeReadinessFollowUp>,
     val warningSigns: List<String>,

@@ -429,9 +429,9 @@ fun PatientCommunicationDetailContent(
 ) {
     var showCloseDialog by remember { mutableStateOf(false) }
     val freshActionsEnabled = !mutating && !canRetryMutation
-    val canReply = canRespond && item.status == "open" && item.assignedToMe
+    val canReply = canRespond && item.actions?.canReply == true
     val canClaim = canRespond && PatientCommunicationPresentation.isClaimable(item)
-    val canClose = canReply && item.ownershipState == "responded"
+    val canClose = canRespond && item.actions?.canClose == true
     val canManageRouting = PatientCommunicationRoutingPolicy.canOpen(canRespond, item)
 
     HbRefreshable(
@@ -526,22 +526,37 @@ fun PatientCommunicationDetailContent(
                         }
 
                         !item.assignedToMe -> InlineNotice(
-                            "This conversation is owned by another team member. Refresh if responsibility changes.",
+                            "This conversation is either owned by another team member or unavailable to claim with your current team permissions.",
                             NoticeTone.Info,
                             "Refresh",
                             onRefresh,
                         )
 
-                        else -> ReplyComposer(
-                            value = replyDraft,
-                            enabled = freshActionsEnabled,
-                            onValueChange = onReplyDraftChange,
-                            onSend = onReply,
+                        canReply -> Column(verticalArrangement = Arrangement.spacedBy(Z.s2)) {
+                            ReplyComposer(
+                                value = replyDraft,
+                                enabled = freshActionsEnabled,
+                                onValueChange = onReplyDraftChange,
+                                onSend = onReply,
+                            )
+                            if (!canClose) {
+                                InlineNotice(
+                                    "Send a patient-visible care-team response before closing.",
+                                    NoticeTone.Info,
+                                )
+                            }
+                        }
+
+                        else -> InlineNotice(
+                            "Responding is unavailable with your current team permissions.",
+                            NoticeTone.Info,
+                            "Refresh",
+                            onRefresh,
                         )
                     }
                 }
 
-                if (item.assignedToMe) {
+                if (canClose) {
                     item {
                         OutlinedButton(
                             onClick = { showCloseDialog = true },
@@ -551,14 +566,6 @@ fun PatientCommunicationDetailContent(
                             Icon(Icons.Filled.CheckCircle, contentDescription = null)
                             Spacer(Modifier.size(Z.s2))
                             Text("Close conversation")
-                        }
-                        if (!canClose) {
-                            Text(
-                                "Send a patient-visible care-team response before closing.",
-                                color = Z.inkMuted,
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(top = Z.s2),
-                            )
                         }
                     }
                 }

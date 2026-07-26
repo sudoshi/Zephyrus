@@ -3,6 +3,7 @@ package net.acumenus.hummingbird.data
 import net.acumenus.hummingbird.ui.theme.CapacityStatus
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -28,21 +29,21 @@ class SharedDtoFixtureDecodeTest {
         val first = api.parseForYouItem(data.getJSONObject(0))
         val second = api.parseForYouItem(data.getJSONObject(1))
 
-        assertEquals("transport-17", first.id)
-        assertEquals(CapacityStatus.WARNING, first.capacity)
-        assertEquals("evs-23", second.id)
-        assertEquals(CapacityStatus.INFO, second.capacity)
+        assertTrue(first.id.startsWith("bedreq-"))
+        assertEquals(CapacityStatus.CRITICAL, first.capacity)
+        assertTrue(second.id.startsWith("transport-"))
+        assertEquals(CapacityStatus.CRITICAL, second.capacity)
     }
 
     @Test
     fun decodesActivityFixture() {
         val event = api.parseActivityEvent(fixture("mobile-activity-feed.json").getJSONArray("data").getJSONObject(0))
 
-        assertEquals("transport.progressed", event.eventType)
-        assertEquals("transport", event.domain)
-        assertEquals("ptok_transport_17", event.patientContextRef)
+        assertEquals("bed_request.created", event.eventType)
+        assertEquals("rtdc", event.domain)
+        assertTrue(event.patientContextRef?.startsWith("ptok_") == true)
         assertEquals("warning", event.statusValue)
-        assertEquals("At risk", event.statusLabel)
+        assertEquals("Warning", event.statusLabel)
     }
 
     @Test
@@ -50,12 +51,135 @@ class SharedDtoFixtureDecodeTest {
         val context = api.parsePatientContext(fixture("mobile-patient-operational-context.json").getJSONObject("data"))
 
         assertEquals("A2P", context.altitude)
-        assertEquals("ptok_demo_flow_42", context.patient.patientContextRef)
+        assertTrue(context.patient.patientContextRef?.startsWith("ptok_") == true)
         assertTrue(context.patient.phiMinimized)
         assertEquals(2, context.statusSpine.size)
         assertEquals(2, context.timeline.size)
         assertEquals(2, context.dependencies.size)
-        assertEquals(1, context.actions.size)
+        assertEquals(2, context.actions.size)
+    }
+
+    @Test
+    fun decodesEddyChatSuccessAndTheDocumentedUnavailableNotice() {
+        val success = api.parseEddyChatReply(JSONObject("""
+            {
+              "conversation_id": "cb45f98e-c0d5-4fdd-8d29-6f51f66ab8ba",
+              "message": {
+                "role": "assistant",
+                "content": "Review the current discharge barriers before the next huddle.",
+                "provider": "ollama"
+              }
+            }
+        """.trimIndent()))
+        val unavailable = api.parseEddyChatReply(JSONObject("""
+            { "message": "Eddy is temporarily unavailable. Please try again shortly." }
+        """.trimIndent()))
+
+        assertEquals("cb45f98e-c0d5-4fdd-8d29-6f51f66ab8ba", success.conversationId)
+        assertEquals("assistant", success.message.role)
+        assertEquals("ollama", success.message.provider)
+        assertTrue(success.message.content.startsWith("Review the current discharge"))
+        assertNull(unavailable.conversationId)
+        assertEquals("assistant", unavailable.message.role)
+        assertNull(unavailable.message.provider)
+        assertEquals("Eddy is temporarily unavailable. Please try again shortly.", unavailable.message.content)
+    }
+
+    @Test
+    fun decodesServerOnlyEddyConversationHistoryAndDraftActionMarker() {
+        val summary = api.parseEddyConversationSummary(JSONObject("""
+            {
+              "id": "e75d595c-7e67-49f8-b0a2-8189e1c8491d",
+              "title": "Discharge barriers",
+              "surface": "hummingbird",
+              "origin": "hummingbird",
+              "updated_at": "2026-07-24T16:00:00Z"
+            }
+        """.trimIndent()))
+        val detail = api.parseEddyConversationDetail(JSONObject("""
+            {
+              "id": "e75d595c-7e67-49f8-b0a2-8189e1c8491d",
+              "title": "Discharge barriers",
+              "surface": "hummingbird",
+              "messages": [
+                { "role": "user", "content": "What is blocking discharges?", "created_at": "2026-07-24T15:58:00Z" },
+                {
+                  "role": "assistant",
+                  "content": "Two barriers need review.",
+                  "provider": "ollama",
+                  "created_at": "2026-07-24T16:00:00Z",
+                  "proposed_action": { "action_type": "flag_barrier" }
+                }
+              ]
+            }
+        """.trimIndent()))
+
+        assertEquals("e75d595c-7e67-49f8-b0a2-8189e1c8491d", summary.id)
+        assertEquals("Discharge barriers", summary.title)
+        assertEquals("hummingbird", summary.origin)
+        assertEquals(2, detail.messages.size)
+        assertEquals(EddyChatRole.USER, detail.messages.first().role)
+        assertEquals(EddyChatRole.ASSISTANT, detail.messages.last().role)
+        assertEquals("ollama", detail.messages.last().provider)
+        assertTrue(detail.messages.last().hasProposedAction)
+    }
+
+    @Test
+    fun eddyPathsAreAlwaysNoStoreAndDisableTheHttpCache() {
+        val path = "/api/mobile/v1/eddy/conversations?persona=bed_manager"
+
+        assertEquals("no-store", api.sensitiveNoStoreHeaders(path)["Cache-Control"])
+        assertEquals("no-cache", api.sensitiveNoStoreHeaders(path)["Pragma"])
+        assertTrue(api.shouldDisableHttpCaches(path))
+    }
+
+    @Test
+    fun decodesEddyApprovalPreviewAndServerDecisionWithoutTreatingItAsAnEddyAction() {
+        val preview = api.parseEddyApprovalPreview(JSONObject("""
+            {
+              "approval_uuid": "f2de3b42-5f41-4a34-9a91-c6292465bba1",
+              "action_uuid": "dca4d2b5-0dca-49d6-a2e4-431aaf1bcb91",
+              "action_type": "flag_barrier",
+              "title": "Flag a discharge barrier",
+              "surface": "rtdc",
+              "tier": "T1",
+              "risk": "medium",
+              "requested_at": "2026-07-24T16:00:00Z",
+              "rationale": "A discharge barrier needs review.",
+              "runner_up": "Escalate to the charge nurse.",
+              "params": { "unit": "5 East", "barrier_count": 2, "nested": { "hidden": true } },
+              "preview": "Would flag a throughput/discharge barrier on 5 East for the next huddle."
+            }
+        """.trimIndent()))
+        val decision = api.parseEddyApprovalDecision(JSONObject("""
+            {
+              "approval_uuid": "f2de3b42-5f41-4a34-9a91-c6292465bba1",
+              "decision": "approved",
+              "action_status": "approved"
+            }
+        """.trimIndent()))
+
+        assertEquals("f2de3b42-5f41-4a34-9a91-c6292465bba1", preview.summary.approvalUuid)
+        assertEquals("flag_barrier", preview.summary.actionType)
+        assertEquals("Would flag a throughput/discharge barrier on 5 East for the next huddle.", preview.preview)
+        assertEquals("5 East", preview.params.first { it.name == "unit" }.value)
+        assertEquals("Operational detail", preview.params.first { it.name == "nested" }.value)
+        assertEquals("approved", decision.decision)
+        assertEquals("approved", decision.actionStatus)
+    }
+
+    @Test
+    fun eddyApprovalPathsAreNoStoreAndExplicitDecisionKeysWin() {
+        val path = "/api/mobile/v1/eddy/approvals/f2de3b42-5f41-4a34-9a91-c6292465bba1/decision?persona=capacity_lead"
+        val replayKey = "5ac78f64-66f8-4db3-a871-6f143e14ea34"
+
+        assertEquals("no-store", api.sensitiveNoStoreHeaders(path)["Cache-Control"])
+        assertEquals("no-cache", api.sensitiveNoStoreHeaders(path)["Pragma"])
+        assertTrue(api.shouldDisableHttpCaches(path))
+        assertEquals(
+            replayKey,
+            api.requestIdempotencyKey("POST", path, "{\"decision\":\"approved\"}", replayKey),
+        )
     }
 
     @Test
@@ -108,7 +232,7 @@ class SharedDtoFixtureDecodeTest {
         val doc = api.parseFlowFloors(fixture("mobile-flow-floors.json"))
 
         assertTrue(doc.floors.isNotEmpty())
-        assertEquals("v1-a8f91dc9a9e4", doc.version)
+        assertTrue(Regex("^v1-[0-9a-f]{12}$").matches(doc.version))
         val floor3 = doc.floors.first { it.floor == 3 }
         assertEquals(4, floor3.bounds.size)
         assertEquals(4, floor3.spaces.size)
@@ -180,12 +304,12 @@ class SharedDtoFixtureDecodeTest {
         val queue = api.parseTransportQueue(fixture("mobile-transport-queue.json"))
 
         val job = queue.jobs.single()
-        assertTrue(job.claimedByMe)
-        assertTrue(job.handoffRequired)
-        assertEquals(listOf("dispatched", "escalated", "failed"), job.allowedTransitions)
-        assertEquals(3, job.lifecycleVersion)
-        assertTrue(queue.nextCursor!!.isNotBlank())
-        assertTrue(queue.hasMore)
+        assertEquals(false, job.claimedByMe)
+        assertTrue(job.availableToClaim)
+        assertEquals(listOf("assigned"), job.allowedTransitions)
+        assertEquals(1, job.lifecycleVersion)
+        assertNull(queue.nextCursor)
+        assertEquals(false, queue.hasMore)
     }
 
     private fun fixture(filename: String): JSONObject =

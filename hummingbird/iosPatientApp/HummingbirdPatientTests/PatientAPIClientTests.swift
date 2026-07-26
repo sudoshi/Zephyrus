@@ -170,6 +170,7 @@ final class PatientAPIClientTests: XCTestCase {
             XCTAssertEqual(json["text_size"] as? String, "extra_large")
             XCTAssertEqual(json["reduced_motion"] as? Bool, true)
             XCTAssertEqual(json["high_contrast"] as? Bool, true)
+            XCTAssertEqual(json["hide_scenery"] as? Bool, true)
             XCTAssertEqual(json["notification_preview"] as? String, "hidden")
             XCTAssertEqual(json["preferred_channel"] as? String, "none")
             XCTAssertEqual(Set(json.keys), [
@@ -178,6 +179,7 @@ final class PatientAPIClientTests: XCTestCase {
                 "text_size",
                 "reduced_motion",
                 "high_contrast",
+                "hide_scenery",
                 "notification_preview",
                 "preferred_channel",
             ])
@@ -191,6 +193,7 @@ final class PatientAPIClientTests: XCTestCase {
                 textSize: .extraLarge,
                 reducedMotion: true,
                 highContrast: true,
+                hideScenery: true,
                 notificationPreview: .hidden,
                 preferredChannel: PatientPreferredChannel.none
             ),
@@ -317,6 +320,7 @@ final class PatientAPIClientTests: XCTestCase {
         XCTAssertEqual(threads.data.threads.first?.threadUUID, threadUUID)
         XCTAssertEqual(threads.data.threads.first?.ownershipState, .acknowledged)
         XCTAssertEqual(detail.data.thread.messages.first?.senderDisplayRole, .patient)
+        XCTAssertEqual(detail.data.thread.messages.first?.stateUpdatedAt, "2026-07-19T15:00:00.000000Z")
         XCTAssertEqual(detail.data.thread.messages.last?.senderDisplayRole, .careTeam)
         XCTAssertEqual(detail.data.immediateHelp, topics.data.immediateHelp)
         XCTAssertEqual(
@@ -697,7 +701,7 @@ final class PatientAPIClientTests: XCTestCase {
 
     private static let messageTopicJSON = #"{"code":"care_plan_question","label":"Question about my care plan","description":"Ask a nonurgent question about a released step in your care plan.","expected_response_window":"Your care team usually responds during the current care shift."}"#
 
-    private static let patientMessageJSON = #"{"message_uuid":"019f0000-0000-7000-8000-000000000062","sender_display_role":"You","message_kind":"message","body":"What should I expect before my walk?","relates_to_message_uuid":null,"delivery_state":"acknowledged","sent_at":"2026-07-19T14:45:00.000000Z"}"#
+    private static let patientMessageJSON = #"{"message_uuid":"019f0000-0000-7000-8000-000000000062","sender_display_role":"You","message_kind":"message","body":"What should I expect before my walk?","relates_to_message_uuid":null,"delivery_state":"acknowledged","state_updated_at":"2026-07-19T15:00:00.000000Z","sent_at":"2026-07-19T14:45:00.000000Z"}"#
 
     private static let careTeamMessageJSON = #"{"message_uuid":"019f0000-0000-7000-8000-000000000063","sender_display_role":"Care team","message_kind":"message","body":"We will review safe support with you before you begin.","relates_to_message_uuid":null,"delivery_state":"responded","sent_at":"2026-07-19T15:12:00.000000Z"}"#
 

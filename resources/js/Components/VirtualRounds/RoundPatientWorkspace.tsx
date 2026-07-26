@@ -59,6 +59,7 @@ interface Props {
     onPromotePatientQuestion: (
         question: PatientQuestionCandidate,
     ) => Promise<void>;
+    onDeferPatientQuestion: (questionUuid: string) => void;
 }
 
 export default function RoundPatientWorkspace({
@@ -72,6 +73,7 @@ export default function RoundPatientWorkspace({
     onPin,
     onContribute,
     onPromotePatientQuestion,
+    onDeferPatientQuestion,
 }: Props) {
     const patient = detail.data;
     const [reasonPrompt, setReasonPrompt] = useState<{
@@ -434,6 +436,102 @@ export default function RoundPatientWorkspace({
                             </div>
                         </div>
                     )}
+                </section>
+            )}
+
+            {patient.questions.some(
+                (question) => question.patient_question_lifecycle !== null,
+            ) && (
+                <section
+                    aria-labelledby="promoted-patient-questions-heading"
+                    className="rounded-md border border-healthcare-border bg-healthcare-surface p-3 shadow-sm dark:border-healthcare-border-dark dark:bg-healthcare-surface-dark"
+                    data-testid="promoted-patient-questions"
+                >
+                    <h3
+                        id="promoted-patient-questions-heading"
+                        className="flex items-center gap-1.5 text-xs font-semibold text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark"
+                    >
+                        <MessageCircleQuestion
+                            className="h-3.5 w-3.5"
+                            aria-hidden
+                        />
+                        Promoted patient questions
+                    </h3>
+                    <p className="mt-1 text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                        Acknowledge, reply, or route these in Patient
+                        Communications. Deferring keeps the question open for
+                        later review and sends a generic, timestamped update
+                        without exposing staff-rounds details.
+                    </p>
+                    <a
+                        href="/patient-communications"
+                        className="mt-2 inline-flex text-xs font-medium text-healthcare-primary hover:underline dark:text-healthcare-primary-dark"
+                    >
+                        Open Patient Communications
+                    </a>
+                    <ul className="mt-2 space-y-2">
+                        {patient.questions
+                            .filter(
+                                (question) =>
+                                    question.patient_question_lifecycle !==
+                                    null,
+                            )
+                            .map((question) => {
+                                const deferredAt =
+                                    question.patient_question_lifecycle
+                                        ?.deferred_at ?? null;
+                                const canDefer =
+                                    question.status === "open" &&
+                                    deferredAt === null;
+
+                                return (
+                                    <li
+                                        key={question.question_uuid}
+                                        className="rounded-md border border-healthcare-border p-2 dark:border-healthcare-border-dark"
+                                    >
+                                        <p className="whitespace-pre-wrap text-sm text-healthcare-text-primary dark:text-healthcare-text-primary-dark">
+                                            {question.question_text}
+                                        </p>
+                                        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+                                            {deferredAt ? (
+                                                <span className="text-xs tabular-nums text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                    Deferred for later review{" "}
+                                                    {new Date(
+                                                        deferredAt,
+                                                    ).toLocaleString([], {
+                                                        dateStyle: "medium",
+                                                        timeStyle: "short",
+                                                    })}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-healthcare-text-secondary dark:text-healthcare-text-secondary-dark">
+                                                    Awaiting staff review
+                                                </span>
+                                            )}
+                                            {canDefer && (
+                                                <button
+                                                    type="button"
+                                                    className={buttonClass}
+                                                    disabled={busy}
+                                                    onClick={() =>
+                                                        onDeferPatientQuestion(
+                                                            question.question_uuid,
+                                                        )
+                                                    }
+                                                    data-testid={`defer-patient-question-${question.question_uuid}`}
+                                                >
+                                                    <Clock3
+                                                        className="h-3.5 w-3.5"
+                                                        aria-hidden
+                                                    />
+                                                    Defer for later review
+                                                </button>
+                                            )}
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                    </ul>
                 </section>
             )}
 

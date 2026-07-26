@@ -8,20 +8,24 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import net.acumenus.hummingbird.patient.R
 
 enum class PatientScene(@DrawableRes val drawable: Int) {
     WELCOME(R.drawable.patient_hummingbird_airy_flight),
-    TODAY(R.drawable.patient_hummingbird_airy_flight),
+    TODAY(R.drawable.patient_hummingbird_calm_green),
     PATHWAY(R.drawable.patient_hummingbird_warm_motion),
     CARE_TEAM(R.drawable.patient_hummingbird_care_connection),
     MESSAGES(R.drawable.patient_hummingbird_care_connection),
-    LOADING_OR_EMPTY(R.drawable.patient_hummingbird_calm_green),
+    ACCOUNT(R.drawable.patient_hummingbird_calm_green),
+    LOADING(R.drawable.patient_hummingbird_airy_flight),
+    EMPTY(R.drawable.patient_hummingbird_warm_motion),
+    ERROR(R.drawable.patient_hummingbird_care_connection),
 }
 
 /**
@@ -32,13 +36,29 @@ enum class PatientScene(@DrawableRes val drawable: Int) {
 internal data class PatientSceneAccessibilityPolicy(
     val imageAlpha: Float,
     val scrimAlphas: List<Float>,
-)
+) {
+    val rendersDecorativeImage: Boolean
+        get() = imageAlpha > 0f
+}
+
+/**
+ * Decorative patient photography always fills the viewport from its center.
+ *
+ * Keeping this policy in one named value prevents an incidental Compose default
+ * from changing the clinical surface's visual treatment when the renderer is
+ * refactored. No patient screen pans, parallax-scrolls, or animates the image.
+ */
+internal object PatientScenicImageCropPolicy {
+    val contentScale = ContentScale.Crop
+    val alignment = Alignment.Center
+}
 
 internal fun patientSceneAccessibilityPolicy(
     fontScale: Float,
     highContrast: Boolean = false,
+    hideScenery: Boolean = false,
 ): PatientSceneAccessibilityPolicy = when {
-    highContrast -> PatientSceneAccessibilityPolicy(
+    highContrast || hideScenery -> PatientSceneAccessibilityPolicy(
         imageAlpha = 0f,
         scrimAlphas = listOf(1f, 1f, 1f),
     )
@@ -65,19 +85,23 @@ internal fun PatientScenicBackground(
     val accessibilityPolicy = patientSceneAccessibilityPolicy(
         fontScale = fontScale,
         highContrast = presentation.highContrast,
+        hideScenery = presentation.hideScenery,
     )
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(surface),
     ) {
-        Image(
-            painter = painterResource(scene.drawable),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            alpha = accessibilityPolicy.imageAlpha,
-            modifier = Modifier.fillMaxSize(),
-        )
+        if (accessibilityPolicy.rendersDecorativeImage) {
+            Image(
+                painter = painterResource(scene.drawable),
+                contentDescription = null,
+                contentScale = PatientScenicImageCropPolicy.contentScale,
+                alignment = PatientScenicImageCropPolicy.alignment,
+                alpha = accessibilityPolicy.imageAlpha,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()

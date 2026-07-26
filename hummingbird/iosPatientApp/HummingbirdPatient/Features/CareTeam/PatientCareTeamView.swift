@@ -11,7 +11,8 @@ struct PatientCareTeamView: View {
                     title: "Care Team",
                     subtitle: snapshot.canReadMessaging
                         ? "Roles, responsibilities, and safe ways to ask your care team a nonurgent question."
-                        : "Roles, responsibilities, and the safest available way to reach someone."
+                        : "Roles, responsibilities, and the safest available way to reach someone.",
+                    headingIdentifier: "patient-heading-care-team"
                 )
                 #if DEBUG
                 if snapshot.isSynthetic { SyntheticReferenceBanner() }
@@ -36,7 +37,7 @@ struct PatientCareTeamView: View {
                             .font(.body)
                         Text("Viewing this screen never sends a message.")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
                     }
                 }
                 .accessibilityIdentifier("care-team-connection-guidance")
@@ -44,6 +45,7 @@ struct PatientCareTeamView: View {
                 Text("Your team")
                     .font(.title2.bold())
                     .foregroundStyle(PatientPalette.ink)
+                    .patientAccessibilityHeading(identifier: "patient-heading-your-team")
 
                 if !snapshot.hasCareTeamProjection || snapshot.careTeam.isEmpty {
                     PatientPhotoStateCard(

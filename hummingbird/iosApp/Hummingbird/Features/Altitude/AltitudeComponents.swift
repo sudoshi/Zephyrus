@@ -278,6 +278,10 @@ struct EddyChatView: View {
     @State private var input = ""
     @State private var conversationId: String?
     @State private var isSending = false
+    @State private var streamingRawText = ""
+    @State private var streamTask: Task<Void, Never>?
+    @State private var showingHistory = false
+    @State private var showingApprovals = false
     @FocusState private var inputFocused: Bool
 
     private let api = APIClient(baseURL: URL(string: AppConfig.baseURL)!)
@@ -332,11 +336,34 @@ struct EddyChatView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }.tint(Z.primary)
+                    HStack(spacing: Z.s2) {
+                        Button {
+                            showingApprovals = true
+                        } label: {
+                            Image(systemName: "checkmark.shield")
+                        }
+                        .accessibilityLabel("Pending Eddy approvals")
+                        Button {
+                            showingHistory = true
+                        } label: {
+                            Image(systemName: "clock.arrow.circlepath")
+                        }
+                        .accessibilityLabel("Conversation history")
+                        Button("Done") { dismiss() }
+                    }
+                    .tint(Z.primary)
                 }
             }
         }
         .tint(Z.primary)
+        .onDisappear {
+            // A chat POST may already have persisted the user turn, so leaving
+            // this scope cancels the socket rather than attempting a retry.
+            streamTask?.cancel()
+            streamTask = nil
+        }
+        .sheet(isPresented: $showingHistory) { EddyConversationHistoryView() }
+        .sheet(isPresented: $showingApprovals) { EddyApprovalsView() }
     }
 
     private var intro: some View {
@@ -375,7 +402,7 @@ struct EddyChatView: View {
         HStack {
             if bubble.role == .user { Spacer(minLength: Z.s6) }
             VStack(alignment: bubble.role == .user ? .trailing : .leading, spacing: 4) {
-                if bubble.pending {
+                if bubble.pending && bubble.text.isEmpty {
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.small).tint(Z.inkMuted)
                         Text("Assessing…").font(.system(size: 13)).foregroundStyle(Z.inkMuted)
@@ -398,6 +425,12 @@ struct EddyChatView: View {
                         }
                     if bubble.role == .assistant, let provider = bubble.provider {
                         Text("via \(provider)").font(.system(size: 10)).foregroundStyle(Z.inkMuted)
+                    }
+                    if bubble.role == .assistant, bubble.pending {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.mini).tint(Z.inkMuted)
+                            Text("Assessing…").font(.system(size: 10)).foregroundStyle(Z.inkMuted)
+                        }
                     }
                 }
             }
@@ -441,6 +474,7 @@ struct EddyChatView: View {
         guard !trimmed.isEmpty, !isSending else { return }
         input = ""
         inputFocused = false
+        streamingRawText = ""
         bubbles.append(EddyBubble(role: .user, text: trimmed))
         bubbles.append(EddyBubble(role: .assistant, text: "", pending: true))
         isSending = true
@@ -451,21 +485,53 @@ struct EddyChatView: View {
         if let scopeRef = eddyContext.scopeRef { pageData["scope_ref"] = scopeRef }
         let pageContext = eddyContext.screenKey
         let pageComponent = eddyContext.summary ?? eddyContext.screenTitle
-        Task {
+        streamTask = Task {
             do {
-                let reply = try await api.eddyChat(message: trimmed, conversationId: conversationId,
-                                                   persona: profile.roleId,
-                                                   pageContext: pageContext, pageComponent: pageComponent,
-                                                   pageData: pageData, bearer: auth.accessToken ?? "").data
+                let reply = try await api.eddyChatStream(
+                    message: trimmed,
+                    conversationId: conversationId,
+                    persona: profile.roleId,
+                    pageContext: pageContext,
+                    pageComponent: pageComponent,
+                    pageData: pageData,
+                    bearer: auth.accessToken ?? ""
+                ) { event in
+                    guard !Task.isCancelled else { return }
+                    switch event {
+                    case .conversationStarted(let id):
+                        conversationId = id
+                    case .token(let token):
+                        appendStreamingToken(token)
+                    case .complete, .error, .done:
+                        // The terminal result below is the only server-sanitized
+                        // answer we render as complete; proposals have no UI path.
+                        break
+                    }
+                }
+                guard !Task.isCancelled else { return }
                 conversationId = reply.conversationId ?? conversationId
-                resolvePending(text: reply.message.content, provider: reply.message.provider)
+                resolvePending(text: EddyStreamDisplayText.terminal(reply.cleanReply), provider: reply.provider)
+            } catch is CancellationError {
+                // Intentional scope dismissal has no automatic replay or error copy.
             } catch let error as APIError {
+                guard !Task.isCancelled else { return }
                 resolvePending(text: error.message, provider: nil)
             } catch {
+                guard !Task.isCancelled else { return }
                 resolvePending(text: "Eddy is unavailable right now. Please try again shortly.", provider: nil)
             }
-            isSending = false
+            if !Task.isCancelled { isSending = false }
+            streamTask = nil
         }
+    }
+
+    private func appendStreamingToken(_ token: String) {
+        guard streamingRawText.count + token.count <= 64_000,
+              let index = bubbles.lastIndex(where: \.pending) else {
+            return
+        }
+        streamingRawText += token
+        bubbles[index].text = EddyStreamDisplayText.provisional(streamingRawText)
     }
 
     private func resolvePending(text: String, provider: String?) {
@@ -476,6 +542,459 @@ struct EddyChatView: View {
         bubbles[index].text = text.isEmpty ? "…" : text
         bubbles[index].provider = provider
         bubbles[index].pending = false
+        streamingRawText = ""
+    }
+}
+
+/// Read-only access to the signed-in user's server-owned Eddy history. The app never
+/// writes conversations to a device cache, and this view has no approval controls.
+private struct EddyConversationHistoryView: View {
+    @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject var profile: ProfileStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var conversations: [EddyConversationSummary] = []
+    @State private var loading = true
+    @State private var error: String?
+
+    private let api = APIClient(baseURL: URL(string: AppConfig.baseURL)!)
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Text("Your authorized Eddy history is read from the server and is not retained offline on this device.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Z.inkMuted)
+                }
+                if let error {
+                    Section {
+                        RetryableMessage(symbol: "exclamationmark.triangle", title: "Can't load conversation history",
+                                         message: error, tone: .warning) {
+                            Task { await load() }
+                        }
+                    }
+                } else if loading {
+                    Section { HStack { Spacer(); ProgressView(); Spacer() } }
+                } else if conversations.isEmpty {
+                    Section { RetryableMessage(symbol: "bubble.left.and.bubble.right", title: "No Eddy conversations",
+                                                 message: "There are no conversations available to this account.", tone: .info) }
+                } else {
+                    Section {
+                        ForEach(conversations) { conversation in
+                            NavigationLink(value: conversation.id) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(conversation.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
+                                    Text("\(conversation.origin == "hummingbird" ? "Hummingbird" : "Zephyrus") · \(altitudeTitle(conversation.surface))\(conversation.updatedAt.map { " · \(altitudeRelativeTime($0) ?? "updated")" } ?? "")")
+                                        .font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background { HummingbirdBackdrop(dim: 0.4) }
+            .navigationTitle("Eddy history")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: String.self) { id in
+                EddyConversationDetailView(conversationID: id)
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }.tint(Z.primary)
+                }
+            }
+            .task { await load() }
+        }
+    }
+
+    private func load() async {
+        loading = true
+        error = nil
+        do {
+            conversations = try await api.eddyConversations(persona: profile.roleId, bearer: auth.accessToken ?? "")
+                .filter { !$0.id.isEmpty }
+        } catch let error as APIError {
+            self.error = error.message
+        } catch {
+            self.error = "Eddy conversation history is unavailable right now."
+        }
+        loading = false
+    }
+}
+
+private struct EddyConversationDetailView: View {
+    @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject var profile: ProfileStore
+
+    let conversationID: String
+    @State private var conversation: EddyConversationDetail?
+    @State private var loading = true
+    @State private var error: String?
+
+    private let api = APIClient(baseURL: URL(string: AppConfig.baseURL)!)
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Z.s3) {
+                if let error {
+                    RetryableMessage(symbol: "exclamationmark.triangle", title: "Can't load conversation",
+                                     message: error, tone: .warning) {
+                        Task { await load() }
+                    }
+                } else if loading {
+                    HStack { Spacer(); ProgressView(); Spacer() }.padding(.top, Z.s6)
+                } else if let conversation {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(conversation.title).font(.system(size: 18, weight: .semibold)).foregroundStyle(Z.ink)
+                        Text("Read-only server history · \(altitudeTitle(conversation.surface))")
+                            .font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                    }
+                    .padding(Z.s3)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(Z.surface))
+                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Z.border, lineWidth: 1))
+
+                    if conversation.messages.isEmpty {
+                        RetryableMessage(symbol: "bubble.left", title: "No messages available",
+                                         message: "This conversation has no messages to display.", tone: .info)
+                    } else {
+                        ForEach(conversation.messages) { message in
+                            bubble(message)
+                        }
+                    }
+                }
+            }
+            .padding(Z.s4)
+        }
+        .background { HummingbirdBackdrop(dim: 0.4) }
+        .navigationTitle("Eddy conversation")
+        .navigationBarTitleDisplayMode(.inline)
+        .task(id: conversationID) { await load() }
+    }
+
+    @ViewBuilder private func bubble(_ message: EddyConversationMessage) -> some View {
+        HStack {
+            if message.role == "user" { Spacer(minLength: Z.s6) }
+            VStack(alignment: message.role == "user" ? .trailing : .leading, spacing: 4) {
+                Text(message.content)
+                    .font(.system(size: 15))
+                    .foregroundStyle(message.role == "user" ? .white : Z.ink)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, Z.s3).padding(.vertical, Z.s2)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(message.role == "user" ? Z.primary : Z.surface))
+                    .overlay {
+                        if message.role != "user" {
+                            RoundedRectangle(cornerRadius: 14).strokeBorder(Z.border, lineWidth: 1)
+                        }
+                    }
+                Text(
+                    [
+                        message.role == "user" ? "You" : (message.provider.map { "via \($0)" } ?? "Eddy"),
+                        message.createdAt.flatMap(altitudeRelativeTime),
+                    ]
+                    .compactMap { $0 }
+                    .joined(separator: " · ")
+                )
+                    .font(.system(size: 10)).foregroundStyle(Z.inkMuted)
+                if message.hasProposedAction {
+                    Text("A draft action remains subject to separate human review; this history view cannot approve it.")
+                        .font(.system(size: 11)).foregroundStyle(Z.inkMuted).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            if message.role != "user" { Spacer(minLength: Z.s6) }
+        }
+    }
+
+    private func load() async {
+        loading = true
+        error = nil
+        do {
+            conversation = try await api.eddyConversation(id: conversationID, persona: profile.roleId, bearer: auth.accessToken ?? "")
+        } catch let error as APIError {
+            self.error = error.message
+        } catch {
+            self.error = "This Eddy conversation is unavailable right now."
+        }
+        loading = false
+    }
+}
+
+/// A server-owned queue of pending Eddy proposals. It is intentionally separate from
+/// conversation history: opening an old transcript can never approve an action.
+private struct EddyApprovalsView: View {
+    @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject var profile: ProfileStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var approvals: [EddyApprovalSummary] = []
+    @State private var loading = true
+    @State private var error: String?
+
+    private let api = APIClient(baseURL: URL(string: AppConfig.baseURL)!)
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Human decision queue").font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
+                        Text("Eddy may propose an operational action. A qualified person must review the live preview and explicitly decide; actions are never queued offline.")
+                            .font(.system(size: 13)).foregroundStyle(Z.inkMuted)
+                    }
+                }
+                if let error {
+                    Section {
+                        RetryableMessage(symbol: "exclamationmark.triangle", title: "Can't load Eddy approvals",
+                                         message: error, tone: .warning) {
+                            Task { await load() }
+                        }
+                    }
+                } else if loading {
+                    Section { HStack { Spacer(); ProgressView(); Spacer() } }
+                } else if approvals.isEmpty {
+                    Section {
+                        RetryableMessage(symbol: "checkmark.circle", title: "No pending Eddy approvals",
+                                         message: "There are no proposals awaiting your review.", tone: .info)
+                    }
+                } else {
+                    Section {
+                        ForEach(approvals) { approval in
+                            NavigationLink(value: approval.id) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(approval.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Z.ink)
+                                    Text("\(approval.tier) · \((approval.risk ?? "review").uppercased()) · \(altitudeTitle(approval.surface))")
+                                        .font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                                    Text("Open live preview before deciding")
+                                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Z.primary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background { HummingbirdBackdrop(dim: 0.4) }
+            .navigationTitle("Eddy approvals")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: String.self) { id in
+                EddyApprovalDetailView(approvalID: id) {
+                    approvals.removeAll { $0.approvalUuid == id }
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        Task { await load() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .accessibilityLabel("Refresh Eddy approvals")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }.tint(Z.primary)
+                }
+            }
+            .task { await load() }
+        }
+    }
+
+    private func load() async {
+        loading = true
+        error = nil
+        do {
+            approvals = try await api.eddyApprovals(persona: profile.roleId, bearer: auth.accessToken ?? "")
+                .filter { !$0.approvalUuid.isEmpty }
+        } catch let error as APIError {
+            self.error = error.message
+        } catch {
+            self.error = "Eddy approvals are unavailable right now."
+        }
+        loading = false
+    }
+}
+
+/// Fetch-on-open review surface for a real human decision. It has no offline queue and
+/// maintains an in-memory idempotency key only while the same deliberate retry is possible.
+private struct EddyApprovalDetailView: View {
+    @EnvironmentObject var auth: AuthStore
+    @EnvironmentObject var profile: ProfileStore
+
+    let approvalID: String
+    let onDecision: () -> Void
+    @State private var preview: EddyApprovalPreview?
+    @State private var outcome: EddyApprovalDecisionResult?
+    @State private var loading = true
+    @State private var working = false
+    @State private var error: String?
+    @State private var pendingDecision: String?
+    @State private var decisionKeys: [String: UUID] = [:]
+
+    private let api = APIClient(baseURL: URL(string: AppConfig.baseURL)!)
+
+    private var confirmationVisible: Binding<Bool> {
+        Binding(get: { pendingDecision != nil }, set: { if !$0 { pendingDecision = nil } })
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Z.s3) {
+                if let error {
+                    RetryableMessage(symbol: "exclamationmark.triangle", title: "Decision not recorded",
+                                     message: error, tone: .warning) {
+                        Task { await load() }
+                    }
+                } else if loading {
+                    HStack { Spacer(); ProgressView(); Spacer() }.padding(.top, Z.s6)
+                } else if let outcome {
+                    Panel {
+                        VStack(alignment: .leading, spacing: Z.s2) {
+                            Text("Decision recorded").font(.system(size: 18, weight: .semibold)).foregroundStyle(Z.ink)
+                            Text("The server recorded your human \(outcome.decision) decision. Eddy did not make this decision.")
+                                .font(.system(size: 13)).foregroundStyle(Z.inkMuted)
+                        }
+                    }
+                } else if let preview {
+                    previewCard(preview)
+                    if let rationale = preview.rationale, !rationale.isEmpty {
+                        detailCard(title: "Why Eddy proposed this", body: rationale)
+                    }
+                    if let runnerUp = preview.runnerUp, !runnerUp.isEmpty {
+                        detailCard(title: "Alternative considered", body: runnerUp)
+                    }
+                    if !preview.params.isEmpty {
+                        Panel {
+                            VStack(alignment: .leading, spacing: Z.s2) {
+                                Text("Operational details").font(.system(size: 14, weight: .semibold)).foregroundStyle(Z.ink)
+                                ForEach(preview.params.keys.sorted(), id: \.self) { key in
+                                    HStack(alignment: .top, spacing: Z.s2) {
+                                        Text(altitudeTitle(key)).font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                                            .frame(width: 120, alignment: .leading)
+                                        Text(preview.params[key]?.displayString ?? "—")
+                                            .font(.system(size: 12)).foregroundStyle(Z.ink)
+                                        Spacer(minLength: 0)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Text("Before you decide, confirm the current operational situation. The server will validate your current authorization and persona; a decision needs a live connection and is never sent automatically.")
+                        .font(.system(size: 13)).foregroundStyle(Z.inkMuted).fixedSize(horizontal: false, vertical: true)
+                    decisionButtons
+                }
+            }
+            .padding(Z.s4)
+        }
+        .background { HummingbirdBackdrop(dim: 0.4) }
+        .navigationTitle("Review Eddy proposal")
+        .navigationBarTitleDisplayMode(.inline)
+        .task(id: approvalID) { await load() }
+        .confirmationDialog(
+            pendingDecision == "approved" ? "Record approval?" : "Record rejection?",
+            isPresented: confirmationVisible,
+            titleVisibility: .visible
+        ) {
+            Button(pendingDecision == "approved" ? "Record approval" : "Record rejection") {
+                if let decision = pendingDecision {
+                    pendingDecision = nil
+                    Task { await decide(decision) }
+                }
+            }
+            Button("Cancel", role: .cancel) { pendingDecision = nil }
+        } message: {
+            Text("You are about to \(pendingDecision == "approved" ? "approve" : "reject") this live operational proposal. This is your human decision, not Eddy's, and it is never queued for later offline delivery.")
+        }
+    }
+
+    private func previewCard(_ preview: EddyApprovalPreview) -> some View {
+        Panel {
+            VStack(alignment: .leading, spacing: Z.s2) {
+                Text(preview.summary.title).font(.system(size: 20, weight: .semibold)).foregroundStyle(Z.ink)
+                Text("\(preview.summary.tier) · \((preview.summary.risk ?? "review").uppercased()) · \(altitudeTitle(preview.summary.surface))")
+                    .font(.system(size: 12)).foregroundStyle(Z.inkMuted)
+                if let dryRun = preview.preview, !dryRun.isEmpty {
+                    Text(dryRun).font(.system(size: 14)).foregroundStyle(Z.ink)
+                }
+                Text("Live server preview · not retained offline")
+                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(Z.primary)
+            }
+        }
+    }
+
+    private func detailCard(title: String, body: String) -> some View {
+        Panel {
+            VStack(alignment: .leading, spacing: Z.s1) {
+                Text(title).font(.system(size: 14, weight: .semibold)).foregroundStyle(Z.ink)
+                Text(body).font(.system(size: 13)).foregroundStyle(Z.inkMuted)
+            }
+        }
+    }
+
+    private var decisionButtons: some View {
+        VStack(spacing: Z.s2) {
+            Button {
+                pendingDecision = "approved"
+            } label: {
+                HStack {
+                    if working { ProgressView().controlSize(.small).tint(.white) }
+                    Text(working ? "Recording decision…" : "Approve after review")
+                }
+                .font(.system(size: 16, weight: .semibold)).frame(maxWidth: .infinity).padding(.vertical, Z.s2)
+            }
+            .disabled(working)
+            .buttonStyle(.plain)
+            .foregroundStyle(.white)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Z.primary))
+
+            Button {
+                pendingDecision = "rejected"
+            } label: {
+                Text("Reject after review")
+                    .font(.system(size: 15, weight: .semibold)).frame(maxWidth: .infinity).padding(.vertical, Z.s2)
+            }
+            .disabled(working)
+            .buttonStyle(.plain)
+            .foregroundStyle(Z.status(.warning))
+            .background(RoundedRectangle(cornerRadius: 12).strokeBorder(Z.status(.warning).opacity(0.65), lineWidth: 1))
+        }
+    }
+
+    private func load() async {
+        loading = true
+        error = nil
+        outcome = nil
+        do {
+            preview = try await api.eddyApproval(id: approvalID, persona: profile.roleId, bearer: auth.accessToken ?? "")
+        } catch let error as APIError {
+            self.error = error.message
+        } catch {
+            self.error = "This Eddy approval is unavailable right now."
+        }
+        loading = false
+    }
+
+    private func decide(_ decision: String) async {
+        guard !working else { return }
+        let key = decisionKeys[decision] ?? UUID()
+        decisionKeys[decision] = key
+        working = true
+        error = nil
+        defer { working = false }
+        do {
+            outcome = try await api.decideEddyApproval(
+                id: approvalID,
+                persona: profile.roleId,
+                decision: decision,
+                idempotencyKey: key,
+                bearer: auth.accessToken ?? ""
+            )
+            onDecision()
+            decisionKeys.removeValue(forKey: decision)
+        } catch let error as APIError {
+            self.error = error.message
+        } catch {
+            self.error = "The Eddy decision was not recorded. Check live connectivity and review server status before intentionally trying again."
+        }
     }
 }
 

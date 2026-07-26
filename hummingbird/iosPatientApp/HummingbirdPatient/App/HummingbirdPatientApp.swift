@@ -29,19 +29,24 @@ private struct PatientPrivacyProtectedRoot: View {
     @ObservedObject var viewModel: PatientAppViewModel
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @StateObject private var screenCaptureMonitor = PatientScreenCaptureMonitor()
+    @StateObject private var appActivityMonitor = PatientAppActivityMonitor()
+    @State private var shouldRevalidateAccessOnActivation = false
+    @State private var isStartingAccessRevalidation = false
 
     private var presentationPreferences: PatientPresentationPreferences {
         PatientPresentationPreferences(viewModel.patientPreferences)
     }
 
     var body: some View {
-        ZStack {
-            PatientRootView(viewModel: viewModel)
-
-            if privacyCoverVisible {
-                PatientPrivacyCoverView()
+        Group {
+            if let privacyCoverReason {
+                PatientPrivacyCoverView(reason: privacyCoverReason)
                     .transition(effectiveReduceMotion ? .identity : .opacity)
-                    .zIndex(100)
+            } else {
+                // Do not leave protected care content in the rendered accessibility tree beneath
+                // a visual overlay. The root is recreated only after the privacy condition ends.
+                PatientRootView(viewModel: viewModel)
             }
         }
         .animation(
@@ -50,22 +55,73 @@ private struct PatientPrivacyProtectedRoot: View {
         )
         .patientPresentation(viewModel.patientPreferences)
         .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .background {
+            if newPhase == .inactive {
+                shouldRevalidateAccessOnActivation = true
+            } else if newPhase == .background {
                 viewModel.protectPatientSessionRowsForBackground()
+                shouldRevalidateAccessOnActivation = true
+            } else if newPhase == .active {
+                beginAccessRevalidationIfRequired()
+            }
+        }
+        .onChange(of: appActivityMonitor.requiresPrivacyCover) { _, requiresPrivacyCover in
+            if !requiresPrivacyCover, scenePhase == .active {
+                beginAccessRevalidationIfRequired()
             }
         }
     }
 
-    private var privacyCoverVisible: Bool {
+    private var privacyCoverReason: PatientPrivacyCoverReason? {
+        if screenCaptureMonitor.isCaptureActive || debugScreenCaptureCoverRequested {
+            return .screenCapture
+        }
+
+        if appActivityMonitor.requiresPrivacyCover || scenePhase != .active || debugPrivacyCoverRequested {
+            return .inactive
+        }
+
+        if shouldRevalidateAccessOnActivation ||
+            appActivityMonitor.requiresAccessRevalidation ||
+            isStartingAccessRevalidation ||
+            viewModel.isForegroundAccessValidationInProgress
+        {
+            return .accessVerification
+        }
+
+        return nil
+    }
+
+    private var debugPrivacyCoverRequested: Bool {
         #if DEBUG
-        scenePhase != .active
-            || ProcessInfo.processInfo.environment["HBP_SHOW_PRIVACY_COVER"] == "1"
+        ProcessInfo.processInfo.environment["HBP_SHOW_PRIVACY_COVER"] == "1"
         #else
-        scenePhase != .active
+        false
+        #endif
+    }
+
+    private var debugScreenCaptureCoverRequested: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.environment["HBP_SHOW_SCREEN_CAPTURE_PRIVACY_COVER"] == "1"
+        #else
+        false
         #endif
     }
 
     private var effectiveReduceMotion: Bool {
         reduceMotion || presentationPreferences.reducedMotion
+    }
+
+    private func beginAccessRevalidationIfRequired() {
+        guard !isStartingAccessRevalidation,
+              shouldRevalidateAccessOnActivation || appActivityMonitor.requiresAccessRevalidation
+        else { return }
+
+        isStartingAccessRevalidation = true
+        Task {
+            await viewModel.revalidateCurrentCareAccessAfterForeground()
+            shouldRevalidateAccessOnActivation = false
+            appActivityMonitor.markAccessRevalidated()
+            isStartingAccessRevalidation = false
+        }
     }
 }

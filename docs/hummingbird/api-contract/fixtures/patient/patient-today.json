@@ -1,0 +1,88 @@
+{
+    "data": {
+        "projection_uuid": "6fd8a09e-bea9-58c3-adf7-0d9264116f35",
+        "encounter_uuid": "d941e97f-9db3-5a3b-af7d-2cc68096d159",
+        "kind": "today",
+        "content": {
+            "notices": [
+                "For urgent help, use your call button or speak with bedside staff."
+            ],
+            "summary": "Your care team is reviewing progress and preparing the next steps.",
+            "headline": "Your plan for today",
+            "schedule": [
+                {
+                    "label": "Care team rounds",
+                    "status": "planned",
+                    "category": "other",
+                    "item_uuid": "afad5677-d9d4-54a3-9ce5-e0baa5d31cef",
+                    "can_change": true,
+                    "time_window": "This morning",
+                    "timing_confidence": "estimated"
+                },
+                {
+                    "label": "A test update",
+                    "status": "result_pending",
+                    "category": "test",
+                    "item_uuid": "e4344824-7fdb-5ee2-a52e-bebcaec76c99",
+                    "can_change": true,
+                    "preparation": "Your care team will explain what happens next.",
+                    "time_window": "Later today",
+                    "timing_confidence": "unknown"
+                }
+            ],
+            "questions": [
+                "Tell your care team what you would like explained today."
+            ],
+            "next_steps": [
+                "Ask questions during rounds or speak with bedside staff."
+            ],
+            "care_location": {
+                "status": "current",
+                "room_display_name": "Reference room",
+                "unit_display_name": "Reference inpatient unit",
+                "facility_display_name": "Synthetic Reference Hospital"
+            },
+            "discharge_outlook": {
+                "can_change": true,
+                "confidence": "estimated",
+                "estimated_range": "In the next day or two",
+                "remaining_steps": [
+                    "Ask what still needs to happen before you leave."
+                ],
+                "readiness_topics": [
+                    "Your team will review the next safe step with you."
+                ]
+            }
+        },
+        "uncertainty": {
+            "level": "low",
+            "can_change": true,
+            "explanation": "Plans can change as your care needs change.",
+            "reviewed_at": "2026-01-15T12:04:00.000000Z"
+        },
+        "provenance": {
+            "review_state": "automated_test_only",
+            "source_class": "synthetic_clinical_record",
+            "input_classes": ["synthetic_schedule", "synthetic_care_plan"],
+            "producer_version": "fixture-v1",
+            "projection_method": "deterministic_fixture"
+        },
+        "observed_at": "2026-01-15T12:04:00.000000Z",
+        "generated_at": "2026-01-15T12:04:00.000000Z",
+        "released_at": "2026-01-15T12:04:00.000000Z"
+    },
+    "meta": {
+        "request_id": "98af0a8a-4ff8-5ae9-a982-b92a34a6b630",
+        "generated_at": "2026-07-25T14:00:00.000000Z",
+        "source_freshness": {
+            "status": "current",
+            "observed_at": "2026-01-15T12:04:00.000000Z"
+        },
+        "policy_version": "patient-disclosure-v1-test",
+        "state_vocabulary_version": "patient-state-vocabulary.v2-draft",
+        "as_of": "2026-01-15T12:04:00.000000Z",
+        "stale": false,
+        "version": 1
+    },
+    "links": {}
+}

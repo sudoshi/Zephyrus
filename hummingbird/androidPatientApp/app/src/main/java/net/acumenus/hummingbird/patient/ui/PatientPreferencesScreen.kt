@@ -45,7 +45,7 @@ internal fun PatientPreferencesScreen(
     onSave: (PatientPreferencesUpdate) -> Unit,
 ) {
     BackHandler(onBack = onDismiss)
-    PatientScenicBackground(scene = PatientScene.LOADING_OR_EMPTY) {
+    PatientScenicBackground(scene = PatientScene.ACCOUNT) {
         Scaffold(
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
             topBar = {
@@ -114,6 +114,7 @@ private fun PatientPreferencesForm(
     var textSize by remember(preferences) { mutableStateOf(preferences.textSize ?: "standard") }
     var reducedMotion by remember(preferences) { mutableStateOf(preferences.reducedMotion ?: false) }
     var highContrast by remember(preferences) { mutableStateOf(preferences.highContrast ?: false) }
+    var showScenery by remember(preferences) { mutableStateOf(preferences.hideScenery != true) }
     var notificationPreview by remember(preferences) { mutableStateOf(preferences.notificationPreview ?: "hidden") }
     var preferredChannel by remember(preferences) { mutableStateOf(preferences.preferredChannel ?: "push") }
 
@@ -166,8 +167,15 @@ private fun PatientPreferencesForm(
                     onCheckedChange = { highContrast = it },
                     testTag = "patient-preference-high-contrast",
                 )
+                PreferenceToggle(
+                    label = "Show Hummingbird background images",
+                    checked = showScenery,
+                    enabled = !state.saving,
+                    onCheckedChange = { showScenery = it },
+                    testTag = "patient-preference-show-scenery",
+                )
                 Text(
-                    "Hummingbird also respects the accessibility settings on this device.",
+                    "You can hide decorative background images at any time. High contrast also hides them. Hummingbird respects the accessibility settings on this device.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -209,6 +217,7 @@ private fun PatientPreferencesForm(
                             textSize = textSize,
                             reducedMotion = reducedMotion,
                             highContrast = highContrast,
+                            hideScenery = !showScenery,
                             notificationPreview = notificationPreview,
                             preferredChannel = preferredChannel,
                         ),
@@ -217,6 +226,7 @@ private fun PatientPreferencesForm(
                 enabled = !state.saving,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .patientMinimumInteractiveTarget()
                     .testTag("save-patient-preferences"),
             ) {
                 Text(if (state.saving) "Saving preferences…" else "Save preferences")

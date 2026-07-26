@@ -41,6 +41,7 @@ const sourceItem = {
     status: "open",
     ownership_state: "acknowledged",
     assigned_to_me: true,
+    actions: { can_claim: false, can_reply: true, can_close: false },
     work_item_version: 4,
     thread_version: 7,
     last_message_at: "2026-07-20T12:00:00Z",
@@ -231,6 +232,37 @@ describe("Patient Communications server-driven transition polling", () => {
         expect(
             get.mock.calls.filter(([url]) => url === endpoints.inbox),
         ).toHaveLength(1);
+    });
+
+    it("fails closed when a transitional projection omits action capabilities", async () => {
+        const { actions: _actions, ...actionlessItem } = sourceItem;
+        vi.spyOn(axios, "get").mockResolvedValue(
+            envelope({
+                ...sourceDetail,
+                ...actionlessItem,
+                actions: undefined,
+            }),
+        );
+
+        renderWorkspace([actionlessItem] as unknown as (typeof sourceItem)[]);
+        fireEvent.click(
+            screen.getByRole("button", { name: /Source care question/i }),
+        );
+
+        expect(
+            await screen.findByText(
+                "Source detail must not survive a server transition.",
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole("button", { name: "Assign to me" }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole("button", { name: "Send response" }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole("button", { name: "Close communication" }),
+        ).not.toBeInTheDocument();
     });
 
     it("detects retained same-UUID dual-pool drift and refetches detail exactly once", async () => {

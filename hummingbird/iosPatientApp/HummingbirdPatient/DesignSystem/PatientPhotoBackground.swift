@@ -21,6 +21,14 @@ enum PatientPhotoScene: String, CaseIterable {
     }
 }
 
+/// Decorative patient photography always fills the viewport from its center.
+/// The policy is static: care surfaces never pan, parallax-scroll, or animate
+/// a Hummingbird image behind clinical content.
+enum PatientPhotoCropPolicy {
+    static let contentMode: ContentMode = .fill
+    static let alignment: Alignment = .center
+}
+
 struct PatientPhotoBackground: View {
     let scene: PatientPhotoScene
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
@@ -31,13 +39,17 @@ struct PatientPhotoBackground: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                if reduceTransparency || presentationPreferences.highContrast {
+                if suppressesScenery {
                     Color(uiColor: .systemBackground)
                 } else {
                     Image(scene.assetName)
                         .resizable()
-                        .scaledToFill()
-                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .aspectRatio(contentMode: PatientPhotoCropPolicy.contentMode)
+                        .frame(
+                            width: proxy.size.width,
+                            height: proxy.size.height,
+                            alignment: PatientPhotoCropPolicy.alignment
+                        )
                         .clipped()
                         .saturation(colorScheme == .dark ? 0.72 : 0.88)
 
@@ -60,6 +72,10 @@ struct PatientPhotoBackground: View {
         }
         return [background.opacity(0.68), background.opacity(0.92)]
     }
+
+    private var suppressesScenery: Bool {
+        reduceTransparency || presentationPreferences.hidesDecorativeScenery
+    }
 }
 
 struct PatientPhotoStateCard: View {
@@ -76,14 +92,16 @@ struct PatientPhotoStateCard: View {
 
     var body: some View {
         ZStack {
-            Image(scene.assetName)
-                .resizable()
-                .scaledToFill()
-                .accessibilityHidden(true)
+            if !suppressesScenery {
+                Image(scene.assetName)
+                    .resizable()
+                    .scaledToFill()
+                    .accessibilityHidden(true)
+            }
 
             Color(uiColor: .systemBackground)
                 .opacity(
-                    reduceTransparency || presentationPreferences.highContrast
+                    suppressesScenery
                         ? 1
                         : (colorSchemeContrast == .increased ? 0.96 : 0.86)
                 )
@@ -97,7 +115,10 @@ struct PatientPhotoStateCard: View {
                     .foregroundStyle(PatientPalette.ink)
 
                 if let actionTitle, let action {
-                    Button(actionTitle, action: action)
+                    Button(action: action) {
+                        Text(actionTitle)
+                            .patientMinimumInteractiveTarget()
+                    }
                         .buttonStyle(.borderedProminent)
                         .padding(.top, 3)
                 }
@@ -119,6 +140,10 @@ struct PatientPhotoStateCard: View {
         }
         .accessibilityElement(children: .contain)
     }
+
+    private var suppressesScenery: Bool {
+        reduceTransparency || presentationPreferences.hidesDecorativeScenery
+    }
 }
 
 struct PatientLoadingStateView: View {
@@ -138,7 +163,7 @@ struct PatientLoadingStateView: View {
                     .font(.title3.bold())
                 Text("Only information released to Hummingbird Patient will appear.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .patientSecondaryText()
                     .multilineTextAlignment(.center)
             }
             .padding(24)

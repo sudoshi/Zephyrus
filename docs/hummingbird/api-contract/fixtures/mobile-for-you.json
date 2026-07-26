@@ -1,101 +1,85 @@
 {
     "data": [
         {
-            "id": "transport-17",
-            "type": "transport",
-            "domain": "transport",
             "altitude": "A2",
-            "tier": "warning",
-            "visual_status": "warning",
-            "status": "warning",
+            "tier": "critical",
+            "visual_status": "critical",
+            "status": "critical",
             "status_detail": {
-                "value": "warning",
-                "glyph": "triangle",
-                "label": "At risk",
-                "generated_at": "2026-07-02T14:01:00Z"
+                "value": "critical",
+                "glyph": "octagon",
+                "label": "Critical",
+                "generated_at": "2026-07-24T12:00:00.000000Z"
             },
-            "title": "Transport past due",
-            "subtitle": "ED Bay 12 -> 6 East",
+            "recommended_actions": [],
+            "dependencies": [
+                {
+                    "type": "bed_request",
+                    "owner_role": "bed_manager",
+                    "status": "pending"
+                }
+            ],
+            "activity": [],
+            "subscriptions": [],
+            "patient_context_ref": "ptok_b7bcb2722b70379b981b528d",
+            "id": "bedreq-2",
+            "type": "bed_request",
+            "domain": "rtdc",
+            "title": "Bed placement needed",
+            "subtitle": "Medicine \u00b7 needs med surg",
             "unit": null,
-            "at": "2026-07-02T13:45:00Z",
-            "patient_context_ref": "ptok_transport_17",
+            "at": "2026-07-24T12:00:00+00:00",
+            "provenance": {
+                "source_service": "BedRequest",
+                "metric_key": "rtdc.pending_bed_request",
+                "stale": false
+            }
+        },
+        {
+            "altitude": "A2",
+            "tier": "critical",
+            "visual_status": "critical",
+            "status": "critical",
+            "status_detail": {
+                "value": "critical",
+                "glyph": "octagon",
+                "label": "Critical",
+                "generated_at": "2026-07-24T12:00:00.000000Z"
+            },
+            "recommended_actions": [],
             "dependencies": [
                 {
                     "type": "transport",
                     "owner_role": "transport",
-                    "status": "in_progress",
-                    "entity_ref": "17"
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "kind": "progress_transport",
-                    "label": "Progress trip",
-                    "endpoint": "/api/mobile/v1/transport/requests/17/status",
-                    "method": "POST",
-                    "requires_online": true
+                    "status": "requested"
                 }
             ],
             "activity": [],
+            "subscriptions": [],
+            "patient_context_ref": "ptok_b7bcb2722b70379b981b528d",
+            "id": "transport-2",
+            "type": "transport",
+            "domain": "transport",
+            "title": "STAT transport",
+            "subtitle": "ED \u2192 4 West",
+            "unit": null,
+            "at": "2026-07-24T12:10:00+00:00",
             "provenance": {
                 "source_service": "TransportRequest",
                 "metric_key": "transport.at_risk_job",
-                "stale": false,
-                "generated_at": "2026-07-02T14:01:00Z"
-            }
-        },
-        {
-            "id": "evs-23",
-            "type": "evs",
-            "domain": "evs",
-            "altitude": "A2",
-            "tier": "info",
-            "visual_status": "info",
-            "status": "info",
-            "status_detail": {
-                "value": "info",
-                "glyph": "circle",
-                "label": "Routine",
-                "generated_at": "2026-07-02T14:01:00Z"
-            },
-            "title": "Isolation bed-turn",
-            "subtitle": "Room 641 - terminal clean",
-            "unit": "6 East",
-            "at": "2026-07-02T13:58:00Z",
-            "patient_context_ref": "ptok_evs_23",
-            "dependencies": [
-                {
-                    "type": "evs",
-                    "owner_role": "evs",
-                    "status": "assigned",
-                    "entity_ref": "23"
-                }
-            ],
-            "recommended_actions": [
-                {
-                    "kind": "progress_turn",
-                    "label": "Start turn",
-                    "endpoint": "/api/mobile/v1/evs/requests/23/status",
-                    "method": "POST",
-                    "requires_online": true
-                }
-            ],
-            "activity": [],
-            "provenance": {
-                "source_service": "EvsRequest",
-                "metric_key": "evs.at_risk_turn",
-                "stale": false,
-                "generated_at": "2026-07-02T14:01:00Z"
+                "stale": false
             }
         }
     ],
     "meta": {
-        "as_of": "2026-07-02T14:01:00Z",
+        "as_of": "2026-07-24T12:00:00.000000Z",
         "stale": false,
-        "version": 1,
-        "count": 2
+        "version": null,
+        "count": 2,
+        "classification": "phi_minimized_restricted",
+        "offline_cache_allowed": false
     },
     "links": {
-        "web": "http://localhost/rtdc/bed-tracking"
+        "web": "http://zephyrus.test/rtdc/bed-tracking"
     }
 }

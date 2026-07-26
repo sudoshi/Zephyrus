@@ -40,7 +40,7 @@ class PatientResponseMetadataTest extends TestCase
 
         $metadata = (new PatientResponseMetadata)->forRequest($request);
 
-        $this->assertSame('patient-state-vocabulary.v1-draft', $metadata['state_vocabulary_version']);
+        $this->assertSame('patient-state-vocabulary.v2-draft', $metadata['state_vocabulary_version']);
         $this->assertSame('req-state-vocabulary', $metadata['request_id']);
     }
 }

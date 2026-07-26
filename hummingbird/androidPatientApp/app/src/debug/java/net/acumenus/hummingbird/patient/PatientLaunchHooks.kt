@@ -17,6 +17,7 @@ internal object PatientLaunchHooks {
         val preview = when (extra("HB_PATIENT_STATE")?.lowercase()) {
             "loading" -> PatientLaunchPreview.LOADING
             "empty" -> PatientLaunchPreview.EMPTY
+            "access-verification-unavailable" -> PatientLaunchPreview.ACCESS_VERIFICATION_UNAVAILABLE
             "unavailable" -> PatientLaunchPreview.UNAVAILABLE
             "recoverable-error" -> PatientLaunchPreview.RECOVERABLE_ERROR
             else -> PatientLaunchPreview.NONE

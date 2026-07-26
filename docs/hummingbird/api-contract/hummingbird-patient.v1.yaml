@@ -2274,6 +2274,8 @@ components:
           type: boolean
         high_contrast:
           type: boolean
+        hide_scenery:
+          type: boolean
         notification_preview:
           type: string
           enum: [hidden, generic]
@@ -2332,6 +2334,8 @@ components:
         reduced_motion:
           type: boolean
         high_contrast:
+          type: boolean
+        hide_scenery:
           type: boolean
         notification_preview:
           type: string
@@ -2943,9 +2947,14 @@ components:
             [
               requested,
               planned,
+              scheduled,
               confirmed,
+              waiting,
+              transport_requested,
               in_progress,
               completed,
+              result_pending,
+              result_released,
               delayed,
               canceled,
             ]
@@ -3146,6 +3155,10 @@ components:
           items:
             $ref: "#/components/schemas/PatientDischargeCriterion"
         unresolved_needs:
+          $ref: "#/components/schemas/PatientLanguageList"
+        equipment:
+          $ref: "#/components/schemas/PatientLanguageList"
+        transport:
           $ref: "#/components/schemas/PatientLanguageList"
         medications:
           type: array

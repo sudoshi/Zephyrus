@@ -3,6 +3,7 @@ import SwiftUI
 struct PatientPathView: View {
     let snapshot: PatientExperienceSnapshot
     @ObservedObject var viewModel: PatientAppViewModel
+    let openMessages: () -> Void
     @State private var selectedEducation: PatientReleasedEducation?
 
     var body: some View {
@@ -11,7 +12,8 @@ struct PatientPathView: View {
                 PatientScreenHeader(
                     eyebrow: "Your care pathway",
                     title: "My Path",
-                    subtitle: "A plain-language view of what is complete, what is happening, and what remains uncertain."
+                    subtitle: "A plain-language view of what is complete, what is happening, and what remains uncertain.",
+                    headingIdentifier: "patient-heading-my-path"
                 )
                 #if DEBUG
                 if snapshot.isSynthetic { SyntheticReferenceBanner() }
@@ -92,15 +94,27 @@ struct PatientPathView: View {
                             .font(.body)
                         Text("Sending a message does not automatically change your care plan or create a clinical order. Your team will review it with you.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .patientSecondaryText()
+                        Button {
+                            openMessages()
+                        } label: {
+                            Label("Open Messages", systemImage: "message.fill")
+                                .patientMinimumInteractiveTarget()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(PatientPalette.teal)
+                        .accessibilityIdentifier("open-messages-from-preferences")
+                        .accessibilityHint("Open Messages to review available non-urgent options. No message is created.")
                     }
                 }
+                .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("patient-preference-guidance")
 
                 if !snapshot.pathwayEducation.isEmpty {
                     Text("Learning and preparation")
                         .font(.title2.bold())
                         .foregroundStyle(PatientPalette.ink)
+                        .patientAccessibilityHeading(identifier: "patient-heading-learning-and-preparation")
                     ForEach(snapshot.pathwayEducation) { education in
                         PatientCard {
                             VStack(alignment: .leading, spacing: 10) {
@@ -110,8 +124,11 @@ struct PatientPathView: View {
                                 Text(education.summary)
                                     .font(.body)
                                 if snapshot.canWriteMessaging {
-                                    Button("Ask for an explanation", systemImage: "text.bubble.fill") {
+                                    Button {
                                         selectedEducation = education
+                                    } label: {
+                                        Label("Ask for an explanation", systemImage: "text.bubble.fill")
+                                            .patientMinimumInteractiveTarget()
                                     }
                                     .buttonStyle(.borderedProminent)
                                     .tint(PatientPalette.teal)
@@ -119,7 +136,7 @@ struct PatientPathView: View {
                                 } else {
                                     Text("Ask your bedside nurse or another care-team member to talk this through with you.")
                                         .font(.footnote)
-                                        .foregroundStyle(.secondary)
+                                        .patientSecondaryText()
                                 }
                             }
                         }
@@ -188,7 +205,7 @@ struct PatientPathView: View {
                                 if let confidence = discharge.estimatedConfidence {
                                     Text("Timing confidence: \(PatientStateVocabulary.label(for: confidence, domain: .timingConfidence)).")
                                         .font(.footnote)
-                                        .foregroundStyle(.secondary)
+                                        .patientSecondaryText()
                                 }
                             }
                         }
@@ -218,6 +235,20 @@ struct PatientPathView: View {
                         icon: "clock.arrow.circlepath",
                         items: discharge.unresolvedNeeds ?? []
                     )
+                    if let equipment = discharge.equipment, !equipment.isEmpty {
+                        PatientBulletListCard(
+                            title: "Equipment and supplies for home",
+                            icon: "cross.case.fill",
+                            items: equipment
+                        )
+                    }
+                    if let transport = discharge.transport, !transport.isEmpty {
+                        PatientBulletListCard(
+                            title: "Getting home",
+                            icon: "car.fill",
+                            items: transport
+                        )
+                    }
                     PatientBulletListCard(
                         title: "Medicines to review",
                         icon: "pills.fill",
@@ -257,7 +288,7 @@ struct PatientPathView: View {
                             Label("Your team confirms the details", systemImage: "person.crop.circle.badge.checkmark")
                                 .font(.headline)
                                 .foregroundStyle(PatientPalette.teal)
-                            Text("This is a released summary to help you prepare. Your care team will confirm medicines, follow-up, warning signs, and the safe time to leave.")
+                            Text("This is a released summary to help you prepare. Your care team will confirm equipment, your getting-home plan, medicines, follow-up, warning signs, and the safe time to leave.")
                                 .font(.body)
                         }
                     }
@@ -337,7 +368,8 @@ struct PatientPathView: View {
         .sheet(item: $selectedEducation) { education in
             PatientEducationClarificationComposer(
                 education: education,
-                viewModel: viewModel
+                viewModel: viewModel,
+                openMessages: openMessages
             ) {
                 selectedEducation = nil
             }
@@ -349,6 +381,7 @@ struct PatientPathView: View {
 private struct PatientEducationClarificationComposer: View {
     let education: PatientReleasedEducation
     @ObservedObject var viewModel: PatientAppViewModel
+    let openMessages: () -> Void
     let dismiss: () -> Void
     @State private var message = ""
 
@@ -388,7 +421,10 @@ private struct PatientEducationClarificationComposer: View {
                                 educationItemUUID: education.itemUUID,
                                 message: message
                             )
-                            if sent { dismiss() }
+                            if sent {
+                                dismiss()
+                                openMessages()
+                            }
                         }
                     } label: {
                         HStack {
