@@ -23,6 +23,15 @@ final class AncillaryReadinessService
 {
     public const DRILL_SOURCES = ['flow_board', 'ancillary_services', 'ed', 'rtdc', 'periop', 'cockpit'];
 
+    /**
+     * Deliberately reads the lab services LIVE, never through the
+     * request-scoped LabAggregateSnapshotFactory: the demo generators
+     * consume this service mid-refresh (canonicalEvent → clinicalContext →
+     * DischargePrioritiesService → laboratoryAxes) while the cohort is
+     * being rewritten — a memoized read there would freeze mid-refresh
+     * facts into the generators' context selection and change the
+     * generated demo data.
+     */
     public function __construct(
         private readonly LabDecisionPendingService $labDecisions,
         private readonly LabFlowBoardService $labFlow,

@@ -4,21 +4,22 @@ namespace App\Services\Lab;
 
 /**
  * One aggregate-only Laboratory health contract for the Flow Cockpit. It
- * composes the workspace-owned Flow Board and Decision-Pending services so
- * the house wall and drill cannot create a second cohort or expose results.
+ * composes the workspace-owned Flow Board and Decision-Pending aggregates —
+ * via the request-scoped snapshot so every consumer in one request shares the
+ * same governed calculation — and the house wall and drill can never create a
+ * second cohort or expose results.
  */
 final class LabCockpitHealthService
 {
     public function __construct(
-        private readonly LabFlowBoardService $flowBoard,
-        private readonly LabDecisionPendingService $pending,
+        private readonly LabAggregateSnapshotFactory $snapshots,
     ) {}
 
     /** @return array<string, mixed> */
     public function build(): array
     {
-        $operations = $this->flowBoard->cockpitHealth();
-        $decisions = $this->pending->cockpitHealth();
+        $operations = $this->snapshots->operationsHealth();
+        $decisions = $this->snapshots->decisionHealth();
         $pendingCount = (int) $decisions['pendingCount'];
         $verifiedEmpty = $pendingCount === 0 && $decisions['sourceState'] === 'missing';
         $decisionState = $verifiedEmpty ? $operations['sourceState'] : $decisions['sourceState'];

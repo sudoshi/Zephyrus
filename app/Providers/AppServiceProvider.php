@@ -154,6 +154,12 @@ class AppServiceProvider extends ServiceProvider
             ]),
         );
 
+        // §3.2.9: one laboratory aggregate computation per request/queued job.
+        // scoped() (not singleton) — the container flushes it per FPM request
+        // and per queue job, so it can never become a second cross-request
+        // snapshot authority beside SnapshotBuilder's cache + persisted row.
+        $this->app->scoped(\App\Services\Lab\LabAggregateSnapshotFactory::class);
+
         // P6: the alert fan-out lanes. Both are inert by default (push gated
         // by EDDY_PUSH_ENABLED, Teams by TEAMS_ALERT_WEBHOOK_URL) — adding a
         // lane means adding an AlertChannel here, not touching the engine.
