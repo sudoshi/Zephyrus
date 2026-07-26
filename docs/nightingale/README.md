@@ -11,6 +11,8 @@ permission, authentication, clinical projection, care-team messaging, or product
 activation. The source of record is the
 [Nightingale product plan](../plans/nightingale-patient-product-2026-07-26.md) and its
 [execution log](../devlog/DEVLOG-nightingale-patient-product-2026-07-26.md).
+The bounded 255-source Hummingbird Patient predecessor universe is fully classified across
+three checksum-pinned ledgers; this is migration evidence, not implementation approval.
 
 Current product-identity records:
 
@@ -24,11 +26,13 @@ Current product-identity records:
 - [Identity, session, recovery, and inpatient-source held-candidate decision](./IDENTITY-SESSION-RECOVERY-AND-SOURCE-CANDIDATE-DECISION-2026-07-26.md)
 - [Identity-input, enrollment/recovery, first-read, and error source classification](./IDENTITY-INPUT-FIRST-READ-ERROR-SOURCE-CLASSIFICATION-2026-07-26.md)
 - [Communication and notification source classification](./COMMUNICATION-AND-NOTIFICATION-SOURCE-CLASSIFICATION-2026-07-26.md)
+- [Journey, preference, presentation, synthetic, and release source classification](./JOURNEY-PREFERENCE-PRESENTATION-RELEASE-SOURCE-CLASSIFICATION-2026-07-26.md)
 - [Empty/default-off contract foundation](./api-contract/nightingale-foundation.v0.json)
 - [Identity candidate and fixtures](./identity/candidates/v0/candidate.json)
 - [Current-inpatient source candidate and fixtures](./source-candidates/current-inpatient/v0/candidate.json)
 - [65-file checksum-pinned source ledger](./migration/candidates/v0/source-classification.json)
 - [130-file communication/notification checksum ledger](./migration/candidates/v0/communication-notification-source-classification.json)
+- [133-file journey/preference/presentation/release checksum ledger](./migration/candidates/v0/journey-preference-presentation-release-source-classification.json)
 - [Launcher, themed-icon, and splash evidence](../evidence/nightingale/brand-identity-2026-07-26/README.md)
 
 ## Lineage and filing rules
@@ -42,6 +46,9 @@ Current product-identity records:
   `source-candidates/`, and `migration/candidates/` are non-runnable decision/fixture
   evidence. They do not add a path, bind a provider or source adapter, permit client
   generation or a source query, or authorize implementation.
+- The three migration ledgers now mechanically cover all 255 tracked sources in the bounded
+  legacy Hummingbird Patient product universe. Complete classification means every source
+  has an evidence disposition; it does not mean any source is approved to migrate.
 - Add clinical, content, privacy, accessibility, and release evidence under `safety/` only
   with a dated reviewer/approval record. Draft evidence must say that it is draft.
 - Never store patient information, credentials, tokens, production fixtures, or private

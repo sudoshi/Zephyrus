@@ -263,12 +263,13 @@ human visual review records correct brand, crop, contrast, and no unwanted trans
       state-label gaps, and ungoverned locale/copy; and add negative enforcement for zero
       runtime, route, provider, channel, payload, polling, offline-queue, production, and
       patient-creation permissions.
-- [ ] Classify each existing Hummingbird Patient source file as reusable safety primitive,
-      reusable product behavior, test/fixture-only, or rejected legacy behavior. Foundation,
-      protected-state, contract, vocabulary, first-read candidate, identity/source candidate,
-      the 65-file identity-input/enrollment/first-read/error slice, and the 130-file
-      communication/notification slice are complete; remaining journey, preference,
-      presentation, synthetic/debug, and release sources remain held.
+- [x] Classify each existing Hummingbird Patient source file as reusable safety primitive,
+      reusable product behavior, test/fixture-only, or rejected legacy behavior. The
+      machine-checked universe contains 255 tracked product sources: 122 unique sources
+      covered by the two prior ledgers plus a final 133-source journey, preference,
+      presentation, synthetic/debug, persistence, and release ledger. The union covers all
+      255 sources with exact path-list and byte checksums. Classification completeness does
+      not approve any source for migration or runtime adoption.
 - [ ] Port primitives into Nightingale by reviewed commits, not a blind directory copy:
       patient API boundary, protected storage, lifecycle/screen-capture privacy cover,
       accessibility presentation preferences, patient-safe vocabulary, and volatile drafts.
@@ -390,6 +391,18 @@ part of application development work.
        index, execution log, and CI for the verified communication/notification slice while
        leaving every Nightingale operation, network client, notification provider, patient
        mutation, production query, and production activation disabled.
+9. [x] Close the remaining 133-source journey, preference, accessibility presentation,
+       synthetic/debug, persistence, and release-classification slice. Mechanically prove
+       full 255-source universe coverage; pin direct top-level Messages navigation, unsafe
+       first-record selection, iOS aggregate-context drift, Android composite-path context
+       drift, preference-surface mismatch, semantically inert Android reduced motion,
+       test-only release exclusion, rejected deployed reference provisioning, and
+       pathway-only two-person release coverage.
+10. [x] Update the checklist, migration and authorization records, documentation index,
+        execution log, and CI for complete source classification; rerun the independent
+        Nightingale iOS and Android emulator suites and Release builds; and leave every
+        implementation, network, source, mutation, synthetic runtime, production, migration,
+        release, deployment, and patient-creation permission false.
 
 ## 10. Explicit holds
 

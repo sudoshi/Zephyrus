@@ -1,10 +1,9 @@
 # Nightingale migration classification — foundation slice
 
-**Status:** Partial source-level classification through the contract, patient-state
-vocabulary, first read-only candidate, identity/session/recovery/current-inpatient
-candidate-design boundaries, and a 65-file identity-input/enrollment/first-read/error slice.
-This does not approve the remaining legacy patient application for migration or production
-use.
+**Status:** Complete source-level classification of the bounded 255-source legacy
+Hummingbird Patient product universe. Classification does not approve any legacy source,
+contract, route, client, model, migration, content, fixture, asset, activation mechanism,
+or release configuration for Nightingale migration or production use.
 
 **Reference roots:** `hummingbird/iosPatientApp` and `hummingbird/androidPatientApp`
 
@@ -48,11 +47,13 @@ use.
 | iOS `PatientEncounterHandle`/`PatientAppViewModel` and Android `PatientEncounter`/`PatientSessionCoordinator`                                                                                                  | Product behavior with raw authorization fields and unsafe first-row selection                                                                                                           | Rejected as implementation. Future Nightingale clients must not receive grant UUID/scopes/dates/version or silently select the first row; more than one eligible context fails closed until an approved patient selector exists.                                                                                                                                                                                                                                                              | Candidate field matrix and native requirements; Nightingale apps remain offline and unchanged                                        |
 | 65 exact identity-input, enrollment/recovery, first-read, and error/non-disclosure sources across contract/backend/database/iOS/Android/tests                                                                  | Mixed evidence containing reusable safety principles, held product decisions, test techniques, and rejected legacy behavior                                                             | Individually SHA-256 pinned. Confirms recovery is vocabulary rather than a complete workflow; rejects email/password and seven-field invitation defaults, legacy credentials/device identity, silent first-row selection, raw-scope fan-out, random UUID substitution, server-message passthrough, and projection-absence conflation. All runtime and production permissions remain false.                                                                                                    | Detailed classification, machine-readable ledger, and negative verifier                                                              |
 | 130 exact patient-communication, staff-handoff, notification, native-experience, urgency/offline, and error sources across contract/backend/database/patient iOS and Android/staff iOS, Android, and web/tests | Mixed evidence containing strong accountable-message principles, unapproved product/operations behavior, absent provider delivery, native retry hazards, and cross-platform state drift | Individually SHA-256 pinned. Reimplement current relationship checks, encrypted immutable content, content-free routing, replay locks, append-only receipts, and accountable responsibility only after approval. Hold all topics/copy/routes/states/providers/channels. Reject acceptance-as-delivery wording and retry-ID regeneration; pin absent patient push/automatic refresh, iOS escalation decode failure, Android state-label gaps, and the disproved staff-close decode hypothesis. | Detailed communication/notification classification, checksum ledger, ten required findings, and negative verifier                    |
+| Final 133 exact journey, preference, accessibility-presentation, synthetic/debug, persistence, and release sources                                                                                             | 41 reusable safety primitives, 20 held product behaviors, 28 test/fixture-only sources, and 44 rejected legacy behaviors                                                                | Individually SHA-256 pinned. Rejects legacy product assets/packaging/activation and deployed reference provisioning; holds journey/preferences; records direct Messages navigation, iOS aggregate-context and Android composite-path context hazards, server/native preference mismatch, inert Android reduced-motion behavior, compile-time synthetic exclusion, and narrow pathway-only two-person release coverage. The three ledgers mechanically cover all 255 product sources.          | Detailed final-slice classification, checksum ledger, full-universe closure verifier, and ten negative mutations                     |
 
-## Still unclassified or held
+## Classification complete; implementation remains held
 
-All reference sources not listed above remain unclassified for migration and must not be
-copied. The protected-state slice is governed by
+Every source in the bounded 255-source legacy Hummingbird Patient product universe is now
+classified. None is approved for blind copy, runtime activation, production replay, or
+implicit parity. The protected-state slice is governed by
 [the identity, recovery, and protected-state decision](./IDENTITY-RECOVERY-AND-PROTECTED-STATE-DECISIONS-2026-07-26.md).
 Its implementation is dormant and verified with synthetic canaries only; it does not define
 or persist a credential.
@@ -74,7 +75,12 @@ The communication and notification slice is governed by the
 and its
 [checksum ledger](./migration/candidates/v0/communication-notification-source-classification.json).
 It completes source classification for that bounded slice, not communication or notification
-implementation. Neither record approves an operation or label. API clients,
+implementation. The remaining source inventory is governed by the
+[journey, preference, presentation, synthetic, and release classification](./JOURNEY-PREFERENCE-PRESENTATION-RELEASE-SOURCE-CLASSIFICATION-2026-07-26.md)
+and its
+[133-source checksum ledger](./migration/candidates/v0/journey-preference-presentation-release-source-classification.json).
+The verifier proves the union of the three ledgers covers all 255 product sources. None of
+the records approves an operation or label. API clients,
 authentication, recovery, clinical projections, care-team communication, preferences
 persistence, notification delivery, and synthetic patient scenarios remain held. The first
 read-only encounter-access candidate now has a decision record and verified synthetic

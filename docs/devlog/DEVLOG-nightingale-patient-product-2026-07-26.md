@@ -815,3 +815,144 @@ deployment authorization.
 - Communication product/clinical operations, state vocabulary, patient language,
   localization, accessibility, privacy/security, identity, source, provider, support,
   incident/downtime, pilot, release, and deployment approvals remain open.
+
+## 2026-07-26 — Complete 255-source migration classification
+
+### Exact inventory closure
+
+- Defined the complete tracked Hummingbird Patient product universe in executable builder
+  and verifier logic: both patient-native roots; legacy patient configuration and route;
+  patient controllers, requests, models, policies, contracts, and services; patient tests;
+  patient-named migrations excluding the unrelated `patient_flow` subsystem; and
+  Hummingbird console commands whose filename contains `Patient`.
+- The universe contains exactly 255 paths with inventory digest
+  `d6f680b73278786f8004826029e6a9413f921db4ce03df8873bde4c23c62d99c`.
+  The two prior ledgers cover 122 unique paths in that universe.
+- Added the
+  [journey, preference, presentation, synthetic, and release classification](../nightingale/JOURNEY-PREFERENCE-PRESENTATION-RELEASE-SOURCE-CLASSIFICATION-2026-07-26.md)
+  and a machine-readable ledger for the exact remaining 133 paths at reviewed source commit
+  `e8f2b33bca79c4134f2476f41702430da72816d7`. Its path-list digest is
+  `dd74e3d050839815f731b02af1b2d3d4886e1837913f17e8bc87244c4ad172d2`.
+- Classified the final sources as 41 reusable safety primitives, 20 held reusable product
+  behaviors, 28 test/fixture-only sources, and 44 rejected legacy behaviors. Every source
+  has one exact class, disposition, surface, decision, domain set, and byte SHA-256.
+- The three ledgers now cover 255 of 255 product sources. This closes source classification,
+  not migration, functional parity, implementation, approval, or release.
+
+### Patient-journey findings
+
+- Confirmed both legacy native apps expose Messages as a fourth top-level destination,
+  conflicting with the Nightingale charter’s Today/My Path/Care Team primary structure and
+  contextual communication entry points.
+- Confirmed iOS combines multiple projection timestamps, stale flags, provenance, and
+  uncertainty into one aggregate snapshot context. This cannot prove field-level context
+  for the particular screen/card a patient is reading.
+- Confirmed Android renders pathway, pathway events, discharge readiness, and rounds
+  summary in one My Path view but selects only the first available projection context for
+  the header. The remaining displayed subprojections can have different provenance,
+  freshness, and uncertainty.
+- Carried forward the already proven unsafe first-record encounter selection on both
+  platforms. Nightingale’s zero/one candidate and fail-closed multiple-context behavior
+  remain required.
+- Preserved released-only empty states, patient-safe uncertainty, revision notices,
+  urgent-help separation, care-team role framing, and nonclinical authored-input
+  separation as held product/safety requirements.
+- Confirmed the independent clinical-review/catalog-release-manager service is a strong
+  pathway-specific principle but does not establish equivalent two-person release for
+  Today, care team, pathway events, discharge readiness, rounds, education, communication,
+  or notification content.
+
+### Preference and accessibility findings
+
+- Reconciled seven server preference fields against five fields exposed by each native
+  editor. Locale and timezone are not editable natively; server-only `sms` and `none`
+  delivery values are omitted; native editors expose only push/email and default a missing
+  value to push despite the previously proven absence of patient push delivery.
+- Confirmed both platforms preserve a stronger system text-size setting by taking the
+  maximum of the system and account-selected scale.
+- Confirmed iOS uses the combined system/account reduced-motion choice for privacy-cover
+  and scenic-background transitions.
+- Confirmed Android decodes, persists, propagates, and announces reduced motion but has no
+  main-source branch that changes rendering motion. The setting is semantically inert and
+  is not approved for Nightingale until behavior and test coverage exist.
+- Required Nightingale to separate device accessibility, account presentation, locale,
+  communication consent, delivery channel, and notification-preview ownership instead of
+  copying one mixed preferences object.
+
+### Synthetic, provisioning, and release findings
+
+- Confirmed iOS synthetic activation/content are compiler-gated to Debug and Android uses
+  debug source-set fixtures plus inert Release stubs. The compile-exclusion property is a
+  reusable principle; all Hummingbird hooks, IDs, extras, payloads, and copy are test-only.
+- Confirmed `SyntheticPatientProjectionProvisioner` refuses non-testing environments and
+  remains test-only.
+- Rejected the command-accessible reference provisioners as Nightingale or production
+  tooling. Despite default-off, dry-run, synthetic-name, ownership, locking, pending-state,
+  redaction, and draft-only safeguards, their `--commit` paths can create or bind an
+  operational encounter, principal, identity link, grant, enrollment challenges/secrets,
+  policy, cursors, and projections in a deployed database.
+- Rejected all legacy Hummingbird Patient project/package/bundle/version/activation and
+  icon/scenic/theme resources. Nightingale retains its independent app roots, IDs, supplied
+  nightingale artwork, and product boundary.
+- Recorded the absence of repository proof for distribution signing, external store
+  records, retained released-artifact upgrades, monotonic version history, notification
+  identities, store privacy/support metadata, or pilot release.
+
+### Mechanical enforcement and checklist update
+
+- Added
+  `scripts/ci/build-nightingale-journey-preference-release-classification.mjs` to reproduce
+  the exact 133-source ledger only from the reviewed product universe.
+- Added
+  `scripts/ci/verify-nightingale-journey-preference-release-classification.mjs` to pin the
+  255/122/133 closure, both inventory digests, every file hash, 18 source surfaces, four
+  required classes/dispositions, 19 decisions, eight domain counts, and 23 material
+  findings.
+- Ten negative mutations prove rejection of runtime adoption, production queries, source
+  omission, checksum drift, classification weakening, false Android reduced-motion
+  coverage, blanket migration approval, universe-count drift, inadequate decision
+  rationale, and synthetic release activation.
+- Wired the new verifier into the docs-sensitive Nightingale CI job.
+- Updated the master plan immediately after the verifier passed: the all-source
+  classification item is now complete, while every port, journey, accessibility,
+  human-review, pilot, release, and deployment item remains open.
+- Updated the migration record, contract/authorization matrix, Nightingale documentation
+  index, and this execution log to reflect complete source classification without
+  overstating implementation.
+
+### Native and static regression evidence
+
+- Re-ran the empty-contract, encounter-access, identity/source, 65-source,
+  communication/notification, final 133-source, backend default-deny, native product
+  boundary, mobile brand-asset, and mobile brand-surface verifiers. Every positive and
+  negative assertion passed.
+- Ran target-file Prettier, JavaScript syntax, generated-ledger equality, relative-link,
+  sensitive-literal, and Git whitespace checks. All passed.
+- Regenerated the Nightingale Xcode project from `project.yml` and confirmed no generated
+  project drift. On iPhone 17 Pro Simulator
+  `0A7FAE8C-8902-462D-BB4D-1E216D5BFDC1`, all five unit tests and two UI tests passed with
+  zero failures. The normally signed Release simulator build passed. The simulator was
+  shut down after the run.
+- Cold-booted the `hb` Android 15/API 35 AVD with wiped data and no snapshot. Using Android
+  Studio JDK 21 and `--no-build-cache`, all five instrumentation tests and five JVM tests
+  passed; `verifyNightingaleProductBoundary`, `lintVitalRelease`, `assembleDebug`, and
+  `assembleRelease` passed. Gradle reported 117 actionable tasks: 116 executed and one
+  up-to-date. The emulator was shut down after the run.
+- A preliminary Android attempt reached `connectedDebugAndroidTest` after the JVM and
+  boundary tasks but correctly failed with `No connected devices!` because the headless
+  emulator process inherited and exited with its boot shell. A second detached boot was
+  stopped before Gradle when the same process-lifetime issue was confirmed. Neither attempt
+  is counted as device evidence. The final run held the emulator in a persistent foreground
+  session and reran the complete clean task set successfully.
+
+### Safety and release holds
+
+- This work is repository-source classification only. It adds no Nightingale route,
+  operation, identity provider, source adapter, client, network permission, projection,
+  preference persistence, message, notification, synthetic runtime, migration, or release.
+- No production database, patient, principal, identity link, grant, session, encounter,
+  preference, message, goal, pathway draft/review/release, feature flag, migration,
+  deployment, or pilot state was read or changed.
+- Named product, patient-advisor, clinical/content, nursing, medical-staff, pharmacy,
+  privacy/security, accessibility, language/interpreter, legal/HIM, identity, source,
+  support, operations, release, and deployment approvals remain open.
