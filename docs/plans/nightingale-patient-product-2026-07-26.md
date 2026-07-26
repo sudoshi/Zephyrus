@@ -439,9 +439,10 @@ part of application development work.
 14. [x] Audit and harden the current foundation at maximum text, landscape, dark appearance,
         and increased contrast: replace the failing fixed iOS accent with an appearance-aware
         palette, add Android system-selected dark colors, correct semantic reading order,
-        expand complete interaction rows, add native contrast/target/reflow tests, and bind
-        the result to exact local Debug/Release artifacts. The broader Stream E conformance
-        and independent-review items remain open.
+        expand complete interaction rows, declare both iOS landscape orientations, require
+        actual landscape application geometry, add native contrast/target/reflow tests, and
+        bind the result to exact local Debug/Release artifacts. The broader Stream E
+        conformance and independent-review items remain open.
 
 ## 10. Explicit holds
 

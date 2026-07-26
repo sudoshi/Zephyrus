@@ -6,6 +6,7 @@ repo_root="${1:-.}"
 ios_source="$repo_root/nightingale/iosApp/Nightingale"
 android_source="$repo_root/nightingale/androidApp/app/src/main"
 ios_project="$repo_root/nightingale/iosApp/project.yml"
+ios_info="$ios_source/Info.plist"
 android_project="$repo_root/nightingale/androidApp/app/build.gradle.kts"
 android_manifest="$android_source/AndroidManifest.xml"
 ios_presentation="$ios_source/NightingalePresentationPreferences.swift"
@@ -22,6 +23,7 @@ for required_path in \
     "$ios_source" \
     "$android_source" \
     "$ios_project" \
+    "$ios_info" \
     "$android_project" \
     "$android_manifest" \
     "$ios_presentation" \
@@ -146,6 +148,20 @@ grep -Fq -- 'testLargestTextLandscapeKeepsContentOrderedReachableAndTouchable' "
     echo "The Nightingale iOS largest-text landscape journey is missing." >&2
     exit 1
 }
+
+for orientation in \
+    "UIInterfaceOrientationLandscapeLeft" \
+    "UIInterfaceOrientationLandscapeRight"
+do
+    grep -Fq -- "$orientation" "$ios_project" || {
+        echo "The Nightingale iOS project is missing supported orientation: $orientation" >&2
+        exit 1
+    }
+    grep -Fq -- "$orientation" "$ios_info" || {
+        echo "The Nightingale iOS Info.plist is missing supported orientation: $orientation" >&2
+        exit 1
+    }
+done
 
 grep -Fq -- 'darkColorScheme(' "$android_visual" || {
     echo "The Nightingale Android dark color scheme is missing." >&2

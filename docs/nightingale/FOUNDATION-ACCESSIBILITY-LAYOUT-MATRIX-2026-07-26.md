@@ -212,20 +212,24 @@ colors.
 
 ### 6.1 iOS
 
-The new XCUITest:
+The iOS Release contract now declares portrait, landscape-left, and landscape-right in
+both `project.yml` and the generated application `Info.plist`. The new XCUITest:
 
 1. requests SwiftUI `DynamicTypeSize.accessibility5` through a compile-time
    `#if DEBUG` launch-environment adapter;
 2. rotates the simulator to landscape left;
 3. launches with clean Nightingale presentation settings;
-4. requires the scalable product heading to measure at least 60 points high, proving the
+4. requires the application viewport width to exceed its height, proving the release
+   orientation contract produced an actual landscape layout;
+5. requires the scalable product heading to measure at least 60 points high, proving the
    requested accessibility category affected rendered geometry;
-5. reads the accessibility-element sequence and compares all five required identifiers;
-6. scrolls until the reduce-motion switch is hittable;
-7. asserts a frame height of at least 44 points;
-8. operates the switch and verifies its enabled state;
-9. repeats the reachability, size, and state checks for the imagery switch; and
-10. restores portrait orientation in `defer`.
+6. reads the accessibility-element sequence and compares all five required identifiers;
+7. waits for the reduce-motion switch and asserts a frame height of at least 44 points;
+8. operates the switch through XCTest's accessibility-aware auto-scroll and verifies its
+   enabled state;
+9. repeats the existence, size, auto-scroll, and state checks for the imagery switch; and
+10. restores portrait orientation in test teardown, including after a framework-level
+    interaction failure.
 
 The first attempted test used the UIKit `-UIPreferredContentSizeCategoryName` launch
 argument. On the iOS 26.3.1 simulator, the heading remained `40.67` points high, which
@@ -238,11 +242,12 @@ The geometry assertion prevents a future no-op override from silently preserving
 journey.
 
 The accepted full normally signed suite began from restored device settings: light
-appearance, normal contrast, and system-large text. This makes the six-page hierarchy in
-the largest-text journey attributable to the Debug-only accessibility5 adapter instead of
-leaked simulator state. The current Release build was separately installed and inspected
+appearance, normal contrast, and system-large text. This makes the seven-page hierarchy
+in the largest-text journey attributable to the Debug-only accessibility5 adapter instead
+of leaked simulator state. The prior Release visual inspection was separately performed
 with dark appearance, `DarkenSystemColors=1`, and
-`UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge`.
+`UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge`; it remains appearance and
+reflow evidence, not landscape evidence.
 
 Results:
 
@@ -336,13 +341,16 @@ review device remains open.
 
 | Artifact                         | SHA-256                                                            |
 | -------------------------------- | ------------------------------------------------------------------ |
-| iOS Debug simulator executable   | `16b70a01b76791066d289399b67222fdf129f4cd7857c31cc843a85ad38401e5` |
-| iOS Release simulator executable | `b53911139c4033d480ebd8ad434a643077e0f8a1d4cb2a3f25974d030a00a3b8` |
+| iOS Debug simulator executable   | `92c57ad6fbbe680bdc77d8252c6a144d0b4b90f4a225acadc86159891b34fd1e` |
+| iOS Release simulator executable | `182ef77a6a020c4a26212482f09822901f94e3587433bbe490e5cb55be2c4827` |
+| iOS Release application manifest | `cc49573008857a7a658978b871553c922bf928577a80a7cece3750e804f6ef0c` |
 | Android Debug APK                | `4d866ec381399caabd1287fd204e0dc01d3794267aecd5900a69d87d0dd91164` |
 | Android unsigned Release APK     | `bd3d2994c84fa7de97d2770c257b70b8eb48f0fc59a081f486ecf6ebe03dd4e3` |
 
-These are local simulator/emulator artifacts. They are not App Store/Play artifacts,
-distribution signatures, production releases, or pilot approval.
+The iOS manifest is the built Release `Nightingale.app/Info.plist`; it contains portrait,
+landscape-left, and landscape-right. These are local simulator/emulator artifacts. They
+are not App Store/Play artifacts, distribution signatures, production releases, or pilot
+approval.
 
 ## 9. Mechanical enforcement
 
@@ -353,6 +361,7 @@ removed:
 - the iOS 44-point row target disappears;
 - the iOS light/dark contrast test disappears;
 - the iOS largest-text landscape journey disappears;
+- either iOS landscape orientation disappears from the project or application manifest;
 - the iOS accessibility-size launch adapter escapes its Debug-only branch;
 - the Android dark color scheme disappears;
 - the Android screen stops following system dark appearance;
@@ -385,8 +394,22 @@ Preliminary failures are retained because they changed the implementation:
 8. The first iOS largest-text journey used the UIKit preferred-content-size launch
    argument, but the iOS 26.3.1 SwiftUI hierarchy remained at a `40.67`-point product
    heading and correctly failed the 60-point geometry gate. The accepted Debug-only
-   environment adapter produced the six-page accessibility hierarchy and passed the
+   environment adapter produced the seven-page accessibility hierarchy and passed the
    complete journey.
+9. A post-publication threat-surface inventory found that the test rotated the simulator
+   but the Release `Info.plist` declared portrait only. The orientation contract was
+   expanded to both landscape directions, and the journey now fails unless the application
+   viewport itself is wider than it is tall. Earlier test success is not used as proof of
+   distributed landscape support.
+10. The first truly landscape run expanded to seven pages and exposed that probing
+    `XCUIElement.isHittable` while a control was still fully offscreen can itself raise an
+    invalid-activation-point failure. A center-in-viewport attempt admitted a partially
+    clipped frame beginning at y = -4 points. A full-frame-in-viewport attempt then exposed
+    XCTest's rotated-coordinate mismatch. The accepted proof checks existence and 44-point
+    frame height, performs XCTest's accessibility-aware auto-scroll/tap, and requires the
+    state change. Those failures also showed that a method-local `defer` did not reset
+    orientation after a framework-level interaction failure, so portrait restoration now
+    runs from XCTest teardown.
 
 None of these preliminary failures is counted as passing evidence.
 

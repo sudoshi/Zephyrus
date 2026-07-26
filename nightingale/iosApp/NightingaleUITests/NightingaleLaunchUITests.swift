@@ -1,6 +1,11 @@
 import XCTest
 
 final class NightingaleLaunchUITests: XCTestCase {
+    override func tearDown() {
+        XCUIDevice.shared.orientation = .portrait
+        super.tearDown()
+    }
+
     func testLaunchShowsTheSafePatientFoundationMessage() {
         let app = resetApplication()
         app.launch()
@@ -67,11 +72,16 @@ final class NightingaleLaunchUITests: XCTestCase {
     func testLargestTextLandscapeKeepsContentOrderedReachableAndTouchable() {
         let device = XCUIDevice.shared
         device.orientation = .landscapeLeft
-        defer { device.orientation = .portrait }
 
         let app = resetApplication()
         app.launchEnvironment["NIGHTINGALE_TEST_ACCESSIBILITY_TEXT_SIZE"] = "1"
         app.launch()
+
+        XCTAssertGreaterThan(
+            app.frame.width,
+            app.frame.height,
+            "The released app contract must expose a landscape viewport."
+        )
 
         let productHeading = app.staticTexts["nightingale-product-heading"]
         XCTAssertTrue(productHeading.waitForExistence(timeout: 5))
@@ -102,12 +112,12 @@ final class NightingaleLaunchUITests: XCTestCase {
 
         let reduceMotion = app.switches["nightingale-reduce-motion-toggle"]
         let hideImagery = app.switches["nightingale-hide-imagery-toggle"]
-        scrollToHittable(reduceMotion, in: app)
+        XCTAssertTrue(reduceMotion.waitForExistence(timeout: 5))
         XCTAssertGreaterThanOrEqual(reduceMotion.frame.height, 44)
         reduceMotion.tap()
         XCTAssertEqual(reduceMotion.value as? String, "1")
 
-        scrollToHittable(hideImagery, in: app)
+        XCTAssertTrue(hideImagery.waitForExistence(timeout: 5))
         XCTAssertGreaterThanOrEqual(hideImagery.frame.height, 44)
         hideImagery.tap()
         XCTAssertEqual(hideImagery.value as? String, "1")
@@ -117,19 +127,5 @@ final class NightingaleLaunchUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchEnvironment["NIGHTINGALE_TEST_RESET_PRESENTATION_PREFERENCES"] = "1"
         return app
-    }
-
-    private func scrollToHittable(
-        _ element: XCUIElement,
-        in app: XCUIApplication,
-        maxSwipes: Int = 12
-    ) {
-        XCTAssertTrue(element.waitForExistence(timeout: 5))
-        var remainingSwipes = maxSwipes
-        while !element.isHittable, remainingSwipes > 0 {
-            app.swipeUp()
-            remainingSwipes -= 1
-        }
-        XCTAssertTrue(element.isHittable)
     }
 }

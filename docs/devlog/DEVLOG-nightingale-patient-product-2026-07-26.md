@@ -1206,7 +1206,7 @@ deployment authorization.
 - Top-aligned and width-bounded the Android scroll column. This removes dependence on center
   arrangement when enlarged content exceeds the viewport.
 - Added an iOS accessibility-XXXL landscape journey that proves semantic order,
-  scroll-to-hittable behavior, target height, and state changes. Its
+  accessibility-aware auto-scroll/tap behavior, target height, and state changes. Its
   `DynamicTypeSize.accessibility5` adapter is compile-time Debug-only, and the test
   requires a 60-point product-heading height so a no-op adapter cannot pass.
 - Added an Android font-scale-2.0 landscape journey that traverses the actual unmerged
@@ -1219,10 +1219,11 @@ deployment authorization.
   final normally signed suite passed eight unit and four UI tests with zero failures or
   skips from restored light appearance, normal contrast, and system-large text. The
   largest-text journey itself applied the Debug-only accessibility5 override, produced a
-  six-page landscape hierarchy, and passed. The normally signed Release simulator build
+  seven-page landscape hierarchy, and passed. The normally signed Release simulator build
   passed.
-- Installed and visually inspected the exact new Release application under those settings.
-  For the Release inspection, the simulator was explicitly set to dark appearance,
+- The earlier Release visual inspection remains appearance and reflow evidence; it is not
+  used as landscape-contract evidence. For that inspection, the simulator was explicitly
+  set to dark appearance,
   `DarkenSystemColors=1`, and accessibility XXXL. Text reflowed and scrolled, the corrected
   accent remained legible, card boundaries were visible, and the stronger contrast policy
   withheld decorative imagery. The local screenshot SHA-256 is
@@ -1241,9 +1242,11 @@ deployment authorization.
   device review remains open.
 - Exact local artifacts:
     - iOS Debug executable:
-      `16b70a01b76791066d289399b67222fdf129f4cd7857c31cc843a85ad38401e5`;
+      `92c57ad6fbbe680bdc77d8252c6a144d0b4b90f4a225acadc86159891b34fd1e`;
     - iOS Release executable:
-      `b53911139c4033d480ebd8ad434a643077e0f8a1d4cb2a3f25974d030a00a3b8`;
+      `182ef77a6a020c4a26212482f09822901f94e3587433bbe490e5cb55be2c4827`;
+    - iOS Release application manifest:
+      `cc49573008857a7a658978b871553c922bf928577a80a7cece3750e804f6ef0c`;
     - Android Debug APK:
       `4d866ec381399caabd1287fd204e0dc01d3794267aecd5900a69d87d0dd91164`;
     - Android unsigned Release APK:
@@ -1260,7 +1263,7 @@ deployment authorization.
   an invalid receiver-scoped Compose import, clipped-coordinate order logic, and an
   unavailable Compose semantics accessor. The first iOS geometry proof also failed at
   `40.67` points because the UIKit launch argument did not affect the SwiftUI hierarchy on
-  iOS 26.3.1; the accepted Debug-only adapter produced the intended six-page hierarchy.
+  iOS 26.3.1; the accepted Debug-only adapter produced the intended seven-page hierarchy.
 - The master checklist now closes only the bounded current-shell matrix. Full WCAG 2.2 AA,
   VoiceOver/TalkBack human traversal, focus recovery, language expansion/RTL,
   physical-device review, every future journey, and all named reviews remain open.
@@ -1269,3 +1272,33 @@ deployment authorization.
 - No production database, patient, principal, identity link, grant, session, encounter,
   projection, preference, message, route, source, migration, deployment, or pilot state was
   read or changed.
+
+## Foundation landscape release-contract correction
+
+- A post-publication threat-surface inventory found that the iOS XCUITest rotated the
+  simulator, but the tracked and built Release `Info.plist` declared portrait only.
+  Therefore the earlier journey did not, by itself, prove ordinary distributed landscape
+  support.
+- Added `UIInterfaceOrientationLandscapeLeft` and
+  `UIInterfaceOrientationLandscapeRight` to both `nightingale/iosApp/project.yml` and the
+  tracked Nightingale `Info.plist`.
+- Strengthened the accessibility5 journey to require `XCUIApplication.frame.width` to
+  exceed its height before evaluating the seven-page landscape hierarchy, semantic order,
+  accessibility-aware auto-scroll, 44-point targets, and state changes.
+- The first truly landscape run then exposed an invalid-activation-point failure when the
+  old helper queried `isHittable` for a still-offscreen switch. A center-in-viewport
+  remediation still admitted a switch whose frame began at y = -4 points; a
+  full-frame-in-viewport remediation then exposed XCTest's rotated-coordinate mismatch
+  between the 844 by 390 application frame and portrait-space auto-scroll hit coordinates.
+  Neither failed run is counted as evidence. The accepted journey waits for each element,
+  checks its 44-point minimum frame, lets XCTest auto-scroll during the accessibility
+  action, and requires the state-changing tap to succeed. Portrait restoration now lives
+  in XCTest teardown so it also runs after a framework-level interaction failure.
+- Extended the native boundary verifier to fail if either supported landscape orientation
+  disappears from the project specification or application manifest.
+- The final current-source iOS run passed all eight unit and four UI tests with no failure
+  or skip. The normally signed Release build passed; its built manifest contains portrait,
+  landscape-left, and landscape-right, and its executable excludes both Debug-only test
+  keys. Current artifact hashes are recorded in the accessibility matrix and above.
+- The prior exact-SHA CI result remains valid for commit `c432b588`; a new current-source
+  commit/push and exact-SHA CI are required before this corrective slice is ratified.
