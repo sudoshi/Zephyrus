@@ -594,6 +594,13 @@ deployment authorization.
   lint-vital, Debug assembly, and Release assembly passed.
 - The current Hummingbird iOS Release simulator build, including embedded WidgetKit
   validation, passed. The Hummingbird Android Release assembly and lint-vital task passed.
+- Draft PR CI exposed that the clean Ubuntu and macOS runners do not preinstall `rg`. The
+  first Nightingale-boundary and mobile-brand jobs therefore failed before evaluating
+  product assertions. Replaced `rg` only inside the three affected standalone verification
+  scripts with portable recursive/fixed/extended `grep` equivalents, then re-ran Bash
+  syntax, both brand verifiers, the native boundary, all contract/backend verifiers and
+  negative self-tests, and Git whitespace checks locally. This is a CI portability fix, not
+  a product-boundary relaxation.
 
 ### Safety and release holds
 

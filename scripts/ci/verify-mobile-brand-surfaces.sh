@@ -21,13 +21,13 @@ require_directory() {
 require_match() {
     local pattern="$1"
     local file="$2"
-    rg -q -- "$pattern" "$file" || fail "$file does not contain required pattern: $pattern"
+    grep -Eq -- "$pattern" "$file" || fail "$file does not contain required pattern: $pattern"
 }
 
 forbid_match() {
     local pattern="$1"
     shift
-    if rg -n -i --glob '!**/build/**' --glob '!**/.gradle/**' -- "$pattern" "$@" >/dev/null
+    if grep -RInEi --exclude-dir=build --exclude-dir=.gradle -- "$pattern" "$@" >/dev/null
     then
         fail "forbidden pattern '$pattern' found under $*"
     fi
@@ -210,7 +210,7 @@ forbid_match \
     "$hummingbird_android_gradle" \
     "$hummingbird_android_manifest"
 forbid_match \
-    'net\.acumenus\.hummingbird|>Hummingbird(?: Patient)?<|"Hummingbird(?: Patient)?"' \
+    'net\.acumenus\.hummingbird|>Hummingbird( Patient)?<|"Hummingbird( Patient)?"' \
     "$nightingale_ios_project" \
     "$nightingale_ios_plist" \
     "$nightingale_android_manifest" \

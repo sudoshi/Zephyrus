@@ -28,38 +28,38 @@ for forbidden in \
     "/api/mobile" \
     "/api/auth"
 do
-    if rg -n --fixed-strings "$forbidden" "$ios_source" "$android_source"; then
+    if grep -RInF -- "$forbidden" "$ios_source" "$android_source"; then
         echo "Nightingale source contains forbidden staff or legacy patient token: $forbidden" >&2
         exit 1
     fi
 done
 
-if rg -n --fixed-strings "android.permission.INTERNET" "$android_manifest"; then
+if grep -nF -- "android.permission.INTERNET" "$android_manifest"; then
     echo "The Nightingale foundation must not request Android network access." >&2
     exit 1
 fi
 
-rg -q 'android:allowBackup="false"' "$android_manifest" || {
+grep -Eq 'android:allowBackup="false"' "$android_manifest" || {
     echo "The Nightingale foundation must disable Android application backup." >&2
     exit 1
 }
 
-rg -q 'android:dataExtractionRules="@xml/data_extraction_rules"' "$android_manifest" || {
+grep -Eq 'android:dataExtractionRules="@xml/data_extraction_rules"' "$android_manifest" || {
     echo "The Nightingale foundation must exclude cloud backup and device transfer." >&2
     exit 1
 }
 
-if rg -n 'URLSession|NSURLSession|OkHttpClient|java\.net\.' "$ios_source" "$android_source"; then
+if grep -RInE 'URLSession|NSURLSession|OkHttpClient|java\.net\.' "$ios_source" "$android_source"; then
     echo "The Nightingale foundation must not contain a network client." >&2
     exit 1
 fi
 
-rg -q 'PRODUCT_BUNDLE_IDENTIFIER: net\.acumenus\.nightingale$' "$ios_project" || {
+grep -Eq 'PRODUCT_BUNDLE_IDENTIFIER: net\.acumenus\.nightingale$' "$ios_project" || {
     echo "The Nightingale iOS bundle identifier is missing or incorrect." >&2
     exit 1
 }
 
-rg -q 'applicationId = "net\.acumenus\.nightingale"' "$android_project" || {
+grep -Eq 'applicationId = "net\.acumenus\.nightingale"' "$android_project" || {
     echo "The Nightingale Android application identifier is missing or incorrect." >&2
     exit 1
 }

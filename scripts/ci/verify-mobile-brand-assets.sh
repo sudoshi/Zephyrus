@@ -49,7 +49,7 @@ do
         "$product/androidApp/app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml" \
         "$product/androidApp/app/src/main/res/mipmap-anydpi-v33/ic_launcher_round.xml"
     do
-        rg -q '<monochrome android:drawable="@mipmap/ic_launcher_monochrome" />' \
+        grep -Eq '<monochrome android:drawable="@mipmap/ic_launcher_monochrome" />' \
             "$adaptive_icon"
     done
 done
