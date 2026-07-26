@@ -39,6 +39,42 @@ Each subsequent entry must cite the exact commit SHA, command output/test count,
 simulator or emulator target, feature-flag state, decision record, and unresolved
 blocker. Narrative progress without those artifacts is not an accepted update.
 
+## 2026-07-25 — Patient journey instrumentation stability repair
+
+**Implementation commit:** `58d13b62cb1a0d45d7eaa6b80c6407941d399766`
+
+### Completed implementation
+
+- Exact-head CI run `30181379346` exposed one Android API 35 failure in the
+  existing synthetic reference journey. The job had already completed source
+  boundary, Debug/Release unit, Debug/Release lint, and Debug/Release assembly
+  checks. The failure was a Compose `SnapshotStateObserver` cross-thread
+  exception while the test traversed the `patient-content` lazy semantics tree
+  after successive scrolls; it was not a patient-content assertion, API call,
+  authorization, or privacy-policy failure.
+- Added one `patientContent()` test helper that waits for Compose idleness
+  before each lazy `patient-content` semantics traversal. The established
+  journey assertions and synthetic data remain intact; this only prevents test
+  code from reading the tree while the UI thread is completing layout after a
+  prior scroll.
+
+### Verification
+
+| Boundary                                          | Command / target                                                                                                                                                                                                                                                                                   | Result                                                             |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Former exact failure                              | `./gradlew --no-daemon connectedDebugAndroidTest --rerun-tasks --console=plain -Pandroid.testInstrumentationRunnerArguments.class=net.acumenus.hummingbird.patient.PatientPrimaryJourneyInstrumentedTest#syntheticReferenceJourneyKeepsEveryPrimarySurfaceReadableAndSecure` on `hb(AVD)` / API 35 | 1 instrumentation test, 0 failures/errors/skips                    |
+| Android full patient regression                   | `./gradlew --no-daemon connectedDebugAndroidTest --rerun-tasks --console=plain` on `hb(AVD)` / API 35                                                                                                                                                                                              | 17 instrumentation tests, 0 failures/errors/skips                  |
+| Android static analysis                           | `./gradlew --no-daemon lintDebug --console=plain`                                                                                                                                                                                                                                                  | Passed                                                             |
+| Product boundaries and governed patient artifacts | `scripts/ci/verify-hummingbird-patient-boundary.sh source hummingbird/androidPatientApp`; patient contract, accessibility-matrix, and disclosure-matrix verifiers                                                                                                                                  | All passed; accessibility matrix remains draft and not pilot-ready |
+
+### Explicit remaining boundary
+
+This is a regression-harness synchronization repair only. It neither changes
+patient UI behavior nor configures a patient API, creates or activates a
+patient, enables a feature flag, changes care-pathway content, authorizes a
+pilot, migrates data, deploys an application, or resolves the independent
+identity, clinical, privacy, accessibility, governance, and release gates.
+
 ## 2026-07-25 — Patient default-off access parity increment
 
 **Implementation commit:** `932de20e72fd362860ecfd82d5bef557ca49068a`
