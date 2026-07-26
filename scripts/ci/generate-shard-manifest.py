@@ -25,12 +25,9 @@ from pathlib import Path
 SHARD_COUNT = 8
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_PATH = REPO_ROOT / "tests" / "ci" / "shard-manifest.json"
-# Pest-syntax files excluded from the PHPUnit runner (see phpunit.xml); they
-# must stay out of the manifest until plan item D4 converts them.
-EXCLUDED = {
-    "tests/Feature/Api/ProcessAnalysisTest.php",
-    "tests/Feature/Auth/AuthenticationFlowTest.php",
-}
+# Files excluded from the PHPUnit runner (see phpunit.xml). Empty since plan
+# item D4 converted the last Pest-syntax files; kept for the next exclusion.
+EXCLUDED: set[str] = set()
 
 
 def discovered_feature_files() -> list[str]:
