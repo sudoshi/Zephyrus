@@ -14,7 +14,7 @@ enum IconRenderError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .usage:
-            return "Usage: render-app-icon.swift <source.png> <output.png> <pixels> <opaque|transparent> [insetFraction] [backgroundHex]"
+            return "Usage: render-app-icon.swift <source.png> <output.png> <pixels> <opaque|transparent|monochrome> [insetFraction] [backgroundHex]"
         case .invalidSize:
             return "Icon pixel size must be a positive integer."
         case .invalidInset:
@@ -52,7 +52,7 @@ func render() throws {
     guard let pixelSize = Int(arguments[2]), pixelSize > 0 else {
         throw IconRenderError.invalidSize
     }
-    guard let style = ["opaque", "transparent"].first(where: { $0 == arguments[3] }) else {
+    guard let style = ["opaque", "transparent", "monochrome"].first(where: { $0 == arguments[3] }) else {
         throw IconRenderError.usage
     }
     let inset = CGFloat(Double(arguments.count > 4 ? arguments[4] : "0") ?? -1)
@@ -104,7 +104,51 @@ func render() throws {
         hints: [.interpolation: NSImageInterpolation.high]
     )
 
-    guard let png = bitmap.representation(using: NSBitmapImageRep.FileType.png, properties: [:])
+    if style == "monochrome", let bitmapData = bitmap.bitmapData {
+        // Android 13+ themed icons use the alpha silhouette and apply the launcher's
+        // selected foreground color. Strip every source color while preserving the
+        // artwork's antialiased alpha edge and transparent negative space.
+        for row in 0 ..< bitmap.pixelsHigh {
+            let rowStart = bitmapData.advanced(by: row * bitmap.bytesPerRow)
+            for column in 0 ..< bitmap.pixelsWide {
+                let pixel = rowStart.advanced(by: column * 4)
+                pixel[0] = 255
+                pixel[1] = 255
+                pixel[2] = 255
+            }
+        }
+    }
+
+    let outputBitmap: NSBitmapImageRep
+    if style == "opaque" {
+        guard
+            let sourceImage = bitmap.cgImage,
+            let opaqueContext = CGContext(
+                data: nil,
+                width: pixelSize,
+                height: pixelSize,
+                bitsPerComponent: 8,
+                bytesPerRow: pixelSize * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+            )
+        else {
+            throw IconRenderError.pngEncodingFailed
+        }
+        opaqueContext.interpolationQuality = .high
+        opaqueContext.draw(
+            sourceImage,
+            in: CGRect(x: 0, y: 0, width: pixelSize, height: pixelSize)
+        )
+        guard let opaqueImage = opaqueContext.makeImage() else {
+            throw IconRenderError.pngEncodingFailed
+        }
+        outputBitmap = NSBitmapImageRep(cgImage: opaqueImage)
+    } else {
+        outputBitmap = bitmap
+    }
+
+    guard let png = outputBitmap.representation(using: NSBitmapImageRep.FileType.png, properties: [:])
     else {
         throw IconRenderError.pngEncodingFailed
     }

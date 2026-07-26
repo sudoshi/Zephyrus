@@ -12,6 +12,12 @@ activation. The source of record is the
 [Nightingale product plan](../plans/nightingale-patient-product-2026-07-26.md) and its
 [execution log](../devlog/DEVLOG-nightingale-patient-product-2026-07-26.md).
 
+Current product-identity records:
+
+- [Product identity and support naming checklist](./PRODUCT-IDENTITY-AND-SUPPORT-NAMING-CHECKLIST-2026-07-26.md)
+- [Legacy migration classification](./MIGRATION-CLASSIFICATION-2026-07-26.md)
+- [Launcher, themed-icon, and splash evidence](../evidence/nightingale/brand-identity-2026-07-26/README.md)
+
 ## Lineage and filing rules
 
 - The prior Hummingbird Patient native targets and patient contract remain immutable,

@@ -178,7 +178,7 @@ text, imply a clinical outcome, or substitute for status language.
 - [x] Create `docs/nightingale/` and an index for future Nightingale-owned contract,
       fixture, safety, and release documentation, with explicit lineage to the former patient
       reference.
-- [ ] Establish an app-store and support naming checklist; reserve identifiers only through
+- [x] Establish an app-store and support naming checklist; reserve identifiers only through
       authorized Apple/Google/organization processes.
 
 **Exit evidence:** both empty Nightingale targets build in Debug and Release, have no staff
@@ -193,9 +193,9 @@ software-bill-of-materials/dependency inventory. No patient feature becomes enab
       including an iOS opaque 1024 px master and Android density/adaptive variants.
 - [x] Add asset source, checksum, dimensions, background, crop/safe-zone, generation
       command, and reviewer/rights fields to a provenance manifest.
-- [ ] Design and verify Android 13+ monochrome themed-icon variants for both products; do not
+- [x] Design and verify Android 13+ monochrome themed-icon variants for both products; do not
       treat a full-color adaptive foreground as an accessible monochrome design.
-- [ ] Render both icons on actual iOS Simulator and Android API 35 emulator launchers;
+- [x] Render both icons on actual iOS Simulator and Android API 35 emulator launchers;
       inspect normal, dark, round/adaptive, and Android 12+ splash surfaces.
 - [ ] Verify no asset appears in the wrong product, notification, widget, or app-store
       screenshot surface.
@@ -293,8 +293,9 @@ part of application development work.
 1. Classify the protected-storage and volatile-input subset only after documenting the
    Nightingale identity/recovery, namespace, device-compromise, logout/deletion, and threat
    model decisions; do not port a credential implementation first.
-2. Complete the remaining real iOS/Android launcher-surface checks for both brands, including
-   dark/round/adaptive variants; retain only non-PHI screenshots as evidence.
+2. Complete the remaining cross-surface brand audit for notification, widget, installed
+   upgrade, and future store-listing surfaces; launcher, themed-icon, and splash checks are
+   captured in non-PHI evidence.
 3. Define a Nightingale-owned, default-off contract and authorization matrix before adding an
    API client, authentication input, patient projection, or communication capability.
 4. Update this checklist and its devlog after each verified slice. Do not convert partial

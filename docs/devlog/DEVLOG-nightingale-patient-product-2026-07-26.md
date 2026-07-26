@@ -100,3 +100,55 @@ deployment authorization.
   activation, migration, deployment, or pilot enrollment.
 - Remaining legacy sources are not migration-approved. Clinical, privacy/security,
   accessibility, patient-advisor, identity, legal/HIM, and release approvals remain open.
+
+## 2026-07-26 — Product identity and launcher evidence hardening
+
+### Completed evidence
+
+- Added independent Android 13+ monochrome adaptive resources for Hummingbird Staff and
+  Nightingale. The generated resources are white alpha silhouettes, not full-color
+  foregrounds mislabeled as monochrome artwork.
+- Ran the first round-mask review on the Android API 35 emulator, detected that the
+  Hummingbird beak was clipped at the original 8% adaptive inset, corrected the
+  Hummingbird adaptive/monochrome inset to 20%, rebuilt, reinstalled, and repeated the
+  review. The corrected round and themed icons retain the complete subject.
+- Captured non-PHI light/dark iOS launcher, Android round adaptive, Android light/dark
+  themed-icon, and Android system-splash evidence for both products in
+  [the brand evidence record](../evidence/nightingale/brand-identity-2026-07-26/README.md).
+- Corrected the deterministic icon renderer so `opaque` outputs are RGB PNGs without alpha
+  channels. Regenerated both iOS AppIcon masters and all legacy Android launcher/round
+  density outputs.
+- Added `verify-app-icon.swift` and `verify-mobile-brand-assets.sh`. They verify source
+  checksums, dimensions, alpha-channel policy, visible/transparent pixel presence,
+  monochrome pixel purity, Android v33 resource wiring, and cross-product distinction.
+- Added the brand verifier as an independent macOS CI job so future non-documentation
+  changes cannot silently reintroduce alpha, source drift, cross-product identity, or a
+  malformed themed-icon resource.
+- Added the
+  [product identity and support naming checklist](../nightingale/PRODUCT-IDENTITY-AND-SUPPORT-NAMING-CHECKLIST-2026-07-26.md).
+  It records canonical product names and app IDs while leaving all external reservations,
+  signing, public support contacts, distribution rights, store metadata, and approvals
+  explicitly pending.
+
+### Verification
+
+- Hummingbird Android Debug and Release builds accepted the corrected adaptive and
+  monochrome resources.
+- Nightingale Android Debug and Release builds and its product-boundary task accepted the
+  independent resources.
+- The brand-asset verifier confirms both iOS masters and legacy Android launchers have no
+  alpha channel, while adaptive and monochrome foregrounds retain required transparency.
+- Nightingale’s iOS XCTest/XCUITest scheme passed three tests with zero failures; its
+  Android API 35 instrumentation suite passed three tests with zero failures. Hummingbird
+  and Nightingale Android unit suites passed, and current Debug/Release builds succeeded.
+- No patient data, credential, production database, patient record, feature activation,
+  migration, deployment, or store-console mutation was used.
+
+### Holds
+
+- The remaining Stream B cross-surface audit covers notification, widget, installed
+  upgrade, and future store-listing surfaces. It is not inferred from launcher evidence.
+- Artwork ownership/distribution rights and independent product-design/accessibility
+  review remain open.
+- Apple/Google records, signing, support endpoints, privacy disclosures, analytics/crash
+  boundaries, push identities, and pilot/release authorization remain open.

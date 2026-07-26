@@ -734,6 +734,19 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  mobile-brand-assets:
+    name: Mobile product brand assets
+    runs-on: macos-15
+    needs: changes
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Hummingbird and Nightingale icon derivations
+        run: bash scripts/ci/verify-mobile-brand-assets.sh .
+
   # ---------------------------------------------------------------------------
   # Hummingbird staff apps — release boundaries, contracts, and native tests
   # ---------------------------------------------------------------------------
