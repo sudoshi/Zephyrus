@@ -430,3 +430,92 @@ deployment authorization.
 - No production patient was created. Production database access remains explicitly outside
   this development stream, and no route, migration, deployment, or feature activation was
   performed.
+
+## 2026-07-26 — Identity/session/recovery and current-inpatient held candidates
+
+### Source scrutiny and decisions
+
+- Reconciled the legacy patient auth service, patient-realm middleware, auth controller and
+  requests, principal/identity-link/challenge/session models, identity schema migration,
+  auth lifecycle tests, and session-management tests. Recorded exact SHA-256 evidence in the
+  [candidate decision](../nightingale/IDENTITY-SESSION-RECOVERY-AND-SOURCE-CANDIDATE-DECISION-2026-07-26.md).
+- Confirmed the legacy reference selects local email/password credentials, Hummingbird token
+  abilities, persistent refresh families, session/device metadata, and a two-part enrollment
+  challenge. Those are evidence inputs and were not adopted as Nightingale requirements.
+- Confirmed the schema contains patient/representative principal and relationship vocabulary
+  plus recovery/invitation challenge purposes, but the reviewed repository has no complete
+  runnable recovery or representative invitation/acceptance/revocation lifecycle. Schema
+  vocabulary was not treated as implementation or legal authority.
+- Reconciled the current-inpatient evidence from `Encounter`, encounter-access, messaging
+  guard, and lifecycle reconciliation sources. Multiple related but non-identical current
+  definitions remain; no operational table or status value was promoted directly to
+  Nightingale authorization.
+- Performed the work from source and synthetic fixtures only. No production database,
+  patient, principal, identity link, grant, session, encounter, response, or credential was
+  read, replayed, inserted, changed, or used for validation.
+
+### Held machine-readable candidates
+
+- Added a non-runnable identity/session/recovery candidate with null provider, credential,
+  refresh credential, enrollment channel, recovery channel, route, and operation. Every
+  identity, enrollment, session, recovery, representative, integration, and production
+  activation remains false.
+- Restricted the initial positive identity state to self. Staff and legacy patient realms
+  are rejected, representatives remain held, access-credential persistence and durable
+  device identifiers remain prohibited, and `verified_self` explicitly does not authorize
+  patient access.
+- Added 64 synthetic identity cases spanning activation, provider/evidence/assurance,
+  principal, session, identity-link, recovery, representative, audit, policy, and race
+  outcomes. Every case has a pinned result and audit mode.
+- Added a non-runnable current-inpatient source candidate with null adapter, query contract,
+  database connection, route, operation, policy version, evaluation clock, and freshness
+  threshold. Every source/cohort/integration/production activation remains false.
+- Defined unavailable, inconsistent, confirmed-closed, and confirmed-current source states.
+  Only confirmed-current may continue to later governed evaluation, and it still does not
+  authorize access.
+- Added 42 synthetic source cases spanning positive/closed, activation, dependencies,
+  freshness, scope, linkage, lifecycle, completeness, concurrency, transitions,
+  cardinality, policy, and audit. Missing/stale evidence cannot become current; no record or
+  outage cannot become confirmed closed; contradictions cannot become a false empty result.
+
+### Mechanical evidence
+
+- Added `verify-nightingale-identity-source-candidates.mjs`. It cross-checks the empty
+  foundation contract, disabled PHP configuration, PHP enum vocabularies, held candidate
+  fields, all 106 exact case outcomes/audit modes, synthetic-only/no-production-replay
+  declarations, null freshness choices, and credential/source-identifier containment.
+- Added nine negative mutations that must reject identity-provider selection,
+  representative activation, identity-as-authorization, a weakened cross-principal session
+  outcome, production replay, source-query activation, stale-as-current classification, an
+  OpenAPI runtime path, and a configured legacy source adapter.
+- Added the verifier and its negative self-tests to the docs-sensitive Nightingale CI job.
+- Updated the product plan, contract checklist, migration classification, protected-state
+  decision, Nightingale index, and this execution log immediately after the verified
+  candidate-design slice.
+- Re-ran the empty-contract, encounter-candidate, identity/source-candidate, dependency-free
+  backend, and native product-boundary verifiers, including all negative self-tests.
+  JavaScript syntax, JSON parsing, targeted formatting, relative links, Git whitespace, and
+  changed-slice production-connection-token scans pass.
+- Re-ran the normally signed iPhone 17 Pro Simulator suite: five unit tests and two UI
+  journeys passed with zero failures, including the real Keychain canary. The iOS Release
+  simulator build passed.
+- Re-ran Android on the `hb` API 35 emulator: five instrumentation tests passed with zero
+  failures. A forced fresh JVM run passed five tests; the product boundary, lint-vital, and
+  Debug/Release assemblies passed.
+- Two preliminary Android runner invocations failed before instrumentation because the
+  shell lacked an explicit SDK path and then reaped a detached emulator. Neither is counted
+  as product evidence; the same tasks passed after setting the Java/SDK paths and keeping
+  the API 35 emulator in a persistent session.
+
+### Holds
+
+- This completes candidate-state design and synthetic fixture coverage only. No provider,
+  proofing method, credential, session representation, enrollment/recovery channel,
+  representative authority, authoritative source, adapter/query, cohort, lifecycle mapping,
+  freshness threshold, or patient-facing language is approved.
+- Identity, source, authorization, privacy/security, clinical operations, legal/HIM,
+  accessibility, patient-advisor, support, data-governance, integration, pilot, release, and
+  deployment approvals remain open.
+- The Nightingale OpenAPI document still has zero paths, Laravel still has zero Nightingale
+  routes or bindings, both native apps still have zero network clients, and the correct
+  runtime user experience remains the no-live-access foundation shell.

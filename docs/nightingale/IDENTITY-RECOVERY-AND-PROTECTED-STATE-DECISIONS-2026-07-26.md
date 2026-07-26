@@ -13,6 +13,12 @@ representative access, API client, pilot, or release.
 `hummingbird/androidPatientApp` are evidence inputs only. Their access-token, refresh-token,
 device-identity, and storage choices are not inherited.
 
+**Companion design evidence:** The
+[identity/session/recovery and inpatient-source held candidate](./IDENTITY-SESSION-RECOVERY-AND-SOURCE-CANDIDATE-DECISION-2026-07-26.md)
+now defines exhaustive synthetic failure states and adoption gates. It does not satisfy the
+provider, credential, representative, source, review, integration, pilot, or release
+decisions that remain open below.
+
 ## 1. Why this decision precedes authentication code
 
 A patient-facing app can create durable disclosure and account-takeover risk before it

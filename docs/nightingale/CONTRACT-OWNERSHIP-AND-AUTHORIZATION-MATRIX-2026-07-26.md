@@ -10,6 +10,12 @@ this document.
 **Machine-verifiable companion:**
 [`api-contract/nightingale-foundation.v0.json`](./api-contract/nightingale-foundation.v0.json)
 
+**Held prerequisite companions:**
+[identity candidate](./identity/candidates/v0/candidate.json),
+[current-inpatient source candidate](./source-candidates/current-inpatient/v0/candidate.json),
+and their
+[decision record](./IDENTITY-SESSION-RECOVERY-AND-SOURCE-CANDIDATE-DECISION-2026-07-26.md)
+
 ## 1. Outcome
 
 Nightingale now owns a contract-development boundary without pretending that it owns an
@@ -157,6 +163,9 @@ operation exists in approved Nightingale contract
   convention is evidence only.
 - Pre-proofing failures must not reveal whether an email, phone, medical record, encounter,
   representative relationship, or account exists.
+- The held identity/session/recovery candidate pins 64 synthetic outcomes and self-only
+  positive-state prerequisites. It supplies no provider, credential, route, binding, or
+  authorization, and all representative relationships remain denied.
 
 ### 5.4 Relationship and encounter-grant gate
 
@@ -321,8 +330,13 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
 - [ ] Named owners and independent approvers for every applicable row in section 3.
 - [x] ADR for route namespace and compatibility/deprecation behavior, mechanically pinned
       with route registration still prohibited.
+- [x] Non-runnable identity/session/recovery and current-inpatient-source candidate state
+      designs, exact synthetic fixture matrices, and negative verifier mutations, with every
+      provider/adapter/route/query/client/activation field still held.
 - [ ] Approved Nightingale identity, representative, enrollment, recovery, and session
       contract.
+- [ ] Approved authoritative current-inpatient source, lifecycle, cohort, linkage,
+      freshness, outage, audit, and adapter contract.
 - [ ] Operation-specific authorization and non-disclosure matrix with automated tests.
 - [ ] Patient-visible field/source/release/freshness/uncertainty/correction/translation
       matrix.
@@ -335,7 +349,8 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
 
 Until these gates are met, `paths` remains empty.
 
-The encounter-access candidate decision and fixtures are pre-contract evidence for these
-gates, not proof that a gate is complete. The route/compatibility ADR and default-deny
-prerequisite ports exist, but no owner is named, identity/source adapter is approved, or
-backend/native operation parity implementation exists.
+The encounter-access and identity/source candidate decisions and fixtures are pre-contract
+evidence for these gates, not proof that a gate is complete. The route/compatibility ADR,
+default-deny prerequisite ports, and 106 prerequisite cases exist, but no owner is named,
+identity provider/source adapter is approved, or backend/native operation parity
+implementation exists.

@@ -1,0 +1,571 @@
+{
+    "fixture_schema": "nightingale.identity-session-recovery.candidate-fixtures.v0",
+    "candidate_id": "nightingale.identity-session-recovery.v0-candidate",
+    "synthetic_only": true,
+    "production_replay_permitted": false,
+    "contains_credentials": false,
+    "contains_source_identifiers": false,
+    "result_templates": {
+        "verified_self": {
+            "identity_state": "verified_self",
+            "permits_governed_evaluation": true,
+            "authorizes_patient_access": false
+        },
+        "denied": {
+            "identity_state": "denied",
+            "permits_governed_evaluation": false,
+            "authorizes_patient_access": false
+        },
+        "unavailable": {
+            "identity_state": "unavailable",
+            "permits_governed_evaluation": false,
+            "authorizes_patient_access": false
+        }
+    },
+    "cases": [
+        {
+            "case_id": "verified_self_all_prerequisites",
+            "category": "positive",
+            "preconditions": [
+                "Every positive-state prerequisite is satisfied with self relationship."
+            ],
+            "expected_result": "verified_self",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "product_disabled",
+            "category": "activation",
+            "preconditions": ["The Nightingale product gate is disabled."],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_unavailable"
+        },
+        {
+            "case_id": "identity_disabled",
+            "category": "activation",
+            "preconditions": [
+                "The Nightingale identity capability is disabled."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_unavailable"
+        },
+        {
+            "case_id": "provider_unconfigured",
+            "category": "dependency",
+            "preconditions": [
+                "No approved identity provider adapter is configured."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_unavailable"
+        },
+        {
+            "case_id": "provider_unavailable",
+            "category": "dependency",
+            "preconditions": [
+                "The approved provider dependency cannot be reached."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_unavailable"
+        },
+        {
+            "case_id": "provider_timeout",
+            "category": "dependency",
+            "preconditions": [
+                "Provider evaluation does not complete within its governed deadline."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_unavailable"
+        },
+        {
+            "case_id": "provider_response_malformed",
+            "category": "integrity",
+            "preconditions": [
+                "Provider evidence cannot be parsed or validated exactly."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "authentication_evidence_missing",
+            "category": "evidence",
+            "preconditions": [
+                "No request-scoped authentication evidence is present."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "authentication_evidence_invalid",
+            "category": "evidence",
+            "preconditions": [
+                "Authentication evidence fails cryptographic or semantic validation."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "authentication_evidence_expired",
+            "category": "evidence",
+            "preconditions": [
+                "Authentication evidence is outside its approved validity window."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "issuer_mismatch",
+            "category": "evidence",
+            "preconditions": [
+                "The evidence issuer does not match the approved policy."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "audience_mismatch",
+            "category": "evidence",
+            "preconditions": ["The evidence audience is not Nightingale."],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "client_mismatch",
+            "category": "evidence",
+            "preconditions": [
+                "The evidence is bound to a different approved client."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "nonce_mismatch",
+            "category": "evidence",
+            "preconditions": ["The request-bound replay value does not match."],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "replay_detected",
+            "category": "evidence",
+            "preconditions": [
+                "Validated evidence has already been consumed or replayed."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "authentication_method_unsupported",
+            "category": "policy",
+            "preconditions": [
+                "The presented method is not in the approved method registry."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "assurance_missing",
+            "category": "assurance",
+            "preconditions": [
+                "The provider result has no evaluable assurance statement."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "assurance_below_policy",
+            "category": "assurance",
+            "preconditions": [
+                "The evaluated assurance does not satisfy the current policy."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "step_up_incomplete",
+            "category": "assurance",
+            "preconditions": ["A required step-up evaluation is incomplete."],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "principal_missing",
+            "category": "principal",
+            "preconditions": [
+                "No Nightingale principal can be resolved after provider validation."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "wrong_identity_realm",
+            "category": "principal",
+            "preconditions": [
+                "The resolved principal belongs to a non-Nightingale realm."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "staff_principal_rejected",
+            "category": "principal",
+            "preconditions": [
+                "The resolved subject is a staff operational principal."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "representative_principal_held",
+            "category": "representative",
+            "preconditions": [
+                "The principal is representative-scoped while representative access is held."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "principal_pending",
+            "category": "principal",
+            "preconditions": ["The Nightingale principal has pending status."],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "principal_inactive",
+            "category": "principal",
+            "preconditions": ["The Nightingale principal is not active."],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "principal_locked",
+            "category": "principal",
+            "preconditions": ["The Nightingale principal is locked."],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "principal_suspended",
+            "category": "principal",
+            "preconditions": ["The Nightingale principal is suspended."],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "principal_closed",
+            "category": "principal",
+            "preconditions": ["The Nightingale principal is closed."],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "principal_state_inconsistent",
+            "category": "integrity",
+            "preconditions": [
+                "Principal status and activation facts contradict one another."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "session_missing",
+            "category": "session",
+            "preconditions": [
+                "No active request-scoped Nightingale session is present."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "session_expired",
+            "category": "session",
+            "preconditions": [
+                "The Nightingale session absolute lifetime has expired."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "session_idle_expired",
+            "category": "session",
+            "preconditions": [
+                "The Nightingale session idle lifetime has expired."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "session_revoked",
+            "category": "session",
+            "preconditions": ["The Nightingale session has been revoked."],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "session_wrong_principal",
+            "category": "integrity",
+            "preconditions": ["The session is owned by a different principal."],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "session_wrong_realm",
+            "category": "integrity",
+            "preconditions": [
+                "The session belongs to a different product realm."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "session_family_reuse_detected",
+            "category": "session",
+            "preconditions": [
+                "A superseded session-family artifact is replayed."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "session_risk_hold",
+            "category": "session",
+            "preconditions": [
+                "The approved risk policy places the session on hold."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "session_state_unknown",
+            "category": "integrity",
+            "preconditions": [
+                "The stored session state is outside the approved registry."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "session_changed_during_evaluation",
+            "category": "race",
+            "preconditions": [
+                "Session state changes before identity handoff completes."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "identity_link_missing",
+            "category": "identity_link",
+            "preconditions": ["No governed self identity link is available."],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "identity_link_pending",
+            "category": "identity_link",
+            "preconditions": [
+                "The governed self identity link remains pending."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "identity_link_ambiguous",
+            "category": "identity_link",
+            "preconditions": ["The governed identity linkage is ambiguous."],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "identity_link_merged",
+            "category": "identity_link",
+            "preconditions": [
+                "The evaluated identity link has been merged into another link."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "identity_link_revoked",
+            "category": "identity_link",
+            "preconditions": ["The evaluated identity link has been revoked."],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "identity_link_verification_time_missing",
+            "category": "identity_link",
+            "preconditions": ["A verified link has no verification time."],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "identity_link_wrong_principal",
+            "category": "identity_link",
+            "preconditions": [
+                "The identity link is owned by a different principal."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "identity_link_duplicate_active",
+            "category": "identity_link",
+            "preconditions": [
+                "More than one current identity link resolves for the same evaluation."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "identity_link_assurance_mismatch",
+            "category": "identity_link",
+            "preconditions": [
+                "Identity-link assurance does not satisfy the approved policy."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "recovery_requested",
+            "category": "recovery",
+            "preconditions": [
+                "A recovery transition has started and no replacement identity is trusted."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "recovery_evidence_incomplete",
+            "category": "recovery",
+            "preconditions": ["Independent recovery proof is incomplete."],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "recovery_old_binding_not_cleared",
+            "category": "recovery",
+            "preconditions": [
+                "The old local binding remains accessible during replacement."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "recovery_superseded_session_active",
+            "category": "recovery",
+            "preconditions": [
+                "A session superseded by recovery remains active."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "recovery_fresh_proof_complete",
+            "category": "recovery",
+            "preconditions": [
+                "Fresh approved proof succeeds, old binding is cleared, superseded sessions are revoked, and durable audit commits."
+            ],
+            "expected_result": "verified_self",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "legal_representative_held",
+            "category": "representative",
+            "preconditions": [
+                "A legal-representative relationship is presented while all representatives are held."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "guardian_held",
+            "category": "representative",
+            "preconditions": [
+                "A guardian relationship is presented while all representatives are held."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "caregiver_held",
+            "category": "representative",
+            "preconditions": [
+                "A caregiver relationship is presented while all representatives are held."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "proxy_held",
+            "category": "representative",
+            "preconditions": [
+                "A proxy relationship is presented while all representatives are held."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "other_relationship_held",
+            "category": "representative",
+            "preconditions": [
+                "An unapproved relationship is presented while all representatives are held."
+            ],
+            "expected_result": "denied",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "evaluation_audit_unavailable",
+            "category": "audit",
+            "preconditions": [
+                "Identity would otherwise be positive but durable evaluation audit cannot commit."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_unavailable"
+        },
+        {
+            "case_id": "correlation_context_malformed",
+            "category": "integrity",
+            "preconditions": [
+                "The request correlation context is malformed or untrusted."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "session_limit_policy_unresolved",
+            "category": "policy",
+            "preconditions": [
+                "The applicable session-limit policy cannot be resolved."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "clock_untrusted",
+            "category": "dependency",
+            "preconditions": [
+                "The trusted time needed for expiry evaluation is unavailable."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_unavailable"
+        },
+        {
+            "case_id": "policy_version_mismatch",
+            "category": "policy",
+            "preconditions": [
+                "Identity evidence and the active policy version do not match."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "identity_changed_before_handoff",
+            "category": "race",
+            "preconditions": [
+                "Principal, session, or identity-link facts change before governed authorization handoff."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        }
+    ]
+}

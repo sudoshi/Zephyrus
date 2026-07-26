@@ -237,6 +237,12 @@ human visual review records correct brand, crop, contrast, and no unwanted trans
       prohibited, and add request-scoped default-deny identity/current-inpatient ports plus a
       fail-closed precondition truth table. The foundation has no route/controller/provider
       binding, database query, OpenAPI operation, or native client.
+- [x] Complete the non-runnable identity/session/recovery and current-inpatient-source
+      candidate designs without choosing a provider or adapter: reconcile exact legacy source
+      hashes, define self-only and fail-closed state semantics, prohibit guessed freshness
+      thresholds, and mechanically pin 64 identity plus 42 source cases with nine adversarial
+      verifier mutations. Every activation, provider, credential, route, query, client,
+      representative, patient-access, and production field remains disabled, null, or held.
 - [ ] Classify each existing Hummingbird Patient source file as reusable safety primitive,
       reusable product behavior, test/fixture-only, or rejected legacy behavior.
 - [ ] Port primitives into Nightingale by reviewed commits, not a blind directory copy:
@@ -329,16 +335,21 @@ part of application development work.
        namespace, held candidate path, and default-deny identity/source prerequisite ports. The
        contract remains at zero paths and neither route registration nor native networking is
        enabled.
-2. [ ] Complete identity proofing/session/recovery and authoritative current-inpatient-source
-       adapter designs, fixtures, and independent approvals. Do not bind either port or query a
-       patient source until those decisions pass.
-3. [ ] Complete the remaining cross-surface brand audit for notification, widget, installed
+2. [x] Complete held, non-runnable identity/session/recovery and authoritative
+       current-inpatient-source state designs and exhaustive synthetic fixtures. The result
+       defines 106 cases and negative enforcement but deliberately selects no provider,
+       credential, representative authority, adapter, query, or freshness threshold.
+3. [ ] Obtain named independent approvals for identity, proofing, enrollment, session,
+       recovery, representatives, current-inpatient source, cohort, lifecycle, freshness,
+       linkage, audit, support, and rollback. Only then implement default-off non-production
+       adapters behind the existing ports; do not query a patient source before approval.
+4. [ ] Complete the remaining cross-surface brand audit for notification, widget, installed
        upgrade, and future store-listing surfaces; launcher, themed-icon, and splash checks are
        captured in non-PHI evidence.
-4. [ ] Continue source-by-source classification for identity input, enrollment/recovery,
+5. [ ] Continue source-by-source classification for identity input, enrollment/recovery,
        first-read projection models, and error/non-disclosure handling. Treat the legacy
        contract, candidate fixtures, and vocabulary as evidence, not approved implementation.
-5. [ ] Update this checklist and its devlog after each verified slice. Do not convert partial
+6. [ ] Update this checklist and its devlog after each verified slice. Do not convert partial
        automation into clinical, privacy, accessibility, pilot, or deployment completion.
 
 ## 10. Explicit holds

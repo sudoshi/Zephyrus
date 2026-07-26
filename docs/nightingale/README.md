@@ -21,7 +21,10 @@ Current product-identity records:
 - [Patient-state vocabulary classification](./PATIENT-STATE-VOCABULARY-CLASSIFICATION-2026-07-26.md)
 - [Encounter-access held-candidate decision](./ENCOUNTER-ACCESS-CANDIDATE-DECISION-2026-07-26.md)
 - [Route, compatibility, identity, and inpatient-source ADR](./ROUTE-COMPATIBILITY-IDENTITY-SOURCE-ADR-2026-07-26.md)
+- [Identity, session, recovery, and inpatient-source held-candidate decision](./IDENTITY-SESSION-RECOVERY-AND-SOURCE-CANDIDATE-DECISION-2026-07-26.md)
 - [Empty/default-off contract foundation](./api-contract/nightingale-foundation.v0.json)
+- [Identity candidate and fixtures](./identity/candidates/v0/candidate.json)
+- [Current-inpatient source candidate and fixtures](./source-candidates/current-inpatient/v0/candidate.json)
 - [Launcher, themed-icon, and splash evidence](../evidence/nightingale/brand-identity-2026-07-26/README.md)
 
 ## Lineage and filing rules
@@ -31,8 +34,9 @@ Current product-identity records:
 - The `0.0.0-governance` contract under `api-contract/` is deliberately empty and
   non-routable. An operation may be added only after its owner, compatibility decision,
   authorization/non-disclosure matrix, fixtures, and review evidence are defined.
-- Candidate artifacts under `api-contract/candidates/` are non-runnable decision/fixture
-  evidence. They do not add a path, reserve a namespace, permit client generation, or
+- Candidate artifacts under `api-contract/candidates/`, `identity/candidates/`, and
+  `source-candidates/` are non-runnable decision/fixture evidence. They do not add a path,
+  bind a provider or source adapter, permit client generation or a source query, or
   authorize implementation.
 - Add clinical, content, privacy, accessibility, and release evidence under `safety/` only
   with a dated reviewer/approval record. Draft evidence must say that it is draft.
