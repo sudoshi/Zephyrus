@@ -610,3 +610,103 @@ deployment authorization.
 - Artwork rights, product-design/accessibility review, Apple/Google ownership, public
   support, privacy disclosure, distribution signing, released-artifact migration, and
   release authorization remain open.
+
+## 2026-07-26 — Identity input, recovery, first-read, and error source classification
+
+### Exact evidence inventory
+
+- Added the
+  [detailed source classification](../nightingale/IDENTITY-INPUT-FIRST-READ-ERROR-SOURCE-CLASSIFICATION-2026-07-26.md)
+  and a machine-readable source ledger covering 65 exact files at source commit
+  `b1078405de2dacd767ec69da11197f1e755d8277`.
+- Classified 1 legacy contract, 33 backend/database sources, 8 backend tests, 11 iOS
+  sources/tests, and 12 Android sources/tests. Every row records its repository-relative
+  path, SHA-256, surface, one or more of four review domains, disposition, and
+  source-specific decision.
+- The overlapping domains contain 44 identity-input sources, 37 enrollment/recovery
+  sources, 47 first-read projection sources, and 65 error/non-disclosure sources.
+- Used source and synthetic repository evidence only. No production database, patient,
+  principal, identity link, challenge, grant, session, projection, credential, source
+  response, feature flag, migration, or deployment state was read or changed.
+
+### Material findings
+
+- Confirmed there is no complete patient account-recovery implementation. The identity
+  migration permits an `account_recovery` challenge purpose and native models recognize a
+  recovery auth-method label, but there is no recovery route, contract, proofing service,
+  UI, completion transaction, old-session invalidation policy, support path, or end-to-end
+  recovery test.
+- Confirmed iOS silently selects `encounters.data.encounters.first` and Android silently
+  selects `firstOrNull()`. Backend ordering by `valid_from DESC` and grant UUID is not a
+  patient selection or clinically governed reconciliation rule.
+- Confirmed both clients use raw grant scopes for request fan-out. iOS collapses projection
+  `404` to absence; Android collapses `403` and `404`; both collapse incompatible
+  patient-state vocabulary to absence. These states cannot safely stand for a genuine empty
+  care projection.
+- Confirmed iOS can substitute newly generated random UUIDs for malformed schedule, pathway
+  stage, and care-team member identifiers. Nightingale must reject the affected projection
+  instead of inventing a server identity.
+- Confirmed iOS can display `.server` and `.unauthorized` response messages directly, while
+  Android can display the decoded server message for HTTP 422. Nightingale must map stable
+  product-owned codes to reviewed localized client copy and never pass through arbitrary
+  server messages.
+- Preserved candidate server principles including product/operation default-off gates,
+  exact realm/session ownership, one-way challenge secrets, row locking and atomic
+  consumption, session rotation/reuse handling, generic anti-oracle projection responses,
+  request-time authorization, allowlist-first patient projection content, durable
+  audit-before-disclosure, and no-store/no-index response handling.
+- Rejected legacy email/password and seven-field invitation defaults, Hummingbird routes,
+  provider/models/tokens/storage/device identity, raw grant fields/scopes, first-record
+  selection, random identifier substitution, server-message passthrough, and nullable
+  projection-disposition conflation.
+
+### Mechanical enforcement
+
+- Added `scripts/ci/verify-nightingale-source-classification.mjs` and wired it into the
+  docs-sensitive Nightingale CI job.
+- The verifier pins the exact 65-path inventory and every source SHA-256; validates strict
+  per-row fields, category counts, surfaces, dispositions, and substantive decisions; and
+  confirms the Nightingale configuration and zero-operation contract remain dormant.
+- The ledger keeps fourteen permissions false, including implementation, runtime adoption,
+  route registration, legacy alias/provider/credential/device reuse, first-record
+  selection, server-message passthrough, projection-absence conflation, production data,
+  production queries, production replay, and patient/principal creation.
+- Negative self-tests prove rejection of implementation/runtime activation, first-record
+  selection, server-message passthrough, absence conflation, production replay, a malformed
+  hash, source removal, duplicate/replaced inventory, and an `approved` disposition.
+- Updated the product plan immediately after the bounded slice passed. The 65-file
+  classification item is complete; the broader all-source migration item remains open for
+  journey, communication, notification, preference, presentation, synthetic/debug, and
+  release sources.
+
+### Native and static regression evidence
+
+- Ran the new source-classification verifier with all negative mutations, the empty-contract
+  verifier, encounter-access candidate verifier, identity/source candidate verifier,
+  dependency-free backend verifier, native product-boundary verifier, and both cross-product
+  mobile-brand verifiers. All passed.
+- Regenerated and compared the Nightingale Xcode project with `project.yml`; no generated
+  drift remained. On the normally signed iPhone 17 Pro Simulator, all five unit tests and
+  both UI tests passed with zero failures. The Release simulator build passed.
+- Started the `hb` Android API 35 emulator and forced fresh execution without the Gradle
+  build cache. All five instrumentation tests and five JVM boundary tests passed with zero
+  failures. `verifyNightingaleProductBoundary`, `lintVitalRelease`, `assembleDebug`, and
+  `assembleRelease` passed in the same successful build.
+- Shut down both emulators after evidence collection.
+- One preliminary Xcode-project helper invocation supplied the repository root instead of
+  its required iOS-app root and correctly exited before generation. One preliminary Gradle
+  invocation stopped before task execution because macOS had no system-registered Java
+  runtime. Neither is counted as product evidence; the exact checks passed after supplying
+  `Nightingale/iosApp` and Android Studio's bundled JDK 21 respectively.
+
+### Holds
+
+- No identity provider, proofing method, enrollment or recovery workflow, representative
+  authority, session/credential model, authoritative source adapter, route, operation,
+  projection contract, error catalog, patient copy, or production access is approved.
+- The Nightingale OpenAPI artifact still has zero paths, Laravel still registers no
+  Nightingale route, both apps still have no network client, and no patient-facing data
+  capability was added.
+- Identity, source, privacy/security, legal/HIM, clinical safety, accessibility/language,
+  patient-advisor, support, operations, pilot, release, and deployment approvals remain
+  open.

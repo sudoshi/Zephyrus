@@ -333,6 +333,10 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
 - [x] Non-runnable identity/session/recovery and current-inpatient-source candidate state
       designs, exact synthetic fixture matrices, and negative verifier mutations, with every
       provider/adapter/route/query/client/activation field still held.
+- [x] Source-by-source evidence classification for the bounded identity-input,
+      enrollment/recovery, first-read, and error/non-disclosure slice: 65 exact files,
+      SHA-256 lineage, platform delta, missing-recovery finding, and negative enforcement of
+      zero runtime/route/provider/production adoption.
 - [ ] Approved Nightingale identity, representative, enrollment, recovery, and session
       contract.
 - [ ] Approved authoritative current-inpatient source, lifecycle, cohort, linkage,
@@ -349,8 +353,9 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
 
 Until these gates are met, `paths` remains empty.
 
-The encounter-access and identity/source candidate decisions and fixtures are pre-contract
-evidence for these gates, not proof that a gate is complete. The route/compatibility ADR,
-default-deny prerequisite ports, and 106 prerequisite cases exist, but no owner is named,
-identity provider/source adapter is approved, or backend/native operation parity
-implementation exists.
+The encounter-access, identity/source, and 65-file source-classification decisions and
+fixtures are pre-contract evidence for these gates, not proof that an approval gate is
+complete. The route/compatibility ADR, default-deny prerequisite ports, 106 prerequisite
+cases, and detailed native/backend delta exist, but no owner is named, identity
+provider/source adapter is approved, or backend/native operation parity implementation
+exists.

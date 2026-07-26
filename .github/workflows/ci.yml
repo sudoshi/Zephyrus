@@ -777,6 +777,7 @@ jobs:
           node scripts/ci/verify-nightingale-contract-foundation.mjs . --self-test
           node scripts/ci/verify-nightingale-encounter-access-candidate.mjs . --self-test
           node scripts/ci/verify-nightingale-identity-source-candidates.mjs . --self-test
+          node scripts/ci/verify-nightingale-source-classification.mjs . --self-test
           php scripts/ci/verify-nightingale-backend-foundation.php . --self-test
           bash scripts/ci/verify-nightingale-product-boundary.sh .
 

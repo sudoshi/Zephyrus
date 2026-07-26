@@ -248,8 +248,19 @@ human visual review records correct brand, crop, contrast, and no unwanted trans
       thresholds, and mechanically pin 64 identity plus 42 source cases with nine adversarial
       verifier mutations. Every activation, provider, credential, route, query, client,
       representative, patient-access, and production field remains disabled, null, or held.
+- [x] Complete the bounded source-by-source identity-input, enrollment/recovery, first-read,
+      and error/non-disclosure slice: classify and SHA-256 pin 65 exact contract, backend,
+      database, iOS, Android, and test files; document the missing recovery workflow,
+      unsafe first-record selection, cross-platform absence/error divergence, random UUID
+      substitution, and server-message passthrough; and add a negative verifier that keeps
+      all runtime, route, provider, credential-migration, production, and patient-creation
+      permissions false.
 - [ ] Classify each existing Hummingbird Patient source file as reusable safety primitive,
-      reusable product behavior, test/fixture-only, or rejected legacy behavior.
+      reusable product behavior, test/fixture-only, or rejected legacy behavior. Foundation,
+      protected-state, contract, vocabulary, first-read candidate, identity/source candidate,
+      and the 65-file identity-input/enrollment/first-read/error slice are complete; remaining
+      journey, communication, notification, preference, presentation, synthetic/debug, and
+      release sources remain held.
 - [ ] Port primitives into Nightingale by reviewed commits, not a blind directory copy:
       patient API boundary, protected storage, lifecycle/screen-capture privacy cover,
       accessibility presentation preferences, patient-safe vocabulary, and volatile drafts.
@@ -353,11 +364,14 @@ part of application development work.
        source-predecessor installed upgrade. The audit passes on clean iOS and Android
        emulators while explicitly withholding released-artifact, distribution-signing,
        store-console, installed-widget, and actual-notification-rendering claims.
-5. [ ] Continue source-by-source classification for identity input, enrollment/recovery,
-       first-read projection models, and error/non-disclosure handling. Treat the legacy
-       contract, candidate fixtures, and vocabulary as evidence, not approved implementation.
-6. [ ] Update this checklist and its devlog after each verified slice. Do not convert partial
-       automation into clinical, privacy, accessibility, pilot, or deployment completion.
+5. [x] Complete source-by-source classification for identity input, enrollment/recovery,
+       first-read projection models, and error/non-disclosure handling. The 65-file,
+       checksum-pinned ledger and negative verifier treat the legacy contract, tests,
+       candidate fixtures, and vocabulary as evidence, not approved implementation; no
+       runtime code, route, provider, production query, or patient was added.
+6. [x] Update this checklist and its devlog for the verified 65-file classification slice.
+       Clinical, privacy, accessibility, identity, source, pilot, and deployment completion
+       remain explicitly open.
 
 ## 10. Explicit holds
 
