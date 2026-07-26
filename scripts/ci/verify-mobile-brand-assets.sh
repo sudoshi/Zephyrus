@@ -62,4 +62,26 @@ then
     exit 1
 fi
 
+if cmp -s \
+    hummingbird/iosApp/Hummingbird/Assets.xcassets/BrandMark.imageset/icon-1024.png \
+    nightingale/iosApp/Nightingale/Assets.xcassets/BrandMark.imageset/icon-1024.png
+then
+    echo "error: Hummingbird and Nightingale in-app brand marks must remain distinct." >&2
+    exit 1
+fi
+
+for density in mdpi hdpi xhdpi xxhdpi xxxhdpi
+do
+    for asset in ic_launcher.png ic_launcher_round.png ic_launcher_foreground.png ic_launcher_monochrome.png
+    do
+        if cmp -s \
+            "hummingbird/androidApp/app/src/main/res/mipmap-$density/$asset" \
+            "nightingale/androidApp/app/src/main/res/mipmap-$density/$asset"
+        then
+            echo "error: Hummingbird and Nightingale Android $density/$asset must remain distinct." >&2
+            exit 1
+        fi
+    done
+done
+
 echo "Mobile brand asset verification passed."

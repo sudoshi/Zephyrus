@@ -197,8 +197,13 @@ software-bill-of-materials/dependency inventory. No patient feature becomes enab
       treat a full-color adaptive foreground as an accessible monochrome design.
 - [x] Render both icons on actual iOS Simulator and Android API 35 emulator launchers;
       inspect normal, dark, round/adaptive, and Android 12+ splash surfaces.
-- [ ] Verify no asset appears in the wrong product, notification, widget, or app-store
-      screenshot surface.
+- [x] Verify repository-level notification, widget, extension, Live Activity, app-group,
+      shortcut, and generated-asset ownership; confirm no repository-owned store-listing
+      package exists; and prove source-predecessor Hummingbird in-place replacement with a
+      synthetic private-data canary on iOS and Android emulators.
+- [ ] Verify retained released-artifact upgrades, distribution signing, monotonic
+      version/build values, external store records/screenshots, installed-widget persistence,
+      and actual notification rendering after those release surfaces exist and are approved.
 
 **Exit evidence:** platform tooling accepts every icon, all targets build Release, and
 human visual review records correct brand, crop, contrast, and no unwanted transparency.
@@ -343,9 +348,11 @@ part of application development work.
        recovery, representatives, current-inpatient source, cohort, lifecycle, freshness,
        linkage, audit, support, and rollback. Only then implement default-off non-production
        adapters behind the existing ports; do not query a patient source before approval.
-4. [ ] Complete the remaining cross-surface brand audit for notification, widget, installed
-       upgrade, and future store-listing surfaces; launcher, themed-icon, and splash checks are
-       captured in non-PHI evidence.
+4. [x] Complete the repository-level cross-surface brand audit for notification, widget,
+       extension, Live Activity, app group, shortcut, store-package absence, and
+       source-predecessor installed upgrade. The audit passes on clean iOS and Android
+       emulators while explicitly withholding released-artifact, distribution-signing,
+       store-console, installed-widget, and actual-notification-rendering claims.
 5. [ ] Continue source-by-source classification for identity input, enrollment/recovery,
        first-read projection models, and error/non-disclosure handling. Treat the legacy
        contract, candidate fixtures, and vocabulary as evidence, not approved implementation.

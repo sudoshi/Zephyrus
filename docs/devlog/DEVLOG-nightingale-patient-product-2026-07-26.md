@@ -519,3 +519,87 @@ deployment authorization.
 - The Nightingale OpenAPI document still has zero paths, Laravel still has zero Nightingale
   routes or bindings, both native apps still have zero network clients, and the correct
   runtime user experience remains the no-live-access foundation shell.
+
+## 2026-07-26 — Cross-surface brand ownership and source-predecessor upgrade evidence
+
+### Repository and runtime audit
+
+- Added the
+  [cross-surface brand and upgrade audit](../evidence/nightingale/brand-identity-2026-07-26/CROSS-SURFACE-AUDIT.md).
+  It inventories Hummingbird and Nightingale application IDs, display names, notification,
+  APNs, WidgetKit, Live Activity, app-group, Android widget, shortcut, generated-asset, and
+  store-package surfaces.
+- Confirmed Hummingbird owns the repository's only current widget surfaces:
+  `net.acumenus.hummingbird.HummingbirdWidgets`,
+  `group.net.acumenus.hummingbird`, the iOS WidgetKit/Live Activity bundle, and the
+  non-exported Android `HouseGlanceReceiver`. These sources contain no Nightingale name,
+  namespace, or extension-owned raster/vector artwork.
+- Confirmed Hummingbird iOS uses system notification presentation under the staff
+  application identity and has no custom notification service/content extension or
+  attachment. Android registers four Hummingbird urgency channels but has no FCM service,
+  posting implementation, runtime notification permission, or small-icon selection; no
+  Android notification visual is claimed.
+- Confirmed Nightingale remains notification-, push-, widget-, extension-, Live Activity-,
+  app-group-, shortcut-, receiver-, and network-free. This absence is the approved
+  foundation behavior.
+- Confirmed no repository-owned App Store/Play Store listing directory or store screenshot
+  asset exists under the four native product roots. Existing launcher/splash captures remain
+  engineering evidence, not distribution material.
+
+### Mechanical controls
+
+- Added `verify-mobile-brand-surfaces.sh` to pin exact Hummingbird, Nightingale, and legacy
+  patient-reference identities; Hummingbird widget/push namespace ownership; Nightingale
+  negative surfaces; store-package absence; and cross-product name isolation.
+- Extended `verify-mobile-brand-assets.sh` to reject identical in-app brand marks and every
+  corresponding Android launcher, round, adaptive-foreground, and monochrome asset at every
+  density.
+- Wired both verifiers into the independent macOS mobile-brand CI job. Both scripts pass
+  Bash syntax and live verification.
+
+### Installed-upgrade emulator evidence
+
+- Built predecessor Hummingbird artifacts from detached `origin/main` source
+  `84b5f8305a694128423ae489fa4527e4b542927f` and current artifacts from
+  `06441141edd38ffd79803a5aed8b8906f6a32a20`.
+- On iPhone 17 Pro Simulator, installed predecessor Hummingbird, wrote a synthetic
+  application-private canary, installed current Hummingbird over it, and read the exact
+  canary afterward. Both artifacts retained app bundle ID `net.acumenus.hummingbird` and
+  widget bundle ID `net.acumenus.hummingbird.HummingbirdWidgets`. The simulator reassigned
+  the raw container path while preserving the logical app data, so physical path equality
+  is correctly not treated as an application contract.
+- On the Android API 35 `hb` emulator, repeated the clean predecessor/current replacement
+  with `adb install -r`. The exact private canary survived; package ID remained
+  `net.acumenus.hummingbird`; and both debug APKs had signer SHA-256
+  `663f448870c7cf490608d8816a6d0d93cc5f441c0ff8190f53f02155f19df281`.
+- The predecessor/current artifacts use equal development version/build values. The audit
+  therefore classifies this as source-predecessor engineering compatibility, not App
+  Store/Play Store acceptance, released-user migration, or distribution-signing proof.
+- Updated Stream B and the product identity checklist immediately: repository-level
+  ownership and engineering upgrade checks are complete, while retained released-artifact,
+  external store, signing, version/build increment, installed-widget, protected-state,
+  rollback, and actual notification-rendering evidence remain unchecked.
+
+### Final regression
+
+- Re-ran both mobile-brand verifiers, all three Nightingale contract/candidate verifiers
+  with negative self-tests, the dependency-free backend verifier with negative self-tests,
+  and the native product-boundary verifier. Targeted Prettier, relative-link, Git
+  whitespace, and changed-slice production-connection-token checks pass.
+- Regenerated the Nightingale Xcode project and passed the normally signed iPhone 17 Pro
+  Simulator suite: five unit tests and two UI journeys passed with zero failures. The
+  Nightingale Release simulator build passed.
+- On the live Android API 35 `hb` emulator, five instrumentation tests passed with zero
+  failures. A forced fresh run passed five JVM tests; the Nightingale product boundary,
+  lint-vital, Debug assembly, and Release assembly passed.
+- The current Hummingbird iOS Release simulator build, including embedded WidgetKit
+  validation, passed. The Hummingbird Android Release assembly and lint-vital task passed.
+
+### Safety and release holds
+
+- No production patient, database, credential, principal, encounter, route, feature flag,
+  migration, deployment, store record, signing key, APNs delivery, FCM delivery, or pilot
+  state was read or changed.
+- Artwork rights, product-design/accessibility review, Apple/Google ownership, public
+  support, privacy disclosure, distribution signing, released-artifact migration, and
+  release authorization remain open.

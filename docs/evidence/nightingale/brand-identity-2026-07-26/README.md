@@ -33,7 +33,15 @@ The icon generator was also corrected so every `opaque` output is an RGB PNG wit
 alpha channel. `scripts/ci/verify-mobile-brand-assets.sh` now fails if an iOS or legacy
 Android launcher output regains alpha, if themed icons are not white alpha silhouettes,
 if dimensions drift, if source checksums change, or if the two iOS masters become
-identical.
+identical. It also fails if the products' in-app brand marks or any corresponding Android
+launcher, round, adaptive-foreground, or monochrome density asset becomes identical.
+
+The companion
+[cross-surface brand and upgrade audit](./CROSS-SURFACE-AUDIT.md) inventories notification,
+widget, Live Activity, extension, app-group, shortcut, and store-package surfaces. It also
+records clean source-predecessor installed-upgrade tests on iPhone 17 Pro Simulator and
+Android API 35. Those tests preserve a synthetic private-data canary and exact application
+identities, but they are not released-artifact or distribution-signing evidence.
 
 ## Screenshots
 
@@ -52,7 +60,9 @@ identical.
 - Supplied-artwork ownership and distribution rights remain unapproved.
 - App Store and Play Store listings, screenshots, metadata, signing, and public support
   endpoints remain uncreated or unverified.
-- Notification, widget, store-listing, and installed-upgrade regression review remains a
-  separate release task.
+- Repository-level notification/widget ownership, absence of an unreviewed store package,
+  and source-predecessor upgrade compatibility are verified. Released-artifact migration,
+  external store records, distribution signing, version/build increments, installed-widget
+  persistence, and actual notification rendering remain separate release tasks.
 - Engineering visual inspection does not substitute for independent accessibility or
   product-design review.

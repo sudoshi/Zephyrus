@@ -135,6 +135,23 @@ security, clinical, accessibility, or patient-advisor approval:
 - [x] Actual iOS 26.3 and Android API 35 launcher/splash evidence shows the correct marks.
 - [x] Nightingale’s compile-time boundary scan rejects Hummingbird identifiers and network
       clients.
+- [x] Hummingbird's repository-owned WidgetKit, Live Activity, app-group, APNs, Android
+      widget, and notification-channel identities remain staff-only.
+- [x] Nightingale has no unapproved notification, push, widget, extension, app-group,
+      shortcut, or Android receiver surface.
+- [x] Repository scans find no native product-root store-listing package, and every
+      corresponding Hummingbird/Nightingale launcher, brand-mark, adaptive, round, and
+      monochrome asset remains distinct.
+- [x] Source-predecessor Hummingbird builds install in place on clean iOS and Android
+      emulators, preserve a synthetic private-data canary, and retain exact application and
+      widget identities. This is not released-artifact or distribution-signing evidence.
+- [ ] Retained released Hummingbird artifacts upgrade to approved release candidates with
+      monotonic version/build values, distribution-signing continuity, app-private and
+      protected-state continuity, installed-widget/Live Activity continuity, and verified
+      rollback behavior.
+- [ ] Approved notification implementations render the correct product identity, generic
+      content, icon, actions, localization, redaction, and safe deep-link behavior on
+      supported devices.
 - [ ] Store records, signing, public support endpoints, distribution rights, privacy
       disclosures, and release approvals are complete.
 
