@@ -32,6 +32,7 @@ private struct PatientPrivacyProtectedRoot: View {
     @StateObject private var screenCaptureMonitor = PatientScreenCaptureMonitor()
     @StateObject private var appActivityMonitor = PatientAppActivityMonitor()
     @State private var shouldRevalidateAccessOnActivation = false
+    @State private var isStartingAccessRevalidation = false
 
     private var presentationPreferences: PatientPresentationPreferences {
         PatientPresentationPreferences(viewModel.patientPreferences)
@@ -53,14 +54,18 @@ private struct PatientPrivacyProtectedRoot: View {
         )
         .patientPresentation(viewModel.patientPreferences)
         .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .background {
+            if newPhase == .inactive {
+                shouldRevalidateAccessOnActivation = true
+            } else if newPhase == .background {
                 viewModel.protectPatientSessionRowsForBackground()
                 shouldRevalidateAccessOnActivation = true
-            } else if newPhase == .active, shouldRevalidateAccessOnActivation {
-                Task {
-                    await viewModel.revalidateCurrentCareAccessAfterForeground()
-                    shouldRevalidateAccessOnActivation = false
-                }
+            } else if newPhase == .active {
+                beginAccessRevalidationIfRequired()
+            }
+        }
+        .onChange(of: appActivityMonitor.requiresPrivacyCover) { _, requiresPrivacyCover in
+            if !requiresPrivacyCover, scenePhase == .active {
+                beginAccessRevalidationIfRequired()
             }
         }
     }
@@ -74,7 +79,11 @@ private struct PatientPrivacyProtectedRoot: View {
             return .inactive
         }
 
-        if shouldRevalidateAccessOnActivation || viewModel.isForegroundAccessValidationInProgress {
+        if shouldRevalidateAccessOnActivation ||
+            appActivityMonitor.requiresAccessRevalidation ||
+            isStartingAccessRevalidation ||
+            viewModel.isForegroundAccessValidationInProgress
+        {
             return .accessVerification
         }
 
@@ -99,5 +108,19 @@ private struct PatientPrivacyProtectedRoot: View {
 
     private var effectiveReduceMotion: Bool {
         reduceMotion || presentationPreferences.reducedMotion
+    }
+
+    private func beginAccessRevalidationIfRequired() {
+        guard !isStartingAccessRevalidation,
+              shouldRevalidateAccessOnActivation || appActivityMonitor.requiresAccessRevalidation
+        else { return }
+
+        isStartingAccessRevalidation = true
+        Task {
+            await viewModel.revalidateCurrentCareAccessAfterForeground()
+            shouldRevalidateAccessOnActivation = false
+            appActivityMonitor.markAccessRevalidated()
+            isStartingAccessRevalidation = false
+        }
     }
 }

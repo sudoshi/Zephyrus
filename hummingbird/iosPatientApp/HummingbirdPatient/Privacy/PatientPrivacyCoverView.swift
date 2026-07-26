@@ -79,6 +79,7 @@ final class PatientScreenCaptureMonitor: ObservableObject {
 @MainActor
 final class PatientAppActivityMonitor: ObservableObject {
     @Published private(set) var requiresPrivacyCover = false
+    @Published private(set) var requiresAccessRevalidation = false
 
     private let notificationCenter: NotificationCenter
     private var resignActiveObserver: NSObjectProtocol?
@@ -93,6 +94,7 @@ final class PatientAppActivityMonitor: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.requiresPrivacyCover = true
+                self?.requiresAccessRevalidation = true
             }
         }
         becomeActiveObserver = notificationCenter.addObserver(
@@ -104,6 +106,12 @@ final class PatientAppActivityMonitor: ObservableObject {
                 self?.requiresPrivacyCover = false
             }
         }
+    }
+
+    /// The privacy cover can lift when the app becomes active, but protected care content must
+    /// stay unavailable until the caller has checked the current session and encounter grant.
+    func markAccessRevalidated() {
+        requiresAccessRevalidation = false
     }
 
     deinit {
