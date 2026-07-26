@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 
 class MainActivity : ComponentActivity() {
     private var privacyCovered by mutableStateOf(false)
+    internal val volatileInputState = NightingaleVolatileInputState()
 
     internal val isPrivacyCoverActive: Boolean
         get() = privacyCovered
@@ -24,6 +25,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onPause() {
+        volatileInputState.clear(NightingaleVolatileInputClearReason.APPLICATION_INACTIVE)
         privacyCovered = true
         super.onPause()
     }

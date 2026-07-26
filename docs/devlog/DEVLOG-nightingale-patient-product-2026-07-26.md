@@ -152,3 +152,62 @@ deployment authorization.
   review remain open.
 - Apple/Google records, signing, support endpoints, privacy disclosures, analytics/crash
   boundaries, push identities, and pilot/release authorization remain open.
+
+## 2026-07-26 — Pre-identity protected-state and volatile-input foundation
+
+### Decisions and classification
+
+- Added the
+  [identity, recovery, and protected-state decision record](../nightingale/IDENTITY-RECOVERY-AND-PROTECTED-STATE-DECISIONS-2026-07-26.md)
+  before adding storage code. It separates local deletion from remote revocation, prohibits
+  durable access tokens and device UUIDs, withholds a refresh-token decision, reserves one
+  future binding descriptor, defines recovery/account-transition clearing, and records
+  device-compromise and memory-zeroization limitations.
+- Classified the legacy iOS and Android secure stores as mixed reference sources. Their
+  Hummingbird namespaces, access/refresh tokens, session/device UUIDs, and implicit
+  migration behavior were rejected.
+- Classified legacy iOS/Android message composition as product behavior. The useful
+  no-durable-draft principle was retained, while legacy message UI, routing, clinical copy,
+  and send operations remain held.
+
+### Implemented foundation
+
+- Added a dormant iOS generic-password Keychain store using the exact Nightingale service,
+  the data-protection Keychain, `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`, disabled
+  synchronization, explicit status errors, empty-value rejection, and idempotent
+  service-wide deletion. There is no access-token, refresh-token, device-identity, network,
+  or production caller.
+- Added a dormant Android protected-state store using a non-exportable 256-bit AES
+  `AndroidKeyStore` key, AES-GCM with a fresh 12-byte IV, authenticated application/schema
+  context, a versioned ciphertext envelope, app-private storage, and explicit verified
+  deletion of both key and ciphertext. Unknown/corrupt/tampered state fails closed.
+- Kept Android application backup disabled and added explicit cloud-backup/device-transfer
+  exclusion rules. Both native product-boundary checks now pin that posture.
+- Added process-memory-only volatile-input state on both platforms. The active roots clear
+  it when the app becomes inactive; tests also pin logout, identity transition, recovery,
+  revocation, and local-removal reasons. The implementation explicitly does not claim
+  immutable-string memory zeroization.
+
+### Verification
+
+- iOS: the normally signed iPhone 17 Pro Simulator run passed five unit tests and two UI
+  tests. The real Keychain test round-tripped a synthetic canary, inspected the
+  `WhenUnlockedThisDeviceOnly` and non-synchronizing attributes, and verified idempotent
+  deletion. A deliberately unsigned diagnostic run produced `errSecMissingEntitlement`
+  (`-34018`), proving the test does not silently bypass a missing platform capability; the
+  signed run passed without weakening the query.
+- Android: JVM tests, Debug assembly, AndroidTest assembly, and Release assembly pass. The
+  API 35 `hb` emulator passed five instrumentation tests, including real Keystore/GCM
+  round-trip, ciphertext-not-plaintext inspection, tamper rejection, deletion of key and
+  ciphertext, idempotent deletion, and lifecycle draft clearing.
+- The Nightingale no-network/product-boundary scans remain green. No network permission,
+  API client, patient input UI, or legacy storage namespace was introduced.
+
+### Holds
+
+- The protected stores are platform foundations, not an approved credential design. Real
+  identity-provider selection, proofing, representative access, refresh/session policy,
+  user-presence policy, recovery, support, penetration testing, and pilot approval remain
+  open.
+- No production database, patient, credential, identity record, grant, session, API,
+  feature flag, migration, deployment, or pilot state was read or changed.

@@ -39,6 +39,16 @@ if rg -n --fixed-strings "android.permission.INTERNET" "$android_manifest"; then
     exit 1
 fi
 
+rg -q 'android:allowBackup="false"' "$android_manifest" || {
+    echo "The Nightingale foundation must disable Android application backup." >&2
+    exit 1
+}
+
+rg -q 'android:dataExtractionRules="@xml/data_extraction_rules"' "$android_manifest" || {
+    echo "The Nightingale foundation must exclude cloud backup and device transfer." >&2
+    exit 1
+}
+
 if rg -n 'URLSession|NSURLSession|OkHttpClient|java\.net\.' "$ios_source" "$android_source"; then
     echo "The Nightingale foundation must not contain a network client." >&2
     exit 1

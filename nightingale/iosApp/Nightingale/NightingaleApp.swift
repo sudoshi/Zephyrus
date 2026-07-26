@@ -19,6 +19,7 @@ enum NightingaleProductBoundary {
 private struct NightingalePrivacyProtectedRoot: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @StateObject private var volatileInputState = NightingaleVolatileInputState()
 
     var body: some View {
         ZStack {
@@ -32,6 +33,11 @@ private struct NightingalePrivacyProtectedRoot: View {
             }
         }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: privacyCoverVisible)
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase != .active {
+                volatileInputState.clear(.applicationInactive)
+            }
+        }
     }
 
     private var privacyCoverVisible: Bool {

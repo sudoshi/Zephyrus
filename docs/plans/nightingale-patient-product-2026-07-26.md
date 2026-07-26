@@ -208,13 +208,25 @@ human visual review records correct brand, crop, contrast, and no unwanted trans
 - [x] Classify and reimplement the first foundation subset only: lifecycle privacy cover,
       Android secure-window protection, accessibility-aware decorative imagery, and a
       released-content-only no-data state. All unlisted legacy sources remain held.
+- [x] Document the pre-identity threat decisions for recovery, namespace isolation,
+      device compromise, local/remote logout ambiguity, deletion, backup/transfer, and
+      volatile input before introducing protected storage.
+- [x] Classify and reimplement only the second foundation subset: a dormant, token-agnostic
+      iOS Keychain primitive, an Android Keystore AES-GCM primitive, explicit fail-closed
+      deletion semantics, backup/transfer exclusions, and lifecycle-cleared volatile inputs.
+      Tests use and remove synthetic canaries; production code has no caller.
 - [ ] Classify each existing Hummingbird Patient source file as reusable safety primitive,
       reusable product behavior, test/fixture-only, or rejected legacy behavior.
 - [ ] Port primitives into Nightingale by reviewed commits, not a blind directory copy:
       patient API boundary, protected storage, lifecycle/screen-capture privacy cover,
       accessibility presentation preferences, patient-safe vocabulary, and volatile drafts.
+      Protected storage, lifecycle/screen-capture protection, the foundation accessibility
+      presentation subset, and volatile-input foundations are complete; patient API and
+      vocabulary work remain held.
 - [ ] Reissue all product strings, accessibility IDs, test hooks, storage keys, telemetry
       event names, and diagnostics under the Nightingale namespace.
+      Current foundation storage keys, test hooks, and diagnostics are Nightingale-only;
+      no telemetry namespace exists yet.
 - [x] Require a compile-time scan proving Nightingale has no `hummingbird.patient` package,
       bundle, endpoint, storage, or user-facing string except explicit migration provenance.
 - [ ] Preserve the reference app untouched until the Nightingale migration evidence is
@@ -290,14 +302,14 @@ part of application development work.
 
 ## 9. Immediate implementation sequence
 
-1. Classify the protected-storage and volatile-input subset only after documenting the
-   Nightingale identity/recovery, namespace, device-compromise, logout/deletion, and threat
-   model decisions; do not port a credential implementation first.
+1. Define a Nightingale-owned, default-off contract ownership record and authorization
+   matrix before classifying any API client, authentication input, patient projection, or
+   communication behavior. Do not enable network access.
 2. Complete the remaining cross-surface brand audit for notification, widget, installed
    upgrade, and future store-listing surfaces; launcher, themed-icon, and splash checks are
    captured in non-PHI evidence.
-3. Define a Nightingale-owned, default-off contract and authorization matrix before adding an
-   API client, authentication input, patient projection, or communication capability.
+3. Continue source-by-source classification for the patient-safe vocabulary and contract
+   boundary only after the ownership/authorization record exists.
 4. Update this checklist and its devlog after each verified slice. Do not convert partial
    automation into clinical, privacy, accessibility, pilot, or deployment completion.
 

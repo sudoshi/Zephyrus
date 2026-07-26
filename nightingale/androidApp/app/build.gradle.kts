@@ -70,6 +70,12 @@ tasks.register("verifyNightingaleProductBoundary") {
         check(!manifest.contains("android.permission.INTERNET")) {
             "The Nightingale foundation must not request network access."
         }
+        check(manifest.contains("android:allowBackup=\"false\"")) {
+            "Nightingale application backup must remain disabled."
+        }
+        check(manifest.contains("android:dataExtractionRules=\"@xml/data_extraction_rules\"")) {
+            "Nightingale device-transfer and cloud-backup exclusions are required."
+        }
 
         val sourceRoot = layout.projectDirectory.dir("src").asFile
         val forbiddenTerms = listOf("Hummingbird", "api/mobile", "api/auth")
