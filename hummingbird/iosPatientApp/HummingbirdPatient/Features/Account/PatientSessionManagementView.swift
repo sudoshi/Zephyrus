@@ -42,8 +42,11 @@ struct PatientSessionManagementView: View {
             titleVisibility: .visible,
             presenting: viewModel.selectedSessionForRevocation
         ) { session in
-            Button(session.current ? "Sign out here" : "Sign out device", role: .destructive) {
+            Button(role: .destructive) {
                 Task { await viewModel.revokePatientSession(session) }
+            } label: {
+                Text(session.current ? "Sign out here" : "Sign out device")
+                    .patientMinimumInteractiveTarget()
             }
             .accessibilityIdentifier(
                 session.current
@@ -226,7 +229,8 @@ private struct PatientSessionCard: View {
                         session.current ? "Sign out this device" : "Sign out that device",
                         systemImage: "rectangle.portrait.and.arrow.right"
                     )
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .patientMinimumInteractiveTarget()
                 }
                 .buttonStyle(.bordered)
                 .disabled(isRevoking)

@@ -28,13 +28,16 @@ final class PatientSessionManagementUITests: XCTestCase {
 
         let revokeOther = app.descendants(matching: .any)["revoke-other-session-\(otherSessionUUID)"]
         XCTAssertTrue(scrollUntilHittable(revokeOther))
+        assertMinimumInteractiveTarget(revokeOther)
         revokeOther.tap()
 
         XCTAssertTrue(app.staticTexts["Sign out Home tablet?"].waitForExistence(timeout: 2))
         XCTAssertTrue(
             app.staticTexts["This signs out Home tablet from Hummingbird Patient. It will not sign out this device."].exists
         )
-        app.buttons.matching(identifier: "confirm-other-session-revocation").firstMatch.tap()
+        let confirmOther = app.buttons.matching(identifier: "confirm-other-session-revocation").firstMatch
+        assertMinimumInteractiveTarget(confirmOther)
+        confirmOther.tap()
 
         XCTAssertFalse(app.staticTexts["Home tablet"].waitForExistence(timeout: 1))
         XCTAssertTrue(app.staticTexts["That device is now signed out."].waitForExistence(timeout: 2))
@@ -159,6 +162,15 @@ final class PatientSessionManagementUITests: XCTestCase {
             if element.waitForExistence(timeout: 0.35), element.isHittable { return true }
         }
         return false
+    }
+
+    private func assertMinimumInteractiveTarget(
+        _ element: XCUIElement,
+        minimum: CGFloat = 44
+    ) {
+        XCTAssertTrue(element.waitForExistence(timeout: 2))
+        XCTAssertGreaterThanOrEqual(element.frame.width, minimum)
+        XCTAssertGreaterThanOrEqual(element.frame.height, minimum)
     }
 
     private func attachScreenshot(named name: String) {

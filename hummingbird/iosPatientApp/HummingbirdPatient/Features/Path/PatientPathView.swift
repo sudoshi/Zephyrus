@@ -95,8 +95,11 @@ struct PatientPathView: View {
                         Text("Sending a message does not automatically change your care plan or create a clinical order. Your team will review it with you.")
                             .font(.footnote)
                             .patientSecondaryText()
-                        Button("Open Messages", systemImage: "message.fill") {
+                        Button {
                             openMessages()
+                        } label: {
+                            Label("Open Messages", systemImage: "message.fill")
+                                .patientMinimumInteractiveTarget()
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(PatientPalette.teal)
@@ -121,8 +124,11 @@ struct PatientPathView: View {
                                 Text(education.summary)
                                     .font(.body)
                                 if snapshot.canWriteMessaging {
-                                    Button("Ask for an explanation", systemImage: "text.bubble.fill") {
+                                    Button {
                                         selectedEducation = education
+                                    } label: {
+                                        Label("Ask for an explanation", systemImage: "text.bubble.fill")
+                                            .patientMinimumInteractiveTarget()
                                     }
                                     .buttonStyle(.borderedProminent)
                                     .tint(PatientPalette.teal)

@@ -226,6 +226,7 @@ private fun PatientPreferencesForm(
                 enabled = !state.saving,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .patientMinimumInteractiveTarget()
                     .testTag("save-patient-preferences"),
             ) {
                 Text(if (state.saving) "Saving preferences…" else "Save preferences")

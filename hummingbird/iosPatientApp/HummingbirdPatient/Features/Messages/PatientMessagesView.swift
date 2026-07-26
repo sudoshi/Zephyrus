@@ -610,10 +610,16 @@ private struct PatientVisibleMessageCard: View {
                 }
                 if canAmend {
                     HStack(spacing: 8) {
-                        Button("Correct message", action: onCorrect)
+                        Button(action: onCorrect) {
+                            Text("Correct message")
+                                .patientMinimumInteractiveTarget()
+                        }
                             .buttonStyle(.bordered)
                             .accessibilityIdentifier("correct-message-\(message.messageUUID)")
-                        Button("Withdraw message", role: .destructive, action: onWithdraw)
+                        Button(role: .destructive, action: onWithdraw) {
+                            Text("Withdraw message")
+                                .patientMinimumInteractiveTarget()
+                        }
                             .buttonStyle(.bordered)
                             .accessibilityIdentifier("withdraw-message-\(message.messageUUID)")
                     }
@@ -673,13 +679,17 @@ private struct PatientCorrectionComposer: View {
                         } else {
                             Label("Send correction", systemImage: "paperplane.fill")
                                 .frame(maxWidth: .infinity)
+                                .patientMinimumInteractiveTarget()
                         }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(isBusy || correction.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .accessibilityIdentifier("message-correction-send-\(originalMessage.messageUUID)")
 
-                    Button("Cancel", action: onCancel)
+                    Button(action: onCancel) {
+                        Text("Cancel")
+                            .patientMinimumInteractiveTarget()
+                    }
                         .buttonStyle(.bordered)
                         .disabled(isBusy)
                 }
@@ -710,6 +720,7 @@ private struct PatientReplyComposer: View {
                     } else {
                         Label("Send reply", systemImage: "paperplane.fill")
                             .frame(maxWidth: .infinity)
+                            .patientMinimumInteractiveTarget()
                     }
                 }
                 .buttonStyle(.borderedProminent)

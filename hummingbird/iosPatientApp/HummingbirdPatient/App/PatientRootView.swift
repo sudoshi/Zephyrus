@@ -65,14 +65,24 @@ private struct PatientNoActiveEncounterView: View {
                     }
                 }
                 PatientUrgentHelpNotice()
-                Button(state.actionLabel, action: onRetry)
+                Button(action: onRetry) {
+                    Text(state.actionLabel)
+                        .frame(maxWidth: .infinity)
+                        .patientMinimumInteractiveTarget()
+                }
                     .buttonStyle(.borderedProminent)
                     .frame(maxWidth: .infinity)
                     .accessibilityHint("Checks whether current care access is available. No patient message is sent.")
-                Button("Exit securely", action: onExit)
+                    .accessibilityIdentifier("patient-care-access-retry")
+                Button(action: onExit) {
+                    Text("Exit securely")
+                        .frame(maxWidth: .infinity)
+                        .patientMinimumInteractiveTarget()
+                }
                     .buttonStyle(.bordered)
                     .frame(maxWidth: .infinity)
                     .accessibilityHint("Clears this device's patient session.")
+                    .accessibilityIdentifier("patient-care-access-exit")
             }
             .padding(22)
         }

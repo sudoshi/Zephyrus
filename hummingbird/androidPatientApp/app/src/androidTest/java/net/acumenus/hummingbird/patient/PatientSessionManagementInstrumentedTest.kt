@@ -10,7 +10,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -19,6 +21,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import net.acumenus.hummingbird.patient.data.PatientDeviceSession
 import net.acumenus.hummingbird.patient.data.PatientSessionDevice
 import net.acumenus.hummingbird.patient.ui.HummingbirdPatientTheme
@@ -36,6 +39,12 @@ class PatientSessionManagementInstrumentedTest {
 
     private val currentUuid = "019f4d7a-3200-7000-8000-000000000130"
     private val otherUuid = "019f4d7a-3200-7000-8000-000000000131"
+
+    private fun assertMinimumInteractiveTarget(testTag: String) {
+        compose.onNodeWithTag(testTag)
+            .assertWidthIsAtLeast(48.dp)
+            .assertHeightIsAtLeast(48.dp)
+    }
 
     @Test
     fun scenicBackgroundKeepsCareContentVisibleAtTwoHundredPercentFont() {
@@ -81,7 +90,8 @@ class PatientSessionManagementInstrumentedTest {
         compose.onNodeWithTag("device-sessions-list")
             .performScrollToNode(hasText("Unknown device"))
         compose.onNodeWithText("Unknown device").assertIsDisplayed()
-        compose.onNodeWithText("Sign out device").performClick()
+        assertMinimumInteractiveTarget("patient-session-revoke-$otherUuid")
+        compose.onNodeWithTag("patient-session-revoke-$otherUuid").performClick()
         compose.runOnIdle { assertEquals(otherUuid, selected) }
     }
 
@@ -108,7 +118,8 @@ class PatientSessionManagementInstrumentedTest {
         compose.onNodeWithText(
             "Family tablet will need to sign in again. This current device will stay signed in.",
         ).assertIsDisplayed()
-        compose.onNodeWithText("Sign out other device").performClick()
+        assertMinimumInteractiveTarget("confirm-session-revocation")
+        compose.onNodeWithTag("confirm-session-revocation").performClick()
         compose.runOnIdle { assertTrue(confirmed) }
     }
 

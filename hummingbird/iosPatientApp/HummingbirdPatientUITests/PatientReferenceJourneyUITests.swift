@@ -170,6 +170,8 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["urgent-help-notice"].exists)
         XCTAssertTrue(app.buttons["Check again"].exists)
         XCTAssertTrue(app.buttons["Exit securely"].exists)
+        assertMinimumInteractiveTarget(app.buttons["patient-care-access-retry"])
+        assertMinimumInteractiveTarget(app.buttons["patient-care-access-exit"])
         XCTAssertFalse(app.tabBars.buttons["Today"].exists)
         attachScreenshot(named: "No-Active-Encounter")
     }
@@ -295,6 +297,15 @@ final class PatientReferenceJourneyUITests: XCTestCase {
             if element.waitForExistence(timeout: 0.35) { return true }
         }
         return false
+    }
+
+    private func assertMinimumInteractiveTarget(
+        _ element: XCUIElement,
+        minimum: CGFloat = 44
+    ) {
+        XCTAssertTrue(element.waitForExistence(timeout: 2))
+        XCTAssertGreaterThanOrEqual(element.frame.width, minimum)
+        XCTAssertGreaterThanOrEqual(element.frame.height, minimum)
     }
 
     private func scrollUntilHittable(

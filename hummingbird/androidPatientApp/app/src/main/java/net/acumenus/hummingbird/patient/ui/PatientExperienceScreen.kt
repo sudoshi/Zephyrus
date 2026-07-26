@@ -952,7 +952,9 @@ private fun PatientEducationCard(
             if (canRequestClarification) {
                 TextButton(
                     onClick = onRequestClarification,
-                    modifier = Modifier.testTag("request-education-clarification-${education.id}"),
+                    modifier = Modifier
+                        .patientMinimumInteractiveTarget()
+                        .testTag("request-education-clarification-${education.id}"),
                 ) {
                     Text("Ask for an explanation")
                 }
@@ -1114,7 +1116,9 @@ private fun PatientPreferenceGuidanceCard(
             )
             TextButton(
                 onClick = onOpenMessages,
-                modifier = Modifier.testTag("open-messages-from-preferences"),
+                modifier = Modifier
+                    .patientMinimumInteractiveTarget()
+                    .testTag("open-messages-from-preferences"),
             ) {
                 Text("Open Messages")
             }

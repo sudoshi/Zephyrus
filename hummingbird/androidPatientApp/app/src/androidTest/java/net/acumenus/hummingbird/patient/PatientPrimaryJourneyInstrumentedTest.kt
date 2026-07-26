@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.view.WindowManager
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -16,6 +18,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.lifecycle.Lifecycle
@@ -30,6 +33,12 @@ class PatientPrimaryJourneyInstrumentedTest {
     val composeRule = createEmptyComposeRule()
 
     private val hasHeadingSemantics = SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)
+
+    private fun assertMinimumInteractiveTarget(testTag: String) {
+        composeRule.onNodeWithTag(testTag)
+            .assertWidthIsAtLeast(48.dp)
+            .assertHeightIsAtLeast(48.dp)
+    }
 
     @Test
     fun syntheticPreferencesAreVisiblePatientSafeAndNeverClaimToChangeCare() {
@@ -48,6 +57,7 @@ class PatientPrimaryJourneyInstrumentedTest {
             composeRule.onNodeWithTag("patient-preference-show-scenery").performClick()
             composeRule.onNodeWithTag("patient-preferences")
                 .performScrollToNode(hasText("Save preferences"))
+            assertMinimumInteractiveTarget("save-patient-preferences")
             composeRule.onNodeWithTag("save-patient-preferences").performClick()
             composeRule.onNodeWithContentDescription("Back to Hummingbird").performClick()
             composeRule.onNodeWithTag("patient-presentation-extra_large-high-contrast").assertIsDisplayed()
@@ -135,6 +145,8 @@ class PatientPrimaryJourneyInstrumentedTest {
             ).assertIsDisplayed()
             composeRule.onNodeWithTag("open-messages-from-preferences")
                 .performScrollTo()
+            assertMinimumInteractiveTarget("open-messages-from-preferences")
+            composeRule.onNodeWithTag("open-messages-from-preferences")
                 .performClick()
             composeRule.onNodeWithTag("patient-content")
                 .performScrollToNode(hasText("Messages are for non-urgent questions and are not live emergency chat."))

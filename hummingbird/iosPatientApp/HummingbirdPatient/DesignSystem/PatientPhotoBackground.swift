@@ -115,7 +115,10 @@ struct PatientPhotoStateCard: View {
                     .foregroundStyle(PatientPalette.ink)
 
                 if let actionTitle, let action {
-                    Button(actionTitle, action: action)
+                    Button(action: action) {
+                        Text(actionTitle)
+                            .patientMinimumInteractiveTarget()
+                    }
                         .buttonStyle(.borderedProminent)
                         .padding(.top, 3)
                 }

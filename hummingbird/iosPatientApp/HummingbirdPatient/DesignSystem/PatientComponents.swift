@@ -58,6 +58,14 @@ extension View {
         accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier(identifier)
     }
+
+    /// Apply inside a Button label to establish the 44-point minimum target for
+    /// patient actions that affect care access, a care-team conversation, or
+    /// device security. This is not a substitute for motor-access testing.
+    func patientMinimumInteractiveTarget() -> some View {
+        contentShape(Rectangle())
+            .frame(minWidth: 44, minHeight: 44)
+    }
 }
 
 struct PatientCard<Content: View>: View {

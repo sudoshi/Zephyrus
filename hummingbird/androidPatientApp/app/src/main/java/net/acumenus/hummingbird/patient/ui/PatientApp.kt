@@ -207,13 +207,19 @@ private fun PatientEmptyScreen(
             )
             Button(
                 onClick = onRetry,
-                modifier = Modifier.padding(top = 24.dp),
+                modifier = Modifier
+                    .padding(top = 24.dp)
+                    .patientMinimumInteractiveTarget()
+                    .testTag("patient-care-access-retry"),
             ) {
                 Text(retryLabel)
             }
             Button(
                 onClick = onExit,
-                modifier = Modifier.padding(top = 12.dp),
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .patientMinimumInteractiveTarget()
+                    .testTag("patient-care-access-exit"),
             ) {
                 Text("Exit securely")
             }
