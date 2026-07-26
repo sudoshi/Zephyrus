@@ -2,6 +2,7 @@
 
 namespace App\Models\Auth;
 
+use App\Models\Governance\IdentityLinkEvent;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,6 +35,6 @@ class UserExternalIdentity extends Model
 
     public function events(): HasMany
     {
-        return $this->hasMany(\App\Models\Governance\IdentityLinkEvent::class, 'external_identity_id');
+        return $this->hasMany(IdentityLinkEvent::class, 'external_identity_id');
     }
 }

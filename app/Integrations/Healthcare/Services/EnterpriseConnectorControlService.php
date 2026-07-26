@@ -2,6 +2,7 @@
 
 namespace App\Integrations\Healthcare\Services;
 
+use App\Integrations\Healthcare\Exceptions\IntegrationProtocolException;
 use App\Jobs\PollFhirResource;
 use App\Jobs\ReplayPendingIntegrationEvents;
 use App\Jobs\RunIntegrationProtocolHealthCheck;
@@ -11,6 +12,7 @@ use App\Models\Ops\Recommendation;
 use App\Security\ClinicalPayloads\ClinicalPayloadStore;
 use App\Support\Api\JsonMap;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -260,7 +262,7 @@ class EnterpriseConnectorControlService
             }
             try {
                 $this->fhirProfiles->requirePollable($sourceId, $resourceType);
-            } catch (\InvalidArgumentException|\App\Integrations\Healthcare\Exceptions\IntegrationProtocolException) {
+            } catch (\InvalidArgumentException|IntegrationProtocolException) {
                 abort(422, 'The FHIR resource profile is not enabled and capability-confirmed.');
             }
 
@@ -435,7 +437,7 @@ class EnterpriseConnectorControlService
     }
 
     /** @param array<string, mixed> $scope */
-    private function replayQuery(array $scope): \Illuminate\Database\Query\Builder
+    private function replayQuery(array $scope): Builder
     {
         return DB::table('integration.canonical_events')
             ->when($scope['sourceId'], fn ($query, $sourceId) => $query->where('source_id', $sourceId))

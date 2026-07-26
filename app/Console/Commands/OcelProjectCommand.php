@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Domain\Ocel\OcelProjector;
+use App\Domain\Ocel\QuantityProjector;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -61,7 +62,7 @@ class OcelProjectCommand extends Command
             $this->info('OCEL projection complete.');
         }
 
-        $quantities = app(\App\Domain\Ocel\QuantityProjector::class)->project($since, $until);
+        $quantities = app(QuantityProjector::class)->project($since, $until);
         $this->info("QEL quantities: {$quantities['operations']} operations, {$quantities['initial']} initial.");
 
         return self::SUCCESS;

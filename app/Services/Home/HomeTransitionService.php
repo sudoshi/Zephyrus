@@ -3,11 +3,14 @@
 namespace App\Services\Home;
 
 use App\Models\Home\HomeEpisode;
+use App\Models\Home\HomeProgram;
 use App\Models\Home\HomeTransition;
 use App\Models\Home\RpmEnrollment;
+use App\Models\Home\RpmKit;
 use App\Models\Transport\TransportRequest;
 use App\Services\Transport\RegionalTransferService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Ramsey\Uuid\Uuid;
 
@@ -133,7 +136,7 @@ class HomeTransitionService
 
         return DB::transaction(function () use ($episode, $receivingEntityType, $handoffOwner, $userId): array {
             $request = TransportRequest::create([
-                'request_uuid' => (string) \Illuminate\Support\Str::uuid(),
+                'request_uuid' => (string) Str::uuid(),
                 'request_type' => 'care_transition',
                 'priority' => 'routine',
                 'status' => 'requested',
@@ -235,7 +238,7 @@ class HomeTransitionService
      */
     private function enrollPostDischargeCohort(HomeEpisode $acute): void
     {
-        $program = \App\Models\Home\HomeProgram::query()
+        $program = HomeProgram::query()
             ->where('program_type', 'post_discharge_rpm')
             ->where('is_active', true)
             ->first();
@@ -265,7 +268,7 @@ class HomeTransitionService
             'enrollment_uuid' => Uuid::uuid4()->toString(),
             'home_episode_id' => $cohortEpisode->home_episode_id,
             'rpm_kit_id' => $acute->enrollments()->latest('rpm_enrollment_id')->value('rpm_kit_id')
-                ?? \App\Models\Home\RpmKit::query()->where('is_deleted', false)->orderBy('rpm_kit_id')->value('rpm_kit_id'),
+                ?? RpmKit::query()->where('is_deleted', false)->orderBy('rpm_kit_id')->value('rpm_kit_id'),
             'patient_ref' => $acute->patient_ref,
             'status' => 'active',
             // Step-down cadence: BP + SpO2 q12h, weight daily.

@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cockpit\CockpitAlert;
 use App\Models\Ops\MetricDefinition;
 use App\Services\Audit\UserAuditRecorder;
+use App\Services\Cockpit\AlertEngine;
 use App\Services\Cockpit\DrillBuilder;
 use App\Services\Cockpit\ScopedFaceBuilder;
 use App\Services\Cockpit\SnapshotBuilder;
+use App\Services\Governance\CockpitThresholdPolicyService;
 use App\Support\Cockpit\CockpitScopeResolver;
 use App\Support\Hospital\HospitalManifest;
 use Illuminate\Http\JsonResponse;
@@ -116,11 +119,11 @@ class CockpitController extends Controller
      */
     public function acknowledgeAlert(Request $request, int $alertId): JsonResponse
     {
-        $row = \App\Models\Cockpit\CockpitAlert::query()
+        $row = CockpitAlert::query()
             ->whereKey($alertId)
             ->where('facility_key', $this->manifest->facilityCode())
             ->whereNull('cleared_at')
-            ->where('status', '!=', \App\Services\Cockpit\AlertEngine::STATUS_PENDING)
+            ->where('status', '!=', AlertEngine::STATUS_PENDING)
             ->first();
 
         if ($row === null) {
@@ -178,7 +181,7 @@ class CockpitController extends Controller
     public function updateKpiDefinition(
         Request $request,
         string $metricKey,
-        \App\Services\Governance\CockpitThresholdPolicyService $thresholdPolicy,
+        CockpitThresholdPolicyService $thresholdPolicy,
     ): JsonResponse {
         $validated = $request->validate([
             'ok_edge' => ['nullable', 'numeric'],

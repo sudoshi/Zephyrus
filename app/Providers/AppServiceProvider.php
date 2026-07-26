@@ -5,18 +5,58 @@ namespace App\Providers;
 use App\Auth\AuthDriverRegistry;
 use App\Auth\Drivers\AuthentikOidcAuthDriver;
 use App\Database\ProductionDatabaseReadOnlyGuard;
+use App\Domain\Arena\Copilot\CopilotLlm;
+use App\Domain\Arena\Copilot\EddyProxyCopilotLlm;
+use App\Integrations\Healthcare\Ancillary\AncillaryHl7V2MessageNormalizer;
+use App\Integrations\Healthcare\Ancillary\AncillaryStructuredMessageNormalizer;
+use App\Integrations\Healthcare\Ancillary\LabOrderFhirNormalizer;
+use App\Integrations\Healthcare\Ancillary\LabOrderHl7V2Normalizer;
+use App\Integrations\Healthcare\Ancillary\LabResultFhirNormalizer;
+use App\Integrations\Healthcare\Ancillary\LabResultHl7V2Normalizer;
+use App\Integrations\Healthcare\Ancillary\PharmacyAdcTransactionNormalizer;
+use App\Integrations\Healthcare\Ancillary\PharmacyAdministrationImportNormalizer;
+use App\Integrations\Healthcare\Ancillary\PharmacyOrderFhirNormalizer;
+use App\Integrations\Healthcare\Ancillary\PharmacyOrderHl7V2Normalizer;
+use App\Integrations\Healthcare\Ancillary\PharmacyVerificationQueueNormalizer;
+use App\Integrations\Healthcare\Ancillary\RadiologyOperationalEventNormalizer;
+use App\Integrations\Healthcare\Ancillary\RadiologyOrderFhirNormalizer;
+use App\Integrations\Healthcare\Ancillary\RadiologyOrderHl7V2Normalizer;
+use App\Integrations\Healthcare\Ancillary\RadiologyResultFhirNormalizer;
+use App\Integrations\Healthcare\Ancillary\RadiologyResultHl7V2Normalizer;
+use App\Integrations\Healthcare\Ancillary\UnsupportedAncillaryMessageNormalizer;
+use App\Integrations\Healthcare\Contracts\BulkBackfillAdapter;
+use App\Integrations\Healthcare\Contracts\ProjectionHandler;
+use App\Integrations\Healthcare\Services\AdcStationEventProjectionHandler;
+use App\Integrations\Healthcare\Services\AncillaryBulkBackfillAdapter;
+use App\Integrations\Healthcare\Services\AncillaryNormalizerRegistry;
+use App\Integrations\Healthcare\Services\AncillaryProjectionHandler;
+use App\Integrations\Healthcare\Services\ProjectionDispatcher;
+use App\Integrations\Healthcare\Services\RpmProjectionHandler;
+use App\Integrations\Healthcare\Services\RtdcProjectionHandler;
+use App\Integrations\Healthcare\Services\RxAdministrationRecordProjectionHandler;
+use App\Observability\Contracts\MetricExporter;
+use App\Observability\Contracts\TraceExporter;
+use App\Observability\Exporters\InMemoryMetricExporter;
+use App\Observability\Exporters\NullMetricExporter;
+use App\Observability\Exporters\OtlpExporter;
+use App\Observability\Exporters\OtlpExporterFactory;
+use App\Observability\MetricRecorder;
+use App\Rtdc\Optimizer\Contracts\BedAssignmentOptimizer;
+use App\Rtdc\Optimizer\HeuristicBedAssignmentOptimizer;
 use App\Security\ClinicalPayloads\ClinicalContentGuard;
 use App\Security\ClinicalPayloads\ClinicalPayloadException;
 use App\Security\ClinicalPayloads\ClinicalPayloadSafeQueueJob;
 use App\Security\ClinicalPayloads\ClinicalPayloadStore;
 use App\Security\ClinicalPayloads\ClinicalSafeLogManager;
 use App\Security\ClinicalPayloads\EncryptedClinicalPayloadStore;
+use App\Security\Network\OidcUrlPolicy;
 use App\Security\Secrets\Providers\AwsSecretsManagerProvider;
 use App\Security\Secrets\Providers\AzureKeyVaultProvider;
 use App\Security\Secrets\Providers\FileSecretProvider;
 use App\Security\Secrets\Providers\GcpSecretManagerProvider;
 use App\Security\Secrets\Providers\VaultSecretProvider;
 use App\Security\Secrets\SecretProviderRegistry;
+use App\Services\Alerting\OperationalAlertDispatcher;
 use App\Services\Auth\Oidc\ExternalIdentityEventRecorder;
 use App\Services\Auth\Oidc\OidcDiscoveryService;
 use App\Services\Auth\Oidc\OidcHandshakeStore;
@@ -24,6 +64,18 @@ use App\Services\Auth\Oidc\OidcHttpClient;
 use App\Services\Auth\Oidc\OidcProviderConfig;
 use App\Services\Auth\Oidc\OidcReconciliationService;
 use App\Services\Auth\Oidc\OidcTokenValidator;
+use App\Services\Auth\ProductionSessionConfiguration;
+use App\Services\Authorization\RoleCapabilityService;
+use App\Services\Cockpit\AlertFanout;
+use App\Services\Cockpit\Channels\PushAlertChannel;
+use App\Services\Cockpit\Channels\TeamsAlertChannel;
+use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
+use App\Services\Demo\Ancillary\BloodBankDemoGenerator;
+use App\Services\Demo\Ancillary\LabDemoGenerator;
+use App\Services\Demo\Ancillary\PathologyDemoGenerator;
+use App\Services\Demo\Ancillary\PharmacyDemoGenerator;
+use App\Services\Demo\Ancillary\RadiologyDemoGenerator;
+use App\Services\Lab\LabAggregateSnapshotFactory;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Support\Facades\Queue;
@@ -48,11 +100,11 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton('log', fn ($app) => new ClinicalSafeLogManager($app));
 
-        $this->app->singleton(\App\Services\Authorization\RoleCapabilityService::class);
+        $this->app->singleton(RoleCapabilityService::class);
 
         $this->app->bind(
-            \App\Rtdc\Optimizer\Contracts\BedAssignmentOptimizer::class,
-            \App\Rtdc\Optimizer\HeuristicBedAssignmentOptimizer::class,
+            BedAssignmentOptimizer::class,
+            HeuristicBedAssignmentOptimizer::class,
         );
 
         // Part X (X4) — the Arena copilot's LLM seam. Bound to the Eddy-proxy driver,
@@ -60,8 +112,8 @@ class AppServiceProvider extends ServiceProvider
         // and ARENA_AI_ENABLED are on — so the copilot runs fully deterministic by
         // default and in tests, with the LLM as a pure enhancement when switched on.
         $this->app->bind(
-            \App\Domain\Arena\Copilot\CopilotLlm::class,
-            \App\Domain\Arena\Copilot\EddyProxyCopilotLlm::class,
+            CopilotLlm::class,
+            EddyProxyCopilotLlm::class,
         );
 
         $this->app->singleton(OidcProviderConfig::class);
@@ -69,7 +121,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(OidcDiscoveryService::class, fn ($app) => new OidcDiscoveryService(
             $app->make(OidcProviderConfig::class)->discoveryUrl(),
             $app->make(OidcHttpClient::class),
-            $app->make(\App\Security\Network\OidcUrlPolicy::class),
+            $app->make(OidcUrlPolicy::class),
         ));
 
         $this->app->bind(OidcTokenValidator::class, fn ($app) => new OidcTokenValidator(
@@ -103,54 +155,54 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(
-            \App\Integrations\Healthcare\Services\ProjectionDispatcher::class,
-            fn ($app) => new \App\Integrations\Healthcare\Services\ProjectionDispatcher([
-                $app->make(\App\Integrations\Healthcare\Services\RtdcProjectionHandler::class),
-                $app->make(\App\Integrations\Healthcare\Services\AncillaryProjectionHandler::class),
-                $app->make(\App\Integrations\Healthcare\Services\AdcStationEventProjectionHandler::class),
-                $app->make(\App\Integrations\Healthcare\Services\RxAdministrationRecordProjectionHandler::class),
+            ProjectionDispatcher::class,
+            fn ($app) => new ProjectionDispatcher([
+                $app->make(RtdcProjectionHandler::class),
+                $app->make(AncillaryProjectionHandler::class),
+                $app->make(AdcStationEventProjectionHandler::class),
+                $app->make(RxAdministrationRecordProjectionHandler::class),
                 // Home Hospital RPM feed (ObservationRecorded / DeviceStatusChanged).
-                $app->make(\App\Integrations\Healthcare\Services\RpmProjectionHandler::class),
+                $app->make(RpmProjectionHandler::class),
             ]),
         );
         $this->app->alias(
-            \App\Integrations\Healthcare\Services\ProjectionDispatcher::class,
-            \App\Integrations\Healthcare\Contracts\ProjectionHandler::class,
+            ProjectionDispatcher::class,
+            ProjectionHandler::class,
         );
         $this->app->singleton(
-            \App\Integrations\Healthcare\Services\AncillaryNormalizerRegistry::class,
-            fn ($app) => new \App\Integrations\Healthcare\Services\AncillaryNormalizerRegistry([
-                $app->make(\App\Integrations\Healthcare\Ancillary\RadiologyOrderHl7V2Normalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\RadiologyResultHl7V2Normalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\RadiologyOrderFhirNormalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\RadiologyResultFhirNormalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\RadiologyOperationalEventNormalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\LabResultHl7V2Normalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\LabResultFhirNormalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\LabOrderHl7V2Normalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\LabOrderFhirNormalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\PharmacyOrderHl7V2Normalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\PharmacyOrderFhirNormalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\PharmacyVerificationQueueNormalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\PharmacyAdcTransactionNormalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\PharmacyAdministrationImportNormalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\AncillaryHl7V2MessageNormalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\AncillaryStructuredMessageNormalizer::class),
-                $app->make(\App\Integrations\Healthcare\Ancillary\UnsupportedAncillaryMessageNormalizer::class),
+            AncillaryNormalizerRegistry::class,
+            fn ($app) => new AncillaryNormalizerRegistry([
+                $app->make(RadiologyOrderHl7V2Normalizer::class),
+                $app->make(RadiologyResultHl7V2Normalizer::class),
+                $app->make(RadiologyOrderFhirNormalizer::class),
+                $app->make(RadiologyResultFhirNormalizer::class),
+                $app->make(RadiologyOperationalEventNormalizer::class),
+                $app->make(LabResultHl7V2Normalizer::class),
+                $app->make(LabResultFhirNormalizer::class),
+                $app->make(LabOrderHl7V2Normalizer::class),
+                $app->make(LabOrderFhirNormalizer::class),
+                $app->make(PharmacyOrderHl7V2Normalizer::class),
+                $app->make(PharmacyOrderFhirNormalizer::class),
+                $app->make(PharmacyVerificationQueueNormalizer::class),
+                $app->make(PharmacyAdcTransactionNormalizer::class),
+                $app->make(PharmacyAdministrationImportNormalizer::class),
+                $app->make(AncillaryHl7V2MessageNormalizer::class),
+                $app->make(AncillaryStructuredMessageNormalizer::class),
+                $app->make(UnsupportedAncillaryMessageNormalizer::class),
             ]),
         );
         $this->app->bind(
-            \App\Integrations\Healthcare\Contracts\BulkBackfillAdapter::class,
-            \App\Integrations\Healthcare\Services\AncillaryBulkBackfillAdapter::class,
+            BulkBackfillAdapter::class,
+            AncillaryBulkBackfillAdapter::class,
         );
         $this->app->singleton(
-            \App\Services\Demo\Ancillary\AncillaryDemoScenarioService::class,
-            fn ($app) => new \App\Services\Demo\Ancillary\AncillaryDemoScenarioService([
-                $app->make(\App\Services\Demo\Ancillary\RadiologyDemoGenerator::class),
-                $app->make(\App\Services\Demo\Ancillary\LabDemoGenerator::class),
-                $app->make(\App\Services\Demo\Ancillary\PathologyDemoGenerator::class),
-                $app->make(\App\Services\Demo\Ancillary\BloodBankDemoGenerator::class),
-                $app->make(\App\Services\Demo\Ancillary\PharmacyDemoGenerator::class),
+            AncillaryDemoScenarioService::class,
+            fn ($app) => new AncillaryDemoScenarioService([
+                $app->make(RadiologyDemoGenerator::class),
+                $app->make(LabDemoGenerator::class),
+                $app->make(PathologyDemoGenerator::class),
+                $app->make(BloodBankDemoGenerator::class),
+                $app->make(PharmacyDemoGenerator::class),
             ]),
         );
 
@@ -158,61 +210,61 @@ class AppServiceProvider extends ServiceProvider
         // scoped() (not singleton) — the container flushes it per FPM request
         // and per queue job, so it can never become a second cross-request
         // snapshot authority beside SnapshotBuilder's cache + persisted row.
-        $this->app->scoped(\App\Services\Lab\LabAggregateSnapshotFactory::class);
+        $this->app->scoped(LabAggregateSnapshotFactory::class);
 
         // P6: the alert fan-out lanes. Both are inert by default (push gated
         // by EDDY_PUSH_ENABLED, Teams by TEAMS_ALERT_WEBHOOK_URL) — adding a
         // lane means adding an AlertChannel here, not touching the engine.
-        $this->app->singleton(\App\Services\Cockpit\AlertFanout::class, fn ($app) => new \App\Services\Cockpit\AlertFanout([
-            $app->make(\App\Services\Cockpit\Channels\PushAlertChannel::class),
-            $app->make(\App\Services\Cockpit\Channels\TeamsAlertChannel::class),
+        $this->app->singleton(AlertFanout::class, fn ($app) => new AlertFanout([
+            $app->make(PushAlertChannel::class),
+            $app->make(TeamsAlertChannel::class),
         ]));
 
         // INT-OBS 5 + ADM-HEALTH 6: the shared on-call delivery abstraction for
         // integration SLO breaches and critical system-health observations.
         // Reuses the SAME inert-by-default channels — a new lane is a new
         // OperationalAlertChannel binding here, not a new delivery path.
-        $this->app->singleton(\App\Services\Alerting\OperationalAlertDispatcher::class, fn ($app) => new \App\Services\Alerting\OperationalAlertDispatcher([
-            $app->make(\App\Services\Cockpit\Channels\PushAlertChannel::class),
-            $app->make(\App\Services\Cockpit\Channels\TeamsAlertChannel::class),
+        $this->app->singleton(OperationalAlertDispatcher::class, fn ($app) => new OperationalAlertDispatcher([
+            $app->make(PushAlertChannel::class),
+            $app->make(TeamsAlertChannel::class),
         ], $app->make(ClinicalContentGuard::class)));
 
         // INT-OBS 4: the guarded application recorder can stay in-memory, discard,
         // or send OTLP/HTTP protobuf through the official OpenTelemetry SDK. Both
         // contracts resolve to one singleton so metrics and spans share config.
-        $this->app->singleton(\App\Observability\Exporters\InMemoryMetricExporter::class, fn ($app) => new \App\Observability\Exporters\InMemoryMetricExporter(
+        $this->app->singleton(InMemoryMetricExporter::class, fn ($app) => new InMemoryMetricExporter(
             (int) config('observability.memory_buffer', 512),
         ));
-        $this->app->singleton(\App\Observability\Exporters\OtlpExporter::class, fn ($app) => $app
-            ->make(\App\Observability\Exporters\OtlpExporterFactory::class)
+        $this->app->singleton(OtlpExporter::class, fn ($app) => $app
+            ->make(OtlpExporterFactory::class)
             ->make());
-        $this->app->singleton(\App\Observability\Contracts\MetricExporter::class, function ($app) {
+        $this->app->singleton(MetricExporter::class, function ($app) {
             if (! (bool) config('observability.enabled', false)) {
-                return $app->make(\App\Observability\Exporters\NullMetricExporter::class);
+                return $app->make(NullMetricExporter::class);
             }
 
             return match ((string) config('observability.exporter', 'memory')) {
-                'null' => $app->make(\App\Observability\Exporters\NullMetricExporter::class),
-                'memory' => $app->make(\App\Observability\Exporters\InMemoryMetricExporter::class),
-                'otlp' => $app->make(\App\Observability\Exporters\OtlpExporter::class),
+                'null' => $app->make(NullMetricExporter::class),
+                'memory' => $app->make(InMemoryMetricExporter::class),
+                'otlp' => $app->make(OtlpExporter::class),
                 default => throw new \InvalidArgumentException('observability_exporter_invalid'),
             };
         });
-        $this->app->singleton(\App\Observability\Contracts\TraceExporter::class, function ($app) {
+        $this->app->singleton(TraceExporter::class, function ($app) {
             if (! (bool) config('observability.enabled', false)) {
-                return $app->make(\App\Observability\Exporters\NullMetricExporter::class);
+                return $app->make(NullMetricExporter::class);
             }
 
             return match ((string) config('observability.exporter', 'memory')) {
-                'null' => $app->make(\App\Observability\Exporters\NullMetricExporter::class),
-                'memory' => $app->make(\App\Observability\Exporters\InMemoryMetricExporter::class),
-                'otlp' => $app->make(\App\Observability\Exporters\OtlpExporter::class),
+                'null' => $app->make(NullMetricExporter::class),
+                'memory' => $app->make(InMemoryMetricExporter::class),
+                'otlp' => $app->make(OtlpExporter::class),
                 default => throw new \InvalidArgumentException('observability_exporter_invalid'),
             };
         });
-        $this->app->singleton(\App\Observability\MetricRecorder::class, fn ($app) => new \App\Observability\MetricRecorder(
-            $app->make(\App\Observability\Contracts\MetricExporter::class),
-            $app->make(\App\Observability\Contracts\TraceExporter::class),
+        $this->app->singleton(MetricRecorder::class, fn ($app) => new MetricRecorder(
+            $app->make(MetricExporter::class),
+            $app->make(TraceExporter::class),
             $app->make(ClinicalContentGuard::class),
         ));
     }
@@ -223,7 +275,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->environment('production')) {
-            $this->app->make(\App\Services\Auth\ProductionSessionConfiguration::class)->assertSecure();
+            $this->app->make(ProductionSessionConfiguration::class)->assertSecure();
         }
 
         Queue::createPayloadUsing(function (string $connection, ?string $queue, array $payload): array {

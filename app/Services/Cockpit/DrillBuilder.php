@@ -3,13 +3,24 @@
 namespace App\Services\Cockpit;
 
 use App\Enums\CockpitStatus;
+use App\Models\DiversionEvent;
+use App\Models\Home\HomeEpisode;
+use App\Models\Home\HomeReferral;
+use App\Services\Ed\NedocsService;
+use App\Services\Ed\TreatmentService;
 use App\Services\Evs\EvsOperationsService;
+use App\Services\Home\HewsService;
+use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Operations\RoomStatusService;
 use App\Services\Staffing\StaffingOperationsService;
 use App\Services\Transport\TransportOperationsService;
 use App\Support\Operations\DurationFormatter;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Builds the per-domain drill payload (spec §3.3) in the §6.4 Cell grammar
@@ -174,8 +185,8 @@ class DrillBuilder
     /** @return list<array<string, mixed>> */
     private function edTables(): array
     {
-        $board = app(\App\Services\Ed\TreatmentService::class)->build();
-        $patients = app(\App\Services\Mobile\MobilePatientContextService::class);
+        $board = app(TreatmentService::class)->build();
+        $patients = app(MobilePatientContextService::class);
         $rows = [];
 
         $tables = [$this->edOvercrowdingTable()];
@@ -240,7 +251,7 @@ class DrillBuilder
      */
     private function edOvercrowdingTable(): ?array
     {
-        $nedocs = app(\App\Services\Ed\NedocsService::class);
+        $nedocs = app(NedocsService::class);
         $inputs = $nedocs->inputs();
 
         if ($inputs === null) {
@@ -248,7 +259,7 @@ class DrillBuilder
         }
 
         $score = (float) $nedocs->score();
-        $onDiversion = \App\Models\DiversionEvent::query()
+        $onDiversion = DiversionEvent::query()
             ->where('is_deleted', false)
             ->where('started_at', '<', now())
             ->whereNull('ended_at')
@@ -366,14 +377,14 @@ class DrillBuilder
      */
     private function pacuBayBoard(): ?array
     {
-        if (! \Illuminate\Support\Facades\Schema::hasTable('prod.or_logs')) {
+        if (! Schema::hasTable('prod.or_logs')) {
             return null;
         }
 
-        $holdThreshold = \Illuminate\Support\Carbon::now()->subMinutes(75)->toDateTimeString();
-        $now = \Illuminate\Support\Carbon::now()->toDateTimeString();
+        $holdThreshold = Carbon::now()->subMinutes(75)->toDateTimeString();
+        $now = Carbon::now()->toDateTimeString();
 
-        $bays = \Illuminate\Support\Facades\DB::select(
+        $bays = DB::select(
             'SELECT
                  c.patient_id,
                  l.primary_procedure,
@@ -396,7 +407,7 @@ class DrillBuilder
 
         // P8 — PACU rows descend to the A2P patient lens like the ED track board;
         // RBAC is enforced at the destination, the cell carries only the opaque ptok.
-        $patients = app(\App\Services\Mobile\MobilePatientContextService::class);
+        $patients = app(MobilePatientContextService::class);
 
         $rows = [];
         foreach ($bays as $i => $bay) {
@@ -552,14 +563,14 @@ class DrillBuilder
      */
     private function homeTables(): array
     {
-        $episodes = \App\Models\Home\HomeEpisode::query()
+        $episodes = HomeEpisode::query()
             ->with(['encounter.bed:bed_id,label'])
             ->active()
             ->orderBy('home_episode_id')
             ->limit(16)
             ->get();
 
-        $hews = app(\App\Services\Home\HewsService::class);
+        $hews = app(HewsService::class);
         $rows = [];
 
         foreach ($episodes as $episode) {
@@ -597,12 +608,12 @@ class DrillBuilder
                         'status' => $critOpen ? 'critical' : 'warning',
                     ]],
                 'next_visit' => ['v' => $nextVisit !== null
-                    ? $nextVisit->scheduled_start->diffForHumans(now(), ['short' => true, 'parts' => 1, 'syntax' => \Carbon\CarbonInterface::DIFF_RELATIVE_TO_NOW])
+                    ? $nextVisit->scheduled_start->diffForHumans(now(), ['short' => true, 'parts' => 1, 'syntax' => CarbonInterface::DIFF_RELATIVE_TO_NOW])
                     : '—', 'dim' => $nextVisit === null],
             ];
         }
 
-        $funnel = \App\Models\Home\HomeReferral::query()
+        $funnel = HomeReferral::query()
             ->where('is_deleted', false)
             ->selectRaw('status, count(*) AS n')
             ->groupBy('status')

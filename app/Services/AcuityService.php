@@ -44,9 +44,9 @@ class AcuityService
      */
     public function remainingWorkload(int $unitId): float
     {
-        $unit = \App\Models\Unit::findOrFail($unitId);
-        $currentLoad = \App\Models\Encounter::active()->where('unit_id', $unitId)->get()
-            ->sum(fn (\App\Models\Encounter $e) => $this->tierWeight($e->acuity_tier));
+        $unit = Unit::findOrFail($unitId);
+        $currentLoad = Encounter::active()->where('unit_id', $unitId)->get()
+            ->sum(fn (Encounter $e) => $this->tierWeight($e->acuity_tier));
 
         return (float) $unit->staffed_bed_count - $currentLoad;
     }

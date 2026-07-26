@@ -19,13 +19,14 @@ use App\Models\CarePathways\SectionSource;
 use App\Models\CarePathways\ServiceLineMapping;
 use App\Models\CarePathways\SourceChange;
 use App\Models\CarePathways\SourceEnrichment;
+use Illuminate\Database\Eloquent\Model;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class CarePathwayModelContractTest extends TestCase
 {
     /**
-     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $modelClass
+     * @param  class-string<Model>  $modelClass
      */
     #[DataProvider('modelTables')]
     public function test_model_uses_the_canonical_schema_and_primary_key(
@@ -39,7 +40,7 @@ class CarePathwayModelContractTest extends TestCase
         $this->assertSame($primaryKey, $model->getKeyName());
     }
 
-    /** @return array<string, array{class-string<\Illuminate\Database\Eloquent\Model>, string, string}> */
+    /** @return array<string, array{class-string<Model>, string, string}> */
     public static function modelTables(): array
     {
         return [

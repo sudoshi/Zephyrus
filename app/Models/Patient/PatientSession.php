@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class PatientSession extends Model
 {
@@ -66,7 +67,7 @@ class PatientSession extends Model
     {
         static::creating(function (PatientSession $session): void {
             if (blank($session->token_family_uuid)) {
-                $session->token_family_uuid = (string) \Illuminate\Support\Str::uuid();
+                $session->token_family_uuid = (string) Str::uuid();
             }
         });
     }

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\Patient\PatientHmac;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -81,7 +82,7 @@ class RouteServiceProvider extends ServiceProvider
             $principal = Str::lower(trim((string) $request->input('email')));
             $principalRef = $principal === ''
                 ? 'missing'
-                : app(\App\Services\Patient\PatientHmac::class)->digest('rate-limit-email', $principal);
+                : app(PatientHmac::class)->digest('rate-limit-email', $principal);
 
             return Limit::perMinute(
                 (int) config('ingress.rate_limits.patient_credential_exchange_per_minute', 5),

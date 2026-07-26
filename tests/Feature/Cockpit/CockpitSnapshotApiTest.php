@@ -6,8 +6,10 @@ use App\Models\Cockpit\CockpitSnapshot;
 use App\Models\Ops\MetricDefinition;
 use App\Models\User;
 use App\Services\Cockpit\SnapshotBuilder;
+use App\Services\Ops\Agents\AgentToolRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -81,7 +83,7 @@ class CockpitSnapshotApiTest extends TestCase
     public function test_kpi_definitions_endpoint_exposes_direction_aware_edges(): void
     {
         MetricDefinition::query()->create([
-            'metric_definition_uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'metric_definition_uuid' => (string) Str::uuid(),
             'metric_key' => 'ed.nedocs',
             'label' => 'NEDOCS',
             'domain' => 'ed',
@@ -110,7 +112,7 @@ class CockpitSnapshotApiTest extends TestCase
     public function test_kpi_definition_update_is_admin_gated_and_audited(): void
     {
         MetricDefinition::query()->create([
-            'metric_definition_uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'metric_definition_uuid' => (string) Str::uuid(),
             'metric_key' => 'rtdc.occupancy',
             'label' => 'House occupancy',
             'domain' => 'rtdc',
@@ -151,7 +153,7 @@ class CockpitSnapshotApiTest extends TestCase
         $this->assertIsArray($cached['capacitySnapshot'] ?? null, 'snapshot must embed the capacity document');
 
         $user = User::factory()->create();
-        $toolResult = app(\App\Services\Ops\Agents\AgentToolRegistry::class)
+        $toolResult = app(AgentToolRegistry::class)
             ->call('capacity.snapshot', [], $user);
 
         // Same generatedAtIso ⇒ Eddy's worldview IS the cockpit snapshot,

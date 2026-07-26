@@ -4,6 +4,7 @@ namespace App\Services\Lab\AmReadiness;
 
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -340,7 +341,7 @@ final class LabMorningReadinessService
         return $observations;
     }
 
-    private function latestResult(): \Illuminate\Database\Query\Builder
+    private function latestResult(): Builder
     {
         return DB::table('prod.lab_results as lr')
             ->select('lr.ancillary_order_id', 'lr.analyzer_ref', DB::raw('lr.metadata as result_metadata'))

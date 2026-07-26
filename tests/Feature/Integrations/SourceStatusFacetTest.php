@@ -15,6 +15,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 /**
@@ -162,7 +163,7 @@ final class SourceStatusFacetTest extends TestCase
     public function test_contract_facet_is_evidence_pointer_only_and_active_requires_a_pointer(): void
     {
         $facets = app(SourceStatusFacetService::class);
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
         $facets->recordContract(
             $this->sourceId,
             'active',

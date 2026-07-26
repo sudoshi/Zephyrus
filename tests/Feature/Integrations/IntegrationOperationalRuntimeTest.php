@@ -4,16 +4,20 @@ namespace Tests\Feature\Integrations;
 
 use App\Integrations\Healthcare\Exceptions\IntegrationProtocolException;
 use App\Integrations\Healthcare\Exceptions\IntegrationThrottledException;
+use App\Integrations\Healthcare\Services\EnterpriseConnectorControlService;
 use App\Integrations\Healthcare\Services\EpicSmartFhirClient;
 use App\Integrations\Healthcare\Services\FhirConformanceObservationService;
 use App\Integrations\Healthcare\Services\FhirResourceProfileService;
+use App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService;
 use App\Integrations\Healthcare\Services\IntegrationProtocolHealthService;
 use App\Integrations\Healthcare\Services\NetworkRouteService;
 use App\Integrations\Healthcare\Services\OperationalIntegrationConfigurator;
+use App\Integrations\Healthcare\Services\ProjectionDispatcher;
 use App\Integrations\Healthcare\Services\SmartBackendFhirClient;
 use App\Integrations\Healthcare\Services\SourceConfigurationVersionService;
 use App\Integrations\Healthcare\Services\SourceOnboardingService;
 use App\Integrations\Healthcare\Services\SourceRegistryService;
+use App\Integrations\Healthcare\Services\SourceStatusFacetService;
 use App\Jobs\DispatchScheduledFhirPolls;
 use App\Jobs\PollEpicFhirResource;
 use App\Jobs\PollFhirResource;
@@ -31,10 +35,12 @@ use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class IntegrationOperationalRuntimeTest extends TestCase
@@ -146,7 +152,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
             return $job->runId === $runId && $job->connection === 'database' && $job->queue === 'integrations';
         });
         $job = new RunIntegrationProtocolHealthCheck($runId, null, (string) Str::uuid());
-        $job->handle(app(IntegrationProtocolHealthService::class), app(\App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService::class));
+        $job->handle(app(IntegrationProtocolHealthService::class), app(IntegrationConfigurationAuditService::class));
 
         $this->assertDatabaseHas('raw.ingest_runs', ['ingest_run_id' => $runId, 'status' => 'completed']);
         $this->assertDatabaseHas('integration.sources', ['source_id' => $sourceId, 'protocol_health_status' => 'healthy']);
@@ -696,7 +702,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
             'updated_at' => now(),
         ]);
         Queue::fake();
-        (new DispatchScheduledFhirPolls)->handle(app(\App\Integrations\Healthcare\Services\EnterpriseConnectorControlService::class));
+        (new DispatchScheduledFhirPolls)->handle(app(EnterpriseConnectorControlService::class));
         Queue::assertPushed(PollFhirResource::class, 3);
         foreach (['Encounter', 'Location', 'Observation'] as $scheduledResourceType) {
             Queue::assertPushed(
@@ -827,7 +833,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
         $job = new ReplayPendingIntegrationEvents($replayId, $user->id, (string) Str::uuid());
         $this->assertSame('database', $job->connection);
         $this->assertSame('integrations', $job->queue);
-        $job->handle(app(\App\Integrations\Healthcare\Services\ProjectionDispatcher::class), app(\App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService::class));
+        $job->handle(app(ProjectionDispatcher::class), app(IntegrationConfigurationAuditService::class));
 
         $this->assertDatabaseHas('integration.event_replay_jobs', [
             'event_replay_job_id' => $replayId,
@@ -896,7 +902,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
 
         $failure = null;
         try {
-            $job->handle(app(EpicSmartFhirClient::class), app(\App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService::class));
+            $job->handle(app(EpicSmartFhirClient::class), app(IntegrationConfigurationAuditService::class));
             $this->fail('The invalid SMART client should fail the poll.');
         } catch (IntegrationProtocolException $exception) {
             $failure = $exception;
@@ -913,7 +919,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
             'status' => 'open',
         ]);
 
-        $job->handle(app(EpicSmartFhirClient::class), app(\App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService::class));
+        $job->handle(app(EpicSmartFhirClient::class), app(IntegrationConfigurationAuditService::class));
 
         $this->assertDatabaseHas('raw.ingest_runs', ['ingest_run_id' => $runId, 'status' => 'completed']);
         $this->assertDatabaseHas('raw.dead_letters', [
@@ -952,7 +958,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
         try {
             $job->handle(
                 app(EpicSmartFhirClient::class),
-                app(\App\Integrations\Healthcare\Services\IntegrationConfigurationAuditService::class),
+                app(IntegrationConfigurationAuditService::class),
             );
             $this->fail('A throttled FHIR search must not be reported as completed.');
         } catch (IntegrationProtocolException $exception) {
@@ -1086,7 +1092,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
                 'activate' => true,
             ]);
             $this->fail('Ungoverned HL7 activation should be rejected.');
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             $this->assertArrayHasKey('activation', $exception->errors());
         }
 
@@ -1353,7 +1359,7 @@ class IntegrationOperationalRuntimeTest extends TestCase
         $this->assertSame(0, DB::table('integration.fhir_conformance_observations')->count());
     }
 
-    /** @return array<string, \Illuminate\Http\Client\Response> */
+    /** @return array<string, Response> */
     private function epicDiscoveryResponses(
         string $softwareName = 'Epic',
         array $resourceTypes = ['Encounter', 'Location'],
@@ -1602,9 +1608,9 @@ class IntegrationOperationalRuntimeTest extends TestCase
         // INT-LIFECYCLE: the tightened activation gate requires the governed
         // conformance/contract facets to be passed/active independently of
         // onboarding evidence.
-        $facets = app(\App\Integrations\Healthcare\Services\SourceStatusFacetService::class);
+        $facets = app(SourceStatusFacetService::class);
         $facets->recordConformance($sourceId, 'passed', 'hl7v2-adt', '2.5', 'Vendor conformance verified for HL7 activation.', null);
-        $contractEvidenceId = (int) \Illuminate\Support\Facades\DB::table('integration.source_evidence_records')
+        $contractEvidenceId = (int) DB::table('integration.source_evidence_records')
             ->where('source_id', $sourceId)
             ->where('evidence_type', 'contract')
             ->where('evidence_status', 'verified')

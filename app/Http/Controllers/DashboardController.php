@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ChangeWorkflowRequest;
 use App\Http\Requests\Improvement\StorePdsaCycleRequest;
 use App\Models\PdsaCycle;
+use App\Services\Dashboard\PerioperativeMetricsService;
 use App\Services\DashboardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -26,7 +27,7 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard/Perioperative', [
             'workflow' => $workflow,
-            'overview' => app(\App\Services\Dashboard\PerioperativeMetricsService::class)->build(),
+            'overview' => app(PerioperativeMetricsService::class)->build(),
         ]);
     }
 

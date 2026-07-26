@@ -6,6 +6,7 @@ use App\Models\Ops\Approval;
 use App\Models\Ops\OperationalAction;
 use App\Models\Ops\Recommendation;
 use App\Models\User;
+use App\Services\Eddy\EddyActionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -67,17 +68,17 @@ class EddyActionTest extends TestCase
     public function test_action_for_alert_resolves_the_p6_preseed_mapping(): void
     {
         // The acceptance case: a crit ED alert pre-seeds the surge plan.
-        $this->assertSame('propose_surge_plan', \App\Services\Eddy\EddyActionService::actionForAlert('ed.nedocs', 'crit'));
-        $this->assertSame('propose_bed_placement', \App\Services\Eddy\EddyActionService::actionForAlert('rtdc.occupancy', 'crit'));
-        $this->assertSame('propose_transport_dispatch', \App\Services\Eddy\EddyActionService::actionForAlert('flow.transport_wait', 'crit'));
-        $this->assertSame('propose_huddle_action', \App\Services\Eddy\EddyActionService::actionForAlert('staffing.callouts', 'crit'));
+        $this->assertSame('propose_surge_plan', EddyActionService::actionForAlert('ed.nedocs', 'crit'));
+        $this->assertSame('propose_bed_placement', EddyActionService::actionForAlert('rtdc.occupancy', 'crit'));
+        $this->assertSame('propose_transport_dispatch', EddyActionService::actionForAlert('flow.transport_wait', 'crit'));
+        $this->assertSame('propose_huddle_action', EddyActionService::actionForAlert('staffing.callouts', 'crit'));
 
         // Warns never escalate past the low-risk responses.
-        $this->assertSame('flag_barrier', \App\Services\Eddy\EddyActionService::actionForAlert('ed.los_admit', 'warn'));
-        $this->assertSame('propose_huddle_action', \App\Services\Eddy\EddyActionService::actionForAlert('staffing.overtime', 'warn'));
+        $this->assertSame('flag_barrier', EddyActionService::actionForAlert('ed.los_admit', 'warn'));
+        $this->assertSame('propose_huddle_action', EddyActionService::actionForAlert('staffing.overtime', 'warn'));
 
         // Unmapped domains fall back to the barrier flag.
-        $this->assertSame('flag_barrier', \App\Services\Eddy\EddyActionService::actionForAlert('quality.cdiff', 'crit'));
+        $this->assertSame('flag_barrier', EddyActionService::actionForAlert('quality.cdiff', 'crit'));
     }
 
     public function test_human_can_propose_and_approve_in_one_step(): void

@@ -7,6 +7,7 @@ use App\Domain\Arena\FlowReviewService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Zephyrus 2.0 Part X (X1) Arena serving API. The browser calls these; Laravel
@@ -162,7 +163,7 @@ class ArenaController extends Controller
             return null;
         }
 
-        \Illuminate\Support\Facades\Validator::make(
+        Validator::make(
             ['filters' => $decoded],
             [
                 'filters' => ['array', 'max:12'],

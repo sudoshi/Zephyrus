@@ -8,6 +8,7 @@ use App\Models\Patient\PatientMessage;
 use App\Models\Patient\PatientMessageDeliveryReceipt;
 use App\Models\Patient\PatientMessageRoutingEvent;
 use App\Models\Patient\PatientMessageThread;
+use App\Models\PatientCommunication\PoolMembership;
 use App\Models\PatientCommunication\ResponsibilityPool;
 use App\Models\PatientCommunication\StaffActionEvent;
 use App\Models\PatientCommunication\ThreadWorkItem;
@@ -499,7 +500,7 @@ class PatientCommunicationLifecycleReconciliationService
         ]);
     }
 
-    /** @param Collection<int, \App\Models\PatientCommunication\PoolMembership> $eligibleMemberships */
+    /** @param Collection<int, PoolMembership> $eligibleMemberships */
     private function pendingAssigneeIsNoLongerEligible(
         ThreadWorkItem $workItem,
         Collection $eligibleMemberships,

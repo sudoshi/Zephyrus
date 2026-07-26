@@ -4,6 +4,7 @@ namespace App\Integrations\Healthcare\Services;
 
 use App\Security\ClinicalPayloads\ClinicalPayloadStore;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -417,7 +418,7 @@ final class SourceReadinessService
     /** @param list<array<string, string>> $checks */
     private function evidenceCheck(
         array &$checks,
-        \Illuminate\Support\Collection $evidence,
+        Collection $evidence,
         string $type,
         CarbonImmutable $evaluatedFor,
         bool $allowNotRequired,

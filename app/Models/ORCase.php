@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Lab\AnatomicPathologyCase;
+use App\Models\Lab\BloodBankReadiness;
 use App\Models\Reference\CaseStatus;
 use App\Models\Reference\Service;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -109,12 +111,12 @@ class ORCase extends Model
 
     public function anatomicPathologyCases(): HasMany
     {
-        return $this->hasMany(\App\Models\Lab\AnatomicPathologyCase::class, 'case_id', 'case_id');
+        return $this->hasMany(AnatomicPathologyCase::class, 'case_id', 'case_id');
     }
 
     public function bloodBankReadiness(): HasMany
     {
-        return $this->hasMany(\App\Models\Lab\BloodBankReadiness::class, 'case_id', 'case_id');
+        return $this->hasMany(BloodBankReadiness::class, 'case_id', 'case_id');
     }
 
     // Scopes
