@@ -2,7 +2,7 @@
 """Generate tests/ci/shard-manifest.json from Q6 timing evidence (plan S1).
 
 Consumes one or more release-evidence directories containing
-backend-feature-*-release-evidence/phpunit-setup-split.ndjson (the per-test
+backend-feature-*-release-evidence/phpunit-setup-split*.ndjson (the per-test
 records the Q6 instrumentation emits), computes per-test-file wall-time
 medians across runs, and LPT-packs the files into FEATURE_SHARD_COUNT bins.
 
@@ -22,7 +22,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-SHARD_COUNT = 8
+SHARD_COUNT = 4
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_PATH = REPO_ROOT / "tests" / "ci" / "shard-manifest.json"
 # Files excluded from the PHPUnit runner (see phpunit.xml). Empty since plan
@@ -48,7 +48,7 @@ def test_id_to_file(test_id: str) -> str | None:
 
 def collect_run_totals(run_dir: Path) -> dict[str, float]:
     totals: dict[str, float] = defaultdict(float)
-    ndjson_files = sorted(run_dir.glob("**/phpunit-setup-split.ndjson"))
+    ndjson_files = sorted(run_dir.glob("**/phpunit-setup-split*.ndjson"))
     if not ndjson_files:
         raise SystemExit(f"No phpunit-setup-split.ndjson under {run_dir}")
     for ndjson in ndjson_files:
