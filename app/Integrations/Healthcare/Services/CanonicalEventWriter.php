@@ -23,19 +23,31 @@ class CanonicalEventWriter
         private readonly MetricRecorder $metrics,
     ) {}
 
-    /** @throws JsonException */
+    /**
+     * $markProjectedOnWrite is for callers that run the projector on this
+     * event inside the SAME database transaction as the write: the row is
+     * born 'projected' instead of being flipped afterwards. A post-hoc
+     * UPDATE of rows inserted in the current transaction cannot use
+     * PostgreSQL's unchanged-key shortcut, so every flipped row re-runs the
+     * payload FK integrity check and the payload-object guard trigger
+     * (~5.4 ms/row measured). If projection throws, the transaction rolls
+     * the insert back with it — the committed end-state is identical.
+     *
+     * @throws JsonException
+     */
     public function write(
         CanonicalOperationalEvent $event,
         ?Source $source = null,
         ?IngestRun $run = null,
         ?InboundMessage $message = null,
         bool $replaceOwnedSynthetic = false,
+        bool $markProjectedOnWrite = false,
     ): CanonicalEventRecord {
         $startedAt = hrtime(true);
         $attributes = $this->traceAttributes($event, $source, $run, $message);
 
         try {
-            $record = $this->persist($event, $source, $run, $message, $replaceOwnedSynthetic);
+            $record = $this->persist($event, $source, $run, $message, $replaceOwnedSynthetic, $markProjectedOnWrite);
             $this->metrics->span(
                 'zephyrus.integration.canonical.write',
                 'ok',
@@ -65,6 +77,7 @@ class CanonicalEventWriter
         ?IngestRun $run,
         ?InboundMessage $message,
         bool $replaceOwnedSynthetic,
+        bool $markProjectedOnWrite,
     ): CanonicalEventRecord {
         $payloadHash = hash('sha256', json_encode($event->payload, JSON_THROW_ON_ERROR));
         if ($source === null) {
@@ -74,7 +87,7 @@ class CanonicalEventWriter
         $existing = CanonicalEventRecord::query()->where('idempotency_key', $event->idempotencyKey)->first();
         if ($existing !== null) {
             if ($replaceOwnedSynthetic) {
-                return $this->replaceOwnedSynthetic($existing, $event, $source, $run, $message, $payloadHash);
+                return $this->replaceOwnedSynthetic($existing, $event, $source, $run, $message, $payloadHash, $markProjectedOnWrite);
             }
 
             return $this->assertExistingMatches($existing, (int) $source->source_id, $payloadHash);
@@ -104,7 +117,8 @@ class CanonicalEventWriter
                 'causation_id' => $event->causationId,
                 'idempotency_key' => $event->idempotencyKey,
                 'sequence_key' => $event->sequenceKey,
-                'projection_status' => 'pending',
+                'projection_status' => $markProjectedOnWrite ? 'projected' : 'pending',
+                'projected_at' => $markProjectedOnWrite ? now() : null,
                 'metadata' => $event->metadata,
             ]));
         } catch (QueryException $exception) {
@@ -123,7 +137,7 @@ class CanonicalEventWriter
             $this->discard($stored->payloadObjectId, (int) $source->source_id);
 
             if ($replaceOwnedSynthetic) {
-                return $this->replaceOwnedSynthetic($existing, $event, $source, $run, $message, $payloadHash);
+                return $this->replaceOwnedSynthetic($existing, $event, $source, $run, $message, $payloadHash, $markProjectedOnWrite);
             }
 
             return $this->assertExistingMatches($existing, (int) $source->source_id, $payloadHash);
@@ -154,6 +168,7 @@ class CanonicalEventWriter
         ?IngestRun $run,
         ?InboundMessage $message,
         string $payloadHash,
+        bool $markProjectedOnWrite = false,
     ): CanonicalEventRecord {
         $sourceId = (int) $source->source_id;
         $owner = is_string($event->metadata['demo_owner'] ?? null)
@@ -166,7 +181,7 @@ class CanonicalEventWriter
         }
         if ($existing->payload_object_id !== null
             && hash_equals((string) $existing->payload_hash, $payloadHash)) {
-            return $this->refreshOwnedSyntheticEnvelope($existing, $event, $sourceId, $run, $message, $owner);
+            return $this->refreshOwnedSyntheticEnvelope($existing, $event, $sourceId, $run, $message, $owner, $markProjectedOnWrite);
         }
 
         $stored = $this->payloads->storeJson($sourceId, 'canonical_event', $event->payload);
@@ -184,6 +199,7 @@ class CanonicalEventWriter
                 $payloadHash,
                 $stored,
                 $owner,
+                $markProjectedOnWrite,
             ): CanonicalEventRecord {
                 $locked = CanonicalEventRecord::query()
                     ->whereKey($existing->getKey())
@@ -210,8 +226,8 @@ class CanonicalEventWriter
                     'correlation_id' => $event->correlationId,
                     'causation_id' => $event->causationId,
                     'sequence_key' => $event->sequenceKey,
-                    'projection_status' => 'pending',
-                    'projected_at' => null,
+                    'projection_status' => $markProjectedOnWrite ? 'projected' : 'pending',
+                    'projected_at' => $markProjectedOnWrite ? now() : null,
                     'metadata' => $event->metadata,
                 ])->save();
 
@@ -248,8 +264,9 @@ class CanonicalEventWriter
         ?IngestRun $run,
         ?InboundMessage $message,
         string $owner,
+        bool $markProjectedOnWrite = false,
     ): CanonicalEventRecord {
-        return DB::transaction(function () use ($existing, $event, $sourceId, $run, $message, $owner): CanonicalEventRecord {
+        return DB::transaction(function () use ($existing, $event, $sourceId, $run, $message, $owner, $markProjectedOnWrite): CanonicalEventRecord {
             $locked = CanonicalEventRecord::query()
                 ->whereKey($existing->getKey())
                 ->lockForUpdate()
@@ -272,8 +289,8 @@ class CanonicalEventWriter
                 'correlation_id' => $event->correlationId,
                 'causation_id' => $event->causationId,
                 'sequence_key' => $event->sequenceKey,
-                'projection_status' => 'pending',
-                'projected_at' => null,
+                'projection_status' => $markProjectedOnWrite ? 'projected' : 'pending',
+                'projected_at' => $markProjectedOnWrite ? now() : null,
                 'metadata' => $event->metadata,
             ])->save();
 
