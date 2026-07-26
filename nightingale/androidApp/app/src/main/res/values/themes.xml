@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.Nightingale.Base" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">#FFFCF5</item>
+        <item name="android:navigationBarColor">#FFFCF5</item>
+        <item name="android:statusBarColor">#FFFCF5</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+    <style name="Theme.Nightingale" parent="Theme.Nightingale.Base" />
+</resources>

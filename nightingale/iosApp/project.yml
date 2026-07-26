@@ -1,0 +1,75 @@
+name: Nightingale
+options:
+  bundleIdPrefix: net.acumenus
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+targets:
+  Nightingale:
+    type: application
+    platform: iOS
+    sources:
+      - Nightingale
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.nightingale
+        GENERATE_INFOPLIST_FILE: "YES"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        DEVELOPMENT_TEAM: TKXPY255A2
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: Nightingale/Info.plist
+      properties:
+        CFBundleDisplayName: Nightingale
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+
+  NightingaleTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - NightingaleTests
+    dependencies:
+      - target: Nightingale
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.nightingale.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Nightingale.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Nightingale"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
+  NightingaleUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - NightingaleUITests
+    dependencies:
+      - target: Nightingale
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.nightingale.ui-tests
+        GENERATE_INFOPLIST_FILE: "YES"
+
+schemes:
+  Nightingale:
+    build:
+      targets:
+        Nightingale: all
+        NightingaleTests:
+          - test
+        NightingaleUITests:
+          - test
+    test:
+      targets:
+        - NightingaleTests
+        - NightingaleUITests

@@ -1,0 +1,15 @@
+# Android local Gradle state and generated artifacts
+androidApp/.gradle/
+androidApp/**/build/
+androidApp/.kotlin/
+androidApp/local.properties
+
+# XcodeGen recreates the project from iosApp/project.yml.
+iosApp/*.xcodeproj/
+iosApp/DerivedData/
+iosApp/build/
+iosApp/*.xcuserstate
+iosApp/*.xcuserdatad/
+iosApp/xcuserdata/
+
+.DS_Store

@@ -1,7 +1,9 @@
-# Hummingbird — Mobile Companion for Zephyrus
+# Hummingbird — Staff Mobile Companion for Zephyrus
 
 > **Status:** Active implementation — verified repository snapshot 2026-07-23
-> **Scope:** Native mobile companion to the Zephyrus hospital-operations command center.
+> **Scope:** Native mobile companion to the Zephyrus hospital-operations command center for
+> staff. The patient product is now **Nightingale**; it has an independent development and
+> release stream.
 > **Platforms:** Android (Kotlin / Jetpack Compose) · iOS (Swift / SwiftUI). The clients
 > currently share contracts and fixtures but still duplicate domain/data logic. The
 > accepted direction is generated native clients and rules; a shared KMP runtime is
@@ -12,11 +14,18 @@ pocket of every healthcare worker — from the transporter moving a patient, to 
 nurse working a unit, to the CMO glancing at house status between meetings. It is the
 **glance-and-act** surface of Zephyrus, not a port of the desktop dashboards.
 
-> ## 👉 Start here: [**ZEPHYRUS-HUMMINGBIRD-FUNCTIONAL-PARITY-AND-PATIENT-EXPERIENCE-PLAN-2026-07-19.md**](ZEPHYRUS-HUMMINGBIRD-FUNCTIONAL-PARITY-AND-PATIENT-EXPERIENCE-PLAN-2026-07-19.md)
+> ## Patient-product direction: [**Nightingale Patient Product Plan**](../plans/nightingale-patient-product-2026-07-26.md)
 >
-> The current repo-grounded execution plan and checklist for staff functional parity plus
-> the separately secured inpatient-facing product. The older implementation and reference
-> documents remain design history and supporting evidence.
+> Nightingale replaces Hummingbird Patient as the dedicated inpatient-facing product. It has
+> its own native app IDs, brand, release train, support model, and safety gates. Historical
+> Hummingbird Patient evidence remains retained as migration reference; it is not a
+> production release vehicle.
+>
+> ## 👉 Hummingbird staff parity: [**ZEPHYRUS-HUMMINGBIRD-FUNCTIONAL-PARITY-AND-PATIENT-EXPERIENCE-PLAN-2026-07-19.md**](ZEPHYRUS-HUMMINGBIRD-FUNCTIONAL-PARITY-AND-PATIENT-EXPERIENCE-PLAN-2026-07-19.md)
+>
+> The current repo-grounded execution plan and checklist for Hummingbird Staff functional
+> parity. Its historical patient sections remain supporting evidence and are superseded for
+> new patient-product work by the Nightingale plan above.
 >
 > ## Direction overlay: [**ALTITUDE-PERSONA-OPERATING-PLAN.md**](ALTITUDE-PERSONA-OPERATING-PLAN.md)
 >
@@ -47,6 +56,11 @@ capability as one of:
 | **DESKTOP-ONLY** | Too analytical/dense for phone          | Deep-link out to web; not rebuilt        |
 
 ---
+
+> **Historical patient-reference notice:** statements below about the former Hummingbird
+> Patient contract, endpoints, targets, or feature flags are retained as migration evidence.
+> They do not authorize new patient work in Hummingbird or describe the current patient
+> product direction; that direction is Nightingale.
 
 ## The strategic picture
 
@@ -146,7 +160,7 @@ that shape this entire plan. Full detail in [research/](research/).
 - [**ADR-2026-07-19-patient-projection-source-of-truth.md**](ADR-2026-07-19-patient-projection-source-of-truth.md) — defines patient content as a released, versioned projection rather than a shadow clinical record.
 - [**ADR-2026-07-19-patient-fhir-boundary.md**](ADR-2026-07-19-patient-fhir-boundary.md) — defines explicit FHIR consumption/project dispositions and prohibits patient-product EHR write-back until a separately governed integration is approved.
 - [**PLATFORM-RECONCILIATION-TODO.md**](PLATFORM-RECONCILIATION-TODO.md) - the Android/iOS parity execution checklist after the Altitude 2.0 and current-code reconciliation review.
-- [**ZEPHYRUS-HUMMINGBIRD-FUNCTIONAL-PARITY-AND-PATIENT-EXPERIENCE-PLAN-2026-07-19.md**](ZEPHYRUS-HUMMINGBIRD-FUNCTIONAL-PARITY-AND-PATIENT-EXPERIENCE-PLAN-2026-07-19.md) — the current repo-grounded parity audit and execution plan, including the separately secured inpatient-facing Hummingbird product.
+- [**ZEPHYRUS-HUMMINGBIRD-FUNCTIONAL-PARITY-AND-PATIENT-EXPERIENCE-PLAN-2026-07-19.md**](ZEPHYRUS-HUMMINGBIRD-FUNCTIONAL-PARITY-AND-PATIENT-EXPERIENCE-PLAN-2026-07-19.md) — the current repo-grounded Hummingbird Staff parity audit and execution plan. Its patient material remains historical migration evidence; new patient work is governed by the Nightingale plan.
 - [**capability-ledger.v1.yaml**](capability-ledger.v1.yaml) — the machine-readable owner, disposition, platform, contract, classification, offline, and evidence control plane.
 - [**generated/capability-coverage.md**](generated/capability-coverage.md) — generated capability inventory and unresolved-state report; counts are not treated as a parity percentage.
 - [**patient-disclosure-matrix.v1.yaml**](patient-disclosure-matrix.v1.yaml) — CI-validated draft patient disclosure, provenance, freshness, relationship, offline, notification, and prohibited-field rules; governance approval remains pending.
