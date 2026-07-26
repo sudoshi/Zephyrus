@@ -8,7 +8,6 @@ use App\Integrations\Healthcare\Services\CanonicalEventWriter;
 use App\Integrations\Healthcare\Services\ProjectionDispatcher;
 use App\Integrations\Healthcare\Services\SourceRegistryService;
 use App\Models\Ancillary\AncillaryOrder;
-use App\Models\Integration\CanonicalEventRecord;
 use App\Models\Integration\Source;
 use App\Services\Demo\DemoClock;
 use App\Services\Rtdc\DischargePrioritiesService;
@@ -78,15 +77,17 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
             $sources = $this->governedSources($owner);
             $this->removeOwnedRows($owner);
             $events = 0;
-            $projected = [];
 
+            // markProjectedOnWrite: the projector runs on each event inside
+            // this same transaction, so the row is born 'projected' — a
+            // post-hoc flip of same-transaction inserts re-runs the payload
+            // FK check + guard trigger per row (~5.4 ms × every event).
             foreach ($scenarios as $scenario) {
                 foreach ($scenario['events'] as $ordinal => $event) {
                     $source = $sources[$event['source'] ?? 'primary'];
                     $canonical = $this->canonicalEvent($clock, $owner, $scenario, $event, $ordinal);
-                    $record = $this->writer->write($canonical, $source, replaceOwnedSynthetic: true);
+                    $record = $this->writer->write($canonical, $source, replaceOwnedSynthetic: true, markProjectedOnWrite: true);
                     $this->projector->project($canonical->withEventId($record->event_id));
-                    $projected[] = (int) $record->getKey();
                     $events++;
                 }
             }
@@ -95,13 +96,10 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
             foreach ($this->operationalEvents($clock, $owner) as $entry) {
                 $source = $sources[$entry['source'] ?? 'secondary'];
                 $canonical = $entry['event'];
-                $record = $this->writer->write($canonical, $source, replaceOwnedSynthetic: true);
+                $record = $this->writer->write($canonical, $source, replaceOwnedSynthetic: true, markProjectedOnWrite: true);
                 $this->projector->project($canonical->withEventId($record->event_id));
-                $projected[] = (int) $record->getKey();
                 $operational++;
             }
-
-            $this->markProjected($projected);
 
             $orders = AncillaryOrder::query()->where('demo_owner', $owner)->where('department', $this->department())->count();
 
@@ -118,25 +116,6 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
                 'collisions' => [],
             ];
         }, 3);
-    }
-
-    /**
-     * Every event in one refresh shares the frozen anchor clock
-     * (AncillaryDemoScenarioService::refresh pins setTestNow for the whole
-     * run), so a single SET clause carries the exact timestamps the former
-     * per-event updates wrote. Bulk builder updates fire no model events;
-     * CanonicalEventRecord registers none — a future observer on it would
-     * not see these demo-refresh flips.
-     *
-     * @param  list<int>  $canonicalEventIds
-     */
-    private function markProjected(array $canonicalEventIds): void
-    {
-        foreach (array_chunk($canonicalEventIds, 500) as $chunk) {
-            CanonicalEventRecord::query()
-                ->whereIn('canonical_event_id', $chunk)
-                ->update(['projection_status' => 'projected', 'projected_at' => now()]);
-        }
     }
 
     /** @param list<array<string, mixed>> $scenarios @return list<string> */

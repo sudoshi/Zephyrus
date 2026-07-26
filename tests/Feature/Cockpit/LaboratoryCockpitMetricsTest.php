@@ -112,6 +112,7 @@ final class LaboratoryCockpitMetricsTest extends TestCase
                 'or_gate' => DB::table('prod.or_cases')->where('case_id', $item['destination']['id'])->update(['is_deleted' => true]),
             };
         }
+        $this->nextRequestScope();
         $unresolved = app(LabCockpitHealthService::class)->build()['oldestDecisionPending'];
         $this->assertSame(0, $unresolved['pendingCount']);
         $this->assertSame('degraded', $unresolved['sourceState']);

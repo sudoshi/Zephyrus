@@ -104,6 +104,18 @@ abstract class TestCase extends BaseTestCase
         ]);
     }
 
+    /**
+     * Model a request/job boundary inside one test method. Production flushes
+     * scoped container instances (e.g. LabAggregateSnapshotFactory) between
+     * FPM requests and queue jobs, but the test harness keeps one container
+     * per test method — a test that mutates rows and re-reads a scoped
+     * aggregate must declare the boundary explicitly or it reads the memo.
+     */
+    protected function nextRequestScope(): void
+    {
+        $this->app->forgetScopedInstances();
+    }
+
     public function actingAs(Authenticatable $user, $guard = null)
     {
         if ($user instanceof Model && $user->exists) {

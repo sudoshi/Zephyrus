@@ -120,6 +120,13 @@ class SnapshotBuilder
     {
         $facilityKey ??= $this->manifest->facilityCode();
 
+        // The authoritative snapshot must never publish a request-scoped
+        // memo captured before the caller's data changes: long-lived
+        // processes (demo:seed roll-forward cycles, dispatch_sync callers)
+        // reuse one container scope across refreshes, so the scoped lab
+        // aggregate is invalidated here before recomputing.
+        app(\App\Services\Lab\LabAggregateSnapshotFactory::class)->flush();
+
         ['payload' => $payload, 'context' => $ctx] = $this->buildWithContext($facilityKey);
 
         // P6: the persisted/served payload carries the flap-DAMPED open set
