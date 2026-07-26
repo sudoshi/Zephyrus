@@ -332,6 +332,13 @@ authorization, idempotency, audit, and patient-visible outcome evidence.
       `2.0` in landscape, and prove 44-point iOS plus 48 dp Android targets. This closes
       only the current offline shell; future screens, manual assistive-technology review,
       language/RTL coverage, full WCAG conformance, and named approvals remain open.
+- [x] Establish the draft foundation threat and clinical-hazard model: version current and
+      future trust boundaries, 25 implemented-control claims with their limits, 22
+      security/privacy threats, 22 clinical hazards, 18 abuse cases, 20 activation gates,
+      verification/incident requirements, platform asymmetries, and 17 open risks; bind it
+      mechanically to the unchanged default-off foundation with eight negative self-tests.
+      This is engineering governance, not a safety case, compliance claim, residual-risk
+      acceptance, penetration test, tabletop, or named approval.
 - [ ] Carry forward the existing automated privacy controls only as candidate evidence;
       rerun them under Nightingale app IDs and assets.
 - [ ] Meet WCAG 2.2 AA plus iOS/Android guidance for screen-reader navigation, focus order,
@@ -341,7 +348,8 @@ authorization, idempotency, audit, and patient-visible outcome evidence.
 - [ ] Complete independent patient-advisor, accessibility, privacy/security, clinical
       safety, language/interpreter, legal/HIM, nursing, medical-staff, pharmacy, and support
       review. Automated checks never substitute for these approvals.
-- [ ] Run threat-model, hazard-log, red-team, tabletop, penetration, mobile security,
+- [ ] Obtain independent clinical-safety/privacy/security ratification of the foundation
+      threat/hazard model and run red-team, tabletop, penetration, mobile security,
       dependency/SBOM, secrets, and release-readiness reviews.
 
 **Exit evidence:** named reviewers sign the current matrices; resolved risks and explicit
@@ -443,6 +451,11 @@ part of application development work.
         actual landscape application geometry, add native contrast/target/reflow tests, and
         bind the result to exact local Debug/Release artifacts. The broader Stream E
         conformance and independent-review items remain open.
+15. [x] Establish and mechanically enforce the draft foundation threat and clinical-hazard
+        model. It separates current offline exposure from future activation risk, keeps all
+        high/critical live-data hazards disabled, records no approval or accepted residual
+        risk, and leaves independent ratification, red-team/tabletop, penetration, signed
+        artifact, non-production integration, pilot, and release evidence open.
 
 ## 10. Explicit holds
 

@@ -1300,5 +1300,68 @@ deployment authorization.
   or skip. The normally signed Release build passed; its built manifest contains portrait,
   landscape-left, and landscape-right, and its executable excludes both Debug-only test
   keys. Current artifact hashes are recorded in the accessibility matrix and above.
-- The prior exact-SHA CI result remains valid for commit `c432b588`; a new current-source
-  commit/push and exact-SHA CI are required before this corrective slice is ratified.
+- Published the correction as commit
+  `80c29e9ff5a745e50e7efdca4c2ac9c3a3df8091`. Exact-SHA
+  [CI run 30223467440](https://github.com/sudoshi/Zephyrus/actions/runs/30223467440)
+  passed all 18 jobs with no failure or rerun. This supersedes the portrait-era
+  landscape-evidence claim while retaining its failed discovery history.
+
+## Foundation threat and clinical-hazard model
+
+### Method and scope
+
+- Added the draft
+  [foundation threat and clinical-hazard model](../nightingale/FOUNDATION-THREAT-AND-HAZARD-MODEL-2026-07-26.md).
+  It uses NIST CSF 2.0 as an outcome taxonomy, OWASP MASVS as a mobile-control checklist,
+  HHS risk-analysis/mobile-privacy guidance for confidentiality/integrity/availability and
+  personal-device context, NHS DCB0129/DCB0160 lifecycle concepts as a clinical-risk
+  reference, STRIDE, and repository-specific misuse cases.
+- The model explicitly makes no NIST, MASVS, HIPAA, DCB0129/DCB0160, medical-device,
+  privacy-law, or other compliance claim. It records no named approval and accepts no
+  residual risk.
+- Bound the assessment to executable baseline
+  `80c29e9ff5a745e50e7efdca4c2ac9c3a3df8091`: an offline native shell, zero OpenAPI paths,
+  zero registered Nightingale routes, no network client/permission, no identity/provider,
+  no source adapter/query, no patient disclosure/mutation, and no production activation.
+  Future conceptual components are threat boundaries, not implementation approval.
+
+### Registers and gates
+
+- Versioned 18 protected assets, 14 trust boundaries, 25 implemented-control claims with
+  explicit limits, 22 security/privacy threats, 22 clinical hazards, 18 abuse/misuse cases,
+  20 activation gates, 18 verification tracks, eight incident classes, and 17 open risks.
+- Used a dual view that avoids deceptively low “current risk” scores: every register entry
+  records inherent risk if activated without controls, while current exposure is separately
+  classified as blocked, present-foundation, future-design, or external.
+- Marked wrong-principal/IDOR disclosure and urgent-message false assurance as critical
+  activation risks. Wrong encounter, stale/corrected/retracted content, representative
+  overreach, inaccessible or misunderstood content, lost/shared-device exposure,
+  routing/delivery ambiguity, support social engineering, source contradiction, and
+  absent rollback remain high activation risks.
+- Recorded that “blocked by non-activation” does not mean safe or accepted: removing a
+  route/network/provider/source/disclosure barrier without the corresponding gate is a
+  release-blocking defect.
+- Added explicit detection signals, containment classes, recovery proof, change triggers,
+  named-owner requirements, platform asymmetries, and an ordered ten-step implementation
+  sequence. The current foundation has no remote kill switch because it has no live
+  capability; a tested kill switch remains mandatory before activation.
+
+### Mechanical enforcement and current holds
+
+- Added `scripts/ci/verify-nightingale-threat-hazard-model.mjs` and wired its self-test mode
+  into the Nightingale CI job. It requires the complete identifier sets and draft/
+  non-authorization statements, pins all five authoritative method links, rejects implied
+  approval checkboxes and prohibited compliance claims, and cross-checks the actual
+  backend/contract/native default-off boundaries.
+- Eight negative self-tests prove rejection of a removed critical messaging hazard, removed
+  draft status, missing NIST input, implied approval checkbox, backend production
+  activation, inserted API operation, Android network permission, and iOS live-access
+  activation.
+- The broader Stream E item remains open: independent clinical-safety/privacy/security
+  ratification, red-team, incident tabletop, penetration testing, signed-artifact mobile
+  assessment, dependency response, human accessibility/language/patient review, and every
+  named approval are still required.
+- No production database, patient, principal, encounter, identity link, source, projection,
+  message, notification, credential, integration, migration, deployment, pilot, or release
+  state was read or changed. Commit/push and exact-SHA CI evidence remain required for this
+  model slice.

@@ -20,7 +20,10 @@ reduced motion and decorative-imagery suppression. They are presentation-only, r
 separate from care-account preferences, and do not authorize patient access. The current
 offline shell now also has a bounded maximum-text, landscape, semantic-order, target-size,
 and light/dark contrast matrix; this does not establish product-wide WCAG conformance or
-human approval.
+human approval. A draft foundation threat and clinical-hazard model now versions the
+current trust boundaries, implemented controls, 22 security/privacy threats, 22 clinical
+hazards, 20 activation gates, incident requirements, and open risks. It is not a safety
+case, compliance claim, residual-risk acceptance, or live-use approval.
 
 Current product-identity records:
 
@@ -38,6 +41,7 @@ Current product-identity records:
 - [Journey, preference, presentation, synthetic, and release source classification](./JOURNEY-PREFERENCE-PRESENTATION-RELEASE-SOURCE-CLASSIFICATION-2026-07-26.md)
 - [Presentation-preferences foundation decision and evidence](./PRESENTATION-PREFERENCES-FOUNDATION-DECISION-2026-07-26.md)
 - [Foundation accessibility and layout matrix](./FOUNDATION-ACCESSIBILITY-LAYOUT-MATRIX-2026-07-26.md)
+- [Draft foundation threat and clinical-hazard model](./FOUNDATION-THREAT-AND-HAZARD-MODEL-2026-07-26.md)
 - [Empty/default-off contract foundation](./api-contract/nightingale-foundation.v0.json)
 - [Identity candidate and fixtures](./identity/candidates/v0/candidate.json)
 - [Current-inpatient source candidate and fixtures](./source-candidates/current-inpatient/v0/candidate.json)
