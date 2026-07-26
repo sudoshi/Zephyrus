@@ -122,6 +122,44 @@ or the complete device/OS accessibility and privacy matrix. It does not activate
 any patient feature, authorize a pilot, create or activate a patient, change a
 database, or deploy an application.
 
+## 2026-07-25 — iOS app-switcher privacy-cover timing guard
+
+**Implementation commit:** `58c33338`
+**Decision record:** no clinical, identity, disclosure, or release decision was
+made. This is a bounded extension of the existing patient privacy cover; all
+patient exposure flags remain off and no production patient, database, or
+deployment action occurred.
+
+### Completed implementation
+
+- Added the main-actor `PatientAppActivityMonitor`. It requires the existing
+  opaque privacy cover on `UIApplication.willResignActiveNotification`, before
+  the scene-phase update used by the SwiftUI hierarchy settles, and releases
+  that additional condition on `UIApplication.didBecomeActiveNotification`.
+- Kept screen-capture coverage as the higher-priority reason. The monitor does
+  not alter access revalidation, patient data, logging, analytics, or clinical
+  behavior.
+- Added a deterministic notification-driven unit test that proves the cover is
+  required before the app switches away and is released when the app becomes
+  active again.
+
+### Verification
+
+| Boundary               | Command / target                                                                                                                            | Result                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| iOS focused control    | targeted `xcodebuild test` selection for the app-activity and screen-capture monitor tests on iPhone 17 Pro                                 | 2 tests passed; 0 failures                                         |
+| iOS full regression    | `xcodebuild test -project HummingbirdPatient.xcodeproj -scheme HummingbirdPatient -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` | exit 0; the UI matrix executed 13 tests with 0 failures            |
+| Android regression     | `./gradlew --no-daemon connectedDebugAndroidTest --rerun-tasks --console=plain` on API 35 `hb` AVD                                          | 17 tests; 0 failures/errors/skips                                  |
+| iOS release boundary   | Release iPhone 17 Pro simulator build followed by an executable-string scan for `HBP_SHOW_*_PRIVACY_COVER`                                  | build passed; no debug privacy-control string was present          |
+| governed static checks | patient Xcode project, Android source boundary, contract, accessibility matrix, disclosure matrix, Prettier, and diff checks                | all passed; accessibility matrix remains draft and not pilot-ready |
+
+### Bounded claim
+
+This narrows an app-switcher timing gap in the app's view state. It is not
+evidence that every iOS version, system snapshot, screenshot, clipboard,
+widget, notification, backup, or accessibility privacy path is redacted. The
+complete privacy matrix remains open.
+
 ## 2026-07-25 — Cross-platform evidence reconciliation and pilot-control template
 
 **Tested source head:** `72ea2862325a5728e261c0022f78cd2da374ccc5`
