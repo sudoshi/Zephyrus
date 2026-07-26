@@ -26,6 +26,7 @@ use App\Services\Patient\Messaging\PatientMessagingPolicyRegistry;
 use App\Services\Patient\PatientHmac;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -649,7 +650,7 @@ class PatientRoundQuestionPromotionService
         ];
     }
 
-    /** @param Builder<\Illuminate\Database\Eloquent\Model> $query */
+    /** @param Builder<Model> $query */
     private function applyLock(Builder $query, bool $forUpdate): void
     {
         if ($forUpdate) {

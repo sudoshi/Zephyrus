@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Barrier;
 use App\Models\PatientFlow\FlowEvent;
 use App\Services\Flow\FlowLensService;
+use App\Services\Flow\ForwardProjectionService;
 use App\Services\PatientFlow\AmbientSignalService;
 use App\Services\PatientFlow\FacilitySpaceLocationResolver;
 use App\Services\PatientFlow\FhirBundleFactory;
@@ -267,13 +268,13 @@ class PatientFlowController extends Controller
         $lens = $request->attributes->get('flow_lens');
         $roleId = (string) $request->attributes->get('flow_role_id');
 
-        $now = \Carbon\CarbonImmutable::now();
+        $now = CarbonImmutable::now();
         $to = $now->addHours(24);
         $context = $this->eventAccess->context($request);
         $scope = $context['scope'];
         $depth = $context['depth'];
 
-        $items = app(\App\Services\Flow\ForwardProjectionService::class)
+        $items = app(ForwardProjectionService::class)
             ->projections($now, $to, $scope, $lens['projection_kinds']);
 
         $items = array_map(

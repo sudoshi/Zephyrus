@@ -9,6 +9,7 @@ use App\Services\Mobile\MobilePatientContextService;
 use App\Services\Rtdc\BedTrackingService;
 use App\Support\Cockpit\CockpitScope;
 use App\Support\Hospital\HospitalManifest;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -309,7 +310,7 @@ class ScopedFaceBuilder
 
     /**
      * @param  array<string, mixed>  $row
-     * @param  \Illuminate\Support\Collection<int, Encounter>  $roster
+     * @param  Collection<int, Encounter>  $roster
      * @param  list<int>  $occupiedSeries
      * @param  array{in: int, out: int}  $movement
      * @return list<array<string, mixed>>
@@ -344,7 +345,7 @@ class ScopedFaceBuilder
      * identity stays gated at A2P behind EnforceFlowLens; the drill cell carries
      * only the opaque ptok.
      *
-     * @return \Illuminate\Support\Collection<int, Encounter>
+     * @return Collection<int, Encounter>
      */
     private function unitRoster(int $unitId)
     {
@@ -363,7 +364,7 @@ class ScopedFaceBuilder
      * (same affordance as the ED track board); RBAC is enforced at the
      * destination, so the opaque ptok is safe to carry.
      *
-     * @param  \Illuminate\Support\Collection<int, Encounter>  $roster
+     * @param  Collection<int, Encounter>  $roster
      * @return array<string, mixed>
      */
     private function unitRosterTable($roster): array

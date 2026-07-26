@@ -3,6 +3,8 @@
 namespace App\Rtdc;
 
 use App\Events\Rtdc\CensusUpdated;
+use App\Models\Bed;
+use App\Models\Encounter;
 use App\Models\OperationalEvent;
 use App\Rtdc\Events\CanonicalEvent;
 use Illuminate\Support\Facades\DB;
@@ -56,8 +58,8 @@ class EventDispatcher
         return match ($event->type) {
             CanonicalEvent::ENCOUNTER_STARTED => $event->payload['unit_id'] ?? null,
             CanonicalEvent::ENCOUNTER_TRANSFERRED => $event->payload['to_unit_id'] ?? null,
-            CanonicalEvent::ENCOUNTER_DISCHARGED, CanonicalEvent::ACUITY_CHANGED => \App\Models\Encounter::where('patient_ref', $event->encounterRef)->value('unit_id'),
-            CanonicalEvent::BED_STATUS_CHANGED => \App\Models\Bed::where('bed_id', $event->payload['bed_id'] ?? 0)->value('unit_id'),
+            CanonicalEvent::ENCOUNTER_DISCHARGED, CanonicalEvent::ACUITY_CHANGED => Encounter::where('patient_ref', $event->encounterRef)->value('unit_id'),
+            CanonicalEvent::BED_STATUS_CHANGED => Bed::where('bed_id', $event->payload['bed_id'] ?? 0)->value('unit_id'),
             default => null,
         };
     }

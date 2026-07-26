@@ -10,6 +10,7 @@ use App\Http\Requests\Transport\CompleteHandoffRequest;
 use App\Http\Requests\Transport\CreateTransportRequestRequest;
 use App\Http\Requests\Transport\TransportStatusUpdateRequest;
 use App\Models\Transport\TransportRequest;
+use App\Services\Transport\TransportLifecycleService;
 use App\Services\Transport\TransportOperationsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class TransportRequestController extends Controller
     {
         $filters = $request->validate([
             'request_type' => ['nullable', Rule::in(['inpatient', 'transfer', 'discharge', 'ems', 'care_transition'])],
-            'status' => ['nullable', Rule::in(array_keys(\App\Services\Transport\TransportLifecycleService::TRANSITIONS))],
+            'status' => ['nullable', Rule::in(array_keys(TransportLifecycleService::TRANSITIONS))],
             'priority' => ['nullable', Rule::in(['routine', 'urgent', 'stat'])],
             'scope' => ['nullable', Rule::in(['active', 'dispatch', 'history'])],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],

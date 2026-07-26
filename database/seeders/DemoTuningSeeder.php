@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Services\Demo\DistributionSampler;
 use App\Services\Demo\OperationalDemoDataService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -167,7 +168,7 @@ class DemoTuningSeeder extends Seeder
             ORDER BY u.unit_id
         ");
 
-        $sampler = new \App\Services\Demo\DistributionSampler;
+        $sampler = new DistributionSampler;
         $seq = 0;
         foreach ($units as $u) {
             // Per-type target + a small deterministic per-unit jitter so units within a type vary.

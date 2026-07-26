@@ -101,7 +101,7 @@ class QuantityProjector
                 'event_id' => $r->event_id,
                 'activity' => $r->activity,
                 'unit_id' => $r->unit_id,
-                'time' => \Carbon\Carbon::parse($r->time)->toIso8601String(),
+                'time' => Carbon::parse($r->time)->toIso8601String(),
             ])->all();
     }
 

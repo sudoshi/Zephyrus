@@ -2,6 +2,7 @@
 
 namespace App\Domain\Ocel;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -191,6 +192,6 @@ final class OcelJsonExporter
 
     private function iso(string $value): string
     {
-        return \Carbon\Carbon::parse($value)->toIso8601String();
+        return Carbon::parse($value)->toIso8601String();
     }
 }

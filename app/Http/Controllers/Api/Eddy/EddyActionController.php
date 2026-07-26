@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\Eddy;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Eddy\EddyProposeActionRequest;
+use App\Models\User;
 use App\Services\Eddy\EddyActionService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
+use Laravel\Sanctum\TransientToken;
 
 class EddyActionController extends Controller
 {
@@ -47,11 +49,11 @@ class EddyActionController extends Controller
     }
 
     /** Session (web) or SPA-stateful auth = a human; a real personal access token = the agent. */
-    private function actsAsHuman(\App\Models\User $user): bool
+    private function actsAsHuman(User $user): bool
     {
         $token = $user->currentAccessToken();
 
-        return $token === null || $token instanceof \Laravel\Sanctum\TransientToken;
+        return $token === null || $token instanceof TransientToken;
     }
 
     /**

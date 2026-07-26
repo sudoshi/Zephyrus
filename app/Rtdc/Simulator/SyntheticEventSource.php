@@ -7,6 +7,9 @@ use App\Models\Encounter;
 use App\Models\Unit;
 use App\Rtdc\Contracts\EventSource;
 use App\Rtdc\Events\CanonicalEvent;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
@@ -21,7 +24,7 @@ class SyntheticEventSource implements EventSource
     public function __construct(
         private readonly SimulatorConfig $config,
         private readonly int $seed = 0,
-        private readonly ?\Carbon\CarbonInterface $startAt = null,
+        private readonly ?CarbonInterface $startAt = null,
     ) {}
 
     public function pull(): iterable
@@ -72,8 +75,8 @@ class SyntheticEventSource implements EventSource
      * the seeded mt_rand(), then re-resolve it through the given scope. Returns
      * null when there are no candidates.
      *
-     * @param  \Illuminate\Support\Collection<int, int>  $ids
-     * @param  callable(int): ?\Illuminate\Database\Eloquent\Model  $resolve
+     * @param  Collection<int, int>  $ids
+     * @param  callable(int): ?Model  $resolve
      */
     private function pickDeterministic($ids, callable $resolve)
     {

@@ -3,6 +3,7 @@
 namespace App\Domain\Cockpit;
 
 use App\Models\Ops\MetricDefinition;
+use App\Services\Cockpit\MetricTrendReader;
 use App\Support\Cockpit\MetricValue;
 use Illuminate\Support\Collection;
 
@@ -50,7 +51,7 @@ class SnapshotContext
     {
         $trend = $this->trends[$key] ?? null;
 
-        return is_array($trend) && count($trend) >= \App\Services\Cockpit\MetricTrendReader::MIN_POINTS
+        return is_array($trend) && count($trend) >= MetricTrendReader::MIN_POINTS
             ? $trend
             : null;
     }

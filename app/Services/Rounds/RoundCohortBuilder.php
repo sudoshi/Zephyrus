@@ -11,6 +11,7 @@ use App\Models\Rounds\RoundRun;
 use App\Models\Rounds\RoundTemplate;
 use App\Models\Unit;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -229,7 +230,7 @@ class RoundCohortBuilder
         $map = (array) config('rounds.unit_role_map', []);
         $result = [];
 
-        $rows = \Illuminate\Support\Facades\DB::table('prod.user_unit')
+        $rows = DB::table('prod.user_unit')
             ->where('unit_id', $unit->unit_id)
             ->whereNotNull('role')
             ->get(['user_id', 'role']);

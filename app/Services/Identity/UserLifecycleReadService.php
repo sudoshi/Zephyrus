@@ -5,6 +5,8 @@ namespace App\Services\Identity;
 use App\Models\Audit\UserEvent;
 use App\Models\Auth\UserExternalIdentity;
 use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -135,7 +137,7 @@ class UserLifecycleReadService
      *
      * @param  Collection<int, UserExternalIdentity>  $identities
      */
-    private function reconciliationState(Collection $identities, ?\Carbon\CarbonImmutable $lastOidcLoginAt): string
+    private function reconciliationState(Collection $identities, ?CarbonImmutable $lastOidcLoginAt): string
     {
         if ($identities->isEmpty()) {
             return 'not_applicable';
@@ -161,9 +163,9 @@ class UserLifecycleReadService
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<UserEvent>  $query
+     * @param  Builder<UserEvent>  $query
      * @param  list<int>  $ids
-     * @return array<int, \Carbon\CarbonImmutable> latest occurred_at keyed by actor id
+     * @return array<int, CarbonImmutable> latest occurred_at keyed by actor id
      */
     private function latestByActor($query, array $ids): array
     {
@@ -172,7 +174,7 @@ class UserLifecycleReadService
             ->groupBy('actor_user_id')
             ->selectRaw('actor_user_id, max(occurred_at) as latest_at')
             ->pluck('latest_at', 'actor_user_id')
-            ->map(fn (mixed $value): \Carbon\CarbonImmutable => \Carbon\CarbonImmutable::parse((string) $value))
+            ->map(fn (mixed $value): CarbonImmutable => CarbonImmutable::parse((string) $value))
             ->all();
     }
 }

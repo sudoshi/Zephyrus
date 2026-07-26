@@ -2,6 +2,9 @@
 
 namespace App\Traits;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
 trait SafeMigration
 {
     protected function isLocalEnvironment(): bool
@@ -12,20 +15,20 @@ trait SafeMigration
     protected function safeDropIfExists(string $table): void
     {
         if ($this->isLocalEnvironment()) {
-            \Illuminate\Support\Facades\Schema::dropIfExists($table);
+            Schema::dropIfExists($table);
         }
     }
 
     protected function safeDropSchema(string $schema): void
     {
         if ($this->isLocalEnvironment()) {
-            \Illuminate\Support\Facades\DB::unprepared("DROP SCHEMA IF EXISTS {$schema} CASCADE");
+            DB::unprepared("DROP SCHEMA IF EXISTS {$schema} CASCADE");
         }
     }
 
     protected function constraintExists(string $table, string $constraintName): bool
     {
-        $result = \Illuminate\Support\Facades\DB::select("
+        $result = DB::select("
             SELECT 1
             FROM information_schema.table_constraints
             WHERE table_schema = split_part(?, '.', 1)
@@ -38,7 +41,7 @@ trait SafeMigration
 
     protected function indexExists(string $table, string $indexName): bool
     {
-        $result = \Illuminate\Support\Facades\DB::select("
+        $result = DB::select("
             SELECT 1
             FROM pg_indexes
             WHERE schemaname = split_part(?, '.', 1)

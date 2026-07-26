@@ -3,19 +3,27 @@
 use App\Http\Controllers\Admin\AccessReviewController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminScopeController;
+use App\Http\Controllers\Admin\AiProviderPolicyController;
 use App\Http\Controllers\Admin\AuthorizationCatalogController;
 use App\Http\Controllers\Admin\AuthProviderController;
+use App\Http\Controllers\Admin\CockpitPolicyController;
+use App\Http\Controllers\Admin\DataProtectionController;
+use App\Http\Controllers\Admin\EnterpriseRegistryController;
 use App\Http\Controllers\Admin\ExternalIdentityController;
 use App\Http\Controllers\Admin\IdentityPurgeController;
 use App\Http\Controllers\Admin\SystemHealthController;
+use App\Http\Controllers\Admin\UserAccessAssignmentController;
 use App\Http\Controllers\Admin\UserAuditController;
+use App\Http\Controllers\Admin\UserBulkLifecycleController;
 use App\Http\Controllers\Analytics;
 use App\Http\Controllers\Analytics\LabTatController;
 use App\Http\Controllers\Analytics\PharmacyTatController;
 use App\Http\Controllers\Analytics\RadiologyTatController;
+use App\Http\Controllers\CarePathwayCatalogPageController;
 use App\Http\Controllers\CarePathwayDemoPageController;
 use App\Http\Controllers\CommandCenterController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DemoHealthController;
 use App\Http\Controllers\Deployment\DeploymentConsoleController;
 use App\Http\Controllers\DesignController;
 use App\Http\Controllers\EDDashboardController;
@@ -34,6 +42,14 @@ use App\Http\Controllers\RTDCController;
 use App\Http\Controllers\RTDCDashboardController;
 use App\Http\Controllers\Staffing\StaffingDashboardController;
 use App\Http\Controllers\Transport\TransportDashboardController;
+use App\Http\Controllers\UserController;
+use App\Http\Middleware\EnsureArenaEnabled;
+use App\Http\Middleware\EnsureCarePathwayDemoEnabled;
+use App\Http\Middleware\EnsureCarePathwayGovernanceEnabled;
+use App\Http\Middleware\EnsureHomeHospitalEnabled;
+use App\Http\Middleware\EnsureRoundsEnabled;
+use App\Http\Middleware\ProtectPatientCommunicationResponse;
+use App\Http\Middleware\SessionAuthMiddleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -43,7 +59,7 @@ Route::get('/improvement/api/nursing-operations', [ProcessAnalysisController::cl
 
 // Rolling-demo health (FEEDBACK Wave 5) — public status for uptime monitors: last refresh,
 // source freshness, scheduler liveness. 200 healthy / 503 not. No PHI.
-Route::get('/up/demo', \App\Http\Controllers\DemoHealthController::class);
+Route::get('/up/demo', DemoHealthController::class);
 
 // Root route - redirect to login or dashboard based on auth state
 Route::get('/', function (Request $request) {
@@ -59,7 +75,7 @@ Route::get('/', function (Request $request) {
 // SessionAuthMiddleware is the existing local/demo auto-login gate. Keeping it
 // Direct viewer URLs create a valid session here, while API routes retain their
 // normal web-session authentication.
-Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
+Route::middleware([SessionAuthMiddleware::class])
     ->group(function () {
         // RTDC Routes
         Route::prefix('rtdc')->group(function () {
@@ -90,18 +106,18 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         Route::get('/dashboard', [CommandCenterController::class, 'index'])->name('dashboard');
 
         Route::get('/care-pathways/demo', CarePathwayDemoPageController::class)
-            ->middleware(\App\Http\Middleware\EnsureCarePathwayDemoEnabled::class)
+            ->middleware(EnsureCarePathwayDemoEnabled::class)
             ->name('care-pathways.demo');
 
         // Read-only examination surface for the governed (inactive) DRG catalog.
         // Gated identically to the governance JSON API: feature flag + capability.
         Route::middleware([
-            \App\Http\Middleware\EnsureCarePathwayGovernanceEnabled::class,
+            EnsureCarePathwayGovernanceEnabled::class,
             'can:viewCarePathwayCatalog',
         ])->group(function (): void {
-            Route::get('/care-pathways/catalog', [\App\Http\Controllers\CarePathwayCatalogPageController::class, 'index'])
+            Route::get('/care-pathways/catalog', [CarePathwayCatalogPageController::class, 'index'])
                 ->name('care-pathways.catalog');
-            Route::get('/care-pathways/catalog/{versionUuid}', [\App\Http\Controllers\CarePathwayCatalogPageController::class, 'show'])
+            Route::get('/care-pathways/catalog/{versionUuid}', [CarePathwayCatalogPageController::class, 'show'])
                 ->whereUuid('versionUuid')
                 ->name('care-pathways.catalog.show');
         });
@@ -176,7 +192,7 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             Route::get('/bed-placement', [RTDCDashboardController::class, 'bedPlacement'])->name('bed-placement');
             // Virtual Rounds board (gated by VIRTUAL_ROUNDS_ENABLED — 404 when off).
             Route::get('/virtual-rounds', [RTDCDashboardController::class, 'virtualRounds'])->name('virtual-rounds')
-                ->middleware(\App\Http\Middleware\EnsureRoundsEnabled::class);
+                ->middleware(EnsureRoundsEnabled::class);
 
             // Predictions Routes
             Route::prefix('predictions')->name('predictions.')->group(function () {
@@ -198,7 +214,7 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         Route::get('/analytics/data-quality', [Analytics\AnalyticsController::class, 'dataQuality'])->name('analytics.data-quality');
         // Part X (X1) — Patient-Flow Arena Study surface. Gated by ARENA_ENABLED.
         Route::get('/analytics/arena', [Analytics\AnalyticsController::class, 'arena'])->name('analytics.arena')
-            ->middleware(\App\Http\Middleware\EnsureArenaEnabled::class);
+            ->middleware(EnsureArenaEnabled::class);
         Route::get('/analytics/block-utilization', [Analytics\BlockUtilizationController::class, 'index'])->name('analytics.block-utilization');
         Route::get('/analytics/or-utilization', [Analytics\ORUtilizationController::class, 'index'])->name('analytics.or-utilization');
         Route::get('/analytics/primetime-utilization', [Analytics\PrimetimeUtilizationController::class, 'index'])->name('analytics.primetime-utilization');
@@ -252,7 +268,7 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         Route::prefix('patient-communications')
             ->name('patient-communications.')
             ->middleware([
-                \App\Http\Middleware\ProtectPatientCommunicationResponse::class,
+                ProtectPatientCommunicationResponse::class,
                 'patient.staff-messaging',
                 'can:viewPatientCommunications',
             ])
@@ -342,7 +358,7 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         // (ACUM-PRD-HAH-001; docs/home-hospital/). Gated by
         // HOME_HOSPITAL_ENABLED (404 when off, nav hidden via features prop).
         Route::prefix('home')->name('home.')
-            ->middleware(\App\Http\Middleware\EnsureHomeHospitalEnabled::class)
+            ->middleware(EnsureHomeHospitalEnabled::class)
             ->group(function () {
                 Route::get('/command', [HomeDashboardController::class, 'command'])->name('command');
                 Route::get('/census', [HomeDashboardController::class, 'census'])->name('census');
@@ -382,7 +398,7 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
             Route::get('/admin/system-health', [SystemHealthController::class, 'index'])
                 ->middleware('can:viewSystemHealth')
                 ->name('admin.system-health.index');
-            Route::get('/admin/data-protection', \App\Http\Controllers\Admin\DataProtectionController::class)
+            Route::get('/admin/data-protection', DataProtectionController::class)
                 ->middleware('can:viewIntegrations')
                 ->name('admin.data-protection.index');
             Route::post('/admin/system-health/diagnostics', [SystemHealthController::class, 'diagnostics'])
@@ -396,31 +412,31 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
                 ->middleware('can:viewSystemHealth')
                 ->where('component', '[a-z][a-z0-9_]{0,79}')
                 ->name('admin.system-health.show');
-            Route::resource('users', \App\Http\Controllers\UserController::class)->except('show');
+            Route::resource('users', UserController::class)->except('show');
             // ADM-IAM: bulk deactivation is previewed, then executed as one
             // rollback-safe transaction; per-member audit inside the commit.
-            Route::post('/users/bulk-deactivation/preview', [\App\Http\Controllers\Admin\UserBulkLifecycleController::class, 'preview'])
+            Route::post('/users/bulk-deactivation/preview', [UserBulkLifecycleController::class, 'preview'])
                 ->middleware(['can:manageIdentity', 'throttle:12,1'])
                 ->name('users.bulk-deactivation.preview');
-            Route::post('/users/bulk-deactivation', [\App\Http\Controllers\Admin\UserBulkLifecycleController::class, 'execute'])
+            Route::post('/users/bulk-deactivation', [UserBulkLifecycleController::class, 'execute'])
                 ->middleware(['can:manageIdentity', 'throttle:6,1'])
                 ->name('users.bulk-deactivation.execute');
-            Route::post('/users/{user}/revoke-access', [\App\Http\Controllers\Admin\UserBulkLifecycleController::class, 'revokeAccess'])
+            Route::post('/users/{user}/revoke-access', [UserBulkLifecycleController::class, 'revokeAccess'])
                 ->middleware(['can:manageIdentity', 'throttle:6,1'])
                 ->name('users.revoke-access');
             // ADM-IAM: effective-dated org/facility scopes (manageIdentity) and
             // direct capability grants (managePrivileges); step-up enforced in
             // the controllers, audits appended inside the mutations.
-            Route::post('/users/{user}/access-scopes', [\App\Http\Controllers\Admin\UserAccessAssignmentController::class, 'storeScope'])
+            Route::post('/users/{user}/access-scopes', [UserAccessAssignmentController::class, 'storeScope'])
                 ->middleware(['can:manageIdentity', 'throttle:12,1'])
                 ->name('users.access-scopes.store');
-            Route::post('/users/{user}/access-scopes/{scope}/revoke', [\App\Http\Controllers\Admin\UserAccessAssignmentController::class, 'revokeScope'])
+            Route::post('/users/{user}/access-scopes/{scope}/revoke', [UserAccessAssignmentController::class, 'revokeScope'])
                 ->middleware(['can:manageIdentity', 'throttle:12,1'])
                 ->name('users.access-scopes.revoke');
-            Route::post('/users/{user}/capabilities', [\App\Http\Controllers\Admin\UserAccessAssignmentController::class, 'storeCapability'])
+            Route::post('/users/{user}/capabilities', [UserAccessAssignmentController::class, 'storeCapability'])
                 ->middleware(['can:managePrivileges', 'throttle:12,1'])
                 ->name('users.capabilities.store');
-            Route::post('/users/{user}/capabilities/revoke', [\App\Http\Controllers\Admin\UserAccessAssignmentController::class, 'revokeCapability'])
+            Route::post('/users/{user}/capabilities/revoke', [UserAccessAssignmentController::class, 'revokeCapability'])
                 ->middleware(['can:managePrivileges', 'throttle:12,1'])
                 ->name('users.capabilities.revoke');
             Route::post('/users/{user}/external-identities/{identity}/unlink', [ExternalIdentityController::class, 'unlink'])
@@ -466,22 +482,22 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         // Reads require viewCockpitPolicy; every mutation is a governed change
         // (request → independent decision → execution) with step-up enforced
         // inside GovernedChangeService, throttled here.
-        Route::get('/admin/cockpit/thresholds', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'index'])
+        Route::get('/admin/cockpit/thresholds', [CockpitPolicyController::class, 'index'])
             ->middleware('can:viewCockpitPolicy')
             ->name('admin.cockpit.thresholds');
-        Route::post('/admin/cockpit/thresholds/{metricKey}/preview', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'preview'])
+        Route::post('/admin/cockpit/thresholds/{metricKey}/preview', [CockpitPolicyController::class, 'preview'])
             ->middleware(['can:manageCockpitPolicy', 'throttle:30,1'])
             ->where('metricKey', '[A-Za-z0-9_.:-]{1,160}')
             ->name('admin.cockpit.thresholds.preview');
-        Route::post('/admin/cockpit/thresholds/{metricKey}/changes', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'store'])
+        Route::post('/admin/cockpit/thresholds/{metricKey}/changes', [CockpitPolicyController::class, 'store'])
             ->middleware(['can:manageCockpitPolicy', 'throttle:12,1'])
             ->where('metricKey', '[A-Za-z0-9_.:-]{1,160}')
             ->name('admin.cockpit.thresholds.changes.store');
-        Route::post('/admin/cockpit/threshold-changes/{changeRequestUuid}/decision', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'decide'])
+        Route::post('/admin/cockpit/threshold-changes/{changeRequestUuid}/decision', [CockpitPolicyController::class, 'decide'])
             ->middleware(['can:manageCockpitPolicy', 'throttle:12,1'])
             ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
             ->name('admin.cockpit.thresholds.changes.decide');
-        Route::post('/admin/cockpit/threshold-changes/{changeRequestUuid}/apply', [\App\Http\Controllers\Admin\CockpitPolicyController::class, 'apply'])
+        Route::post('/admin/cockpit/threshold-changes/{changeRequestUuid}/apply', [CockpitPolicyController::class, 'apply'])
             ->middleware(['can:manageCockpitPolicy', 'throttle:12,1'])
             ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
             ->name('admin.cockpit.thresholds.changes.apply');
@@ -489,23 +505,23 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         // ADM-POLICY — Zephyrus/Eddy AI provider governance. Same governed
         // contract as thresholds; the dry-run simulator is read-capability
         // gated, throttled, and never accepts prompt or patient content.
-        Route::get('/admin/ai-providers', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'index'])
+        Route::get('/admin/ai-providers', [AiProviderPolicyController::class, 'index'])
             ->middleware('can:viewAiGovernance')
             ->name('admin.ai-providers.index');
-        Route::post('/admin/ai-providers/simulate', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'simulate'])
+        Route::post('/admin/ai-providers/simulate', [AiProviderPolicyController::class, 'simulate'])
             ->middleware(['can:viewAiGovernance', 'throttle:30,1'])
             ->name('admin.ai-providers.simulate');
-        Route::post('/admin/ai-providers/preview', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'preview'])
+        Route::post('/admin/ai-providers/preview', [AiProviderPolicyController::class, 'preview'])
             ->middleware(['can:manageAiGovernance', 'throttle:30,1'])
             ->name('admin.ai-providers.preview');
-        Route::post('/admin/ai-providers/changes', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'store'])
+        Route::post('/admin/ai-providers/changes', [AiProviderPolicyController::class, 'store'])
             ->middleware(['can:manageAiGovernance', 'throttle:12,1'])
             ->name('admin.ai-providers.changes.store');
-        Route::post('/admin/ai-providers/changes/{changeRequestUuid}/decision', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'decide'])
+        Route::post('/admin/ai-providers/changes/{changeRequestUuid}/decision', [AiProviderPolicyController::class, 'decide'])
             ->middleware(['can:manageAiGovernance', 'throttle:12,1'])
             ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
             ->name('admin.ai-providers.changes.decide');
-        Route::post('/admin/ai-providers/changes/{changeRequestUuid}/apply', [\App\Http\Controllers\Admin\AiProviderPolicyController::class, 'apply'])
+        Route::post('/admin/ai-providers/changes/{changeRequestUuid}/apply', [AiProviderPolicyController::class, 'apply'])
             ->middleware(['can:manageAiGovernance', 'throttle:12,1'])
             ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
             ->name('admin.ai-providers.changes.apply');
@@ -518,21 +534,21 @@ Route::middleware([\App\Http\Middleware\SessionAuthMiddleware::class])
         // These are NOT under api/admin/integrations, so the admin-scope boundary
         // inventory is unchanged: enterprise topology is cross-tenant, gated by
         // capability rather than per-source admin scope.
-        Route::post('/admin/enterprise/import/preview', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'preview'])
+        Route::post('/admin/enterprise/import/preview', [EnterpriseRegistryController::class, 'preview'])
             ->middleware(['can:viewDeploymentConsole', 'throttle:30,1'])
             ->name('admin.enterprise.import.preview');
-        Route::post('/admin/enterprise/import/changes', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'store'])
+        Route::post('/admin/enterprise/import/changes', [EnterpriseRegistryController::class, 'store'])
             ->middleware(['can:manageDeploymentConfig', 'throttle:12,1'])
             ->name('admin.enterprise.import.changes.store');
-        Route::post('/admin/enterprise/import/changes/{changeRequestUuid}/decision', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'decide'])
+        Route::post('/admin/enterprise/import/changes/{changeRequestUuid}/decision', [EnterpriseRegistryController::class, 'decide'])
             ->middleware(['can:manageDeploymentConfig', 'throttle:12,1'])
             ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
             ->name('admin.enterprise.import.changes.decide');
-        Route::post('/admin/enterprise/import/changes/{changeRequestUuid}/apply', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'apply'])
+        Route::post('/admin/enterprise/import/changes/{changeRequestUuid}/apply', [EnterpriseRegistryController::class, 'apply'])
             ->middleware(['can:manageDeploymentConfig', 'throttle:12,1'])
             ->where('changeRequestUuid', '[0-9a-fA-F-]{36}')
             ->name('admin.enterprise.import.changes.apply');
-        Route::put('/admin/enterprise/sources/{source}/required-topology', [\App\Http\Controllers\Admin\EnterpriseRegistryController::class, 'declareSourceTopology'])
+        Route::put('/admin/enterprise/sources/{source}/required-topology', [EnterpriseRegistryController::class, 'declareSourceTopology'])
             ->middleware(['can:manageDeploymentConfig', 'throttle:12,1'])
             ->whereNumber('source')
             ->name('admin.enterprise.sources.required-topology');

@@ -1,9 +1,42 @@
 <?php
 
+use App\Http\Middleware\AssignRequestIdentity;
+use App\Http\Middleware\AuditUserRequests;
+use App\Http\Middleware\EnforceApiIngressContract;
+use App\Http\Middleware\EnsureClinicalFailureOutputSafe;
+use App\Http\Middleware\EnsureHummingbirdPatientEnabled;
+use App\Http\Middleware\EnsureHummingbirdPatientFeatureEnabled;
+use App\Http\Middleware\EnsurePatientRealm;
+use App\Http\Middleware\EnsurePatientStaffMessagingEnabled;
+use App\Http\Middleware\EnsureSessionIsCurrent;
+use App\Http\Middleware\EnsureStaffRealm;
+use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\ProtectMobileSessionResponse;
+use App\Http\Middleware\ProtectPatientResponse;
+use App\Http\Middleware\RequireAdminScope;
+use App\Http\Middleware\SecurityHeaders;
+use App\Jobs\DispatchScheduledFhirPolls;
+use App\Jobs\DispatchScheduledIntegrationHealthChecks;
+use App\Jobs\PruneCockpitMetricValues;
+use App\Jobs\ReconcileRtdcPredictions;
+use App\Jobs\RefreshArenaConformance;
+use App\Jobs\RefreshArenaPerformance;
+use App\Jobs\RefreshCockpitMaterializedViews;
+use App\Jobs\RefreshCockpitSnapshot;
+use App\Jobs\RefreshOcelLog;
+use App\Security\ClinicalPayloads\ClinicalPayloadException;
+use App\Services\Auth\StepUpRequired;
+use App\Services\Authorization\AdminScopeViolation;
+use App\Services\Governance\GovernanceViolation;
+use App\Services\Patient\PatientResponseDecorator;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 $builder = Application::configure(basePath: dirname(__DIR__));
 
@@ -20,74 +53,74 @@ return $builder
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'admin.scope' => \App\Http\Middleware\RequireAdminScope::class,
-            'patient.enabled' => \App\Http\Middleware\EnsureHummingbirdPatientEnabled::class,
-            'patient.feature' => \App\Http\Middleware\EnsureHummingbirdPatientFeatureEnabled::class,
-            'patient.realm' => \App\Http\Middleware\EnsurePatientRealm::class,
-            'patient.response' => \App\Http\Middleware\ProtectPatientResponse::class,
-            'patient.staff-messaging' => \App\Http\Middleware\EnsurePatientStaffMessagingEnabled::class,
-            'staff.realm' => \App\Http\Middleware\EnsureStaffRealm::class,
+            'admin.scope' => RequireAdminScope::class,
+            'patient.enabled' => EnsureHummingbirdPatientEnabled::class,
+            'patient.feature' => EnsureHummingbirdPatientFeatureEnabled::class,
+            'patient.realm' => EnsurePatientRealm::class,
+            'patient.response' => ProtectPatientResponse::class,
+            'patient.staff-messaging' => EnsurePatientStaffMessagingEnabled::class,
+            'staff.realm' => EnsureStaffRealm::class,
         ]);
 
         // Patient product and feature gates must execute before Laravel's
         // authentication priority so disabled capabilities are indistinguishable
         // from absent routes. The response guard wraps both gates and auth errors.
         $middleware->prependToPriorityList(
-            \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
-            \App\Http\Middleware\EnsureHummingbirdPatientFeatureEnabled::class,
+            AuthenticatesRequests::class,
+            EnsureHummingbirdPatientFeatureEnabled::class,
         );
         $middleware->prependToPriorityList(
-            \App\Http\Middleware\EnsureHummingbirdPatientFeatureEnabled::class,
-            \App\Http\Middleware\EnsureHummingbirdPatientEnabled::class,
+            EnsureHummingbirdPatientFeatureEnabled::class,
+            EnsureHummingbirdPatientEnabled::class,
         );
         $middleware->prependToPriorityList(
-            \App\Http\Middleware\EnsureHummingbirdPatientEnabled::class,
-            \App\Http\Middleware\ProtectPatientResponse::class,
+            EnsureHummingbirdPatientEnabled::class,
+            ProtectPatientResponse::class,
         );
         // The staff session-inventory guard must wrap Sanctum and every later
         // failure path so device metadata is never cacheable, even on denial.
         $middleware->prependToPriorityList(
-            \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
-            \App\Http\Middleware\ProtectMobileSessionResponse::class,
+            AuthenticatesRequests::class,
+            ProtectMobileSessionResponse::class,
         );
 
-        $middleware->prepend(\App\Http\Middleware\AssignRequestIdentity::class);
+        $middleware->prepend(AssignRequestIdentity::class);
 
         $middleware->append([
-            \App\Http\Middleware\SecurityHeaders::class,
-            \App\Http\Middleware\AuditUserRequests::class,
-            \App\Http\Middleware\EnsureClinicalFailureOutputSafe::class,
+            SecurityHeaders::class,
+            AuditUserRequests::class,
+            EnsureClinicalFailureOutputSafe::class,
         ]);
 
         $middleware->api(
             append: [
-                \App\Http\Middleware\EnforceApiIngressContract::class,
+                EnforceApiIngressContract::class,
             ]
         );
 
         $middleware->web(
             append: [
-                \App\Http\Middleware\EnsureSessionIsCurrent::class,
-                \App\Http\Middleware\HandleInertiaRequests::class,
-                \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+                EnsureSessionIsCurrent::class,
+                HandleInertiaRequests::class,
+                AddLinkHeadersForPreloadedAssets::class,
             ]
         );
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->respond(function (
-            \Symfony\Component\HttpFoundation\Response $response,
-            \Throwable $exception,
-            \Illuminate\Http\Request $request,
+            Response $response,
+            Throwable $exception,
+            Request $request,
         ) {
             if ($request->is('api/patient/v1', 'api/patient/v1/*')) {
-                return app(\App\Services\Patient\PatientResponseDecorator::class)
+                return app(PatientResponseDecorator::class)
                     ->decorate($response, $request);
             }
 
             return $response;
         });
 
-        $exceptions->render(function (\App\Services\Auth\StepUpRequired $exception, \Illuminate\Http\Request $request) {
+        $exceptions->render(function (StepUpRequired $exception, Request $request) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'error' => [
@@ -101,7 +134,7 @@ return $builder
             return redirect()->guest(route('password.confirm'))
                 ->with('status', $exception->getMessage());
         });
-        $exceptions->render(function (\App\Services\Governance\GovernanceViolation $exception, \Illuminate\Http\Request $request) {
+        $exceptions->render(function (GovernanceViolation $exception, Request $request) {
             $status = match ($exception->reason) {
                 'authorization_denied', 'actor_missing' => 403,
                 'subject_invalid', 'reason_invalid', 'payload_hash_invalid' => 422,
@@ -115,7 +148,7 @@ return $builder
                 ],
             ], $status);
         });
-        $exceptions->render(function (\App\Security\ClinicalPayloads\ClinicalPayloadException $exception) {
+        $exceptions->render(function (ClinicalPayloadException $exception) {
             $code = explode(':', $exception->errorCode, 2)[0];
             $status = match ($code) {
                 'clinical_payload_authority_mismatch',
@@ -158,7 +191,7 @@ return $builder
 
             return response()->json(['error' => ['code' => $code, 'message' => $message]], $status);
         });
-        $exceptions->render(function (\App\Services\Authorization\AdminScopeViolation $exception, \Illuminate\Http\Request $request) {
+        $exceptions->render(function (AdminScopeViolation $exception, Request $request) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'error' => [
@@ -172,13 +205,13 @@ return $builder
         });
     })
     ->withSchedule(function (Schedule $schedule) {
-        $schedule->job(new \App\Jobs\ReconcileRtdcPredictions)->dailyAt('02:00');
+        $schedule->job(new ReconcileRtdcPredictions)->dailyAt('02:00');
         // Flow Window hourly checkpoints (census + per-space occupancy) — W2.
         $schedule->command('flow:snapshot')->hourly();
         // Zephyrus 2.0 P1: the ONE server-computed cockpit snapshot —
         // /api/cockpit/snapshot becomes a pure cache lookup. Requires a
         // running queue worker + schedule runner in prod.
-        $schedule->job(new \App\Jobs\RefreshCockpitSnapshot)->everyMinute()->withoutOverlapping();
+        $schedule->job(new RefreshCockpitSnapshot)->everyMinute()->withoutOverlapping();
         // Ancillary operational clocks are evaluated on projection and caught
         // up every minute. The command locks one order at a time, so an isolated
         // malformed order cannot abort the remaining queue.
@@ -186,16 +219,16 @@ return $builder
         // Zephyrus 2.0 P7 (WS-5): the heavy MTD Quality/Service/Financial
         // materialized views refresh CONCURRENTLY hourly — off the per-minute
         // snapshot path so the wall never waits on a full aggregate.
-        $schedule->job(new \App\Jobs\RefreshCockpitMaterializedViews)->hourly()->withoutOverlapping();
+        $schedule->job(new RefreshCockpitMaterializedViews)->hourly()->withoutOverlapping();
         // Retention for the snapshot scalars the refresh job writes — the
         // writer and the pruner ship together (P1 execution notes).
-        $schedule->job(new \App\Jobs\PruneCockpitMetricValues)->dailyAt('03:40');
+        $schedule->job(new PruneCockpitMetricValues)->dailyAt('03:40');
         // Zephyrus 2.0 Part X (X0): the object-centric event log (OCEL 2.0)
         // incremental projection — read-side, additive, PHI-safe. Runs on the
         // SAME clock as the cockpit snapshot so A0 (cockpit) and A3 (Arena)
         // never disagree (Principle 7). Idempotent upserts, so the 2-day
         // trailing window overlapping the prior run is harmless.
-        $schedule->job(new \App\Jobs\RefreshOcelLog)->everyFifteenMinutes()->withoutOverlapping();
+        $schedule->job(new RefreshOcelLog)->everyFifteenMinutes()->withoutOverlapping();
         // Nightly full reconcile: re-project the trailing window and diff
         // projected counts against prod.*/flow_core.* source counts (§X.3.3).
         $schedule->command('ocel:project --days=90 --reconcile')->dailyAt('02:30');
@@ -208,11 +241,11 @@ return $builder
         // cadence and cache the rate for the cockpit. ARENA_ENABLED-gated (no-op
         // when off). Off the per-minute snapshot path — the heavy sidecar call
         // never blocks the wall.
-        $schedule->job(new \App\Jobs\RefreshArenaConformance)->everyThirtyMinutes()->withoutOverlapping();
+        $schedule->job(new RefreshArenaConformance)->everyThirtyMinutes()->withoutOverlapping();
         // Zephyrus 2.0 Part X (X2): recompute object-centric performance (OPerA)
         // and cache the worst hand-off synchronization wait as a flow-domain
         // cockpit tile. Same ARENA_ENABLED gate + off-snapshot cadence discipline.
-        $schedule->job(new \App\Jobs\RefreshArenaPerformance)->everyThirtyMinutes()->withoutOverlapping();
+        $schedule->job(new RefreshArenaPerformance)->everyThirtyMinutes()->withoutOverlapping();
         // Flow Reconciliation: rebuild the 48-Hour Flow Review baseline artifact
         // (arena.reviews) on a slow cadence — the window is 48h wide, so a 6-hourly
         // refresh keeps GET /api/arena/review fresh without hammering the sidecar.
@@ -241,9 +274,9 @@ return $builder
 
         // Governed integration runtime: dispatch protocol checks to the dedicated
         // database-backed queue. Health observations never advance data cursors.
-        $schedule->job(new \App\Jobs\DispatchScheduledIntegrationHealthChecks)
+        $schedule->job(new DispatchScheduledIntegrationHealthChecks)
             ->everyFiveMinutes()->withoutOverlapping();
-        $schedule->job(new \App\Jobs\DispatchScheduledFhirPolls)
+        $schedule->job(new DispatchScheduledFhirPolls)
             ->everyFifteenMinutes()->withoutOverlapping();
         // Append-only, PHI-free evidence for the Admin System Health surface.
         // This must run synchronously on the scheduler so its own heartbeat does

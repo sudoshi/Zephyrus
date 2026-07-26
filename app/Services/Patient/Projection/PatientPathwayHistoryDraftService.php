@@ -10,6 +10,7 @@ use App\Models\Patient\PatientProjectionCursor;
 use App\Models\Patient\PatientProjectionFailure;
 use App\Models\Patient\PatientReleasePolicyVersion;
 use App\Services\Patient\PatientHmac;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -274,8 +275,8 @@ class PatientPathwayHistoryDraftService
         }
     }
 
-    /** @return \Illuminate\Database\Eloquent\Collection<int, PatientPathwayInstance> */
-    private function pendingInstances(int $limit): \Illuminate\Database\Eloquent\Collection
+    /** @return Collection<int, PatientPathwayInstance> */
+    private function pendingInstances(int $limit): Collection
     {
         return PatientPathwayInstance::query()
             ->orderBy('pathway_instance_id')

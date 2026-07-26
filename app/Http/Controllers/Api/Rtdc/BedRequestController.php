@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\Rtdc;
 
+use App\Exceptions\BedUnavailableException;
+use App\Exceptions\UnsafePlacementException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rtdc\BedPlacementDecisionRequest;
 use App\Http\Requests\Rtdc\CreateBedRequestRequest;
@@ -45,9 +47,9 @@ class BedRequestController extends Controller
                 $v['reason'] ?? null,
                 $request->user()?->id,
             );
-        } catch (\App\Exceptions\UnsafePlacementException $e) {
+        } catch (UnsafePlacementException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
-        } catch (\App\Exceptions\BedUnavailableException $e) {
+        } catch (BedUnavailableException $e) {
             return response()->json(['error' => $e->getMessage()], 409);
         }
 

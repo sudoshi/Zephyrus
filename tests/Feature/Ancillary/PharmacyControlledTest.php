@@ -7,6 +7,7 @@ namespace Tests\Feature\Ancillary;
 use App\Services\Pharmacy\ControlledSubstanceOperationsService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\Support\Scenario\UsesCommittedAncillaryScenario;
 use Tests\TestCase;
 
@@ -69,7 +70,7 @@ final class PharmacyControlledTest extends TestCase
         $this->assertNotNull($edOpen);
 
         DB::table('prod.adc_transactions')->insert([
-            'transaction_uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'transaction_uuid' => (string) Str::uuid(),
             'adc_station_id' => $edOpen->adc_station_id,
             'source_id' => $edOpen->source_id,
             'source_transaction_key' => $edOpen->source_transaction_key.'-resolved-test',
@@ -126,7 +127,7 @@ final class PharmacyControlledTest extends TestCase
         $this->assertNotNull($edOpen);
 
         DB::table('prod.adc_transactions')->insert([
-            'transaction_uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'transaction_uuid' => (string) Str::uuid(),
             'adc_station_id' => $edOpen->adc_station_id,
             'source_id' => $edOpen->source_id,
             'source_transaction_key' => 'demo:rx:txn:disc-fresh-test',
@@ -167,7 +168,7 @@ final class PharmacyControlledTest extends TestCase
             ['type' => 'override', 'suffix' => 'co-1'],
         ] as $row) {
             DB::table('prod.adc_transactions')->insert([
-                'transaction_uuid' => (string) \Illuminate\Support\Str::uuid(),
+                'transaction_uuid' => (string) Str::uuid(),
                 'adc_station_id' => $station,
                 'source_id' => $sourceId,
                 'source_transaction_key' => 'demo:rx:txn:ctrl-'.$row['suffix'],

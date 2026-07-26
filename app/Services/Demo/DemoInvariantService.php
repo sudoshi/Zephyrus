@@ -3,6 +3,7 @@
 namespace App\Services\Demo;
 
 use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
+use App\Services\Rtdc\HouseCensusService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -156,7 +157,7 @@ final class DemoInvariantService
         // ED + periop beds legitimately exist; the invariant is that the CODE excludes them, not
         // that they are absent. We assert the returned denominator does not exceed the inpatient plant.
         $licensed = $this->profile->licensedInpatientBeds();
-        $house = app(\App\Services\Rtdc\HouseCensusService::class)->houseTotals();
+        $house = app(HouseCensusService::class)->houseTotals();
         $houseStaffed = (int) ($house['staffedBeds'] ?? 0);
         $ceiling = $licensed > 0 ? $licensed : $inpatientInventory;
         $out[] = $this->finding('capacity.house_denominator_inpatient_only', 'capacity', 'critical',

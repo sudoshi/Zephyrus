@@ -7,6 +7,7 @@ use App\Models\BedRequest;
 use App\Models\Encounter;
 use App\Models\Unit;
 use App\Rtdc\Optimizer\HeuristicBedAssignmentOptimizer;
+use App\Services\AcuityService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -85,7 +86,7 @@ class HeuristicOptimizerTest extends TestCase
                 Encounter::create(['patient_ref' => "occ-{$u->unit_id}-$i", 'unit_id' => $u->unit_id, 'acuity_tier' => mt_rand(1, 4), 'status' => 'active']);
             }
         }
-        $acuity = app(\App\Services\AcuityService::class);
+        $acuity = app(AcuityService::class);
 
         foreach (['any', 'med_surg', 'icu', 'step_down'] as $type) {
             foreach (['none', 'contact'] as $iso) {

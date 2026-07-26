@@ -7,6 +7,7 @@ use App\Models\CensusSnapshot;
 use App\Models\Encounter;
 use App\Models\Unit;
 use App\Rtdc\Events\CanonicalEvent;
+use App\Services\AcuityService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -104,7 +105,7 @@ class CensusProjector
             'occupied' => $occupied,
             'available' => $available,
             'blocked' => $blocked,
-            'acuity_adjusted_capacity' => app(\App\Services\AcuityService::class)->adjustedCapacity($unitId),
+            'acuity_adjusted_capacity' => app(AcuityService::class)->adjustedCapacity($unitId),
         ]);
     }
 }
