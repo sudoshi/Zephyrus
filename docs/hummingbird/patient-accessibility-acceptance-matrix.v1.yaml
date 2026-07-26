@@ -200,8 +200,22 @@ criteria:
       Essential actions, including urgent guidance, navigation, message
       actions, confirmation, and session revocation, remain operable without
       a precision gesture and meet the product target-size policy.
-    automation_status: manual_validation_required
-    automated_evidence: []
+    automation_status: automated_evidence_exists
+    automated_evidence:
+      - hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientComponents.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/App/PatientRootView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/Path/PatientPathView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/Messages/PatientMessagesView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatient/Features/Account/PatientSessionManagementView.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientReferenceJourneyUITests.swift
+      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientSessionManagementUITests.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientInteractiveTargets.kt
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientApp.kt
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientExperienceScreen.kt
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientPreferencesScreen.kt
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientSessionManagementScreen.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientPrimaryJourneyInstrumentedTest.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientSessionManagementInstrumentedTest.kt
     human_validation_required:
       - Measure target size and spacing on compact and large devices at default and maximum text settings.
       - Test with one-handed use, switch control or external keyboard where available, and tremor or low-dexterity participants.

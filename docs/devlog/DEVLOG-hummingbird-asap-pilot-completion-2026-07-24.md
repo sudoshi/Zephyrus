@@ -39,6 +39,54 @@ Each subsequent entry must cite the exact commit SHA, command output/test count,
 simulator or emulator target, feature-flag state, decision record, and unresolved
 blocker. Narrative progress without those artifacts is not an accepted update.
 
+## 2026-07-25 — Patient essential-action minimum-target increment
+
+**Implementation commit:** `db495bc2677801b8f7a63973eacf25dccb5204d9`
+
+### Completed implementation
+
+- Added a shared iOS `patientMinimumInteractiveTarget` modifier. When applied
+  inside a patient-action `Button` label, it establishes a 44-point minimum
+  layout and content shape without changing clinical content or action
+  semantics. The iOS policy now covers care-access retry/secure exit, generic
+  state-card recovery, pathway-to-message and education-clarification actions,
+  message correction/reply controls, and device revocation/confirmation.
+- Added Android's `patientMinimumInteractiveTarget` policy with a 48dp minimum
+  layout size. It is applied to care-access retry/secure exit, the pathway and
+  education message-entry controls, preference submission, and device
+  revocation/confirmation. Android's public Compose layout assertions directly
+  measure the tagged controls rather than inferring their size from text or a
+  visual screenshot.
+- The iOS UI measurements directly cover unavailable-care retry/secure exit
+  plus device revocation and destructive confirmation. During the first
+  measurement pass, the test correctly exposed that a frame outside a SwiftUI
+  `Button` was not the button accessibility element. The implementation was
+  corrected at the label level before the final focused tests passed.
+- Updated the draft acceptance matrix to show limited automated evidence for
+  `patient_accessibility.target_size_and_precision_independence`. It remains
+  draft and not pilot-ready; all human target-size, spacing, alternative-input,
+  and low-dexterity validation remains explicitly open.
+
+### Verification
+
+| Boundary                            | Command / target                                                                                                                                                                                                                                                                              | Result                                                                                                                                                                                                                                                                                           |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| iOS measured essential controls     | Focused `xcodebuild` UI tests for unavailable-care recovery and other-device revocation on iPhone 17 Pro / iOS 26.3                                                                                                                                                                           | 2 UI tests, 0 failures; measured 44-point retry, secure-exit, revocation, and destructive-confirmation controls                                                                                                                                                                                  |
+| iOS broad reference journey         | `xcodebuild -only-testing:HummingbirdPatientUITests/PatientReferenceJourneyUITests/testReferenceJourneyExposesCarePathTeamAndSafeMessagingLanguage test` on iPhone 17 Pro / iOS 26.3                                                                                                          | 1 UI test, 0 failures after a fresh launch                                                                                                                                                                                                                                                       |
+| iOS native suite stability          | `xcodebuild ... test`; then `xcodebuild ... -only-testing:HummingbirdPatientUITests test` on iPhone 17 Pro / iOS 26.3                                                                                                                                                                         | Initial combined invocation: 73/73 unit and 11/12 UI tests; the one reference journey stalled in XCUITest snapshot/animation monitoring after thread selection. It passed unchanged alone (1/1), and the full UI bundle then passed 12/12. No application source changed between the retry runs. |
+| Android measured essential controls | `./gradlew connectedDebugAndroidTest --rerun-tasks --console=plain -Pandroid.testInstrumentationRunnerArguments.class=net.acumenus.hummingbird.patient.PatientPrimaryJourneyInstrumentedTest,net.acumenus.hummingbird.patient.PatientSessionManagementInstrumentedTest` on `hb(AVD)` / API 35 | 13 instrumentation tests, 0 failures/errors/skips; measured 48dp layout bounds                                                                                                                                                                                                                   |
+| Android full native regression      | `./gradlew connectedDebugAndroidTest --rerun-tasks --console=plain` on `hb(AVD)` / API 35                                                                                                                                                                                                     | 16 instrumentation tests, 0 failures/errors/skips                                                                                                                                                                                                                                                |
+
+### Explicit remaining boundary
+
+This is a policy-and-regression increment, not a WCAG certification or a motor
+accessibility sign-off. It does not prove all controls meet target-size/spacing
+expectations on compact and large devices, or that one-handed use, Switch
+Control, external keyboard, tremor, or low-dexterity needs are supported. A
+qualified accessibility evaluator and patient advisor must perform the matrix's
+named review before pilot enrollment. No patient was created or activated; no
+release, production database, feature flag, or deployment changed.
+
 ## 2026-07-25 — Patient screen-reader heading landmark increment
 
 ### Completed implementation
