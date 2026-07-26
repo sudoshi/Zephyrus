@@ -39,13 +39,14 @@ private struct PatientPrivacyProtectedRoot: View {
     }
 
     var body: some View {
-        ZStack {
-            PatientRootView(viewModel: viewModel)
-
+        Group {
             if let privacyCoverReason {
                 PatientPrivacyCoverView(reason: privacyCoverReason)
                     .transition(effectiveReduceMotion ? .identity : .opacity)
-                    .zIndex(100)
+            } else {
+                // Do not leave protected care content in the rendered accessibility tree beneath
+                // a visual overlay. The root is recreated only after the privacy condition ends.
+                PatientRootView(viewModel: viewModel)
             }
         }
         .animation(

@@ -148,6 +148,7 @@ struct PatientPrivacyCoverView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(reason.accessibilityLabel)
+        .accessibilityAddTraits(.isModal)
         .accessibilityIdentifier("patient-privacy-cover")
     }
 }

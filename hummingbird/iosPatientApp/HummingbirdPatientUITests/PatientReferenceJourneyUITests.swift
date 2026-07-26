@@ -244,6 +244,8 @@ final class PatientReferenceJourneyUITests: XCTestCase {
 
         let cover = app.descendants(matching: .any)["patient-privacy-cover"]
         XCTAssertTrue(cover.waitForExistence(timeout: 5))
+        XCTAssertTrue(cover.label.contains("Privacy cover"))
+        XCTAssertFalse(app.tabBars.buttons["Today"].exists)
         XCTAssertFalse(app.tabBars.buttons["Today"].isHittable)
         attachScreenshot(named: "Privacy-Cover")
     }
@@ -258,6 +260,7 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         let cover = app.descendants(matching: .any)["patient-privacy-cover"]
         XCTAssertTrue(cover.waitForExistence(timeout: 5))
         XCTAssertTrue(cover.label.contains("screen recording or sharing"))
+        XCTAssertFalse(app.tabBars.buttons["Today"].exists)
         XCTAssertFalse(app.tabBars.buttons["Today"].isHittable)
         attachScreenshot(named: "Screen-Capture-Privacy-Cover")
     }
