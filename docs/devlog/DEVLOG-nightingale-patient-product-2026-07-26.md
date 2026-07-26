@@ -211,3 +211,64 @@ deployment authorization.
   open.
 - No production database, patient, credential, identity record, grant, session, API,
   feature flag, migration, deployment, or pilot state was read or changed.
+
+## 2026-07-26 — Empty contract governance and vocabulary reconciliation
+
+### Contract inventory and decisions
+
+- Reviewed the legacy Hummingbird Patient OpenAPI contract (23 paths and 25 operations),
+  Laravel patient route group, default-off configuration, middleware, policies, disclosure
+  services, projection guards, messaging services, principals, sessions, grants, releases,
+  devices, and communication models.
+- Added the
+  [Nightingale contract ownership and authorization matrix](../nightingale/CONTRACT-OWNERSHIP-AND-AUTHORIZATION-MATRIX-2026-07-26.md).
+  It assigns accountable disciplines, defines version/namespace holds, specifies the full
+  authorization lattice, records response/mutation invariants, and gives every legacy
+  operation an explicit held disposition.
+- Added `nightingale-foundation.v0.json`, an OpenAPI 3.1.1 governance artifact with version
+  `0.0.0-governance`, zero paths, zero webhooks, no components/security scheme, a reserved
+  `.invalid` placeholder server, no client-generation permission, no route reservation,
+  and every runtime/identity/disclosure/mutation/production activation field false.
+- Added a dependency-free CI verifier and a dedicated docs-sensitive CI job. The verifier
+  rejects any path, webhook, component, security definition, usable server, activation,
+  legacy/staff route, production host, or Hummingbird identity entering the foundation.
+
+### Vocabulary and field reconciliation
+
+- Added the
+  [patient-state vocabulary classification](../nightingale/PATIENT-STATE-VOCABULARY-CLASSIFICATION-2026-07-26.md)
+  after reconciling the backend registry, backend content guard, OpenAPI schema, iOS
+  registry/models/rendering, and Android registry/models/rendering.
+- Counted 12 backend domains and 49 code-label pairs, versus 8 domains/37 pairs in the iOS
+  versioned registry and 9 domains/41 pairs in Android. iOS implements four event-category
+  labels outside its versioned registry, bringing implemented label coverage to 41 without
+  equivalent governance.
+- Found that `goal_author`, `location_status`, and `contact_route` are not centrally
+  versioned in either client; goal/contact labels are duplicated in rendering switches and
+  Android omits the Today `care_location` and `discharge_outlook` documents.
+- Found a material schema-placement conflict: legacy OpenAPI allows category on schedule
+  items while backend/native schedule models do not; backend/native pathway events support
+  category while legacy OpenAPI does not define it there.
+- Recorded materially different unknown-category behavior (closed-enum response failure on
+  iOS versus neutral string fallback on Android), the unsafe Nightingale implication of
+  treating a missing vocabulary version as compatible, and the backend class's lack of a
+  direct version-to-registry binding.
+
+### Verification and holds
+
+- The contract foundation verifier, its negative mutation self-tests, the native
+  no-network/product-boundary verifier, formatting checks, link checks, and Git whitespace
+  validation pass.
+- The Nightingale native applications remain unchanged by this slice. A fresh signed
+  iPhone 17 Pro Simulator run passed five unit tests and two UI tests; the Android API 35
+  `hb` emulator passed all five instrumentation tests, and Android JVM, Debug, and Release
+  tasks passed. The iOS Release Simulator build also passed. These runs reconfirm the
+  no-network/protected-state/lifecycle shell; no API or vocabulary runtime exists to
+  exercise on a device.
+- No route, controller, security scheme, native client, network permission, credential,
+  patient input, vocabulary code/label, clinical projection, communication behavior,
+  production database, patient record, feature flag, migration, deployment, or pilot state
+  was created, read, or changed.
+- The contract must remain empty until named owners approve the applicable pre-operation
+  gates. All vocabulary codes and labels remain held until one version/checksum-bound
+  Nightingale registry and canonical cross-platform fixtures are independently approved.

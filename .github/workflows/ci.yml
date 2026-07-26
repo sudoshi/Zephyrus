@@ -747,6 +747,28 @@ jobs:
       - name: Verify Hummingbird and Nightingale icon derivations
         run: bash scripts/ci/verify-mobile-brand-assets.sh .
 
+  nightingale-contract-foundation:
+    name: Nightingale contract foundation
+    runs-on: ubuntu-24.04
+    needs: changes
+    # This remains active for docs-only changes because the contract artifact is
+    # intentionally stored under docs/nightingale/api-contract.
+    if: needs.changes.outputs.reuse != 'true'
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify empty contract and native product boundary
+        run: |
+          node scripts/ci/verify-nightingale-contract-foundation.mjs . --self-test
+          bash scripts/ci/verify-nightingale-product-boundary.sh .
+
   # ---------------------------------------------------------------------------
   # Hummingbird staff apps — release boundaries, contracts, and native tests
   # ---------------------------------------------------------------------------

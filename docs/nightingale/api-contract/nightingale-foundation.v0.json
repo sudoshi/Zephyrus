@@ -1,0 +1,53 @@
+{
+    "openapi": "3.1.1",
+    "info": {
+        "title": "Nightingale API Governance Foundation",
+        "summary": "A deliberately non-runnable contract ownership artifact.",
+        "description": "This foundation contains no API operations and does not authorize a route, client, identity flow, patient disclosure, mutation, feature activation, or deployment.",
+        "version": "0.0.0-governance"
+    },
+    "x-nightingale-contract": {
+        "product": "Nightingale",
+        "audience": "inpatients-and-approved-representatives",
+        "governance_status": "foundation-no-operations",
+        "artifact_owner": "Patient Experience Platform",
+        "backend_boundary_owner": "Zephyrus Patient Experience Boundary",
+        "compatibility_input_only": true,
+        "route_namespace_reserved": false,
+        "client_generation_permitted": false
+    },
+    "x-nightingale-activation": {
+        "default": "disabled",
+        "routes_registered": false,
+        "network_clients_permitted": false,
+        "identity_enabled": false,
+        "patient_disclosure_enabled": false,
+        "patient_mutation_enabled": false,
+        "production_enabled": false,
+        "required_before_first_operation": [
+            "approved-operation-owner",
+            "authorization-and-nondisclosure-tests",
+            "identity-and-recovery-decision",
+            "privacy-and-security-review",
+            "patient-language-and-accessibility-review",
+            "release-and-rollback-plan"
+        ]
+    },
+    "x-nightingale-identifier-policy": {
+        "permitted": "opaque-nightingale-product-handles-only",
+        "source-system-identifiers": "prohibited",
+        "embedded-source-meaning": "prohibited",
+        "cross-product-identifiers": "prohibited"
+    },
+    "servers": [
+        {
+            "url": "https://nightingale-api.invalid",
+            "description": "Reserved non-routable placeholder; this artifact has no operations."
+        }
+    ],
+    "security": [],
+    "tags": [],
+    "paths": {},
+    "webhooks": {},
+    "components": {}
+}

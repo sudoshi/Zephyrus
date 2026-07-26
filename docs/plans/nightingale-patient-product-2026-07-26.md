@@ -215,14 +215,25 @@ human visual review records correct brand, crop, contrast, and no unwanted trans
       iOS Keychain primitive, an Android Keystore AES-GCM primitive, explicit fail-closed
       deletion semantics, backup/transfer exclusions, and lifecycle-cleared volatile inputs.
       Tests use and remove synthetic canaries; production code has no caller.
+- [x] Establish Nightingale contract ownership without creating an API: inventory all 23
+      legacy paths/25 operations, trace the layered authorization controls, record each
+      operation's held disposition, and add a machine-verified `0.0.0-governance` artifact
+      with zero paths, no usable server/security scheme/client permission, and every
+      activation state false.
+- [x] Classify the legacy patient-state vocabulary boundary without porting it. Reconcile
+      backend, contract, iOS, and Android coverage; record the 12-domain/49-pair backend
+      registry, native coverage gaps, category schema-placement conflict, Android Today
+      omissions, unknown-value differences, and the rejected absent-version compatibility
+      rule. All codes and labels remain held.
 - [ ] Classify each existing Hummingbird Patient source file as reusable safety primitive,
       reusable product behavior, test/fixture-only, or rejected legacy behavior.
 - [ ] Port primitives into Nightingale by reviewed commits, not a blind directory copy:
       patient API boundary, protected storage, lifecycle/screen-capture privacy cover,
       accessibility presentation preferences, patient-safe vocabulary, and volatile drafts.
       Protected storage, lifecycle/screen-capture protection, the foundation accessibility
-      presentation subset, and volatile-input foundations are complete; patient API and
-      vocabulary work remain held.
+      presentation subset, volatile-input foundations, and an empty contract governance
+      boundary are complete. Patient API runtime behavior and all vocabulary code/copy
+      remain held.
 - [ ] Reissue all product strings, accessibility IDs, test hooks, storage keys, telemetry
       event names, and diagnostics under the Nightingale namespace.
       Current foundation storage keys, test hooks, and diagnostics are Nightingale-only;
@@ -302,14 +313,16 @@ part of application development work.
 
 ## 9. Immediate implementation sequence
 
-1. Define a Nightingale-owned, default-off contract ownership record and authorization
-   matrix before classifying any API client, authentication input, patient projection, or
-   communication behavior. Do not enable network access.
+1. Define the first read-only candidate operation's decision and canonical fixture matrix
+   against the contract/authorization/vocabulary findings. Keep the contract at zero paths
+   until named approvals and every pre-operation gate are satisfied; do not register a
+   route or enable native network access.
 2. Complete the remaining cross-surface brand audit for notification, widget, installed
    upgrade, and future store-listing surfaces; launcher, themed-icon, and splash checks are
    captured in non-PHI evidence.
-3. Continue source-by-source classification for the patient-safe vocabulary and contract
-   boundary only after the ownership/authorization record exists.
+3. Continue source-by-source classification for identity input, first-read projection
+   models, error/non-disclosure handling, and fixtures. Treat the legacy contract and
+   vocabulary as evidence, not approved implementation.
 4. Update this checklist and its devlog after each verified slice. Do not convert partial
    automation into clinical, privacy, accessibility, pilot, or deployment completion.
 
