@@ -12,7 +12,10 @@ activation. The source of record is the
 [Nightingale product plan](../plans/nightingale-patient-product-2026-07-26.md) and its
 [execution log](../devlog/DEVLOG-nightingale-patient-product-2026-07-26.md).
 The bounded 255-source Hummingbird Patient predecessor universe is fully classified across
-three checksum-pinned ledgers; this is migration evidence, not implementation approval.
+three checksum-pinned ledgers; this is migration evidence, not implementation approval. A
+held Today candidate now defines field-level release, freshness, uncertainty, language,
+correction, and offline semantics across 68 synthetic outcomes while the executable
+contract remains empty.
 
 Current product-identity records:
 
@@ -22,6 +25,7 @@ Current product-identity records:
 - [Contract ownership and authorization matrix](./CONTRACT-OWNERSHIP-AND-AUTHORIZATION-MATRIX-2026-07-26.md)
 - [Patient-state vocabulary classification](./PATIENT-STATE-VOCABULARY-CLASSIFICATION-2026-07-26.md)
 - [Encounter-access held-candidate decision](./ENCOUNTER-ACCESS-CANDIDATE-DECISION-2026-07-26.md)
+- [Today projection held-candidate decision](./TODAY-PROJECTION-CANDIDATE-DECISION-2026-07-26.md)
 - [Route, compatibility, identity, and inpatient-source ADR](./ROUTE-COMPATIBILITY-IDENTITY-SOURCE-ADR-2026-07-26.md)
 - [Identity, session, recovery, and inpatient-source held-candidate decision](./IDENTITY-SESSION-RECOVERY-AND-SOURCE-CANDIDATE-DECISION-2026-07-26.md)
 - [Identity-input, enrollment/recovery, first-read, and error source classification](./IDENTITY-INPUT-FIRST-READ-ERROR-SOURCE-CLASSIFICATION-2026-07-26.md)
@@ -30,6 +34,7 @@ Current product-identity records:
 - [Empty/default-off contract foundation](./api-contract/nightingale-foundation.v0.json)
 - [Identity candidate and fixtures](./identity/candidates/v0/candidate.json)
 - [Current-inpatient source candidate and fixtures](./source-candidates/current-inpatient/v0/candidate.json)
+- [Today projection candidate and fixtures](./api-contract/candidates/today/v0/candidate.json)
 - [65-file checksum-pinned source ledger](./migration/candidates/v0/source-classification.json)
 - [130-file communication/notification checksum ledger](./migration/candidates/v0/communication-notification-source-classification.json)
 - [133-file journey/preference/presentation/release checksum ledger](./migration/candidates/v0/journey-preference-presentation-release-source-classification.json)

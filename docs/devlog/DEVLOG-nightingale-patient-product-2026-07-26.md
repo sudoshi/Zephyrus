@@ -956,3 +956,108 @@ deployment authorization.
 - Named product, patient-advisor, clinical/content, nursing, medical-staff, pharmacy,
   privacy/security, accessibility, language/interpreter, legal/HIM, identity, source,
   support, operations, release, and deployment approvals remain open.
+
+## 2026-07-26 — Held Today projection candidate
+
+### Contract boundary
+
+- Added the
+  [Nightingale Today projection candidate decision](../nightingale/TODAY-PROJECTION-CANDIDATE-DECISION-2026-07-26.md)
+  and synthetic candidate artifacts under
+  `docs/nightingale/api-contract/candidates/today/v0/`.
+- Reserved only the held intent
+  `GET /inpatient-contexts/{encounter_handle}/today` with operation ID
+  `getNightingaleTodayProjection`. The executable foundation still has zero paths, no
+  Laravel route is registered, and no backend or native runtime uses the candidate.
+- The request accepts only the separately held Nightingale opaque inpatient-context handle.
+  It accepts no body, query, source identifier, legacy identifier, patient identifier,
+  principal identifier, grant identifier, or client-supplied authorization scope.
+- Every candidate activation field remains false: product, operation, identity, inpatient
+  source, projection source, clinical content release, localization, disclosure, native
+  clients, non-production integration, and production.
+
+### Field and section decisions
+
+- Replaced the legacy composite document-level context with a complete governance context
+  beside every patient-visible value: release, freshness, uncertainty, language,
+  correction, and offline behavior.
+- Defined exactly eight sections: headline, summary, schedule, next steps, care location,
+  discharge outlook, questions, and notices. Headline and summary are mandatory released
+  sections.
+- Defined explicit `released`, `released-empty`, and `not-available` states for optional
+  sections. Released-empty carries a mandatory notice that zero released items does not
+  mean no care is planned. Not-available contains no patient content.
+- Added Nightingale-only opaque content-revision and schedule-item handle formats. Legacy
+  encounter, grant, projection, principal, staff, patient, FHIR, EHR, and source identifiers
+  remain prohibited.
+- Restricted freshness to current or explicitly approved stale. Approved stale requires a
+  field-level patient notice; unknown mandatory freshness fails closed.
+- Required a field locale, approved source-language or translation release, and approved
+  plain-language review. Silent locale fallback and unapproved machine translation remain
+  prohibited.
+- Required corrected values to carry a patient notice. A root correction notice cannot
+  reveal the withdrawn value, actor, reason, target/replacement identifier, or staff review
+  record.
+- Kept every candidate field online-only with durable client storage prohibited. This does
+  not approve background refresh, push, notifications, offline storage, or cache
+  invalidation.
+
+### Synthetic coverage and mechanical enforcement
+
+- Added 68 synthetic cases across 18 bounded response templates:
+    - 12 governed success variants;
+    - 20 product, identity, authorization, non-disclosure, lifecycle, and handle-integrity
+      outcomes;
+    - 24 source, release, field-governance, language, freshness, content-safety, and
+      vocabulary outcomes; and
+    - 12 structure, audit, serialization, and throttling outcomes.
+- Added one exact synthetic request template with only the held method, namespace, path,
+  valid opaque handle, empty query, null body, and authentication-context requirement.
+- Added 14 direct source-byte checksums in addition to the already-pinned 255-source product
+  universe digest. The direct evidence spans the legacy patient contract, controller,
+  disclosure service, content guard, policy, model, migration, feature test, and both
+  native Today decode/presentation paths.
+- Added an independent verifier that checks the zero-path foundation, every disabled
+  permission, exact root/evidence/request/response/field schemas, no-store headers, empty
+  response links, error-code mapping, all fixture outcomes and audit modes, field context
+  completeness, section-state contradictions, handle formats/uniqueness, deterministic
+  timestamp order, source hashes, and prohibited environment/credential/legacy identifier
+  literals.
+- Twenty-four adversarial self-tests prove rejection of path drift, OpenAPI inclusion,
+  production activation, aggregate freshness, missing field context, stale content without
+  a notice, locale drift, released-empty content, production replay, foundation path
+  activation, checksum drift, fixture removal, durable client caching, and semantic drift
+  in every governed success variant.
+- Wired the verifier into the Nightingale contract-foundation CI job.
+- Updated the master checklist, route ADR, migration record, authorization matrix, and
+  Nightingale documentation index immediately after the candidate verifier passed.
+
+### Verification and safety status
+
+- Before this slice, exact commit
+  `08837f8295e929cb860053a92b55772501eab61f` completed CI run
+  `30216291263` with all 18 jobs successful, including patient iOS/Android, staff
+  iOS/Android, backend quality and shards, frontend, browser, DAST, Arena, security, brand,
+  and Nightingale contract gates.
+- The Today builder reproduces the candidate artifacts; JavaScript syntax, all seven
+  Nightingale governance/classification verifiers and their negative tests, the
+  dependency-free backend foundation, native product boundary, mobile brand asset/surface,
+  target-file Prettier, relative-link, sensitive-literal, and Git whitespace checks pass.
+- Regenerated the Nightingale Xcode project and confirmed no drift. On iPhone 16e Simulator
+  `3F568F29-BE58-49AD-8151-6C2303B4C4E3` running iOS 26.3.1, all five unit tests and two UI
+  tests passed with zero failures. The normally signed Release simulator build passed, and
+  the simulator was shut down.
+- Cold-booted the wiped `hb` Android 15/API 35 AVD with no snapshot and ran Gradle from
+  `clean` with Android Studio JDK 21 and `--no-build-cache`. Five JVM tests and five
+  instrumentation tests passed; `verifyNightingaleProductBoundary`, `lintVitalRelease`,
+  `assembleDebug`, and `assembleRelease` passed. Gradle reported 117 actionable tasks: 116
+  executed and one up-to-date. The emulator was shut down.
+- Commit/push and exact-SHA CI evidence for this Today slice remain required before the
+  slice is fully ratified.
+- No production database, patient, principal, identity link, grant, session, encounter,
+  projection, content release, source, feature flag, migration, deployment, or pilot state
+  was read or changed.
+- Named identity/source, field-level clinical/content/language, privacy/security,
+  accessibility, patient-advisor, legal/HIM, support, operations, release, and deployment
+  approvals remain open. No route, adapter, query, generated client, or native journey may
+  be implemented from this candidate until those gates are independently satisfied.

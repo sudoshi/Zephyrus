@@ -12,6 +12,7 @@ production query is enabled
 
 **Related candidate:**
 [Encounter-access held candidate](./ENCOUNTER-ACCESS-CANDIDATE-DECISION-2026-07-26.md)
+and [Today projection held candidate](./TODAY-PROJECTION-CANDIDATE-DECISION-2026-07-26.md)
 
 ## 1. Decision summary
 
@@ -142,7 +143,26 @@ opaque Nightingale handle only, as specified by the held-candidate decision and 
 
 The path is not added to `paths`, `RouteServiceProvider`, a route file, or either native app.
 
-### 5.3 Route-registration preconditions
+### 5.3 Second held candidate
+
+After the complete source classification and encounter-access candidate, the next
+non-runnable patient-journey candidate is:
+
+```text
+GET /inpatient-contexts/{encounter_handle}/today
+operationId: getNightingaleTodayProjection
+```
+
+It consumes only the Nightingale-owned opaque handle from the separately held
+encounter-access candidate. It does not accept or expose a legacy encounter, grant,
+principal, patient, projection, or source identifier. Its 68 synthetic outcomes define
+field-level release, freshness, uncertainty, language, correction, and offline decisions.
+
+This extension reserves candidate intent, not runtime behavior. The path remains absent from
+the foundation `paths` object, Laravel route registration, native clients, and every
+activation mechanism.
+
+### 5.4 Route-registration preconditions
 
 Before the route can be registered, evidence must prove at least:
 

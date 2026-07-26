@@ -291,6 +291,13 @@ or legacy patient namespace; iOS and Android migration suites pass equivalent sa
 
 ### Stream D — Patient journeys and content controls
 
+- [x] Define the first non-runnable Today projection candidate without adding an
+      operation: use the held opaque inpatient-context handle; require a governed context
+      on every patient-visible value; distinguish released, released-empty, and
+      not-available sections; define correction/retraction and generic non-disclosure
+      behavior; and mechanically verify 68 synthetic outcomes plus 24 adversarial
+      mutations. The executable contract still has zero paths and every activation remains
+      false.
 - [ ] Implement and validate released Today, My Path, Care Team, education/teach-back,
       discharge preparation, and capability-scoped communication only from approved projection
       contracts.
@@ -403,6 +410,15 @@ part of application development work.
         Nightingale iOS and Android emulator suites and Release builds; and leave every
         implementation, network, source, mutation, synthetic runtime, production, migration,
         release, deployment, and patient-creation permission false.
+11. [x] Define a held, non-runnable Today projection candidate with a Nightingale-owned
+        path and opaque handles, eight explicit section states, field-level release/
+        freshness/uncertainty/language/correction/offline contexts, bounded error and audit
+        semantics, 68 synthetic outcomes, 14 direct-source checksums, and 24 negative
+        verifier mutations. Do not add the path to OpenAPI or Laravel.
+12. [ ] Obtain named identity/source and field-level clinical/content/language/privacy/
+        accessibility approvals before implementing any Today route, adapter, projection
+        query, generated client, or native rendering. Emulator verification of the unchanged
+        offline foundation does not satisfy these approvals.
 
 ## 10. Explicit holds
 

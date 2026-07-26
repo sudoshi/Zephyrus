@@ -776,6 +776,7 @@ jobs:
         run: |
           node scripts/ci/verify-nightingale-contract-foundation.mjs . --self-test
           node scripts/ci/verify-nightingale-encounter-access-candidate.mjs . --self-test
+          node scripts/ci/verify-nightingale-today-candidate.mjs . --self-test
           node scripts/ci/verify-nightingale-identity-source-candidates.mjs . --self-test
           node scripts/ci/verify-nightingale-source-classification.mjs . --self-test
           node scripts/ci/verify-nightingale-communication-notification-classification.mjs . --self-test
