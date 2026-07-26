@@ -144,6 +144,8 @@ criteria:
       - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientReferenceJourneyUITests.swift
       - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientAuthenticationScreen.kt
       - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientPrimaryJourneyInstrumentedTest.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientAuthenticationSmokeTest.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientAuthenticationFormInstrumentedTest.kt
     human_validation_required:
       - Validate announcements, reading order, retry language, and safe alternative instructions with VoiceOver and TalkBack.
       - Validate source-outage and stale-data language with clinical safety and patient advisors.

@@ -39,6 +39,45 @@ Each subsequent entry must cite the exact commit SHA, command output/test count,
 simulator or emulator target, feature-flag state, decision record, and unresolved
 blocker. Narrative progress without those artifacts is not an accepted update.
 
+## 2026-07-25 — Patient default-off access parity increment
+
+**Implementation commit:** `932de20e72fd362860ecfd82d5bef557ca49068a`
+
+### Completed implementation
+
+- Corrected a signed-out safety-parity defect: iOS already disabled enrollment
+  and sign-in submission when the patient API was absent, but Android only
+  displayed an off-state warning while still enabling a complete local form.
+  Android now keeps both submission actions disabled unless live patient API
+  access is explicitly configured.
+- The Android off-state now uses patient-readable language that explains no
+  care information will be requested until configuration is explicit, plus a
+  stable `patient-api-off-state` tag for regression evidence. The application
+  still permits local mode selection and typing, matching iOS, but does not
+  offer a misleading network submission affordance.
+- Added a production-path Android activity journey that completes both an
+  invitation and sign-in form under the default-off build and proves their
+  actions remain disabled. A separate Compose-only configured-state journey
+  proves that the same complete invitation enables only when `networkEnabled`
+  is true and passes the exact transient form to the supplied callback.
+
+### Verification
+
+| Boundary                             | Command / target                                                                                                                                                                                                                                                                        | Result                                                                                                                                                |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Android default-off/configured forms | `./gradlew connectedDebugAndroidTest --rerun-tasks --console=plain -Pandroid.testInstrumentationRunnerArguments.class=net.acumenus.hummingbird.patient.PatientAuthenticationSmokeTest,net.acumenus.hummingbird.patient.PatientAuthenticationFormInstrumentedTest` on `hb(AVD)` / API 35 | 3 instrumentation tests, 0 failures/errors/skips; default-off invitation/sign-in actions were disabled and configured invitation submission was exact |
+| Android full patient regression      | `./gradlew connectedDebugAndroidTest --rerun-tasks --console=plain` on `hb(AVD)` / API 35                                                                                                                                                                                               | 17 instrumentation tests, 0 failures/errors/skips                                                                                                     |
+| iOS equivalent boundary              | `xcodebuild -project HummingbirdPatient.xcodeproj -scheme HummingbirdPatient -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:HummingbirdPatientUITests/PatientReferenceJourneyUITests/testDefaultBuildFailsClosedWithAReadableWelcomeAndNoPatientRequest test`   | 1 UI test, 0 failures; API-off state visible and sign-in disabled                                                                                     |
+
+### Explicit remaining boundary
+
+This only aligns a default-off native UI boundary. It does not configure a
+patient API, establish identity proofing or wrong-patient prevention, issue or
+activate an invitation, create a patient principal, enable a feature flag,
+insert a production patient, authorize a pilot, migrate data, or deploy an
+application. Enrollment remains subject to approved identity, privacy,
+clinical, and release workflows.
+
 ## 2026-07-25 — Patient essential-action minimum-target increment
 
 **Implementation commit:** `db495bc2677801b8f7a63973eacf25dccb5204d9`
