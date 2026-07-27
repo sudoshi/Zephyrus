@@ -40,7 +40,7 @@ final class PatientCommunicationsUITests: XCTestCase {
         editor.typeText("Your care team is coordinating the final medication review and transportation plan with you.")
 
         let send = app.buttons["patientCommunications.sendButton"]
-        XCTAssertTrue(send.isEnabled)
+        XCTAssertTrue(send.waitForEnabled())
         send.tap()
         XCTAssertTrue(app.staticTexts["Reply delivered to the patient."].waitForExistence(timeout: 5))
 
