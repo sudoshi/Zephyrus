@@ -16,10 +16,19 @@ interface NavigatorChronobarProps {
   forecast: ForecastAggregates | null;
   /** When each open barrier began, for past-half ticks. */
   barrierTicks?: number[];
+  /** Scented-widget density (plan B5, TN-1): normalized 0..1 per bucket —
+   * information scent along the track so scrubbing is never blind. */
+  densityBuckets?: number[];
+  /** The selected patient's event instants (plan B3/B5): jump ticks in the
+   * selection style; empty when no journey is open. */
+  patientTicks?: number[];
   /** True while the stored-replay stream is connected (N-8: never "live"). */
   replaying?: boolean;
   onScrub: (timeMs: number) => void;
 }
+
+/** ±step affordance (SC 2.5.7 single-pointer alternative to drag-scrub). */
+const STEP_MS = 15 * 60 * 1_000;
 
 const SLIDER_STEPS = 10000;
 
@@ -73,6 +82,8 @@ export default function NavigatorChronobar({
   freshness,
   forecast,
   barrierTicks = [],
+  densityBuckets = [],
+  patientTicks = [],
   replaying = false,
   onScrub,
 }: NavigatorChronobarProps) {
@@ -102,16 +113,47 @@ export default function NavigatorChronobar({
               : `${replaying ? 'Replay stream · ' : ''}${inFuture ? 'Projected · ' : ''}${relativeLabel(currentTime, nowMs)}`}
           </span>
         </output>
-        <button
-          type="button"
-          className="patient-flow-chronobar-now-button"
-          disabled={historical}
-          title={historical ? 'Unavailable in historical replay' : 'Jump to now'}
-          onClick={() => onScrub(nowMs)}
-        >
-          Now
-        </button>
+        <div className="patient-flow-chronobar-buttons">
+          <button
+            type="button"
+            className="patient-flow-chronobar-step"
+            aria-label="Step back 15 minutes"
+            title="Step back 15 minutes"
+            onClick={() => onScrub(Math.max(windowStart, currentTime - STEP_MS))}
+          >
+            −15m
+          </button>
+          <button
+            type="button"
+            className="patient-flow-chronobar-step"
+            aria-label="Step forward 15 minutes"
+            title="Step forward 15 minutes"
+            onClick={() => onScrub(Math.min(windowEnd, currentTime + STEP_MS))}
+          >
+            +15m
+          </button>
+          <button
+            type="button"
+            className="patient-flow-chronobar-now-button"
+            disabled={historical}
+            title={historical ? 'Unavailable in historical replay' : 'Jump to now'}
+            onClick={() => onScrub(nowMs)}
+          >
+            Now
+          </button>
+        </div>
       </div>
+
+      {densityBuckets.length > 0 && (
+        <div aria-hidden="true" className="patient-flow-chronobar-density">
+          {densityBuckets.map((intensity, index) => (
+            <span
+              key={index}
+              style={{ opacity: 0.15 + 0.85 * Math.min(1, Math.max(0, intensity)) }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Detents and barrier ticks are jump buttons (N-2); the wash layers
           underneath stay decorative. */}
@@ -156,6 +198,19 @@ export default function NavigatorChronobar({
             onClick={() => onScrub(tick)}
           />
         ))}
+        {patientTicks
+          .filter((tick) => tick >= windowStart && tick <= windowEnd)
+          .map((tick, index) => (
+            <button
+              key={`patient-${index}-${tick}`}
+              type="button"
+              className="patient-flow-chronobar-patient-tick"
+              style={{ left: `${pct(tick)}%` }}
+              title={`Jump to patient event ${fmtTime(tick)}`}
+              aria-label={`Jump to patient event ${fmtTime(tick)}`}
+              onClick={() => onScrub(tick)}
+            />
+          ))}
         {!historical && nowMs >= windowStart && nowMs <= windowEnd && (
           <span aria-hidden="true" className="patient-flow-chronobar-now" style={{ left: `${pct(nowMs)}%` }} title="Now" />
         )}
