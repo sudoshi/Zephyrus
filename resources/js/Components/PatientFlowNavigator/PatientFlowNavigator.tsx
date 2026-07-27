@@ -493,6 +493,8 @@ export default function PatientFlowNavigator({
   // E6: task mode — progressive disclosure of the toolbar (WN-6). Default
   // Monitor is the resting at-a-glance layout minus the investigation kit.
   const [taskMode, setTaskMode] = useState<NavigatorTaskMode>('monitor');
+  // F1: the GPU context was lost — show a degraded card until it restores.
+  const [contextLost, setContextLost] = useState(false);
   const [roundsRun, setRoundsRun] = useState<RunSummary | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [inspectorAction, setInspectorAction] = useState<{ label: string; href: string } | null>(null);
@@ -921,6 +923,8 @@ export default function PatientFlowNavigator({
       : null),
     epoch: () => epochRef.current,
     pathwayGlyphs: () => sceneRef.current?.pathwayGlyphCount() ?? null,
+    contextEvents: () => sceneRef.current?.contextEvents() ?? null,
+    frameBudget: () => sceneRef.current?.frameBudget() ?? null,
   }), []);
 
   // Live-follow: slide the 48h window with wall-clock now, but only in
@@ -1376,6 +1380,16 @@ export default function PatientFlowNavigator({
         onUserCameraStart: () => {
           setTourAuto(false);
           setJourneyFollow(false);
+        },
+        // F1: GPU context lost/restored — show a degraded card, then rebuild
+        // every layer from state on restore (nothing recomputed while lost).
+        onContextLost: () => setContextLost(true),
+        onContextRestored: () => {
+          setContextLost(false);
+          lastBucketKeyRef.current = '';
+          lastRoundsKeyRef.current = '';
+          setSceneNonce((nonce) => nonce + 1);
+          refreshScene();
         },
         // E-4 hover chip: identity-free by construction AND by guard test —
         // hoverLabelFor lives in sceneVocabulary, pinned by hoverLabel.test.ts.
@@ -2158,6 +2172,15 @@ export default function PatientFlowNavigator({
       )}
       {rebuildNotice && !error && (
         <div className="patient-flow-rebuild-notice" role="status">{rebuildNotice}</div>
+      )}
+
+      {/* F1: GPU context lost — an honest degraded card, not a frozen canvas.
+          The scene halts rendering and self-heals on restore (auto-rebuild). */}
+      {contextLost && (
+        <div className="patient-flow-context-lost" role="alert">
+          <strong>Graphics paused</strong>
+          <span>The GPU context was lost (driver reset or system sleep). The view will rebuild automatically when it returns.</span>
+        </div>
       )}
 
       <NavigatorToolbar

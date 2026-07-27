@@ -77,6 +77,15 @@ export interface NavigatorSceneCallbacks {
    * respect the operator's hand).
    */
   onUserCameraStart?: () => void;
+  /**
+   * F1: the GPU context was lost (driver reset, tab backgrounded on some
+   * GPUs, OS sleep). The orchestrator shows a degraded card; rendering is
+   * halted until restore. Scene state lives outside GL, so nothing is lost.
+   */
+  onContextLost?: () => void;
+  /** F1: the GPU context is back — the orchestrator hides the card and asks
+   *  for a full rebuild (the scene re-runs its layer builds from state). */
+  onContextRestored?: () => void;
 }
 
 export interface GhostRenderItem {
@@ -303,6 +312,37 @@ export class NavigatorScene {
 
   private disposed = false;
 
+  // F1: GPU context-loss recovery. While lost, the render loop halts (scene
+  // state lives outside GL, so nothing is recomputed); on restore the loop
+  // resumes and the orchestrator re-runs a full refresh. Counters feed the
+  // H4 soak hook so a long wall session can prove it survived driver resets.
+  private contextLost = false;
+
+  private contextLossCount = 0;
+
+  private contextRestoreCount = 0;
+
+  private readonly onContextLost = (event: Event): void => {
+    // preventDefault is REQUIRED — without it the browser never fires
+    // 'webglcontextrestored' and the canvas stays permanently dead.
+    event.preventDefault();
+    this.contextLost = true;
+    this.contextLossCount += 1;
+    cancelAnimationFrame(this.animationId);
+    this.callbacks.onContextLost?.();
+  };
+
+  private readonly onContextRestored = (): void => {
+    this.contextRestoreCount += 1;
+    this.contextLost = false;
+    // three re-uploads geometry/material buffers lazily on the next render;
+    // the orchestrator's rebuild (via the callback) re-runs every layer build
+    // from state so nothing renders stale. Restart the loop.
+    this.clock.getDelta();
+    this.animationId = requestAnimationFrame(this.animate);
+    this.callbacks.onContextRestored?.();
+  };
+
   private readonly container: HTMLElement;
 
   private readonly callbacks: NavigatorSceneCallbacks;
@@ -484,7 +524,16 @@ export class NavigatorScene {
     this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
     this.renderer.domElement.addEventListener('pointermove', this.onPointerMove);
     this.renderer.domElement.addEventListener('pointerleave', this.onPointerLeave);
+    // F1: GPU context-loss recovery — a wall instrument outlives many driver
+    // resets, so it must self-heal rather than freeze on a dead canvas.
+    this.renderer.domElement.addEventListener('webglcontextlost', this.onContextLost);
+    this.renderer.domElement.addEventListener('webglcontextrestored', this.onContextRestored);
     this.animationId = requestAnimationFrame(this.animate);
+  }
+
+  /** F1 soak counters: how many context losses/restores this session survived. */
+  contextEvents(): { lost: number; restored: number; currentlyLost: boolean } {
+    return { lost: this.contextLossCount, restored: this.contextRestoreCount, currentlyLost: this.contextLost };
   }
 
   private readonly onPointerLeave = (): void => {
@@ -1741,6 +1790,8 @@ export class NavigatorScene {
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown);
     this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove);
     this.renderer.domElement.removeEventListener('pointerleave', this.onPointerLeave);
+    this.renderer.domElement.removeEventListener('webglcontextlost', this.onContextLost);
+    this.renderer.domElement.removeEventListener('webglcontextrestored', this.onContextRestored);
     this.clearHover();
     this.clearSelection();
     this.hoverChip.remove();
@@ -1803,17 +1854,73 @@ export class NavigatorScene {
 
   private readonly animate = (): void => {
     if (this.disposed) return;
+    // F1: never touch a lost GL context — the loop is cancelled on loss, but
+    // guard defensively so a queued frame can't render into a dead context.
+    if (this.contextLost) return;
+    // F4: per-subsystem frame timing (RAIL budget). performance.now() deltas
+    // into ring buffers — no performance.measure entries to accumulate/clear.
+    const frameStart = performance.now();
     const delta = Math.min(this.clock.getDelta(), 0.05);
     this.callbacks.onFrame(delta);
     // E2: advance any active van Wijk flight before OrbitControls damps —
     // the flight owns target+position this frame, damping then settles.
     this.stepFlight();
     this.orbit.update();
+    const controlsEnd = performance.now();
     this.updateUnitLabels();
+    const labelsEnd = performance.now();
     this.emitCameraText();
     this.renderer.render(this.scene, this.camera);
+    const renderEnd = performance.now();
+    this.sampleFrame('controls', controlsEnd - frameStart);
+    this.sampleFrame('labels', labelsEnd - controlsEnd);
+    this.sampleFrame('render', renderEnd - labelsEnd);
+    this.sampleFrame('frame', renderEnd - frameStart);
     this.animationId = requestAnimationFrame(this.animate);
   };
+
+  // F4: fixed-size ring buffers per subsystem; p95 is computed on demand from
+  // the current window (soak hook). A wall session's steady-state, not a spike.
+  private static readonly FRAME_SAMPLES = 240;
+
+  private readonly frameSamples: Record<string, Float32Array> = {
+    frame: new Float32Array(NavigatorScene.FRAME_SAMPLES),
+    render: new Float32Array(NavigatorScene.FRAME_SAMPLES),
+    labels: new Float32Array(NavigatorScene.FRAME_SAMPLES),
+    controls: new Float32Array(NavigatorScene.FRAME_SAMPLES),
+  };
+
+  private frameSampleIndex = 0;
+
+  private frameSampleCount = 0;
+
+  private sampleFrame(subsystem: 'frame' | 'render' | 'labels' | 'controls', ms: number): void {
+    this.frameSamples[subsystem][this.frameSampleIndex] = ms;
+    if (subsystem === 'frame') {
+      // The `frame` write advances the shared cursor once per animate().
+      this.frameSampleIndex = (this.frameSampleIndex + 1) % NavigatorScene.FRAME_SAMPLES;
+      if (this.frameSampleCount < NavigatorScene.FRAME_SAMPLES) this.frameSampleCount += 1;
+    }
+  }
+
+  private p95(buffer: Float32Array): number {
+    const count = this.frameSampleCount;
+    if (count === 0) return 0;
+    const sorted = Array.from(buffer.subarray(0, count)).sort((a, b) => a - b);
+    const rank = Math.min(count - 1, Math.floor(count * 0.95));
+    return Math.round(sorted[rank] * 100) / 100;
+  }
+
+  /** F4 RAIL budget: p95 ms per subsystem over the sample window (soak hook). */
+  frameBudget(): { frameP95: number; renderP95: number; labelsP95: number; controlsP95: number; samples: number } {
+    return {
+      frameP95: this.p95(this.frameSamples.frame),
+      renderP95: this.p95(this.frameSamples.render),
+      labelsP95: this.p95(this.frameSamples.labels),
+      controlsP95: this.p95(this.frameSamples.controls),
+      samples: this.frameSampleCount,
+    };
+  }
 
   /** Throttled — a React state write per frame is exactly the churn we removed. */
   private emitCameraText(): void {
