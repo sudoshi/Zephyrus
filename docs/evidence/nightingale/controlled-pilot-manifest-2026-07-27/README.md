@@ -165,7 +165,22 @@ The following gates are required before publication:
 Final command results and the exact publication SHA are recorded in the companion devlog
 and draft pull request after commit.
 
-## 8. Explicit non-authorization
+## 8. Current-main reconciliation
+
+The validated slice was committed as `487d1c796fd9359819d501ccb2d3c1c60928b7d9`.
+The branch then merged current `origin/main` at
+`996a5336066e0523de63c3e88f7bc0e1243ab192`. That upstream commit changes only
+`.github/workflows/ci.yml` to provide the shared frontend build through a thin,
+independent `frontend-build` job for the Browser and DAST jobs.
+
+The automatic merge preserved both the upstream job graph and the Nightingale contract
+job's controlled-pilot verifier. No application, contract, fixture, database, native
+client, or sample-patient source changed after emulator acceptance. The post-merge
+verification therefore reruns the affected workflow parse and Nightingale mechanical
+gates; the recorded iOS and Android results continue to apply to the exact unchanged
+runtime trees.
+
+## 9. Explicit non-authorization
 
 This evidence does not approve:
 

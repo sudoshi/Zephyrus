@@ -2293,3 +2293,14 @@ deployment authorization.
   selection, patient operation, enrollment, content release, audit sink, route, client,
   signing, distribution, deployment, or activation occurred. The sample remains
   pending/inactive and unreachable.
+
+### Current-main reconciliation
+
+- Committed the validated controlled-pilot slice as
+  `487d1c796fd9359819d501ccb2d3c1c60928b7d9`, then merged current `origin/main`
+  `996a5336066e0523de63c3e88f7bc0e1243ab192`.
+- Confirmed the upstream delta changes only `.github/workflows/ci.yml`, adding the
+  independent `frontend-build` job and routing Browser/DAST through it.
+- Confirmed the automatic merge retained the controlled-pilot verifier in the
+  Nightingale contract job. No runtime, contract, sample-patient, native-client, or
+  database source changed after emulator acceptance.
