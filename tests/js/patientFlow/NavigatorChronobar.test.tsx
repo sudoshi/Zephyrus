@@ -153,4 +153,67 @@ describe('NavigatorChronobar', () => {
     expect(screen.getByText(/Replay stream ·/)).toBeInTheDocument();
     expect(screen.queryByText(/\bLive\b/)).not.toBeInTheDocument();
   });
+
+  it('B5: ±15m step buttons scrub relative to the current time, clamped to the window', () => {
+    const now = Date.parse('2026-07-09T12:00:00Z');
+    const windowStart = now - 24 * 3_600_000;
+    const onScrub = vi.fn();
+
+    render(
+      <NavigatorChronobar
+        windowStart={windowStart}
+        windowEnd={now + 24 * 3_600_000}
+        nowMs={now}
+        currentTime={now}
+        dataStart={windowStart}
+        dataEnd={now}
+        historical={false}
+        freshness="fresh"
+        forecast={null}
+        onScrub={onScrub}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Step back 15 minutes' }));
+    expect(onScrub).toHaveBeenLastCalledWith(now - 15 * 60_000);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Step forward 15 minutes' }));
+    expect(onScrub).toHaveBeenLastCalledWith(now + 15 * 60_000);
+  });
+
+  it('B5: renders the density strip as decoration and patient ticks as jump buttons', () => {
+    const now = Date.parse('2026-07-09T12:00:00Z');
+    const windowStart = now - 24 * 3_600_000;
+    const patientEvent = now - 2 * 3_600_000;
+    const onScrub = vi.fn();
+
+    const { container } = render(
+      <NavigatorChronobar
+        windowStart={windowStart}
+        windowEnd={now + 24 * 3_600_000}
+        nowMs={now}
+        currentTime={now}
+        dataStart={windowStart}
+        dataEnd={now}
+        historical={false}
+        freshness="fresh"
+        forecast={null}
+        densityBuckets={[0, 0.5, 1]}
+        patientTicks={[patientEvent, now + 30 * 24 * 3_600_000]}
+        onScrub={onScrub}
+      />,
+    );
+
+    // Density is scent, not a control — aria-hidden, one cell per bucket.
+    const density = container.querySelector('.patient-flow-chronobar-density');
+    expect(density).not.toBeNull();
+    expect(density!.getAttribute('aria-hidden')).toBe('true');
+    expect(density!.children).toHaveLength(3);
+
+    // One patient tick inside the window (the out-of-window instant drops).
+    const ticks = screen.getAllByRole('button', { name: /Jump to patient event/ });
+    expect(ticks).toHaveLength(1);
+    fireEvent.click(ticks[0]);
+    expect(onScrub).toHaveBeenLastCalledWith(patientEvent);
+  });
 });

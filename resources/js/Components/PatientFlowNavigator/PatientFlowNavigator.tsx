@@ -12,7 +12,7 @@ import {
   fetchPatientFlowSummary,
 } from '@/features/patientFlowNavigator/api';
 import { adoptEpoch } from '@/features/patientFlowNavigator/epoch';
-import { fetchPatientJourney } from '@/features/patientFlowNavigator/journey';
+import { eventDensityBuckets, fetchPatientJourney, journeyEventTicks } from '@/features/patientFlowNavigator/journey';
 import type { JourneyAlignAnchor } from '@/features/patientFlowNavigator/journey';
 import type { PatientJourney } from '@/features/patientFlowNavigator/journeySchemas';
 import NavigatorJourneyDrawer from './NavigatorJourneyDrawer';
@@ -523,6 +523,20 @@ export default function PatientFlowNavigator({
       .map((barrier) => (barrier.opened_at ? Date.parse(barrier.opened_at) : Number.NaN))
       .filter((ms) => Number.isFinite(ms) && ms <= nowMs),
     [barriers, nowMs],
+  );
+
+  // B5 — the scented scrubber: house event density across the window, so
+  // retrospective scrubbing is guided instead of blind (TN-1).
+  const chronobarDensity = useMemo(() => eventDensityBuckets(
+    events.map((event) => parseTime(event.occurred_at) ?? Number.NaN),
+    windowStart,
+    windowEnd,
+  ), [events, windowEnd, windowStart]);
+
+  // B3/B5 — the open journey's event instants as jump ticks.
+  const chronobarPatientTicks = useMemo(
+    () => (journeyData ? journeyEventTicks(journeyData) : []),
+    [journeyData],
   );
 
   const placementIndex = useMemo(
@@ -1708,6 +1722,8 @@ export default function PatientFlowNavigator({
             freshness={summary?.source.freshness ?? 'missing'}
             forecast={forecast}
             barrierTicks={barrierTicks}
+            densityBuckets={chronobarDensity}
+            patientTicks={chronobarPatientTicks}
             replaying={live}
             onScrub={handleScrub}
           />
