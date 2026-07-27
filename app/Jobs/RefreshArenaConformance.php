@@ -7,6 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -42,13 +43,18 @@ class RefreshArenaConformance implements ShouldQueue
         }
 
         try {
-            $result = $arena->conformance();
+            // per_case: the same run that feeds the cockpit rate also lands
+            // every case verdict in arena.case_conformance — the 4D adherence
+            // surface's cache (FLOW-4D plan §8 A2). One sidecar call, two sinks.
+            $result = $arena->conformance(perCase: true);
             if (($result['available'] ?? false) !== true) {
                 return; // sidecar unreachable — leave the last-good rate
             }
 
             $now = now();
             foreach ($result['pathways'] ?? [] as $pathway) {
+                $this->storeCaseVerdicts($pathway, $now);
+
                 $key = self::METRIC_KEYS[$pathway['pathway']] ?? null;
                 $rate = $pathway['conformance_rate'] ?? null;
                 if ($key === null || $rate === null) {
@@ -70,5 +76,52 @@ class RefreshArenaConformance implements ShouldQueue
         } catch (\Throwable $e) {
             Log::error('arena.conformance.refresh_failed', ['error' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Land one pathway's per-case verdicts and prune rows for cases that left
+     * the log window (a batch is authoritative for its pathway: anything this
+     * run didn't re-assert is stale by definition).
+     *
+     * @param  array<string, mixed>  $pathway
+     */
+    private function storeCaseVerdicts(array $pathway, Carbon $now): void
+    {
+        $key = (string) ($pathway['pathway'] ?? '');
+        $caseResults = $pathway['case_results'] ?? [];
+        if ($key === '' || ! is_array($caseResults)) {
+            return;
+        }
+
+        $batchOids = array_values(array_filter(array_map(
+            fn (array $case): string => (string) ($case['case_id'] ?? ''),
+            $caseResults,
+        )));
+
+        foreach (array_chunk($caseResults, 200) as $chunk) {
+            DB::table('arena.case_conformance')->upsert(
+                array_map(fn (array $case): array => [
+                    'case_oid' => (string) $case['case_id'],
+                    'pathway' => $key,
+                    'pathway_version' => (int) ($pathway['version'] ?? 1),
+                    'conformant' => (bool) ($case['conformant'] ?? false),
+                    'deviations' => json_encode($case['deviations'] ?? []),
+                    'activity_timeline' => json_encode($case['activity_timeline'] ?? (object) []),
+                    'computed_at' => $now,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ], $chunk),
+                ['case_oid', 'pathway'],
+                ['pathway_version', 'conformant', 'deviations', 'activity_timeline', 'computed_at', 'updated_at'],
+            );
+        }
+
+        // Batch authority: anything this run didn't re-assert left the log
+        // window and is stale by definition. (Not a timestamp comparison —
+        // timestampTz(0) columns tie within a second.)
+        DB::table('arena.case_conformance')
+            ->where('pathway', $key)
+            ->whereNotIn('case_oid', $batchOids)
+            ->delete();
     }
 }
