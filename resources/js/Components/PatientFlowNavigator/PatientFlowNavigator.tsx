@@ -96,6 +96,7 @@ import NavigatorFloorRail from './NavigatorFloorRail';
 import NavigatorInspector from './NavigatorInspector';
 import NavigatorIntro from './NavigatorIntro';
 import NavigatorLegend from './NavigatorLegend';
+import NavigatorMinimap from './NavigatorMinimap';
 import NavigatorStructureNav from './NavigatorStructureNav';
 import NavigatorToolbar from './NavigatorToolbar';
 import type { LayerControl, NavigatorMetrics } from './NavigatorToolbar';
@@ -421,6 +422,13 @@ export default function PatientFlowNavigator({
   // Raw xyz debug readout is title-attribute-only — written via ref so a
   // camera emit never re-renders the tree when the place label is unchanged.
   const cameraSpanRef = useRef<HTMLSpanElement | null>(null);
+  // E1: latest camera pose for the minimap — a ref (not state) so the ~7 Hz
+  // camera stream never re-renders the orchestrator; the minimap polls it.
+  const cameraViewRef = useRef<CameraView | null>(null);
+  // E1: floor location codes with an observed deviation, for the minimap pips.
+  // Guarded setState from refreshScene (change-keyed) so the hot path is cheap.
+  const [deviantLocationCodes, setDeviantLocationCodes] = useState<string[]>([]);
+  const deviantLocationKeyRef = useRef('');
   const [metrics, setMetrics] = useState<NavigatorMetrics>({ active: 0, events: 0, occupiedLocations: 0 });
   // F-8 non-pointer parity: the delayed/watch locations currently drawn in the
   // scene, exposed as a keyboard-selectable list (NavigatorActionList).
@@ -552,6 +560,9 @@ export default function PatientFlowNavigator({
   const introStopList = useMemo(() => introStops(roundsActive), [roundsActive]);
 
   const tracks = useMemo(() => rebuildTracks(events), [events]);
+
+  // E1: deviant floor-location codes as a Set for the minimap pips.
+  const deviationLocationSet = useMemo(() => new Set(deviantLocationCodes), [deviantLocationCodes]);
 
   // S-1: advance wall-clock now every 60s. The ref updates in the same tick so
   // any repaint that fires before the effects run already sees the fresh value.
@@ -718,6 +729,23 @@ export default function PatientFlowNavigator({
     lastOccupancyInsightsRef.current = occupancyInsights;
     // Only the visible disks are selectable in the scene; the list mirrors them.
     setActionableInsights(visibleOccupancyInsights.filter((insight) => insight.primaryStatus !== 'ok'));
+    // E1 minimap deviation pips: the location codes of currently-visible
+    // flagged patients. Change-keyed so the hot path only re-renders the
+    // minimap when the set actually shifts. Empty (and free) while dark.
+    if (deviationsRef.current.size > 0) {
+      const codes = [...new Set(states
+        .filter((state) => deviationsRef.current.has(state.patientId))
+        .map((state) => state.event.to_location)
+        .filter((code): code is string => Boolean(code)))].sort();
+      const key = codes.join('|');
+      if (key !== deviantLocationKeyRef.current) {
+        deviantLocationKeyRef.current = key;
+        setDeviantLocationCodes(codes);
+      }
+    } else if (deviantLocationKeyRef.current !== '') {
+      deviantLocationKeyRef.current = '';
+      setDeviantLocationCodes([]);
+    }
     scene.setPathwayDeviations(deviationsRef.current, layersRef.current.pathway);
     scene.updateTokens(
       states,
@@ -973,6 +1001,7 @@ export default function PatientFlowNavigator({
   // to the orbit target names what the operator is looking at. Raw coordinates
   // survive in the status-bar title attribute for debugging.
   const handleCameraMove = useCallback((view: CameraView): void => {
+    cameraViewRef.current = view;
     if (cameraSpanRef.current) {
       cameraSpanRef.current.title =
         `camera x ${Math.round(view.position.x)} y ${Math.round(view.position.y)} z ${Math.round(view.position.z)}`
@@ -2189,6 +2218,21 @@ export default function PatientFlowNavigator({
         onSelectBed={selectLocationFromList}
         onFrame={(points) => sceneRef.current?.focusOn(points)}
       />
+
+      {/* E1: the minimap answers "where am I" — suppressed on wall/kiosk
+          (?wall=1), where the whole screen is the instrument. */}
+      {!handoff.wall && (
+        <NavigatorMinimap
+          locations={locations}
+          floor={filters.floor}
+          delayed={actionableInsights}
+          deviationLocations={deviationLocationSet}
+          getCameraView={() => cameraViewRef.current}
+          getSelectionPoint={() => sceneRef.current?.getSelectionPoint() ?? null}
+          onNavigate={(point) => sceneRef.current?.focusOn([point])}
+          onFitFloor={() => applyCanonicalView('floor')}
+        />
+      )}
 
       {journeyState === 'idle' ? (
         <NavigatorInspector title={inspectorTitle} rows={inspectorRows} action={inspectorAction} />

@@ -562,6 +562,14 @@ export class NavigatorScene {
     return this.selectedEntity;
   }
 
+  /** World position of the current selection, or null (E1 minimap dot). */
+  getSelectionPoint(): { x: number; y: number; z: number } | null {
+    const mesh = this.selectedMesh
+      ?? (this.selectedEntity ? this.resolveEntityMesh(this.selectedEntity) : null);
+    if (!mesh) return null;
+    return { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
+  }
+
   /** Stable entity for a hit, or null for mesh-only kinds (ghost/base). */
   private entityForMesh(mesh: THREE.Mesh): SelectionEntity | null {
     const data = mesh.userData ?? {};

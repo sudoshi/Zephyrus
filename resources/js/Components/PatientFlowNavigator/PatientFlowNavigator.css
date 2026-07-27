@@ -1258,11 +1258,115 @@
 .patient-flow-structure-nav {
   position: absolute;
   z-index: 3;
-  left: 16px;
+  left: 200px;
   bottom: 16px;
-  width: min(300px, calc(100vw - 32px));
+  width: min(280px, calc(100vw - 216px));
   display: flex;
   flex-direction: column;
+}
+
+/* E1 minimap — the bottom-left floor plate; the structure nav sits to its
+   right. Both are desk affordances (hidden on wall/kiosk by the orchestrator). */
+.patient-flow-minimap {
+  position: absolute;
+  z-index: 3;
+  left: 16px;
+  bottom: 16px;
+  width: 176px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  background: rgba(27, 31, 29, 0.94);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.patient-flow-minimap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #ddd6c7;
+  font-size: 11px;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.patient-flow-minimap-header:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: -2px;
+}
+
+.patient-flow-minimap-body {
+  padding: 0 4px 6px;
+}
+
+.patient-flow-minimap svg {
+  display: block;
+  width: 168px;
+  height: 168px;
+  cursor: crosshair;
+  background: rgba(18, 21, 20, 0.6);
+  border-radius: 4px;
+}
+
+.patient-flow-minimap-dot { fill: #6b6456; }
+
+/* Delay pips — triangle (shape first), amber watch / coral delayed. */
+.patient-flow-minimap-delay.status-watch { fill: #e0a33f; }
+.patient-flow-minimap-delay.status-delayed { fill: #f06755; }
+
+/* Deviation pip — a square (bracket echo), amber-capped per OQ-1. */
+.patient-flow-minimap-deviation {
+  fill: none;
+  stroke: #eaa640;
+  stroke-width: 1.4;
+}
+
+.patient-flow-minimap-look {
+  stroke: rgba(201, 162, 39, 0.5);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.patient-flow-minimap-camera circle {
+  fill: none;
+  stroke: #c9a227;
+  stroke-width: 1.4;
+}
+
+.patient-flow-minimap-camera line {
+  stroke: #c9a227;
+  stroke-width: 1;
+}
+
+.patient-flow-minimap-selection {
+  fill: none;
+  stroke: #ffd795;
+  stroke-width: 2;
+}
+
+.patient-flow-minimap-fit {
+  width: 100%;
+  margin-top: 6px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 5px;
+  background: rgba(27, 31, 29, 0.92);
+  color: #ddd6c7;
+  font-size: 11px;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.patient-flow-minimap-fit:hover {
+  background: rgba(224, 163, 63, 0.14);
+  color: #ffd795;
+}
+
+@media (max-width: 900px) {
+  .patient-flow-minimap { display: none; }
+  .patient-flow-structure-nav { left: 16px; }
 }
 
 .patient-flow-structure-toggle {
