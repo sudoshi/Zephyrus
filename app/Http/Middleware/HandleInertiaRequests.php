@@ -91,6 +91,12 @@ class HandleInertiaRequests extends Middleware
             // copilot pane only mounts when this is true (independent of ARENA_ENABLED).
             'arena' => [
                 'ai_enabled' => (bool) config('services.arena.ai_enabled'),
+                // FLOW-4D adherence surface (plan §8 C5): pre-composed with the
+                // Arena gate so the navigator holds ONE boolean and can never
+                // render the surface while its API would 404. Lens gating stays
+                // per-request server-side.
+                'conformance_enabled' => (bool) config('services.arena.enabled')
+                    && (bool) config('services.flow4d.conformance'),
             ],
             // Feature flags the frontend reads to gate nav + surfaces. Virtual
             // Rounds ships disabled; the nav item stays hidden (never a dead

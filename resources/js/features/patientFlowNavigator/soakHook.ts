@@ -26,6 +26,9 @@ export interface Flow4dSoakHook {
   /** The dataset epoch the client last adopted (F-6 pt 2) — lets the H4 soak
    * assert the rebootstrap actually crossed the demo-refresh boundary. */
   epoch: () => string | null;
+  /** Visible pathway-deviation glyphs (Phase C) — feeds the urgency census's
+   * amber share so the earned-urgency budget counts the new layer (H4). */
+  pathwayGlyphs: () => number | null;
 }
 
 declare global {

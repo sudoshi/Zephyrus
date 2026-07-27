@@ -86,4 +86,13 @@ return [
         'ai_fitness_floor' => (float) env('ARENA_AI_FITNESS_FLOOR', 0.80), // withhold a proposed map below this DFG-fitness
     ],
 
+    // FLOW-4D adherence surface (plan §7.2 Phase C). Composes with — never
+    // replaces — the Arena gate: the per-patient conformance endpoints require
+    // ARENA_ENABLED (route group) AND this flag AND a patient-dots flow lens.
+    // Off by default so the navigator ships byte-identical until [SU] enables
+    // it (plan OQ-1 owns prod enablement and the coral-escalation question).
+    'flow4d' => [
+        'conformance' => filter_var(env('FLOW4D_CONFORMANCE_ENABLED', false), FILTER_VALIDATE_BOOL),
+    ],
+
 ];

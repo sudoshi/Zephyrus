@@ -28,7 +28,9 @@ class CaseConformanceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['services.arena.enabled' => true]);
+        // Phase C (plan §8 C5) layered FLOW4D_CONFORMANCE_ENABLED onto this
+        // route; the full gate matrix lives in Flow4dConformanceSurfaceTest.
+        config(['services.arena.enabled' => true, 'services.flow4d.conformance' => true]);
     }
 
     private function admin(): User

@@ -49,7 +49,10 @@ interface NavigatorToolbarProps {
   categories: string[];
   layers: PatientLayerState;
   layerControls: LayerControl[];
-  barrierFinder: boolean;
+  /** Census scope (B-1 family + §7.2 C3): which occupancy disks render. */
+  censusScope: 'all' | 'delayed' | 'deviations';
+  /** Phase C: the third radio only exists when the adherence surface is on. */
+  showDeviationScope: boolean;
   metrics: NavigatorMetrics;
   occupancy: OccupancySummary;
   eddyEnabled: boolean;
@@ -57,14 +60,15 @@ interface NavigatorToolbarProps {
   onToggleLive: () => void;
   onResetCamera: () => void;
   onFocusPatients: () => void;
-  onFocusDelayed: () => void;
+  /** Explicit camera flight to the narrowed census set (B-4). */
+  onFocusCensusScope: () => void;
   onAskEddy: () => void;
   onSpeedChange: (speed: number) => void;
   onFiltersChange: (patch: Partial<PatientFlowFilters>) => void;
   /** Explicit floor choice: filters AND frames the floor (N-4). */
   onFloorSelect: (floor: string) => void;
   onLayerChange: (key: keyof PatientLayerState, value: boolean) => void;
-  onBarrierFinderChange: (value: boolean) => void;
+  onCensusScopeChange: (scope: 'all' | 'delayed' | 'deviations') => void;
   /** Token count for the active search, null when the field is empty (N-5). */
   searchMatches: number | null;
   /** First matches as a selectable list — the non-pointer path (H1.2). */
@@ -98,7 +102,8 @@ export default function NavigatorToolbar({
   categories,
   layers,
   layerControls,
-  barrierFinder,
+  censusScope,
+  showDeviationScope,
   metrics,
   occupancy,
   eddyEnabled,
@@ -106,13 +111,13 @@ export default function NavigatorToolbar({
   onToggleLive,
   onResetCamera,
   onFocusPatients,
-  onFocusDelayed,
+  onFocusCensusScope,
   onAskEddy,
   onSpeedChange,
   onFiltersChange,
   onFloorSelect,
   onLayerChange,
-  onBarrierFinderChange,
+  onCensusScopeChange,
   searchMatches,
   searchResults,
   onSelectSearchResult,
@@ -343,8 +348,10 @@ export default function NavigatorToolbar({
 
         {/* Census scope, not a layer (B-2): "Delayed" filters the occupancy
             disks by elapsed-timer signal — distinct from the "Barriers"
-            layer's logged prod.barriers markers (B-1). A span, not a label:
-            the radios carry their own names (All / Delayed). */}
+            layer's logged prod.barriers markers (B-1). "Pathway deviations"
+            (Phase C) isolates the locations of glyph-flagged patients; the
+            radio only exists when the adherence surface is on. A span, not a
+            label: the radios carry their own names. */}
         <span className="patient-flow-control-caption">Census</span>
         <div
           className="patient-flow-census-toggle"
@@ -352,26 +359,41 @@ export default function NavigatorToolbar({
           aria-label="Census scope"
           title="Elapsed occupancy signal; not a verified operational barrier"
         >
-          <label className={barrierFinder ? '' : 'active'}>
+          <label className={censusScope === 'all' ? 'active' : ''}>
             <input
               id="flow-census-all"
               type="radio"
               name="flow-census"
-              checked={!barrierFinder}
-              onChange={() => onBarrierFinderChange(false)}
+              checked={censusScope === 'all'}
+              onChange={() => onCensusScopeChange('all')}
             />
             All
           </label>
-          <label className={barrierFinder ? 'active' : ''}>
+          <label className={censusScope === 'delayed' ? 'active' : ''}>
             <input
               id="flow-census-delayed"
               type="radio"
               name="flow-census"
-              checked={barrierFinder}
-              onChange={() => onBarrierFinderChange(true)}
+              checked={censusScope === 'delayed'}
+              onChange={() => onCensusScopeChange('delayed')}
             />
             Delayed
           </label>
+          {showDeviationScope && (
+            <label
+              className={censusScope === 'deviations' ? 'active' : ''}
+              title="Locations of patients with an observed care-pathway deviation (30-minute batch)"
+            >
+              <input
+                id="flow-census-deviations"
+                type="radio"
+                name="flow-census"
+                checked={censusScope === 'deviations'}
+                onChange={() => onCensusScopeChange('deviations')}
+              />
+              Pathway deviations
+            </label>
+          )}
         </div>
       </div>
 
@@ -391,23 +413,29 @@ export default function NavigatorToolbar({
         ))}
       </fieldset>
 
-      {/* B-3: the Delayed-only census scope announces itself and relabels the
+      {/* B-3: a narrowed census scope announces itself and relabels the
           metric — and the camera flight is an explicit action (B-4). */}
-      {barrierFinder && (
+      {censusScope !== 'all' && (
         <div className="patient-flow-filter-chip" role="status">
-          <span>Filtered: delayed locations only ({metrics.active})</span>
+          <span>
+            {censusScope === 'delayed'
+              ? `Filtered: delayed locations only (${metrics.active})`
+              : `Filtered: pathway-deviation locations only (${metrics.active})`}
+          </span>
           <button
             type="button"
-            title="Fly the camera to the delayed locations"
-            onClick={onFocusDelayed}
+            title={censusScope === 'delayed'
+              ? 'Fly the camera to the delayed locations'
+              : 'Fly the camera to the flagged patients'}
+            onClick={onFocusCensusScope}
           >
             Focus
           </button>
           <button
             type="button"
-            aria-label="Clear delayed-only filter"
-            title="Clear delayed-only filter"
-            onClick={() => onBarrierFinderChange(false)}
+            aria-label="Clear census scope filter"
+            title="Clear census scope filter"
+            onClick={() => onCensusScopeChange('all')}
           >
             ×
           </button>
@@ -415,7 +443,7 @@ export default function NavigatorToolbar({
       )}
 
       <div className="patient-flow-metrics">
-        <div><span>{metrics.active}</span><small>{barrierFinder ? 'Delayed' : 'Active'}</small></div>
+        <div><span>{metrics.active}</span><small>{censusScope === 'delayed' ? 'Delayed' : censusScope === 'deviations' ? 'Deviations' : 'Active'}</small></div>
         <div><span>{metrics.events}</span><small>Events</small></div>
         <div><span>{metrics.occupiedLocations}</span><small>Locations</small></div>
         <div><span>{ambient?.summary.eventCount ?? summary?.ambient_signals ?? 0}</span><small>Ambient</small></div>

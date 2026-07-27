@@ -13,6 +13,9 @@ import type { PatientLayerState } from '@/features/patientFlowNavigator/types';
 
 interface NavigatorLegendProps {
   layers: PatientLayerState;
+  /** Phase C flag composition: when the adherence surface is off the Pathways
+   * section is ABSENT (the feature does not exist), not merely dimmed. */
+  showPathways?: boolean;
 }
 
 function hex(colorHex: number): string {
@@ -42,13 +45,18 @@ function LegendGlyph({ shape, colorHex }: { shape: SceneShape; colorHex: number 
       return <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="4" width="11" height="8" rx="1.5" fill={color} opacity="0.85" /></svg>;
     case 'triangle':
       return <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2 L15 14 L1 14 Z" fill={color} /></svg>;
+    case 'bracket':
+      return <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="3.5" width="9" height="9" fill="none" stroke={color} strokeWidth="2.2" /></svg>;
     default:
       return null;
   }
 }
 
-export default function NavigatorLegend({ layers }: NavigatorLegendProps) {
+export default function NavigatorLegend({ layers, showPathways = false }: NavigatorLegendProps) {
   const [open, setOpen] = useState(false);
+  const sections = showPathways
+    ? LEGEND_SECTIONS
+    : LEGEND_SECTIONS.filter((section) => section.title !== 'Pathways');
 
   return (
     <div className="patient-flow-legend">
@@ -65,7 +73,7 @@ export default function NavigatorLegend({ layers }: NavigatorLegendProps) {
 
       {open && (
         <div className="patient-flow-legend-panel" role="region" aria-label="Scene key">
-          {LEGEND_SECTIONS.map((section) => (
+          {sections.map((section) => (
             <section key={section.title}>
               <h3>{section.title}</h3>
               <ul>
