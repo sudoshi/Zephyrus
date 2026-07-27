@@ -1364,8 +1364,113 @@
   color: #ffd795;
 }
 
+/* E4 small multiples — the hourly analysis strip, anchored above the minimap
+   in the bottom-left stack. Density is opacity on ONE neutral ink (aggregate
+   flow, never a status color). */
+.patient-flow-small-multiples {
+  position: absolute;
+  z-index: 3;
+  left: 16px;
+  bottom: 224px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.patient-flow-sm-toggle {
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  background: rgba(27, 31, 29, 0.92);
+  color: #ddd6c7;
+  font-size: 11px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+
+.patient-flow-sm-toggle:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 2px;
+}
+
+.patient-flow-sm-body {
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  background: rgba(27, 31, 29, 0.94);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+}
+
+.patient-flow-sm-strip {
+  display: flex;
+  gap: 8px;
+}
+
+.patient-flow-sm-plate {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.patient-flow-sm-plate svg {
+  display: block;
+  border-radius: 3px;
+}
+
+.patient-flow-sm-bg { fill: rgba(18, 21, 20, 0.7); }
+.patient-flow-sm-cell { fill: #8fb8cc; }
+
+.patient-flow-sm-plate figcaption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 3px;
+  color: #b9b2a6;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-flow-sm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  color: #b9b2a6;
+  font-size: 10px;
+}
+
+.patient-flow-sm-actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.patient-flow-sm-footer button {
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 5px;
+  background: rgba(27, 31, 29, 0.92);
+  color: #ddd6c7;
+  font-size: 10px;
+  padding: 3px 7px;
+  cursor: pointer;
+}
+
+.patient-flow-sm-footer button:hover {
+  background: rgba(224, 163, 63, 0.14);
+  color: #ffd795;
+}
+
+.patient-flow-sm-floor.active {
+  border-color: #e0a33f;
+  background: #3a2f1f;
+  color: #ffd795;
+}
+
 @media (max-width: 900px) {
-  .patient-flow-minimap { display: none; }
+  .patient-flow-minimap,
+  .patient-flow-small-multiples { display: none; }
   .patient-flow-structure-nav { left: 16px; }
 }
 
