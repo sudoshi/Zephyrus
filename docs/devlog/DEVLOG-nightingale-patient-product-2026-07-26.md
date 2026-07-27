@@ -2166,3 +2166,51 @@ deployment authorization.
   approved identity/source/content/reviewer decisions, signed-distribution evidence,
   human validation, integration exercises, or pilot authorization. The sample patient
   remains pending/inactive and unreachable.
+
+## 2026-07-27 — Current-main duplicate-identity reconciliation
+
+### Collision and resolution
+
+- Fetched `origin/main` at `ea14d2bd2be9656555dfba35da2dbf28e74730e3`.
+  It included unrelated Flow 4D plan commit `f63e5994` and PR #101, which renamed the
+  deprecated Hummingbird Patient native/backend/contract surfaces to Nightingale.
+- Merged the complete upstream graph at `bcaae3da`; then forward-reverted only PR #101 at
+  `c11d462c`. This preserves the unrelated Flow 4D change and published history while
+  preventing two native roots and two backend configurations from claiming one
+  Nightingale identity.
+- Resolved all overlapping paths against the exact previously accepted
+  `21e4de17e27c258955c0b14ba490f9d0d4be16b5` tree. The boundary-restoration tree at
+  `c11d462c` differs from that baseline only in the Flow 4D plan, and that path is
+  byte-identical to `f63e5994`.
+- Reconfirmed the canonical split: `nightingale/iosApp` and
+  `nightingale/androidApp` own `net.acumenus.nightingale`; the deprecated
+  `hummingbird/*PatientApp` roots retain `net.acumenus.hummingbird.patient`.
+  `config/nightingale.php` remains route-free and inert; the legacy Hummingbird Patient
+  configuration/contract remains migration input.
+
+### Complete reacceptance
+
+- The 13-stage contract, candidate, classification, threat/hazard, dependency, namespace,
+  backend, and native-boundary chain passed, including all negative self-tests and exact
+  256-source predecessor coverage.
+- The focused Laravel suite passed 23 tests and 149 assertions using a worktree-local
+  dependency tree whose `composer.lock` SHA-256 matched the canonical checkout.
+- On a freshly booted iPhone 16e simulator running iOS 26.3.1, Nightingale passed 11/11
+  unit tests and 6/6 UI journeys with no failures or skips. The unsigned Release
+  application passed the complete artifact boundary.
+- Android passed 8/8 Debug and 8/8 Release unit tests after forced uncached execution,
+  both lint variants, both assemblies, and the unsigned Release APK boundary.
+- Preserved the other process's API 35 emulator on port 5554. A separate read-only API 35
+  instance on port 5556 passed 10/10 installed journeys with zero failures, errors, or
+  skips, then only that instance was shut down. The iOS simulator was also shut down.
+
+### Checklist and safety accounting
+
+- Added the exact reconciliation record under
+  `docs/evidence/nightingale/current-main-reconciliation-2026-07-27/`.
+- No new functional checkbox is credited. This restores an already-completed boundary, so
+  the master checklist remains 41/54 (75.93%) with all 13 approval, implementation,
+  distribution, human-review, integration, and pilot items open.
+- No production database access, sample-patient mutation, route, source query, identity
+  provider, content release, notification, signing, upload, deployment, or activation
+  occurred. The authorized Nightingale sample remains pending/inactive and unreachable.

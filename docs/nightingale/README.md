@@ -71,6 +71,10 @@ pending/inactive, contactless/passwordless Nightingale principal. The source rec
 unchanged, and the Nightingale clone has no identity link, grant, challenge, session,
 projection, route, or native caller. See the
 [production sample-patient evidence](../evidence/nightingale/production-sample-patient-2026-07-27/README.md).
+Current-main reconciliation subsequently preserved the independent Nightingale roots and
+restored the deprecated Hummingbird Patient sources after an incompatible upstream rename.
+The exact tree-equivalence and full native reacceptance record is in the
+[current-main reconciliation evidence](../evidence/nightingale/current-main-reconciliation-2026-07-27/README.md).
 
 Current product-identity records:
 
@@ -112,6 +116,7 @@ Current product-identity records:
 - [Launcher, themed-icon, and splash evidence](../evidence/nightingale/brand-identity-2026-07-26/README.md)
 - [Accessibility/language-readiness screenshots and hierarchies](../evidence/nightingale/accessibility-language-readiness-2026-07-27/README.md)
 - [Authorized production sample-patient evidence](../evidence/nightingale/production-sample-patient-2026-07-27/README.md)
+- [Current-main product-boundary reconciliation evidence](../evidence/nightingale/current-main-reconciliation-2026-07-27/README.md)
 
 ## Lineage and filing rules
 

@@ -589,6 +589,26 @@ part of application development work.
         the corrected 256-source universe. Do not sign, upload, distribute, activate, or
         claim store readiness.
 
+### 9.1 Current-main collision checkpoint (non-milestone)
+
+After the 41/54 namespace-and-activation slice passed exact-SHA CI, `main` acquired a
+second rename that attempted to make the deprecated Hummingbird Patient source roots and
+backend configuration claim the Nightingale identity. The feature branch merged current
+`main`, preserved its unrelated Flow 4D planning update, and forward-reverted only that
+incompatible rename. Exact tree comparison proves all product-boundary paths match the
+last verified independent-product baseline, while the unrelated upstream document matches
+its `main` version.
+
+The complete contract/backend/native acceptance chain was rerun, including 23 Laravel
+tests/149 assertions, iOS 11/11 unit and 6/6 UI tests on an iPhone 16e simulator, Android
+8/8 Debug and 8/8 Release unit tests, and 10/10 installed journeys on a separate read-only
+API 35 emulator. The evidence is retained in
+`docs/evidence/nightingale/current-main-reconciliation-2026-07-27/`.
+
+This checkpoint receives no new checkbox or percentage credit because it restores an
+already-completed architecture rather than adding function. The master checklist remains
+41/54 complete (75.93%); all 13 open gates remain open.
+
 ## 10. Explicit holds
 
 - No further production database access for patient creation, fixture insertion, identity
