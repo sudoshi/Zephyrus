@@ -173,3 +173,57 @@ describe('NavigatorJourneyDrawer adherence panel (Phase C)', () => {
     );
   });
 });
+
+function pathwayProgressFixture(
+  demo = true,
+): NonNullable<React.ComponentProps<typeof NavigatorJourneyDrawer>['pathwayProgress']> {
+  return {
+    state: 'ok',
+    demo,
+    clinical_use: false,
+    notice: demo ? 'Demo — not clinical guidance' : null,
+    pathway: {
+      key: 'demo-heart-failure',
+      label: 'Heart Failure — Admission to Supported Transition',
+      version_uuid: null,
+      semantic_version: 'demo.1',
+      digest: 'a'.repeat(64),
+    },
+    milestones: [
+      { stable_key: 'hf_arrival', title: 'Admitted and assessed', phase: 'arrival', sequence: 0, status: 'completed', observed_at: null, expected: { day_offset_min: 0, day_offset_max: 0, display: null } },
+      { stable_key: 'hf_gdmt', title: 'Guideline-directed medical therapy optimized', phase: 'day_2', sequence: 3, status: 'current', observed_at: null, expected: { day_offset_min: 1, day_offset_max: 2, display: null } },
+      { stable_key: 'hf_discharge', title: 'Discharge readiness and follow-up scheduled', phase: 'discharge', sequence: 5, status: 'planned', observed_at: null, expected: { day_offset_min: 3, day_offset_max: 4, display: null } },
+    ],
+    summary: { completed: 1, current: 1, planned: 1, delayed: 0, canceled: 0, total: 3, current_stable_key: 'hf_gdmt', elements_met_label: '1 of 3 milestones complete' },
+    source: 'synthetic_demo',
+    as_of: '2026-07-27T12:00:00Z',
+  };
+}
+
+describe('NavigatorJourneyDrawer — pathway progress (Phase D5)', () => {
+  it('renders the assigned-pathway panel with status by word, never colour alone', () => {
+    renderDrawer({ pathwayProgress: pathwayProgressFixture() });
+
+    expect(screen.getByLabelText('Assigned pathway progress')).toBeTruthy();
+    expect(screen.getByText('Heart Failure — Admission to Supported Transition')).toBeTruthy();
+    expect(screen.getByText('1 of 3 milestones complete')).toBeTruthy();
+    expect(screen.getByText('Guideline-directed medical therapy optimized')).toBeTruthy();
+    // Status is a written word (the glyph is aria-hidden decoration).
+    expect(screen.getByText('current')).toBeTruthy();
+    expect(screen.getByText('completed')).toBeTruthy();
+  });
+
+  it('shows the Demo badge and the not-clinical-guidance notice for a synthetic pathway', () => {
+    renderDrawer({ pathwayProgress: pathwayProgressFixture(true) });
+
+    expect(screen.getByText('Demo')).toBeTruthy();
+    expect(screen.getByText('Demo — not clinical guidance')).toBeTruthy();
+  });
+
+  it('renders nothing pathway-related when the block is absent (dark by default)', () => {
+    renderDrawer({ pathwayProgress: null });
+
+    expect(screen.queryByLabelText('Assigned pathway progress')).toBeNull();
+    expect(screen.queryByText('Heart Failure — Admission to Supported Transition')).toBeNull();
+  });
+});

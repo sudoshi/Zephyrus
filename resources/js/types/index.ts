@@ -50,6 +50,12 @@ export interface PageProps {
     /** ARENA_ENABLED ∧ FLOW4D_CONFORMANCE_ENABLED, pre-composed server-side. */
     conformance_enabled?: boolean;
   };
+  flow4d?: {
+    /** FLOW4D_PATHWAY_PROGRESS_ENABLED ∧ CARE_PATHWAYS_ASSIGNMENT_ENABLED,
+     * pre-composed server-side (plan §8 D5). Off = the governed-pathway serving
+     * path stays dark; the demo overlay rides features.care_pathways_demo. */
+    pathway_progress_enabled?: boolean;
+  };
   features?: {
     care_pathways_demo?: boolean;
     care_pathways_catalog?: boolean;
