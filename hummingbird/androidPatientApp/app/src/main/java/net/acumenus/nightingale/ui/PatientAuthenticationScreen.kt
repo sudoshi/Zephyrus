@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -310,8 +311,10 @@ private fun SignInForm(onSignIn: (String, String) -> Unit) {
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Email") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-login-identifier"),
+            label = { Text("Email or demo login") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
@@ -324,7 +327,9 @@ private fun SignInForm(onSignIn: (String, String) -> Unit) {
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-login-password"),
             label = { Text("Password") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
@@ -344,7 +349,9 @@ private fun SignInForm(onSignIn: (String, String) -> Unit) {
                 onSignIn(email, password)
                 password = ""
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("patient-login-submit"),
         ) {
             Text("Sign in")
         }

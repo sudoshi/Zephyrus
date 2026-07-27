@@ -4,6 +4,7 @@ namespace App\Policies\Patient;
 
 use App\Models\Patient\PatientEncounterProjection;
 use App\Models\Patient\PatientPrincipal;
+use App\Nightingale\Demo\NightingaleDemoCohort;
 use Illuminate\Support\Facades\Gate;
 
 class PatientEncounterProjectionPolicy
@@ -12,6 +13,9 @@ class PatientEncounterProjectionPolicy
     {
         $grant = $projection->accessGrant;
         $policy = $projection->releasePolicyVersion;
+        $expectedPolicyVersion = NightingaleDemoCohort::disclosurePolicyVersionFor(
+            (array) $principal->preferences,
+        ) ?? (string) config('nightingale.policy_version');
 
         return (bool) $principal->is_active
             && $principal->status === 'active'
@@ -23,7 +27,7 @@ class PatientEncounterProjectionPolicy
             && $projection->released_at !== null
             && $projection->released_at->isPast()
             && $policy !== null
-            && $policy->version === (string) config('nightingale.policy_version')
+            && $policy->version === $expectedPolicyVersion
             && $policy->status === 'active'
             && $policy->approved_at !== null
             && $policy->effective_from !== null

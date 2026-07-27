@@ -149,7 +149,7 @@ struct PatientPresentationPreferenceNotice: View {
             choices.append("reduced motion")
         }
         let joinedChoices = ListFormatter.localizedString(byJoining: choices)
-        return "Hummingbird Patient is using \(joinedChoices). Your device accessibility settings can make text larger."
+        return "Nightingale is using \(joinedChoices). Your device accessibility settings can make text larger."
     }
 }
 

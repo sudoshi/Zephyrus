@@ -7,6 +7,7 @@ use App\Models\Patient\PatientEncounterAccessGrant;
 use App\Models\Patient\PatientEncounterProjection;
 use App\Models\Patient\PatientPrincipal;
 use App\Models\Patient\PatientReleasePolicyVersion;
+use App\Nightingale\Demo\NightingaleDemoCohort;
 use App\Services\Patient\PatientAccessAuditRecorder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -77,9 +78,13 @@ class PatientProjectionDisclosureService
             return null;
         }
 
+        $policyVersion = NightingaleDemoCohort::disclosurePolicyVersionFor(
+            (array) $principal->preferences,
+        ) ?? (string) config('nightingale.policy_version');
+
         $policy = PatientReleasePolicyVersion::query()
             ->effective()
-            ->where('version', (string) config('nightingale.policy_version'))
+            ->where('version', $policyVersion)
             ->first();
 
         if ($policy === null) {

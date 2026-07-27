@@ -317,4 +317,19 @@ return [
     'patient_disclosure_enabled' => false,
     'patient_mutation_enabled' => false,
     'production_enabled' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Synthetic investor-demo cohort
+    |--------------------------------------------------------------------------
+    |
+    | Provisioning is a separately authorized, CLI-only mutation. It is
+    | disabled in every runtime unless the deployed operator deliberately
+    | enables it. This key does not register routes, activate a real-patient
+    | capability, or weaken the serving gates above.
+    |
+    */
+    'demo_cohort' => [
+        'provisioning_enabled' => (bool) env('NIGHTINGALE_DEMO_PROVISIONING_ENABLED', false),
+    ],
 ];

@@ -32,7 +32,7 @@ final class PatientSessionManagementUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Sign out Home tablet?"].waitForExistence(timeout: 2))
         XCTAssertTrue(
-            app.staticTexts["This signs out Home tablet from Hummingbird Patient. It will not sign out this device."].exists
+            app.staticTexts["This signs out Home tablet from Nightingale. It will not sign out this device."].exists
         )
         app.buttons.matching(identifier: "confirm-other-session-revocation").firstMatch.tap()
 
@@ -51,7 +51,7 @@ final class PatientSessionManagementUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Sign out here?"].waitForExistence(timeout: 2))
         XCTAssertTrue(
-            app.staticTexts["Signing out this device immediately closes Hummingbird Patient here and returns you to the welcome screen."].exists
+            app.staticTexts["Signing out this device immediately closes Nightingale here and returns you to the welcome screen."].exists
         )
         attachScreenshot(named: "Manage-Devices-Current-Confirmation-Accessibility")
         app.buttons.matching(identifier: "confirm-current-session-revocation").firstMatch.tap()

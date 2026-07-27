@@ -1,6 +1,25 @@
 import Foundation
 import UIKit
 
+enum PatientLoginIdentifier {
+    private static let demoAliases: Set<String> = [
+        "demo1",
+        "demo2",
+        "demo3",
+        "demo4",
+        "demo5",
+    ]
+
+    static func isAcceptedForSignIn(_ value: String) -> Bool {
+        let normalized = value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        return demoAliases.contains(normalized)
+            || normalized.contains("@")
+    }
+}
+
 struct PatientEnvelope<Payload: Codable & Equatable>: Codable, Equatable {
     let data: Payload
     let meta: PatientEnvelopeMeta

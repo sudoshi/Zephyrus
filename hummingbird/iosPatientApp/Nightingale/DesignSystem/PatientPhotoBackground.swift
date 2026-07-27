@@ -136,7 +136,7 @@ struct PatientLoadingStateView: View {
                     .accessibilityHidden(true)
                 Text("Opening your care view")
                     .font(.title3.bold())
-                Text("Only information released to Hummingbird Patient will appear.")
+                Text("Only information released to Nightingale will appear.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -148,7 +148,7 @@ struct PatientLoadingStateView: View {
                 in: RoundedRectangle(cornerRadius: 22)
             )
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Opening your care view. Only information released to Hummingbird Patient will appear.")
+            .accessibilityLabel("Opening your care view. Only information released to Nightingale will appear.")
         }
         .transition(
             reduceMotion || presentationPreferences.reducedMotion

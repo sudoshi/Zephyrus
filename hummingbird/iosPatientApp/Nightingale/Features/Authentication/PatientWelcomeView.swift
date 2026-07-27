@@ -88,7 +88,7 @@ struct PatientWelcomeView: View {
                 .font(.system(size: 42))
                 .foregroundStyle(PatientPalette.blue)
                 .accessibilityHidden(true)
-            Text("Hummingbird Patient")
+            Text("Nightingale")
                 .font(.largeTitle.bold())
                 .foregroundStyle(PatientPalette.ink)
             Text("Understand what is happening today, what may come next, and who is helping with your care.")
@@ -99,12 +99,13 @@ struct PatientWelcomeView: View {
 
     private var signInFields: some View {
         VStack(spacing: 14) {
-            TextField("Email", text: $email)
-                .textContentType(.emailAddress)
+            TextField("Email or demo login", text: $email)
+                .textContentType(.username)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .patientField()
+                .accessibilityIdentifier("patient-login-identifier")
             SecureField("Password", text: $password)
                 .textContentType(.password)
                 .patientField()
@@ -158,7 +159,8 @@ struct PatientWelcomeView: View {
 
     private var canSubmit: Bool {
         if mode == .signIn {
-            return email.contains("@") && !password.isEmpty
+            return PatientLoginIdentifier.isAcceptedForSignIn(email)
+                && !password.isEmpty
         }
         return UUID(uuidString: challengeUUID) != nil
             && challengeToken.count >= 32

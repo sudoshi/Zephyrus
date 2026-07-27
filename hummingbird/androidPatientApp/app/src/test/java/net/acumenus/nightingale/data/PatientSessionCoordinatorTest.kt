@@ -460,6 +460,7 @@ internal class FakePatientApiGateway(
     sessionListUnauthorizedOnce: Boolean = false,
 ) : PatientApiGateway {
     var passwordExchangeCalls = 0
+    val passwordIdentifiers = mutableListOf<String>()
     var enrollmentCalls = 0
     var profileCalls = 0
     var refreshCalls = 0
@@ -493,6 +494,7 @@ internal class FakePatientApiGateway(
         device: PatientDeviceDescriptor,
     ): PatientEnvelope<PatientTokenPair> {
         passwordExchangeCalls += 1
+        passwordIdentifiers += email
         passwordFailureStatus?.let { status ->
             throw PatientApiException(status, "sign_in_failed", "Sign-in failed")
         }

@@ -131,10 +131,10 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         app.launchEnvironment["HBP_PATIENT_API_BASE_URL"] = "https://127.0.0.1:1"
         app.launch()
 
-        let email = app.textFields["Email"]
-        XCTAssertTrue(email.waitForExistence(timeout: 5))
-        email.tap()
-        email.typeText("sample@example.test")
+        let loginIdentifier = app.descendants(matching: .any)["patient-login-identifier"]
+        XCTAssertTrue(loginIdentifier.waitForExistence(timeout: 5))
+        loginIdentifier.tap()
+        loginIdentifier.typeText("sample@example.test")
         let password = app.secureTextFields["Password"]
         password.tap()
         password.typeText("synthetic-password")
@@ -146,6 +146,27 @@ final class PatientReferenceJourneyUITests: XCTestCase {
         )
         XCTAssertFalse(app.staticTexts["staff"].exists)
         attachScreenshot(named: "Authentication-Error")
+    }
+
+    func testExactDemoLoginAliasEnablesCanonicalNightingaleSignIn() {
+        app.terminate()
+        app = XCUIApplication()
+        app.launchEnvironment["HBP_SYNTHETIC_REFERENCE"] = "0"
+        app.launchEnvironment["HBP_PATIENT_API_ENABLED"] = "1"
+        app.launchEnvironment["HBP_PATIENT_API_BASE_URL"] = "https://127.0.0.1:1"
+        app.launch()
+
+        let loginIdentifier = app.descendants(matching: .any)["patient-login-identifier"]
+        XCTAssertTrue(loginIdentifier.waitForExistence(timeout: 5))
+        loginIdentifier.tap()
+        loginIdentifier.typeText("demo1")
+
+        let password = app.secureTextFields["Password"]
+        password.tap()
+        password.typeText("synthetic-demo-ui-test-password")
+
+        XCTAssertTrue(app.buttons["Sign in securely"].isEnabled)
+        XCTAssertTrue(app.staticTexts["Nightingale"].exists)
     }
 
     private func attachScreenshot(named name: String) {

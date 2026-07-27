@@ -27,7 +27,7 @@ struct PatientPreferencesView: View {
 
                 Form {
                     Section {
-                        Text("Choose how Hummingbird Patient presents non-clinical account information. These choices never change your care plan, clinical orders, or urgent-help instructions.")
+                        Text("Choose how Nightingale presents non-clinical account information. These choices never change your care plan, clinical orders, or urgent-help instructions.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -74,7 +74,7 @@ struct PatientPreferencesView: View {
                                 Label(message, systemImage: "checkmark.shield.fill")
                                     .foregroundStyle(.secondary)
                                 if textSize == .extraLarge && highContrast {
-                                    Text("Extra Large text and high contrast are applied in Hummingbird Patient. Your device accessibility settings remain in effect.")
+                                    Text("Extra Large text and high contrast are applied in Nightingale. Your device accessibility settings remain in effect.")
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
                                         .accessibilityIdentifier("patient-preferences-applied-accessibility")
