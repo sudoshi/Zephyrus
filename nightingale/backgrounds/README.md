@@ -28,6 +28,13 @@ the selected image.
 filename, source SHA-256, original dimensions and byte count, plus the exact
 derivative path, SHA-256, dimensions, and byte count.
 
+[`rights/rights-review.v0.json`](rights/rights-review.v0.json) binds a separate
+pre-distribution review to those exact seven source records. It records two
+corroborated provider pages, one current provider download that matches the
+catalog source byte-for-byte, five unresolved exact sources, zero durable source
+archives, zero rights-cleared assets, and zero distribution-eligible assets.
+Filename or photographer-profile inference is explicitly insufficient.
+
 The original images total approximately 33 MB and are not duplicated in Git.
 Their immutable lineage is retained in the manifest. The committed derivatives
 total 4,439,974 bytes.
@@ -47,14 +54,17 @@ non-progressive derivative, or metadata-bearing marker:
 
 ```bash
 node scripts/ci/verify-nightingale-background-assets.mjs . --self-test
+node scripts/ci/verify-nightingale-background-rights.mjs . --self-test
 ```
 
 ## Distribution gate
 
-The project owner supplied these images for product use, but a durable
-license/attribution record is not present in this repository. These assets are
-therefore admitted to the non-live foundation only. Before any external,
-production, App Store, Play Store, pilot, or marketing distribution, the release
-owner must record the source archive location and applicable license or
-attribution evidence, then deliberately revise the manifest and its verifier.
-The current status must not be described as production-distribution approval.
+The project owner supplied these images for product use, but all seven still lack
+the complete durable archive, source/purchase record, applicable terms snapshot,
+attribution disposition, and release-owner approval required by the
+[dated review](../../docs/nightingale/BACKGROUND-RIGHTS-AND-SOURCE-ARCHIVE-REVIEW-2026-07-27.md).
+These assets are therefore admitted to the non-live foundation only. Before any
+external, production, App Store, Play Store, pilot, or marketing distribution,
+the release owner must create a reviewed successor rights record and deliberately
+revise the manifest and verifier. The current status must not be described as
+rights clearance or production-distribution approval.

@@ -56,8 +56,11 @@ The offline shell also consumes the same governed catalog of seven Nightingale b
 photos on both platforms. Each local Gregorian day maps to the same catalog entry on iOS
 and Android; the images are decorative, suppressible, hidden from accessibility meaning,
 and packaged behind strong scrims and content surfaces. Source lineage and exact derivative
-hashes are retained, while external distribution remains blocked until durable rights or
-attribution evidence and named human review are recorded.
+hashes are retained. A separate per-asset rights review now binds the seven source records,
+corroborates two Unsplash asset pages and one byte-for-byte current provider download,
+leaves five exact sources unresolved, and records zero durable archives, zero cleared
+assets, and zero distribution-eligible assets. External distribution remains blocked
+until complete durable source/terms evidence and named release-owner review are recorded.
 The current offline shell now also has a 15-string, exact cross-platform English source
 contract, three ordered headings, restrained status announcements, and native Debug
 language-readiness journeys. iOS passes rendered double-length and right-to-left layout
@@ -111,8 +114,10 @@ Current product-identity records:
 - [Foundation dependency inventory decision and evidence](./FOUNDATION-DEPENDENCY-INVENTORY-2026-07-26.md)
 - [Generated foundation dependency inventory](./supply-chain/foundation-dependency-inventory.v0.json)
 - [Background asset governance and native integration](./BACKGROUND-ASSET-GOVERNANCE-AND-NATIVE-INTEGRATION-2026-07-26.md)
+- [Background rights and source-archive review](./BACKGROUND-RIGHTS-AND-SOURCE-ARCHIVE-REVIEW-2026-07-27.md)
 - [Foundation privacy and release-control evidence](./FOUNDATION-PRIVACY-RELEASE-CONTROLS-2026-07-26.md)
 - [Governed background manifest](../../nightingale/backgrounds/backgrounds.v1.json)
+- [Fail-closed background rights review](../../nightingale/backgrounds/rights/rights-review.v0.json)
 - [Background catalog runtime and distribution rules](../../nightingale/backgrounds/README.md)
 - [Empty/default-off contract foundation](./api-contract/nightingale-foundation.v0.json)
 - [Identity candidate and fixtures](./identity/candidates/v0/candidate.json)
@@ -127,6 +132,7 @@ Current product-identity records:
 - [Authorized production sample-patient evidence](../evidence/nightingale/production-sample-patient-2026-07-27/README.md)
 - [Current-main product-boundary reconciliation evidence](../evidence/nightingale/current-main-reconciliation-2026-07-27/README.md)
 - [Controlled-pilot manifest acceptance evidence](../evidence/nightingale/controlled-pilot-manifest-2026-07-27/README.md)
+- [Background rights-review acceptance evidence](../evidence/nightingale/background-rights-review-2026-07-27/README.md)
 
 ## Lineage and filing rules
 

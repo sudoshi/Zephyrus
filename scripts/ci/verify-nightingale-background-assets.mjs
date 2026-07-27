@@ -10,6 +10,8 @@ import process from "node:process";
 const repoRoot = path.resolve(process.argv[2] ?? ".");
 const selfTest = process.argv.includes("--self-test");
 const manifestRelativePath = "nightingale/backgrounds/backgrounds.v1.json";
+const rightsReviewRelativePath =
+    "nightingale/backgrounds/rights/rights-review.v0.json";
 const derivativeRootRelativePath =
     "nightingale/backgrounds/optimized/drawable-nodpi";
 const expectedSchema = "net.acumenus.nightingale.background-assets.v1";
@@ -208,7 +210,9 @@ function verifyManifest(manifest, root) {
         manifest.rights?.license_or_attribution_record !==
             "pending_release_owner_confirmation" ||
         manifest.rights?.distribution_status !==
-            "foundation_only_pending_release_rights_record"
+            "foundation_only_pending_release_rights_record" ||
+        manifest.rights?.review_record !== rightsReviewRelativePath ||
+        manifest.rights?.review_record_status !== "distribution_hold"
     ) {
         violation(
             "source and pre-distribution rights status must remain explicit until release evidence is recorded",
@@ -216,6 +220,8 @@ function verifyManifest(manifest, root) {
     }
     if (
         manifest.source_retention?.original_binaries_committed !== false ||
+        manifest.source_retention?.rights_review_record !==
+            rightsReviewRelativePath ||
         manifest.derivative_recipe?.maximum_long_edge_pixels !== 2400 ||
         manifest.derivative_recipe?.upscaling_permitted !== false
     ) {

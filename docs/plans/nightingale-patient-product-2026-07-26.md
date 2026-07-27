@@ -240,6 +240,12 @@ and open. No patient feature becomes enabled.
 - [ ] Record a durable source-archive location and applicable license/attribution evidence
       for all seven supplied backgrounds before external, pilot, App Store, Play Store,
       production, or marketing distribution.
+      _(2026-07-27: a checksum-bound v0 rights review now reconciles all seven catalog
+      sources, corroborates two exact provider pages and one current byte-for-byte provider
+      download, records five unresolved sources and 0/7 distribution-eligible assets, and
+      enforces the hold with 20 negative mutations. The parent item remains open because
+      no asset yet has the complete durable original/source/terms archive and named
+      release-owner approval.)_
 - [ ] Obtain named patient-advisor and accessibility review of the image set, crops,
       legibility, comfort, cultural interpretation, and images-hidden behavior on supported
       physical devices, text sizes, appearances, languages, and orientations.
@@ -608,6 +614,16 @@ part of application development work.
         activation; and verify 34 synthetic cases plus 25 negative mutations. Keep the
         committed template empty, all executable activation facts false, and the sole
         structurally complete synthetic case limited to external review.
+23. [x] Convert the background-rights prose hold into a per-asset, checksum-bound,
+        fail-closed review queue. Reconcile all seven source filenames, dimensions, and
+        hashes; corroborate the two filename-identified Unsplash asset pages; prove one
+        current provider download is byte-for-byte identical and classify the other as a
+        resized/re-encoded source relation; leave five exact sources unresolved; require
+        an organization-controlled original/source/terms archive plus attribution and
+        named release-owner review for every image; and reject 20 invented-approval,
+        archive, identity, hash, count, and eligibility mutations. This creates no legal
+        determination and closes no parent release-rights item: 0/7 assets remain
+        distribution eligible.
 
 ### 9.1 Current-main collision checkpoint (non-milestone)
 
@@ -654,6 +670,30 @@ This closes one configuration-definition item and moves the master checklist to 
 (77.78%), leaving 12/54 open. All real approvals, identity/source implementation,
 patient-visible operations, human validation, signed distribution, production-like
 exercises, pilot authorization, merge, and deployment remain open.
+
+### 9.3 Background rights-review checkpoint
+
+The background distribution hold is now an exact review queue rather than an
+unstructured future task. The machine-readable v0 record is
+`nightingale/backgrounds/rights/rights-review.v0.json`; the detailed evidence standard,
+per-asset reconciliation, archive requirements, closure procedure, and residual risks are
+in
+`docs/nightingale/BACKGROUND-RIGHTS-AND-SOURCE-ARCHIVE-REVIEW-2026-07-27.md`.
+
+The record binds all seven source identities to the immutable catalog lineage.
+Provider-asset IDs in two filenames reconcile to exact Unsplash pages and creators. One
+current provider download equals the catalog source binary; the other is corroborated as
+the same resized/re-encoded image. Five exact sources remain unresolved. No image has the
+required durable organization-controlled original/source/terms archive or named
+release-owner decision, so all seven remain distribution-ineligible.
+
+The independent verifier is integrated into the contract CI and native product boundary.
+It checks the catalog digest, exact per-asset records, 7/2/1/5/0 summary, global hold, and
+20 negative mutations. It cannot issue approval. A reviewed, versioned successor record
+is required before the catalog distribution state can change.
+
+This completes immediate milestone 23 only. It does not close a parent checkbox or change
+the 42/54 (77.78%) count.
 
 ## 10. Explicit holds
 

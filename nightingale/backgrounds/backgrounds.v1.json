@@ -17,12 +17,15 @@
     "rights": {
         "source": "user_supplied_by_project_owner",
         "license_or_attribution_record": "pending_release_owner_confirmation",
-        "distribution_status": "foundation_only_pending_release_rights_record"
+        "distribution_status": "foundation_only_pending_release_rights_record",
+        "review_record": "nightingale/backgrounds/rights/rights-review.v0.json",
+        "review_record_status": "distribution_hold"
     },
     "source_retention": {
         "original_binaries_committed": false,
         "reason": "Avoid duplicating 33 MB of unoptimized source media in Git; retain immutable source lineage and the exact app derivatives.",
-        "required_release_record": "Archive location and applicable license or attribution evidence must be recorded before external distribution."
+        "required_release_record": "Archive location and applicable license or attribution evidence must be recorded before external distribution.",
+        "rights_review_record": "nightingale/backgrounds/rights/rights-review.v0.json"
     },
     "derivative_recipe": {
         "resize": "sips JPEG quality 82; preserve original dimensions when the long edge is at most 2400 px, otherwise constrain the long edge to 2400 px",

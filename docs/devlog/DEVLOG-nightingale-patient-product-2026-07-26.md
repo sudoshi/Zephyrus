@@ -2314,3 +2314,79 @@ deployment authorization.
   visible commits scanned with zero findings. The five working-directory findings were
   confined to ignored Android build/test output and are absent from a clean checkout;
   they were not treated as repository findings.
+
+## 2026-07-27 — Fail-closed background rights and source-archive review
+
+### Evidence reconciliation
+
+- Replaced the background distribution hold's single prose assertion with a separate,
+  immutable v0 review bound to the exact seven catalog IDs, source filenames, source
+  dimensions, source SHA-256 values, and catalog-file digest.
+- Applied a deliberately narrow evidence standard: filenames and photographer profiles
+  are not source or rights evidence; live provider pages require asset-level
+  reconciliation; live license pages are observations rather than durable terms
+  snapshots; local workstation paths are not durable archives; and committed optimized
+  derivatives are not original archives.
+- Resolved the filename-embedded Unsplash IDs for catalog assets 05 and 06 to their exact
+  official pages. Recorded creator, canonical URL, publication timestamp, provider
+  dimensions, current download hash/dimensions, checked date, and the provider's current
+  license/terms URLs.
+- Proved asset 06's current provider download is byte-for-byte identical to the catalog
+  source. For asset 05, reconciled the current 2608x3912 provider source to the supplied
+  2400x3600 encoding with normalized RMSE `0.0112669` and perceptual-hash distance
+  `0.0247332`; classified it only as the same resized/re-encoded provider asset.
+- Left assets 01, 02, 03, 04, and 07 unresolved. Search results, visually similar images,
+  generic wallpaper pages, and inferred stock providers were not promoted to evidence.
+- Recorded zero durable source archives, zero durable license snapshots, zero
+  rights-cleared assets, zero release-owner approvals, and zero distribution-eligible
+  assets. No legal determination was made.
+
+### Fail-closed control
+
+- Added `nightingale/backgrounds/rights/rights-review.v0.json` and linked it from the
+  governed catalog without weakening the existing foundation-only distribution state.
+- Added an independent rights verifier to both the Nightingale contract CI job and the
+  native product-boundary chain. It performs no network request and validates the frozen
+  v0 observation rather than treating volatile provider state as a release decision.
+- The verifier reconciles every row to catalog lineage, requires the exact two identified
+  provider records and five unresolved records, holds every archive/approval/eligibility
+  field empty or false, and checks summary counts.
+- Twenty adversarial mutations failed closed, covering invented distribution/legal/
+  release-owner approval, automated release, missing/duplicate assets, source and catalog
+  hash drift, guessed provider identity, false binary equivalence, local-path archive
+  promotion, invented terms evidence, rights/eligibility count inflation, and
+  filename-only rights evidence.
+- Added the detailed decision record under
+  `docs/nightingale/BACKGROUND-RIGHTS-AND-SOURCE-ARCHIVE-REVIEW-2026-07-27.md` and exact
+  acceptance evidence under
+  `docs/evidence/nightingale/background-rights-review-2026-07-27/`.
+
+### Complete regression acceptance
+
+- The expanded 15-stage contract/governance/backend/native-boundary chain passed,
+  including the new 7-asset/20-mutation rights verifier. The focused Laravel suite
+  remained 23/23 tests and 149 assertions.
+- Reproduced the iOS project with XcodeGen. A combined unsigned test-host trial correctly
+  failed only the Keychain canary with `errSecMissingEntitlement` (`-34018`), while its UI
+  target passed 6/6. Rejected that aggregate run and separated signing concerns.
+- The accepted iPhone 16e/iOS 26.3.1 runs passed 11/11 unit tests and 6/6 UI journeys in
+  clean result bundles with normal simulator ad-hoc signing. The separately unsigned
+  Release application passed the exact identity, privacy, dependency, no-network,
+  no-deep-link, no-test-hook, English-copy, and seven-background boundary.
+- Preserved the other process's API 35 emulator on port 5554. Cold-booted a second
+  read-only `hb` instance on port 5556 with snapshots disabled. Forced 108/108 Gradle
+  tasks, passing 8/8 Debug and 8/8 Release JVM tests, both lint variants, both assemblies,
+  the unsigned Release APK boundary, and 10/10 installed journeys with zero failures,
+  errors, or skips. Terminated only port 5556.
+
+### Checklist and safety accounting
+
+- Added immediate-sequence milestone 23 for the completed evidence/control slice. The
+  parent source-archive/license/attribution checkbox remains open because 0/7 assets have
+  the complete durable original/source/terms archive and named release-owner decision.
+- Exact parent checklist accounting remains 42 checked, 12 open, 54 total:
+  **77.78% complete**.
+- This slice made no production database access or sample-patient change. The authorized
+  Nightingale reference patient remains pending/inactive and unreachable. No runtime
+  route, source adapter, identity provider, patient content, notification, signing,
+  distribution, deployment, pilot, or activation was added.

@@ -1,0 +1,344 @@
+{
+    "schema": "net.acumenus.nightingale.background-rights-review.v0",
+    "review_id": "nightingale-background-rights-review-2026-07-27-v0",
+    "as_of": "2026-07-27",
+    "scope": "source_identity_archive_and_provider_terms_evidence_only",
+    "legal_determination": "none",
+    "release_owner_approval": null,
+    "distribution_status": "hold",
+    "automated_release_permitted": false,
+    "catalog": {
+        "path": "nightingale/backgrounds/backgrounds.v1.json",
+        "sha256": "e50cc7351a61308d23b2292062eb752fe83da922b385b48beae071c42dfc9768",
+        "asset_count": 7
+    },
+    "counts": {
+        "assets": 7,
+        "provider_pages_identified": 2,
+        "current_provider_download_binary_matches": 1,
+        "source_identity_unresolved": 5,
+        "durably_archived_sources": 0,
+        "durably_archived_license_records": 0,
+        "rights_cleared_assets": 0,
+        "distribution_eligible_assets": 0
+    },
+    "archive_policy": {
+        "machine_local_path_is_durable": false,
+        "repository_derivative_is_original_archive": false,
+        "filename_is_rights_evidence": false,
+        "provider_profile_is_asset_identity_evidence": false,
+        "provider_page_without_source_binary_reconciliation_is_sufficient": false,
+        "required_for_each_asset": [
+            "immutable_original_binary_location",
+            "original_binary_sha256_equal_to_catalog_source_sha256",
+            "durable_source_or_purchase_record",
+            "durable_applicable_license_terms_snapshot",
+            "creator_or_rightsholder_record",
+            "attribution_or_no_attribution_requirement",
+            "release_owner_approval_record"
+        ],
+        "acceptable_archive_properties": [
+            "organization_controlled",
+            "access_controlled",
+            "versioned_or_object_locked",
+            "checksum_verifiable",
+            "retention_governed",
+            "retrievable_without_one_persons_workstation"
+        ]
+    },
+    "provider_terms_observations": [
+        {
+            "provider": "Unsplash",
+            "license_name": "Unsplash License",
+            "license_url": "https://unsplash.com/license",
+            "terms_url": "https://unsplash.com/terms",
+            "observed_on": "2026-07-27",
+            "observation": "The provider currently labels both identified asset pages free to use under the Unsplash License. This live observation is not a durable terms archive, a legal opinion, or release approval.",
+            "durable_snapshot_location": null,
+            "durable_snapshot_sha256": null,
+            "release_owner_reviewed": false
+        }
+    ],
+    "assets": [
+        {
+            "id": "nightingale-background-01",
+            "source_filename": "1031776-1400x1980-phone-hd-robin-bird-background-photo.jpg",
+            "source_sha256": "4bdd867e6e722ec4947cdef67a21309109c3fdbaa58e75369fb0542c4a9dadc5",
+            "source_dimensions": {
+                "width": 1400,
+                "height": 1980
+            },
+            "provider_source_status": "unresolved_exact_source",
+            "provider": null,
+            "provider_asset_id": null,
+            "creator_or_rightsholder": null,
+            "canonical_source_url": null,
+            "source_identity_evidence": [],
+            "license_evidence_status": "not_identified",
+            "license_name": null,
+            "license_url": null,
+            "attribution_requirement": "unknown",
+            "archive": {
+                "original_binary_location": null,
+                "original_binary_sha256_verified": false,
+                "source_record_location": null,
+                "license_terms_snapshot_location": null,
+                "license_terms_snapshot_sha256": null
+            },
+            "release_owner_approval_record": null,
+            "release_eligible": false,
+            "blockers": [
+                "exact provider source unresolved",
+                "applicable license or purchase record absent",
+                "durable original archive absent",
+                "release owner approval absent"
+            ]
+        },
+        {
+            "id": "nightingale-background-02",
+            "source_filename": "HD-wallpaper-nightingale-bird-feathers-bright.jpg",
+            "source_sha256": "aa5fdef716bc669e2c20c3aa5482abd4e8089de5308b10dc15df86498ff52cdb",
+            "source_dimensions": {
+                "width": 800,
+                "height": 1169
+            },
+            "provider_source_status": "unresolved_exact_source",
+            "provider": null,
+            "provider_asset_id": null,
+            "creator_or_rightsholder": null,
+            "canonical_source_url": null,
+            "source_identity_evidence": [],
+            "license_evidence_status": "not_identified",
+            "license_name": null,
+            "license_url": null,
+            "attribution_requirement": "unknown",
+            "archive": {
+                "original_binary_location": null,
+                "original_binary_sha256_verified": false,
+                "source_record_location": null,
+                "license_terms_snapshot_location": null,
+                "license_terms_snapshot_sha256": null
+            },
+            "release_owner_approval_record": null,
+            "release_eligible": false,
+            "blockers": [
+                "exact provider source unresolved",
+                "applicable license or purchase record absent",
+                "durable original archive absent",
+                "release owner approval absent"
+            ]
+        },
+        {
+            "id": "nightingale-background-03",
+            "source_filename": "beautiful-sparrow-sitting-thin-branch-tree.jpg",
+            "source_sha256": "c598a9c6e05dc93698d0a66d8ba9917fa5a1c253f767c46914e3d0a4c9de3a1e",
+            "source_dimensions": {
+                "width": 2667,
+                "height": 4000
+            },
+            "provider_source_status": "unresolved_exact_source",
+            "provider": null,
+            "provider_asset_id": null,
+            "creator_or_rightsholder": null,
+            "canonical_source_url": null,
+            "source_identity_evidence": [],
+            "license_evidence_status": "not_identified",
+            "license_name": null,
+            "license_url": null,
+            "attribution_requirement": "unknown",
+            "archive": {
+                "original_binary_location": null,
+                "original_binary_sha256_verified": false,
+                "source_record_location": null,
+                "license_terms_snapshot_location": null,
+                "license_terms_snapshot_sha256": null
+            },
+            "release_owner_approval_record": null,
+            "release_eligible": false,
+            "blockers": [
+                "exact provider source unresolved",
+                "applicable license or purchase record absent",
+                "durable original archive absent",
+                "release owner approval absent"
+            ]
+        },
+        {
+            "id": "nightingale-background-04",
+            "source_filename": "common-linnet-bird-carduelis-cannabina-perched-branch-tree-with-yellow-blossoms.jpg",
+            "source_sha256": "3379a5b8b527c0e796e1835d797beb5ab68bb71f3efd105fef1b181c2897044f",
+            "source_dimensions": {
+                "width": 2667,
+                "height": 4000
+            },
+            "provider_source_status": "unresolved_exact_source",
+            "provider": null,
+            "provider_asset_id": null,
+            "creator_or_rightsholder": null,
+            "canonical_source_url": null,
+            "source_identity_evidence": [],
+            "license_evidence_status": "not_identified",
+            "license_name": null,
+            "license_url": null,
+            "attribution_requirement": "unknown",
+            "archive": {
+                "original_binary_location": null,
+                "original_binary_sha256_verified": false,
+                "source_record_location": null,
+                "license_terms_snapshot_location": null,
+                "license_terms_snapshot_sha256": null
+            },
+            "release_owner_approval_record": null,
+            "release_eligible": false,
+            "blockers": [
+                "exact provider source unresolved",
+                "applicable license or purchase record absent",
+                "durable original archive absent",
+                "release owner approval absent"
+            ]
+        },
+        {
+            "id": "nightingale-background-05",
+            "source_filename": "miguel-alcantara-VCq1vozVMbw-unsplash.jpg",
+            "source_sha256": "a80c1a17fe9885e95eca3bd1d45acb2f63c4a7119c0848819b9c51092649b93c",
+            "source_dimensions": {
+                "width": 2400,
+                "height": 3600
+            },
+            "provider_source_status": "provider_asset_identity_corroborated_resized_input",
+            "provider": "Unsplash",
+            "provider_asset_id": "VCq1vozVMbw",
+            "creator_or_rightsholder": "Miguel Alcântara",
+            "canonical_source_url": "https://unsplash.com/photos/a-small-bird-perched-on-a-tree-branch-VCq1vozVMbw",
+            "source_identity_evidence": [
+                {
+                    "observed_on": "2026-07-27",
+                    "page_title": "A small bird perched on a tree branch photo – Free Bird Image on Unsplash",
+                    "page_reported_dimensions": {
+                        "width": 2608,
+                        "height": 3912
+                    },
+                    "page_published_at": "2024-04-09T07:48:49.000Z",
+                    "current_provider_download_sha256": "43a46fa15e8317105c3478193a48f5f9ab5e3d81d2b1f9c4dd24a8a287ed78ab",
+                    "current_provider_download_dimensions": {
+                        "width": 2608,
+                        "height": 3912
+                    },
+                    "catalog_source_relation": "same_provider_asset_resized_and_reencoded",
+                    "normalized_rmse": 0.0112669,
+                    "perceptual_hash_distance": 0.0247332,
+                    "method_limit": "Pixel similarity corroborates source identity but does not replace the archived 2400x3600 binary or a rights record."
+                }
+            ],
+            "license_evidence_status": "current_provider_terms_observed_not_archived",
+            "license_name": "Unsplash License",
+            "license_url": "https://unsplash.com/license",
+            "attribution_requirement": "provider_currently_states_not_required_but_appreciated",
+            "archive": {
+                "original_binary_location": null,
+                "original_binary_sha256_verified": false,
+                "source_record_location": null,
+                "license_terms_snapshot_location": null,
+                "license_terms_snapshot_sha256": null
+            },
+            "release_owner_approval_record": null,
+            "release_eligible": false,
+            "blockers": [
+                "catalog source binary has no durable organization-controlled archive",
+                "provider page and applicable terms have no durable snapshot",
+                "release owner approval absent"
+            ]
+        },
+        {
+            "id": "nightingale-background-06",
+            "source_filename": "muhammad-shakir-g3mOCylYkmk-unsplash.jpg",
+            "source_sha256": "507f7325791acdd3f0a885d635c4be4037267079507e9efc56a6a3151ae537f1",
+            "source_dimensions": {
+                "width": 3456,
+                "height": 5184
+            },
+            "provider_source_status": "current_provider_download_binary_matched",
+            "provider": "Unsplash",
+            "provider_asset_id": "g3mOCylYkmk",
+            "creator_or_rightsholder": "Muhammad Shakir",
+            "canonical_source_url": "https://unsplash.com/photos/a-small-bird-sitting-on-top-of-a-brick-wall-g3mOCylYkmk",
+            "source_identity_evidence": [
+                {
+                    "observed_on": "2026-07-27",
+                    "page_title": "A small bird sitting on top of a brick wall photo – Free Forest Image on Unsplash",
+                    "page_reported_dimensions": {
+                        "width": 3456,
+                        "height": 5184
+                    },
+                    "page_published_at": "2023-12-30T08:54:25.000Z",
+                    "current_provider_download_sha256": "507f7325791acdd3f0a885d635c4be4037267079507e9efc56a6a3151ae537f1",
+                    "current_provider_download_dimensions": {
+                        "width": 3456,
+                        "height": 5184
+                    },
+                    "catalog_source_relation": "byte_for_byte_match",
+                    "method_limit": "A current binary match identifies the provider asset but does not create a durable source or terms archive."
+                }
+            ],
+            "license_evidence_status": "current_provider_terms_observed_not_archived",
+            "license_name": "Unsplash License",
+            "license_url": "https://unsplash.com/license",
+            "attribution_requirement": "provider_currently_states_not_required_but_appreciated",
+            "archive": {
+                "original_binary_location": null,
+                "original_binary_sha256_verified": false,
+                "source_record_location": null,
+                "license_terms_snapshot_location": null,
+                "license_terms_snapshot_sha256": null
+            },
+            "release_owner_approval_record": null,
+            "release_eligible": false,
+            "blockers": [
+                "catalog source binary has no durable organization-controlled archive",
+                "provider page and applicable terms have no durable snapshot",
+                "release owner approval absent"
+            ]
+        },
+        {
+            "id": "nightingale-background-07",
+            "source_filename": "vertical-closeup-shot-brown-shrike-bird-perched-branch.jpg",
+            "source_sha256": "2c6f15fae52da5543a470210e2d8cdddf6ed2f0a50dd3a241a85bf36119ee484",
+            "source_dimensions": {
+                "width": 5304,
+                "height": 6630
+            },
+            "provider_source_status": "unresolved_exact_source",
+            "provider": null,
+            "provider_asset_id": null,
+            "creator_or_rightsholder": null,
+            "canonical_source_url": null,
+            "source_identity_evidence": [],
+            "license_evidence_status": "not_identified",
+            "license_name": null,
+            "license_url": null,
+            "attribution_requirement": "unknown",
+            "archive": {
+                "original_binary_location": null,
+                "original_binary_sha256_verified": false,
+                "source_record_location": null,
+                "license_terms_snapshot_location": null,
+                "license_terms_snapshot_sha256": null
+            },
+            "release_owner_approval_record": null,
+            "release_eligible": false,
+            "blockers": [
+                "exact provider source unresolved",
+                "applicable license or purchase record absent",
+                "durable original archive absent",
+                "release owner approval absent"
+            ]
+        }
+    ],
+    "required_next_actions": [
+        "Release owner identifies the exact provider or purchase source for assets 01, 02, 03, 04, and 07 without relying on filename-only inference.",
+        "Archive all seven exact source binaries under organization control and record immutable locations whose retrieved SHA-256 values equal the catalog source hashes.",
+        "Archive the source or purchase page and the applicable license terms for every asset, including the terms version or capture time and checksums.",
+        "Record creator or rightsholder and exact attribution requirements for every asset.",
+        "Obtain legal or release-owner review and record a dated approval or rejection for every asset.",
+        "Only after every per-asset requirement passes, create a reviewed successor record and deliberately change the distribution gate."
+    ]
+}

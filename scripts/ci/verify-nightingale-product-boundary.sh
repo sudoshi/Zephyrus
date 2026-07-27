@@ -23,6 +23,8 @@ android_ui_tests="$repo_root/nightingale/androidApp/app/src/androidTest/java/net
 background_manifest="$repo_root/nightingale/backgrounds/backgrounds.v1.json"
 background_assets="$repo_root/nightingale/backgrounds/optimized/drawable-nodpi"
 background_verifier="$repo_root/scripts/ci/verify-nightingale-background-assets.mjs"
+background_rights_review="$repo_root/nightingale/backgrounds/rights/rights-review.v0.json"
+background_rights_verifier="$repo_root/scripts/ci/verify-nightingale-background-rights.mjs"
 copy_verifier="$repo_root/scripts/ci/verify-nightingale-foundation-copy.mjs"
 namespace_verifier="$repo_root/scripts/ci/verify-nightingale-namespace-foundation.mjs"
 controlled_pilot_verifier="$repo_root/scripts/ci/verify-nightingale-controlled-pilot-manifest.mjs"
@@ -58,6 +60,8 @@ for required_path in \
     "$background_manifest" \
     "$background_assets" \
     "$background_verifier" \
+    "$background_rights_review" \
+    "$background_rights_verifier" \
     "$copy_verifier" \
     "$namespace_verifier" \
     "$controlled_pilot_verifier" \
@@ -165,6 +169,7 @@ command -v node >/dev/null 2>&1 || {
 }
 
 node "$background_verifier" "$repo_root" --self-test
+node "$background_rights_verifier" "$repo_root" --self-test
 node "$copy_verifier" "$repo_root" --self-test
 node "$namespace_verifier" "$repo_root" --self-test
 node "$controlled_pilot_verifier" "$repo_root" --self-test
