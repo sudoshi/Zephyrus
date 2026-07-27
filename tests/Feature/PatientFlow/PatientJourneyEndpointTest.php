@@ -3,8 +3,8 @@
 namespace Tests\Feature\PatientFlow;
 
 use App\Models\BedRequest;
-use App\Models\User;
 use App\Models\PatientFlow\FlowEvent;
+use App\Models\User;
 use App\Services\Mobile\MobilePatientContextService;
 use App\Services\PatientFlow\FlowEventNormalizer;
 use App\Services\PatientFlow\FlowEventRepository;

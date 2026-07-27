@@ -7,6 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -84,7 +85,7 @@ class RefreshArenaConformance implements ShouldQueue
      *
      * @param  array<string, mixed>  $pathway
      */
-    private function storeCaseVerdicts(array $pathway, \Illuminate\Support\Carbon $now): void
+    private function storeCaseVerdicts(array $pathway, Carbon $now): void
     {
         $key = (string) ($pathway['pathway'] ?? '');
         $caseResults = $pathway['case_results'] ?? [];

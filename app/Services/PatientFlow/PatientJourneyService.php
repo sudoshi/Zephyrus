@@ -10,6 +10,7 @@ use App\Models\Evs\EvsRequest;
 use App\Models\Transport\TransportRequest;
 use App\Services\Flow\FlowLensService;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -287,7 +288,7 @@ class PatientJourneyService
      * admit-decision to bed-assignment (or departure) — is the interval the
      * whole flow discipline exists to shorten; it gets first-class framing.
      *
-     * @param  \Illuminate\Support\Collection<int, EdVisit>  $edVisits
+     * @param  Collection<int, EdVisit>  $edVisits
      * @return list<array<string, mixed>>
      */
     private function edPhases($edVisits): array
@@ -402,9 +403,9 @@ class PatientJourneyService
      * Transport / bed-request / EVS context rows — hand-built, opaque-only
      * (no patient/encounter refs survive into the payload).
      *
-     * @param  \Illuminate\Support\Collection<int, TransportRequest>  $transport
-     * @param  \Illuminate\Support\Collection<int, BedRequest>  $bedRequests
-     * @param  \Illuminate\Support\Collection<int, EvsRequest>  $evs
+     * @param  Collection<int, TransportRequest>  $transport
+     * @param  Collection<int, BedRequest>  $bedRequests
+     * @param  Collection<int, EvsRequest>  $evs
      * @return list<array<string, mixed>>
      */
     private function logistics($transport, $bedRequests, $evs): array
@@ -521,8 +522,8 @@ class PatientJourneyService
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, TransportRequest>  $transport
-     * @param  \Illuminate\Support\Collection<int, BedRequest>  $bedRequests
+     * @param  Collection<int, TransportRequest>  $transport
+     * @param  Collection<int, BedRequest>  $bedRequests
      * @return array<string, mixed>
      */
     private function next(?Encounter $encounter, $transport, $bedRequests): array
