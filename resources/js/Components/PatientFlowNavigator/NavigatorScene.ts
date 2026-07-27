@@ -501,6 +501,11 @@ export class NavigatorScene {
     this.clearSelectionVisual();
   }
 
+  /** The current stable selection, for view-link snapshots (E5). */
+  getSelectedEntity(): SelectionEntity | null {
+    return this.selectedEntity;
+  }
+
   /** Stable entity for a hit, or null for mesh-only kinds (ghost/base). */
   private entityForMesh(mesh: THREE.Mesh): SelectionEntity | null {
     const data = mesh.userData ?? {};

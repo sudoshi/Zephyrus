@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bookmark, Bot, Home, Pause, Play, Radio, ScanSearch } from 'lucide-react';
+import { Bookmark, Bot, Home, Link2, Pause, Play, Radio, ScanSearch } from 'lucide-react';
 import type {
   OccupancySummary,
   PatientFlowAmbient,
@@ -80,6 +80,10 @@ interface NavigatorToolbarProps {
   savedViews: boolean[];
   onSaveView: (slot: number) => void;
   onApplyView: (slot: number) => void;
+  /** E5: copy the exact current view (camera/floor/layers/time/selection) as a URL. */
+  onCopyViewLink: () => void;
+  /** E5: copy a saved-view bookmark as a URL. */
+  onCopySavedViewLink: (slot: number) => void;
   /** Virtual Rounds run HUD + tour controls (R-5/R-6a); null → no run. */
   roundsHud: RoundsHudModel | null;
   tourAuto: boolean;
@@ -125,6 +129,8 @@ export default function NavigatorToolbar({
   savedViews,
   onSaveView,
   onApplyView,
+  onCopyViewLink,
+  onCopySavedViewLink,
   roundsHud,
   tourAuto,
   onTourPrev,
@@ -224,6 +230,15 @@ export default function NavigatorToolbar({
         >
           <ScanSearch />
         </button>
+        <button
+          className="patient-flow-icon-button"
+          type="button"
+          title="Copy a link to this exact view (camera, floor, layers, time, selection)"
+          aria-label="Copy view link"
+          onClick={onCopyViewLink}
+        >
+          <Link2 />
+        </button>
         {eddyEnabled && (
           <button
             className="patient-flow-icon-button"
@@ -258,6 +273,16 @@ export default function NavigatorToolbar({
             >
               <Bookmark aria-hidden="true" />
             </button>
+            {hasView && (
+              <button
+                type="button"
+                aria-label={`Copy view ${slot + 1} as a link`}
+                title={`Copy view ${slot + 1} as a shareable link`}
+                onClick={() => onCopySavedViewLink(slot)}
+              >
+                <Link2 aria-hidden="true" />
+              </button>
+            )}
           </div>
         ))}
       </div>

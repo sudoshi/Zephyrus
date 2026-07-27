@@ -171,6 +171,58 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Window presets (TN-6): the census-toggle radio-chip idiom, sized for the
+   chronobar head. Historical sources disable rather than mislead. */
+.patient-flow-chronobar-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  height: 24px;
+  margin-top: 4px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 5px;
+  overflow: hidden;
+  background: #202522;
+  font-size: 11px;
+}
+
+.patient-flow-chronobar-presets label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  cursor: pointer;
+  user-select: none;
+  color: #b9b2a6;
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-flow-chronobar-presets label.active {
+  background: rgba(224, 163, 63, 0.16);
+  color: #ffd795;
+}
+
+.patient-flow-chronobar-presets label:has(input:disabled) {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.patient-flow-chronobar-presets input[type='radio'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.patient-flow-chronobar-presets label:has(input:focus-visible) {
+  outline: 2px solid #e0a33f;
+  outline-offset: -2px;
+}
+
 /* Scented scrubber (plan B5, TN-1): a quiet event-density row above the
    track — intensity is opacity on one neutral ink, never a status color. */
 .patient-flow-chronobar-density {

@@ -53,6 +53,8 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
     onSelectSearchResult: vi.fn(),
     onSaveView: vi.fn(),
     onApplyView: vi.fn(),
+    onCopyViewLink: vi.fn(),
+    onCopySavedViewLink: vi.fn(),
     onTourPrev: vi.fn(),
     onTourNext: vi.fn(),
     onTourAutoToggle: vi.fn(),
@@ -237,6 +239,23 @@ describe('NavigatorToolbar saved views (N-7)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Save current view to slot 3' }));
     expect(handlers.onSaveView).toHaveBeenCalledWith(2);
+  });
+});
+
+describe('NavigatorToolbar view links (E5)', () => {
+  it('copies the current view from the always-available toolbar action', () => {
+    const handlers = renderToolbar();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy view link' }));
+    expect(handlers.onCopyViewLink).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers copy-as-link only on filled saved-view slots', () => {
+    const handlers = renderToolbar({ savedViews: [true, false, false] });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy view 1 as a link' }));
+    expect(handlers.onCopySavedViewLink).toHaveBeenCalledWith(0);
+    expect(screen.queryByRole('button', { name: 'Copy view 2 as a link' })).not.toBeInTheDocument();
   });
 });
 
