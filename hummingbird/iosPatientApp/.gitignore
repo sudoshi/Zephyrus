@@ -1,0 +1,9 @@
+# Xcode / xcodebuild artifacts (transient — never commit).
+# Note: HummingbirdPatient.xcodeproj IS tracked here — CI regenerates it from
+# project.yml and diffs the result (scripts/ci/verify-hummingbird-patient-xcode-project.sh).
+.build-device/
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.build-archive/

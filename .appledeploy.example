@@ -1,0 +1,50 @@
+# .appledeploy.example — template for .appledeploy (which is gitignored).
+#
+#   cp .appledeploy.example .appledeploy    # then fill in the blanks
+#   ./testflight.sh doctor                  # verifies everything below
+#
+# Nothing secret belongs in THIS file. The only real secret is the .p8 private
+# key, which lives outside the repo at ASC_KEY_PATH.
+
+# ── Team ───────────────────────────────────────────────────────────────────────
+# Apple Developer → Membership details → Team ID.
+APPLE_TEAM_ID=
+# Apple ID of the account that owns the App Store Connect key.
+APPLE_ACCOUNT=
+
+# ── App Store Connect API key ──────────────────────────────────────────────────
+# App Store Connect → Users & Access → Integrations → App Store Connect API.
+# Generate a key with the "App Manager" role, then:
+#   • KEY_ID    is shown in the key list
+#   • ISSUER_ID is shown once at the top of that page (one per team)
+#   • the AuthKey_<KEY_ID>.p8 downloads EXACTLY ONCE — back it up somewhere safe
+#     and drop it at the path below.
+ASC_KEY_ID=
+ASC_ISSUER_ID=
+ASC_KEY_PATH=$HOME/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8
+
+# ── Apps ───────────────────────────────────────────────────────────────────────
+# Space-separated slugs; each needs a matching <UPPERCASE_SLUG>_* block below.
+# Slugs are what you pass to ./testflight.sh.
+APPS="hummingbird nightingale"
+
+# Clinician companion app.
+HUMMINGBIRD_NAME="Zephyrus-Hummingbird"
+HUMMINGBIRD_APP_ID=            # numeric App Store Connect id (./testflight.sh apps)
+HUMMINGBIRD_BUNDLE_ID=net.acumenus.hummingbird
+HUMMINGBIRD_DIR=hummingbird/iosApp
+HUMMINGBIRD_XCODEPROJ=Hummingbird.xcodeproj
+HUMMINGBIRD_SCHEME=Hummingbird
+
+# Patient-facing app.
+NIGHTINGALE_NAME="Zephyrus-Nightingale"
+NIGHTINGALE_APP_ID=
+NIGHTINGALE_BUNDLE_ID=net.acumenus.nightingale
+NIGHTINGALE_DIR=hummingbird/iosPatientApp
+NIGHTINGALE_XCODEPROJ=HummingbirdPatient.xcodeproj
+NIGHTINGALE_SCHEME=HummingbirdPatient
+
+# ── Optional ───────────────────────────────────────────────────────────────────
+# Default beta tester group for `./testflight.sh distribute <app>` and
+# `./testflight.sh ship <app> --to`. Must exist in App Store Connect first.
+TESTFLIGHT_GROUP=""
