@@ -584,9 +584,9 @@ final class SystemHealthService
     private function probePatientProjectionPipeline(): array
     {
         $gates = [
-            'patientProduct' => (bool) config('hummingbird-patient.enabled', false),
-            'patientPathway' => (bool) config('hummingbird-patient.features.pathway', false),
-            'pathwayHistoryDrafts' => (bool) config('hummingbird-patient.features.pathway_history_drafts', false),
+            'patientProduct' => (bool) config('nightingale.enabled', false),
+            'patientPathway' => (bool) config('nightingale.features.pathway', false),
+            'pathwayHistoryDrafts' => (bool) config('nightingale.features.pathway_history_drafts', false),
             'carePathwaysPatient' => (bool) config('care-pathways.patient_enabled', false),
         ];
         $enabledGateCount = collect($gates)->filter()->count();
@@ -783,7 +783,7 @@ final class SystemHealthService
     private function patientPathwayProjectionSummary(CarbonImmutable $observedAt): object
     {
         $producerVersion = (string) config(
-            'hummingbird-patient.pathway_history_drafts.producer_version',
+            'nightingale.pathway_history_drafts.producer_version',
             'patient-pathway-history-draft-v1',
         );
         $latest = DB::table('patient_experience.encounter_projections as candidates')
@@ -860,7 +860,7 @@ final class SystemHealthService
     private function patientPathwayFailureSummary(CarbonImmutable $observedAt, int $windowMinutes): object
     {
         $sourceSystemKey = (string) config(
-            'hummingbird-patient.pathway_history_drafts.source_system_key',
+            'nightingale.pathway_history_drafts.source_system_key',
             'care-pathways.pathway-history-v1',
         );
 

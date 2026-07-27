@@ -39,7 +39,7 @@ final class PatientProjectionPipelineHealthTest extends TestCase
 
     public function test_monitor_warns_when_only_some_patient_pathway_governance_gates_are_enabled(): void
     {
-        config(['hummingbird-patient.enabled' => true]);
+        config(['nightingale.enabled' => true]);
 
         $snapshot = app(SystemHealthService::class)->collect('scheduled');
         $component = collect($snapshot['observations'])->firstWhere('key', 'patient_projection_pipeline');
@@ -194,7 +194,7 @@ final class PatientProjectionPipelineHealthTest extends TestCase
     private function provisionObservedPathway(Carbon $sourceObservedAt): PatientPathwayInstance
     {
         [$fixture, $version, $stage, $milestone] = $this->prepareObservedPathway();
-        config(['hummingbird-patient.policy_version' => (string) $fixture['policy']->version]);
+        config(['nightingale.policy_version' => (string) $fixture['policy']->version]);
 
         return app(PatientPathwaySourceReconciliationService::class)->reconcile(
             $fixture['grant'],
@@ -248,11 +248,11 @@ final class PatientProjectionPipelineHealthTest extends TestCase
     private function enablePathwayDraftMonitoring(): void
     {
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.pathway' => true,
-            'hummingbird-patient.features.pathway_history_drafts' => true,
-            'hummingbird-patient.features.pathway_source_reconciliation' => true,
-            'hummingbird-patient.pathway_source_reconciliation.approved_sources' => ['test-pathway-adapter.v1'],
+            'nightingale.enabled' => true,
+            'nightingale.features.pathway' => true,
+            'nightingale.features.pathway_history_drafts' => true,
+            'nightingale.features.pathway_source_reconciliation' => true,
+            'nightingale.pathway_source_reconciliation.approved_sources' => ['test-pathway-adapter.v1'],
             'care-pathways.patient_enabled' => true,
             'care-pathways.assignment_enabled' => true,
         ]);
