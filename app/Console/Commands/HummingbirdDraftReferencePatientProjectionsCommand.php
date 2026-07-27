@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Patient\Demo\HummingbirdPatientReferenceProjectionDraftProvisioner;
+use App\Services\Patient\Demo\NightingaleReferenceProjectionDraftProvisioner;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -17,16 +17,16 @@ class HummingbirdDraftReferencePatientProjectionsCommand extends Command
 
     protected $description = 'Preview or create non-visible draft projections for the pending Hummingbird reference patient';
 
-    public function handle(HummingbirdPatientReferenceProjectionDraftProvisioner $provisioner): int
+    public function handle(NightingaleReferenceProjectionDraftProvisioner $provisioner): int
     {
         if ($this->option('commit')
             && ! hash_equals(
-                HummingbirdPatientReferenceProjectionDraftProvisioner::CONFIRMATION,
+                NightingaleReferenceProjectionDraftProvisioner::CONFIRMATION,
                 (string) $this->option('confirm-draft-only'),
             )) {
             $this->error(
                 '--commit requires --confirm-draft-only='
-                .HummingbirdPatientReferenceProjectionDraftProvisioner::CONFIRMATION,
+                .NightingaleReferenceProjectionDraftProvisioner::CONFIRMATION,
             );
 
             return self::INVALID;

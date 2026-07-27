@@ -24,7 +24,7 @@ final class PatientNotificationDeviceCipher
     public function encrypt(string $token, string $keyVersion, string $context): string
     {
         $configuredVersion = trim((string) config(
-            'hummingbird-patient.notification_devices.encryption_key_version',
+            'nightingale.notification_devices.encryption_key_version',
         ));
         if ($configuredVersion === '' || ! hash_equals($configuredVersion, $keyVersion)) {
             throw new RuntimeException('patient_notification_device_encryption_key_not_current');
@@ -89,10 +89,10 @@ final class PatientNotificationDeviceCipher
     private function keyForVersion(string $keyVersion): string
     {
         $currentVersion = trim((string) config(
-            'hummingbird-patient.notification_devices.encryption_key_version',
+            'nightingale.notification_devices.encryption_key_version',
         ));
         $configured = $currentVersion !== '' && hash_equals($currentVersion, $keyVersion)
-            ? config('hummingbird-patient.notification_devices.encryption_key')
+            ? config('nightingale.notification_devices.encryption_key')
             : $this->previousKey($keyVersion);
 
         if (is_string($configured) && trim($configured) !== '') {
@@ -108,7 +108,7 @@ final class PatientNotificationDeviceCipher
 
     private function previousKey(string $keyVersion): mixed
     {
-        $encoded = config('hummingbird-patient.notification_devices.previous_encryption_keys_json');
+        $encoded = config('nightingale.notification_devices.previous_encryption_keys_json');
         if (! is_string($encoded) || trim($encoded) === '') {
             return null;
         }

@@ -36,12 +36,12 @@ criteria:
       remain available at the largest supported size.
     automation_status: automated_evidence_exists
     automated_evidence:
-      - hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientPresentationPreferences.swift
-      - hummingbird/iosPatientApp/HummingbirdPatientTests/PatientPresentationPreferencesTests.swift
-      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientSessionManagementUITests.swift
-      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientPresentationAccessibility.kt
-      - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/ui/PatientPresentationAccessibilityTest.kt
-      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientSessionManagementInstrumentedTest.kt
+      - hummingbird/iosPatientApp/Nightingale/DesignSystem/PatientPresentationPreferences.swift
+      - hummingbird/iosPatientApp/NightingaleTests/PatientPresentationPreferencesTests.swift
+      - hummingbird/iosPatientApp/NightingaleUITests/PatientSessionManagementUITests.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/nightingale/ui/PatientPresentationAccessibility.kt
+      - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/nightingale/ui/PatientPresentationAccessibilityTest.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/nightingale/PatientSessionManagementInstrumentedTest.kt
     human_validation_required:
       - Verify every primary journey at iOS Accessibility XXXL and Android 200 percent font scale with a patient advisor.
       - Verify no clipped labels, hidden destructive actions, inaccessible confirmation, or horizontal-only recovery path.
@@ -57,11 +57,11 @@ criteria:
       readable care content as text size or contrast needs increase.
     automation_status: automated_evidence_exists
     automated_evidence:
-      - hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientPhotoBackground.swift
-      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientReferenceJourneyUITests.swift
-      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientScenicBackground.kt
-      - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/ui/PatientVisualAssetPolicyTest.kt
-      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientSessionManagementInstrumentedTest.kt
+      - hummingbird/iosPatientApp/Nightingale/DesignSystem/PatientPhotoBackground.swift
+      - hummingbird/iosPatientApp/NightingaleUITests/PatientReferenceJourneyUITests.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/nightingale/ui/PatientScenicBackground.kt
+      - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/nightingale/ui/PatientVisualAssetPolicyTest.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/nightingale/PatientSessionManagementInstrumentedTest.kt
     human_validation_required:
       - Inspect each image moment with large text, dark mode, light mode, increased contrast, and reduced transparency.
       - Confirm no image is announced by VoiceOver or TalkBack and no care meaning depends on it.
@@ -77,12 +77,12 @@ criteria:
       than color, motion, or icon alone.
     automation_status: automated_evidence_exists
     automated_evidence:
-      - hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientComponents.swift
-      - hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientPhotoBackground.swift
-      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientSessionManagementUITests.swift
-      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/HummingbirdPatientTheme.kt
-      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientScenicBackground.kt
-      - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/ui/PatientVisualAssetPolicyTest.kt
+      - hummingbird/iosPatientApp/Nightingale/DesignSystem/PatientComponents.swift
+      - hummingbird/iosPatientApp/Nightingale/DesignSystem/PatientPhotoBackground.swift
+      - hummingbird/iosPatientApp/NightingaleUITests/PatientSessionManagementUITests.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/nightingale/ui/NightingaleTheme.kt
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/nightingale/ui/PatientScenicBackground.kt
+      - hummingbird/androidPatientApp/app/src/test/java/net/acumenus/nightingale/ui/PatientVisualAssetPolicyTest.kt
     human_validation_required:
       - Measure foreground, focus, icon, control-boundary, and status contrast in both themes and high-contrast mode.
       - Verify a participant can distinguish planned, current, delayed, completed, unavailable, and error states without color perception.
@@ -98,10 +98,10 @@ criteria:
       system reduced-motion setting where available.
     automation_status: automated_evidence_exists
     automated_evidence:
-      - hummingbird/iosPatientApp/HummingbirdPatient/App/HummingbirdPatientApp.swift
-      - hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientPhotoBackground.swift
-      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientPresentationAccessibility.kt
-      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientPreferencesScreen.kt
+      - hummingbird/iosPatientApp/Nightingale/App/NightingaleApp.swift
+      - hummingbird/iosPatientApp/Nightingale/DesignSystem/PatientPhotoBackground.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/nightingale/ui/PatientPresentationAccessibility.kt
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/nightingale/ui/PatientPreferencesScreen.kt
     human_validation_required:
       - Validate saved and operating-system motion settings on supported iOS and Android releases, including launch, loading, navigation, and error recovery.
       - Confirm reduced motion does not suppress a state, warning, confirmation, or required action.
@@ -118,11 +118,11 @@ criteria:
       continuous individual availability.
     automation_status: automated_evidence_exists
     automated_evidence:
-      - hummingbird/iosPatientApp/HummingbirdPatient/Features/Messages/PatientMessagesView.swift
-      - hummingbird/iosPatientApp/HummingbirdPatient/Features/CareTeam/PatientCareTeamView.swift
-      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientReferenceJourneyUITests.swift
-      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientMessagingPanel.kt
-      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientPrimaryJourneyInstrumentedTest.kt
+      - hummingbird/iosPatientApp/Nightingale/Features/Messages/PatientMessagesView.swift
+      - hummingbird/iosPatientApp/Nightingale/Features/CareTeam/PatientCareTeamView.swift
+      - hummingbird/iosPatientApp/NightingaleUITests/PatientReferenceJourneyUITests.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/nightingale/ui/PatientMessagingPanel.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/nightingale/PatientPrimaryJourneyInstrumentedTest.kt
     human_validation_required:
       - Test urgent guidance comprehension with patients and family advisors, including low literacy, high anxiety, and limited-English-proficiency scenarios.
       - Verify bedside call-button wording and local emergency policy with each pilot facility before enabling messaging.
@@ -138,10 +138,10 @@ criteria:
       where appropriate, and do not expose internal technical details.
     automation_status: automated_evidence_exists
     automated_evidence:
-      - hummingbird/iosPatientApp/HummingbirdPatient/Features/Authentication/PatientWelcomeView.swift
-      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientReferenceJourneyUITests.swift
-      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientAuthenticationScreen.kt
-      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientPrimaryJourneyInstrumentedTest.kt
+      - hummingbird/iosPatientApp/Nightingale/Features/Authentication/PatientWelcomeView.swift
+      - hummingbird/iosPatientApp/NightingaleUITests/PatientReferenceJourneyUITests.swift
+      - hummingbird/androidPatientApp/app/src/main/java/net/acumenus/nightingale/ui/PatientAuthenticationScreen.kt
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/nightingale/PatientPrimaryJourneyInstrumentedTest.kt
     human_validation_required:
       - Validate announcements, reading order, retry language, and safe alternative instructions with VoiceOver and TalkBack.
       - Validate source-outage and stale-data language with clinical safety and patient advisors.
@@ -157,9 +157,9 @@ criteria:
       patient-specific detail.
     automation_status: automated_evidence_exists
     automated_evidence:
-      - hummingbird/iosPatientApp/HummingbirdPatient/Privacy/PatientPrivacyCoverView.swift
-      - hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientReferenceJourneyUITests.swift
-      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientPrimaryJourneyInstrumentedTest.kt
+      - hummingbird/iosPatientApp/Nightingale/Privacy/PatientPrivacyCoverView.swift
+      - hummingbird/iosPatientApp/NightingaleUITests/PatientReferenceJourneyUITests.swift
+      - hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/nightingale/PatientPrimaryJourneyInstrumentedTest.kt
     human_validation_required:
       - Verify app-switcher, lock, split-screen, accessibility-overlay, and interrupted-login behavior on each supported device family.
     release_boundary: Privacy and mobile-security review must approve the device-state evidence before a pilot.

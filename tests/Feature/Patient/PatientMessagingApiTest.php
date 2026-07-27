@@ -108,7 +108,7 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
         [, $grant, $token] = $this->patientWithMessagingGrant();
         $body = 'Being able to understand each next step before it happens matters to me.';
         config([
-            'hummingbird-patient.messaging.topics.care_preference' => [
+            'nightingale.messaging.topics.care_preference' => [
                 'label' => 'What matters to you',
                 'description' => 'Share a non-urgent preference for this hospital stay. Your care team can review it, but it does not change your care plan or create a clinical order on its own.',
                 'responsibility_pool_key' => 'test.unit.care-team',
@@ -170,7 +170,7 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
     public function test_feature_flag_is_not_enough_without_an_approved_local_policy(): void
     {
         $this->enableMessaging();
-        config(['hummingbird-patient.messaging.governance_status' => 'draft_requires_approval']);
+        config(['nightingale.messaging.governance_status' => 'draft_requires_approval']);
         [, $grant, $token] = $this->patientWithMessagingGrant();
 
         $this->withToken($token)
@@ -191,12 +191,12 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
         $this->enableMessaging();
         [, $grant, $token] = $this->patientWithMessagingGrant();
         config([
-            'hummingbird-patient.messaging.topics.rounds_question' => [
+            'nightingale.messaging.topics.rounds_question' => [
                 'label' => 'Question for care-team rounds',
                 'description' => 'Share a non-urgent question your care team may review before a care conversation.',
                 'responsibility_pool_key' => 'test.unit.care-team',
             ],
-            'hummingbird-patient.features.rounds_questions' => false,
+            'nightingale.features.rounds_questions' => false,
         ]);
 
         $this->withToken($token)
@@ -205,7 +205,7 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
             ->assertJsonCount(1, 'data.topics')
             ->assertJsonMissingPath('data.topics.1');
 
-        config(['hummingbird-patient.features.rounds_questions' => true]);
+        config(['nightingale.features.rounds_questions' => true]);
         $this->app['auth']->forgetGuards();
         $this->withToken($token)
             ->getJson("/api/patient/v1/encounters/{$grant->encounter_uuid}/message-topics")
@@ -243,7 +243,7 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
             'topics',
         ] as $requiredKey) {
             $this->enableMessaging();
-            config(["hummingbird-patient.messaging.{$requiredKey}" => null]);
+            config(["nightingale.messaging.{$requiredKey}" => null]);
             $this->app['auth']->forgetGuards();
 
             $this->withToken($token)
@@ -261,7 +261,7 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
         [, $grant, $token] = $this->patientWithMessagingGrant();
         $thread = $this->createThread($grant, $token);
         config([
-            'hummingbird-patient.messaging.handoff_consumer' => UnreadyPatientMessageHandoff::class,
+            'nightingale.messaging.handoff_consumer' => UnreadyPatientMessageHandoff::class,
         ]);
 
         $this->app['auth']->forgetGuards();
@@ -370,7 +370,7 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
             'messages' => PatientMessage::query()->count(),
             'outbox' => PatientNotificationOutbox::query()->count(),
         ];
-        config(['hummingbird-patient.messaging.handoff_consumer' => UnreadyPatientMessageHandoff::class]);
+        config(['nightingale.messaging.handoff_consumer' => UnreadyPatientMessageHandoff::class]);
 
         foreach ([
             [$createPath, $createKey, $createPayload],
@@ -428,7 +428,7 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
         ];
 
         config([
-            'hummingbird-patient.messaging.topics' => [
+            'nightingale.messaging.topics' => [
                 'different_question' => [
                     'label' => 'Different approved question',
                     'description' => 'A replacement topic used only by this replay regression test.',
@@ -620,16 +620,16 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
         $this->enableMessaging();
         $versionOneKey = 'base64:'.base64_encode(str_repeat('a', 32));
         config([
-            'hummingbird-patient.hmac_secret' => str_repeat('h', 32),
-            'hummingbird-patient.messaging.encryption_key_version' => 'message-key-v1',
-            'hummingbird-patient.messaging.encryption_key' => $versionOneKey,
+            'nightingale.hmac_secret' => str_repeat('h', 32),
+            'nightingale.messaging.encryption_key_version' => 'message-key-v1',
+            'nightingale.messaging.encryption_key' => $versionOneKey,
         ]);
         [, $grant, $token] = $this->patientWithMessagingGrant();
         $thread = $this->createThread($grant, $token);
         config([
-            'hummingbird-patient.messaging.encryption_key_version' => 'message-key-v2',
-            'hummingbird-patient.messaging.encryption_key' => null,
-            'hummingbird-patient.messaging.previous_encryption_keys_json' => json_encode([
+            'nightingale.messaging.encryption_key_version' => 'message-key-v2',
+            'nightingale.messaging.encryption_key' => null,
+            'nightingale.messaging.previous_encryption_keys_json' => json_encode([
                 'message-key-v1' => $versionOneKey,
             ], JSON_THROW_ON_ERROR),
         ]);
@@ -869,8 +869,8 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
         $versionOneKey = 'base64:'.base64_encode(str_repeat('a', 32));
         $versionTwoKey = 'base64:'.base64_encode(str_repeat('b', 32));
         config([
-            'hummingbird-patient.messaging.encryption_key_version' => 'message-key-v1',
-            'hummingbird-patient.messaging.encryption_key' => $versionOneKey,
+            'nightingale.messaging.encryption_key_version' => 'message-key-v1',
+            'nightingale.messaging.encryption_key' => $versionOneKey,
         ]);
         [, $grant, $token] = $this->patientWithMessagingGrant();
         $body = 'A message encrypted under the first dedicated key.';
@@ -891,9 +891,9 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
         $this->assertStringNotContainsString($body, $ciphertext);
 
         config([
-            'hummingbird-patient.messaging.encryption_key_version' => 'message-key-v2',
-            'hummingbird-patient.messaging.encryption_key' => $versionTwoKey,
-            'hummingbird-patient.messaging.previous_encryption_keys_json' => json_encode([
+            'nightingale.messaging.encryption_key_version' => 'message-key-v2',
+            'nightingale.messaging.encryption_key' => $versionTwoKey,
+            'nightingale.messaging.previous_encryption_keys_json' => json_encode([
                 'message-key-v1' => $versionOneKey,
             ], JSON_THROW_ON_ERROR),
         ]);
@@ -1850,8 +1850,8 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
             'effective_from' => now()->subMinute(),
         ]);
         config([
-            'hummingbird-patient.staff_messaging.pilot_unit_ids' => collect(
-                config('hummingbird-patient.staff_messaging.pilot_unit_ids', []),
+            'nightingale.staff_messaging.pilot_unit_ids' => collect(
+                config('nightingale.staff_messaging.pilot_unit_ids', []),
             )
                 ->push((int) $encounter->unit_id)
                 ->unique()
@@ -1880,9 +1880,9 @@ SQL))->pluck('trigger_name')->unique()->sort()->values()->all();
     private function enableMessaging(): void
     {
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.messaging' => true,
-            'hummingbird-patient.messaging' => [
+            'nightingale.enabled' => true,
+            'nightingale.features.messaging' => true,
+            'nightingale.messaging' => [
                 'governance_status' => 'approved',
                 'policy_version' => 'test-messaging-policy-v1',
                 'urgent_guidance_version' => self::GUIDANCE_VERSION,

@@ -54,7 +54,7 @@ The findings below began with the June 2026 research audit and have been reconci
 the current implementation. Current completion status lives in
 [`capability-ledger.v1.yaml`](capability-ledger.v1.yaml), with a generated human-readable
 view in [`generated/capability-coverage.md`](generated/capability-coverage.md). The separate
-patient boundary is contract-first: [`api-contract/hummingbird-patient.v1.yaml`](api-contract/hummingbird-patient.v1.yaml)
+patient boundary is contract-first: [`api-contract/nightingale.v1.yaml`](api-contract/nightingale.v1.yaml)
 is checked against the live Laravel route table and owns its operations independently in
 the capability ledger. Its governance status remains draft and all patient feature flags
 remain fail-closed by default. The contract currently includes the read-only experience,
@@ -150,7 +150,7 @@ that shape this entire plan. Full detail in [research/](research/).
 - [**capability-ledger.v1.yaml**](capability-ledger.v1.yaml) — the machine-readable owner, disposition, platform, contract, classification, offline, and evidence control plane.
 - [**generated/capability-coverage.md**](generated/capability-coverage.md) — generated capability inventory and unresolved-state report; counts are not treated as a parity percentage.
 - [**patient-disclosure-matrix.v1.yaml**](patient-disclosure-matrix.v1.yaml) — CI-validated draft patient disclosure, provenance, freshness, relationship, offline, notification, and prohibited-field rules; governance approval remains pending.
-- [**api-contract/hummingbird-patient.v1.yaml**](api-contract/hummingbird-patient.v1.yaml) — OpenAPI 3.1 patient-realm contract with uniform envelopes, patient bearer abilities, feature gates, release controls, projection semantics, and audit obligations; CI rejects drift from the registered `/api/patient/v1` operations.
+- [**api-contract/nightingale.v1.yaml**](api-contract/nightingale.v1.yaml) — OpenAPI 3.1 patient-realm contract with uniform envelopes, patient bearer abilities, feature gates, release controls, projection semantics, and audit obligations; CI rejects drift from the registered `/api/patient/v1` operations.
 
 **Deep-dive references** (granular detail behind the consolidated plan)
 
@@ -166,7 +166,7 @@ that shape this entire plan. Full detail in [research/](research/).
 **Scaffolding (begun)**
 
 - [design-tokens/](design-tokens/) — the cross-platform token source (DTCG JSON) + Style Dictionary config + sample Compose/SwiftUI outputs.
-- [api-contract/](api-contract/) — the worker-facing BFF contract (`hummingbird-bff.v1.yaml`) and separately governed patient product contract (`hummingbird-patient.v1.yaml`).
+- [api-contract/](api-contract/) — the worker-facing BFF contract (`hummingbird-bff.v1.yaml`) and separately governed patient product contract (`nightingale.v1.yaml`).
 - [role-catalog.v1.json](role-catalog.v1.json) — interim shared role, home-kind, feature-route, status, and urgency vocabulary contract used to verify backend/iOS/Android parity.
 
 **Backend — Phase 0 (built, pending verification)**

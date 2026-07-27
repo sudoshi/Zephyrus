@@ -77,20 +77,20 @@ class PatientApiBoundaryTest extends TestCase
     public function test_every_patient_feature_fails_closed_by_default(): void
     {
         config([
-            'hummingbird-patient.enabled' => false,
-            'hummingbird-patient.features.enrollment' => false,
-            'hummingbird-patient.features.token_exchange' => false,
-            'hummingbird-patient.features.profile' => false,
-            'hummingbird-patient.features.session_management' => false,
-            'hummingbird-patient.features.notification_devices' => false,
-            'hummingbird-patient.features.encounters' => false,
-            'hummingbird-patient.features.today' => false,
-            'hummingbird-patient.features.pathway' => false,
-            'hummingbird-patient.features.teach_back' => false,
-            'hummingbird-patient.features.rounds_summary' => false,
-            'hummingbird-patient.features.rounds_questions' => false,
-            'hummingbird-patient.features.care_team' => false,
-            'hummingbird-patient.features.messaging' => false,
+            'nightingale.enabled' => false,
+            'nightingale.features.enrollment' => false,
+            'nightingale.features.token_exchange' => false,
+            'nightingale.features.profile' => false,
+            'nightingale.features.session_management' => false,
+            'nightingale.features.notification_devices' => false,
+            'nightingale.features.encounters' => false,
+            'nightingale.features.today' => false,
+            'nightingale.features.pathway' => false,
+            'nightingale.features.teach_back' => false,
+            'nightingale.features.rounds_summary' => false,
+            'nightingale.features.rounds_questions' => false,
+            'nightingale.features.care_team' => false,
+            'nightingale.features.messaging' => false,
         ]);
 
         $encounterUuid = '018f47a3-65ad-7c44-b1b8-3ca57d2c14ef';
@@ -137,8 +137,8 @@ class PatientApiBoundaryTest extends TestCase
     public function test_disabled_subfeature_returns_not_found_before_authentication(): void
     {
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.profile' => false,
+            'nightingale.enabled' => true,
+            'nightingale.features.profile' => false,
         ]);
 
         $this->getJson('/api/patient/v1/me')
@@ -168,8 +168,8 @@ class PatientApiBoundaryTest extends TestCase
     public function test_patient_validation_errors_use_the_patient_metadata_contract(): void
     {
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.token_exchange' => true,
+            'nightingale.enabled' => true,
+            'nightingale.features.token_exchange' => true,
         ]);
 
         $this->postJson('/api/patient/v1/auth/token', [])
@@ -189,7 +189,7 @@ class PatientApiBoundaryTest extends TestCase
 
     public function test_staff_credential_exchange_does_not_depend_on_patient_hmac(): void
     {
-        config(['hummingbird-patient.hmac_secret' => null]);
+        config(['nightingale.hmac_secret' => null]);
         $originalEnvironment = $this->app['env'];
         $this->app['env'] = 'production';
 
@@ -208,9 +208,9 @@ class PatientApiBoundaryTest extends TestCase
     public function test_enabled_patient_auth_fails_closed_without_patient_hmac_outside_testing(): void
     {
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.token_exchange' => true,
-            'hummingbird-patient.hmac_secret' => null,
+            'nightingale.enabled' => true,
+            'nightingale.features.token_exchange' => true,
+            'nightingale.hmac_secret' => null,
         ]);
         $originalEnvironment = $this->app['env'];
         $this->app['env'] = 'production';
@@ -307,7 +307,7 @@ class PatientApiBoundaryTest extends TestCase
 
     public function test_patient_hmac_uses_testing_fallback_but_fails_closed_outside_testing(): void
     {
-        config(['hummingbird-patient.hmac_secret' => null]);
+        config(['nightingale.hmac_secret' => null]);
         $hmac = $this->app->make(PatientHmac::class);
 
         $first = $hmac->digest('test-purpose', 'same-value');
@@ -444,9 +444,9 @@ class PatientApiBoundaryTest extends TestCase
     public function test_patient_notification_device_registration_encrypts_tokens_and_stays_principal_owned(): void
     {
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.notification_devices' => true,
-            'hummingbird-patient.notification_devices.encryption_key_version' => 'test-notification-device-v1',
+            'nightingale.enabled' => true,
+            'nightingale.features.notification_devices' => true,
+            'nightingale.notification_devices.encryption_key_version' => 'test-notification-device-v1',
         ]);
         $principal = $this->patientPrincipal();
         $sessionUuid = (string) Str::uuid7();
@@ -515,9 +515,9 @@ class PatientApiBoundaryTest extends TestCase
     private function enablePatientReads(): void
     {
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.profile' => true,
-            'hummingbird-patient.features.encounters' => true,
+            'nightingale.enabled' => true,
+            'nightingale.features.profile' => true,
+            'nightingale.features.encounters' => true,
         ]);
     }
 

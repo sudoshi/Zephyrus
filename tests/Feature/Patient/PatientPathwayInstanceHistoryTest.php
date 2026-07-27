@@ -164,10 +164,10 @@ class PatientPathwayInstanceHistoryTest extends TestCase
     {
         $fixture = app(SyntheticPatientProjectionProvisioner::class)->provision('pathway-history-draft');
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.pathway' => true,
-            'hummingbird-patient.features.pathway_history_drafts' => true,
-            'hummingbird-patient.policy_version' => (string) $fixture['policy']->version,
+            'nightingale.enabled' => true,
+            'nightingale.features.pathway' => true,
+            'nightingale.features.pathway_history_drafts' => true,
+            'nightingale.policy_version' => (string) $fixture['policy']->version,
             'care-pathways.patient_enabled' => true,
         ]);
         $version = PathwayVersion::query()->orderBy('source_rank')->firstOrFail();
@@ -244,9 +244,9 @@ class PatientPathwayInstanceHistoryTest extends TestCase
         );
 
         config([
-            'hummingbird-patient.enabled' => false,
-            'hummingbird-patient.features.pathway' => true,
-            'hummingbird-patient.features.pathway_history_drafts' => true,
+            'nightingale.enabled' => false,
+            'nightingale.features.pathway' => true,
+            'nightingale.features.pathway_history_drafts' => true,
             'care-pathways.patient_enabled' => true,
         ]);
 
@@ -259,10 +259,10 @@ class PatientPathwayInstanceHistoryTest extends TestCase
     {
         $fixture = app(SyntheticPatientProjectionProvisioner::class)->provision('pathway-history-draft-failure');
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.pathway' => true,
-            'hummingbird-patient.features.pathway_history_drafts' => true,
-            'hummingbird-patient.policy_version' => (string) $fixture['policy']->version,
+            'nightingale.enabled' => true,
+            'nightingale.features.pathway' => true,
+            'nightingale.features.pathway_history_drafts' => true,
+            'nightingale.policy_version' => (string) $fixture['policy']->version,
             'care-pathways.patient_enabled' => true,
         ]);
         $version = PathwayVersion::query()->orderBy('source_rank')->firstOrFail();

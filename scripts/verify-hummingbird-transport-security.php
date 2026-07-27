@@ -66,7 +66,7 @@ $androidAttribute = static function (
 try {
     foreach ([
         ['hummingbird/iosApp/project.yml', 'Hummingbird'],
-        ['hummingbird/iosPatientApp/project.yml', 'HummingbirdPatient'],
+        ['hummingbird/iosPatientApp/project.yml', 'Nightingale'],
     ] as [$projectPath, $target]) {
         $project = $yaml($projectPath);
         $properties = $project['targets'][$target]['info']['properties'] ?? null;
@@ -178,13 +178,13 @@ try {
         'hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/data/TransportSecurityPolicy.kt'
     );
     $patientIOSConfig = $read(
-        'hummingbird/iosPatientApp/HummingbirdPatient/App/PatientAppConfiguration.swift'
+        'hummingbird/iosPatientApp/Nightingale/App/PatientAppConfiguration.swift'
     );
     $patientIOSNetwork = $read(
-        'hummingbird/iosPatientApp/HummingbirdPatient/Networking/PatientAPIClient.swift'
+        'hummingbird/iosPatientApp/Nightingale/Networking/PatientAPIClient.swift'
     );
     $patientAndroidConfig = $read(
-        'hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/data/PatientApiClient.kt'
+        'hummingbird/androidPatientApp/app/src/main/java/net/acumenus/nightingale/data/PatientApiClient.kt'
     );
     $staffAndroidAPI = $read(
         'hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/data/ApiClient.kt'
@@ -275,7 +275,7 @@ try {
 
     $applicationSourceRoots = [
         'hummingbird/iosApp/Hummingbird',
-        'hummingbird/iosPatientApp/HummingbirdPatient',
+        'hummingbird/iosPatientApp/Nightingale',
         'hummingbird/androidApp/app/src/main',
         'hummingbird/androidPatientApp/app/src/main',
     ];

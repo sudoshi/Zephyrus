@@ -20,7 +20,7 @@ class PatientResponseMetadata
                 'observed_at' => null,
             ],
             'policy_version' => (string) config(
-                'hummingbird-patient.policy_version',
+                'nightingale.policy_version',
                 'patient-disclosure-v1-draft',
             ),
             // Stable state codes are rendered with native bundled patient

@@ -255,7 +255,7 @@ SQL);
 
     private function configurePilot(Unit $unit): void
     {
-        config(['hummingbird-patient.staff_messaging.pilot_unit_ids' => [$unit->getKey()]]);
+        config(['nightingale.staff_messaging.pilot_unit_ids' => [$unit->getKey()]]);
     }
 
     private function createUnit(?FacilitySpace $facilitySpace = null): Unit

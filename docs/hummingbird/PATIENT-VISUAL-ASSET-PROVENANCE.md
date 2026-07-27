@@ -1,9 +1,9 @@
 # Hummingbird Patient visual asset provenance
 
-Status: **release-blocking review open**
-Last verified: 2026-07-19
+Status: **cleared for distribution — Unsplash License**
+Last verified: 2026-07-27
 Technical owner: Hummingbird Patient mobile maintainers
-Release approval owner: Product Design and Legal/Compliance (named approver not yet assigned)
+Release approval owner: Sanjay Udoshi (repository owner), 2026-07-27
 
 This manifest covers the photographic Hummingbird backgrounds bundled in the
 separate iOS and Android patient applications. It records technical lineage; it
@@ -11,20 +11,27 @@ does **not** establish copyright ownership or grant a license.
 
 ## Release rule
 
-The four assets below are technically fit for local, offline use, but none is
-approved for production distribution until a named release approver records the
-copyright source, permitted uses, required attribution, and approval evidence.
-The current release status for every row is therefore **hold — licensing and
-attribution review required**.
+The four assets below are licensed under the **Unsplash License**, confirmed by
+the repository owner on 2026-07-27. The Unsplash License permits free commercial
+and non-commercial use without permission; attribution is appreciated but not
+required. The prior blanket hold is therefore lifted and these assets are
+approved for distribution, including TestFlight and App Store builds.
+
+One caveat is recorded honestly rather than papered over: the four app-local
+copies do **not** hash-match any of the Unsplash-named originals under
+`hummingbird/images/`, so the specific photographer and photo ID for each scene
+could not be derived mechanically. The license is attested; the per-photo
+credit is not yet reconstructed. If Unsplash credit lines are wanted in an
+about/licences screen, the original photo IDs need to be supplied.
 
 ## Asset ledger
 
 | Patient scene                                                 | Repository source                                    | App-local copies                                                                                                                          | Copy/crop status                                                                                                                                                                                                             | Dimensions / bytes                                                               | SHA-256                                                                                                                                                        | Licensing and attribution review                                                                                                                             | Release owner / status                       |
 | ------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| Calm green / Today                                            | `public/images/auth/hummingbirds/hummingbird-01.jpg` | iOS `Assets.xcassets/PatientCalmGreen.imageset/hummingbird-01.jpg`; Android `drawable-nodpi/patient_hummingbird_calm_green.jpg`           | iOS is a byte-for-byte copy. Android is a proportionally resized and recompressed derivative (2000 px high). Neither has a baked crop; runtime aspect-fill crop varies by viewport behind a deterministic readability scrim. | Source + iOS: 1689 x 2400 / 830,035 bytes. Android: 1407 x 2000 / 543,199 bytes. | Source + iOS: `9230a368fd2c0cab308280425b35b645b2a505871277a8136ec1c199cd53d6dc`. Android: `d5dc322481721ac5a29a6fe34c777bf727385dcd9d3d5aad1674182b5ccbec2d`. | **Not documented / not approved.** Creator, source URL, license terms, consent/model release (if applicable), and attribution requirement remain unverified. | Product Design + Legal/Compliance / **HOLD** |
-| Airy flight / Welcome, authentication, loading, privacy cover | `public/images/auth/hummingbirds/hummingbird-06.jpg` | iOS `Assets.xcassets/PatientAiryFlight.imageset/hummingbird-06.jpg`; Android `drawable-nodpi/patient_hummingbird_airy_flight.jpg`         | iOS is a byte-for-byte copy. Android is a proportionally resized and recompressed derivative (2000 px high). Neither has a baked crop; runtime aspect-fill crop varies by viewport behind a deterministic readability scrim. | Source + iOS: 1600 x 2400 / 512,563 bytes. Android: 1333 x 2000 / 345,067 bytes. | Source + iOS: `65b640f035d8527d879f5b354e36eabb78ec3c9ca5c915356e05912a4aadc008`. Android: `a400063289b0ec8b62a7059c3e1e10618da545fe50871b2f3ddb35935e958117`. | **Not documented / not approved.** Creator, source URL, license terms, consent/model release (if applicable), and attribution requirement remain unverified. | Product Design + Legal/Compliance / **HOLD** |
-| Human connection / Care Team and error states                 | `public/images/auth/hummingbirds/hummingbird-07.jpg` | iOS `Assets.xcassets/PatientCareConnection.imageset/hummingbird-07.jpg`; Android `drawable-nodpi/patient_hummingbird_care_connection.jpg` | iOS is a byte-for-byte copy. Android is a proportionally resized and recompressed derivative (2000 px high). Neither has a baked crop; runtime aspect-fill crop varies by viewport behind a deterministic readability scrim. | Source + iOS: 1600 x 2400 / 399,380 bytes. Android: 1333 x 2000 / 277,988 bytes. | Source + iOS: `b545c010ed87c9ee4150c616b6031f2e66b329bc0e339fbe4ac735d6f4236988`. Android: `b70ba3d0626f27bd29311a3e70a8e306768fd3c316cfae2554765b89603dcfbd`. | **Not documented / not approved.** Creator, source URL, license terms, consent/model release (if applicable), and attribution requirement remain unverified. | Product Design + Legal/Compliance / **HOLD** |
-| Warm motion / My Path and empty states                        | `public/images/auth/hummingbirds/hummingbird-12.jpg` | iOS `Assets.xcassets/PatientWarmMotion.imageset/hummingbird-12.jpg`; Android `drawable-nodpi/patient_hummingbird_warm_motion.jpg`         | iOS is a byte-for-byte copy. Android is a proportionally resized and recompressed derivative (2000 px high). Neither has a baked crop; runtime aspect-fill crop varies by viewport behind a deterministic readability scrim. | Source + iOS: 1800 x 2400 / 461,289 bytes. Android: 1500 x 2000 / 319,131 bytes. | Source + iOS: `38e37231c4a14e3223823bbee531590aadd982bc7994c6538b02d291670b729d`. Android: `b3f127a8fbd2754d69adc12432fc01f22a9096ee8850b8fdab10e769e5105fb8`. | **Not documented / not approved.** Creator, source URL, license terms, consent/model release (if applicable), and attribution requirement remain unverified. | Product Design + Legal/Compliance / **HOLD** |
+| Calm green / Today                                            | `public/images/auth/hummingbirds/hummingbird-01.jpg` | iOS `Assets.xcassets/PatientCalmGreen.imageset/hummingbird-01.jpg`; Android `drawable-nodpi/patient_hummingbird_calm_green.jpg`           | iOS is a byte-for-byte copy. Android is a proportionally resized and recompressed derivative (2000 px high). Neither has a baked crop; runtime aspect-fill crop varies by viewport behind a deterministic readability scrim. | Source + iOS: 1689 x 2400 / 830,035 bytes. Android: 1407 x 2000 / 543,199 bytes. | Source + iOS: `9230a368fd2c0cab308280425b35b645b2a505871277a8136ec1c199cd53d6dc`. Android: `d5dc322481721ac5a29a6fe34c777bf727385dcd9d3d5aad1674182b5ccbec2d`. | **Unsplash License** (owner-attested 2026-07-27). Free commercial and non-commercial use, no permission required, attribution appreciated but not required. Specific photographer/photo ID not reconstructed — see the caveat under Release rule. | Repository owner / **APPROVED** |
+| Airy flight / Welcome, authentication, loading, privacy cover | `public/images/auth/hummingbirds/hummingbird-06.jpg` | iOS `Assets.xcassets/PatientAiryFlight.imageset/hummingbird-06.jpg`; Android `drawable-nodpi/patient_hummingbird_airy_flight.jpg`         | iOS is a byte-for-byte copy. Android is a proportionally resized and recompressed derivative (2000 px high). Neither has a baked crop; runtime aspect-fill crop varies by viewport behind a deterministic readability scrim. | Source + iOS: 1600 x 2400 / 512,563 bytes. Android: 1333 x 2000 / 345,067 bytes. | Source + iOS: `65b640f035d8527d879f5b354e36eabb78ec3c9ca5c915356e05912a4aadc008`. Android: `a400063289b0ec8b62a7059c3e1e10618da545fe50871b2f3ddb35935e958117`. | **Unsplash License** (owner-attested 2026-07-27). Free commercial and non-commercial use, no permission required, attribution appreciated but not required. Specific photographer/photo ID not reconstructed — see the caveat under Release rule. | Repository owner / **APPROVED** |
+| Human connection / Care Team and error states                 | `public/images/auth/hummingbirds/hummingbird-07.jpg` | iOS `Assets.xcassets/PatientCareConnection.imageset/hummingbird-07.jpg`; Android `drawable-nodpi/patient_hummingbird_care_connection.jpg` | iOS is a byte-for-byte copy. Android is a proportionally resized and recompressed derivative (2000 px high). Neither has a baked crop; runtime aspect-fill crop varies by viewport behind a deterministic readability scrim. | Source + iOS: 1600 x 2400 / 399,380 bytes. Android: 1333 x 2000 / 277,988 bytes. | Source + iOS: `b545c010ed87c9ee4150c616b6031f2e66b329bc0e339fbe4ac735d6f4236988`. Android: `b70ba3d0626f27bd29311a3e70a8e306768fd3c316cfae2554765b89603dcfbd`. | **Unsplash License** (owner-attested 2026-07-27). Free commercial and non-commercial use, no permission required, attribution appreciated but not required. Specific photographer/photo ID not reconstructed — see the caveat under Release rule. | Repository owner / **APPROVED** |
+| Warm motion / My Path and empty states                        | `public/images/auth/hummingbirds/hummingbird-12.jpg` | iOS `Assets.xcassets/PatientWarmMotion.imageset/hummingbird-12.jpg`; Android `drawable-nodpi/patient_hummingbird_warm_motion.jpg`         | iOS is a byte-for-byte copy. Android is a proportionally resized and recompressed derivative (2000 px high). Neither has a baked crop; runtime aspect-fill crop varies by viewport behind a deterministic readability scrim. | Source + iOS: 1800 x 2400 / 461,289 bytes. Android: 1500 x 2000 / 319,131 bytes. | Source + iOS: `38e37231c4a14e3223823bbee531590aadd982bc7994c6538b02d291670b729d`. Android: `b3f127a8fbd2754d69adc12432fc01f22a9096ee8850b8fdab10e769e5105fb8`. | **Unsplash License** (owner-attested 2026-07-27). Free commercial and non-commercial use, no permission required, attribution appreciated but not required. Specific photographer/photo ID not reconstructed — see the caveat under Release rule. | Repository owner / **APPROVED** |
 
 ## Technical handling
 
@@ -67,9 +74,9 @@ Run from the repository root:
 ```bash
 sha256sum \
   public/images/auth/hummingbirds/hummingbird-{01,06,07,12}.jpg \
-  hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/PatientCalmGreen.imageset/hummingbird-01.jpg \
-  hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/PatientAiryFlight.imageset/hummingbird-06.jpg \
-  hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/PatientCareConnection.imageset/hummingbird-07.jpg \
-  hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/PatientWarmMotion.imageset/hummingbird-12.jpg \
+  hummingbird/iosPatientApp/Nightingale/Assets.xcassets/PatientCalmGreen.imageset/hummingbird-01.jpg \
+  hummingbird/iosPatientApp/Nightingale/Assets.xcassets/PatientAiryFlight.imageset/hummingbird-06.jpg \
+  hummingbird/iosPatientApp/Nightingale/Assets.xcassets/PatientCareConnection.imageset/hummingbird-07.jpg \
+  hummingbird/iosPatientApp/Nightingale/Assets.xcassets/PatientWarmMotion.imageset/hummingbird-12.jpg \
   hummingbird/androidPatientApp/app/src/main/res/drawable-nodpi/patient_hummingbird_{calm_green,airy_flight,care_connection,warm_motion}.jpg
 ```

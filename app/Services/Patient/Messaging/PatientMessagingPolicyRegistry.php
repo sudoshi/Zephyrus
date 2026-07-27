@@ -29,7 +29,7 @@ class PatientMessagingPolicyRegistry
      */
     public function disclosurePolicy(): array
     {
-        $config = (array) config('hummingbird-patient.messaging', []);
+        $config = (array) config('nightingale.messaging', []);
 
         if (($config['governance_status'] ?? null) !== 'approved') {
             throw PatientMessagingFailure::unavailable();
@@ -60,7 +60,7 @@ class PatientMessagingPolicyRegistry
             // patient-composition gate. Filtering it here means neither the
             // topic list nor create-thread accepts it while disabled.
             if ($code === 'rounds_question'
-                && ! (bool) config('hummingbird-patient.features.rounds_questions')
+                && ! (bool) config('nightingale.features.rounds_questions')
             ) {
                 continue;
             }
@@ -97,7 +97,7 @@ class PatientMessagingPolicyRegistry
      */
     public function mutationPolicy(): array
     {
-        $config = (array) config('hummingbird-patient.messaging', []);
+        $config = (array) config('nightingale.messaging', []);
         $policy = $this->contentWritePolicy();
 
         if (! $this->consumer($config)->readyForPolicy($policy['policy_version'])) {
@@ -116,7 +116,7 @@ class PatientMessagingPolicyRegistry
      */
     public function contentWritePolicy(): array
     {
-        $config = (array) config('hummingbird-patient.messaging', []);
+        $config = (array) config('nightingale.messaging', []);
         $policy = $this->disclosurePolicy();
         $policy['encryption_key_version'] = $this->requiredString(
             $config,
@@ -175,7 +175,7 @@ class PatientMessagingPolicyRegistry
 
         if (! is_string($policyVersion)
             || ! is_string($poolKey)
-            || ! $this->consumer((array) config('hummingbird-patient.messaging', []))->routableForGrant(
+            || ! $this->consumer((array) config('nightingale.messaging', []))->routableForGrant(
                 $policyVersion,
                 $topicCode,
                 $poolKey,

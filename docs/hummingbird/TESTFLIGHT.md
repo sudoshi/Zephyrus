@@ -5,11 +5,17 @@ One script ships both iOS apps: **`./testflight.sh`** at the repo root.
 | App Store Connect record | Bundle id | App id | Source |
 |---|---|---|---|
 | **Zephyrus-Hummingbird** | `net.acumenus.hummingbird` | 6785290384 | `hummingbird/iosApp` (scheme `Hummingbird`) |
-| **Zephyrus-Nightingale** | `net.acumenus.nightingale` | 6794950746 | `hummingbird/iosPatientApp` (scheme `HummingbirdPatient`) |
+| **Zephyrus-Nightingale** | `net.acumenus.nightingale` | 6794950746 | `hummingbird/iosPatientApp` (scheme `Nightingale`) |
 
-Nightingale is the patient-facing app. Only what Apple sees is branded Nightingale —
-the target, scheme, and directory keep the `HummingbirdPatient` name, and the backend
-middleware / Android package / CI guards that share that name are untouched.
+Nightingale is the patient-facing app, and it is Nightingale end to end: the iOS
+target, scheme, and project; the Android `applicationId` and package; the backend
+config, environment variables, middleware, and services. Nothing patient-facing
+carries the Hummingbird name.
+
+The two directory names — `hummingbird/iosPatientApp` and
+`hummingbird/androidPatientApp` — are deliberately kept. They describe platform and
+role rather than brand, and they sit under `hummingbird/` because that is where the
+mobile clients live, not because the product is Hummingbird.
 
 ## Quick start
 

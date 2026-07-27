@@ -226,11 +226,11 @@ class PatientPathwayProjectionReviewReleaseTest extends TestCase
     {
         $fixture = app(SyntheticPatientProjectionProvisioner::class)->provision($seed);
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.pathway' => true,
-            'hummingbird-patient.features.pathway_history_drafts' => true,
-            'hummingbird-patient.features.pathway_history_releases' => true,
-            'hummingbird-patient.policy_version' => (string) $fixture['policy']->version,
+            'nightingale.enabled' => true,
+            'nightingale.features.pathway' => true,
+            'nightingale.features.pathway_history_drafts' => true,
+            'nightingale.features.pathway_history_releases' => true,
+            'nightingale.policy_version' => (string) $fixture['policy']->version,
             'care-pathways.patient_enabled' => true,
             'care-pathways.assignment_enabled' => true,
         ]);

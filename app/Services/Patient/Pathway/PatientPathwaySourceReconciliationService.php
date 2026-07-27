@@ -154,9 +154,9 @@ class PatientPathwaySourceReconciliationService
     private function assertAvailable(): void
     {
         if (DB::getDriverName() !== 'pgsql'
-            || ! (bool) config('hummingbird-patient.enabled')
-            || ! (bool) config('hummingbird-patient.features.pathway')
-            || ! (bool) config('hummingbird-patient.features.pathway_source_reconciliation')
+            || ! (bool) config('nightingale.enabled')
+            || ! (bool) config('nightingale.features.pathway')
+            || ! (bool) config('nightingale.features.pathway_source_reconciliation')
             || ! (bool) config('care-pathways.patient_enabled')
             || ! (bool) config('care-pathways.assignment_enabled')) {
             throw new RuntimeException('patient_pathway_source_reconciliation_unavailable');
@@ -169,7 +169,7 @@ class PatientPathwaySourceReconciliationService
     {
         if (! in_array(
             $sourceSystemKey,
-            (array) config('hummingbird-patient.pathway_source_reconciliation.approved_sources', []),
+            (array) config('nightingale.pathway_source_reconciliation.approved_sources', []),
             true,
         )) {
             throw new InvalidArgumentException('patient_pathway_source_not_approved');

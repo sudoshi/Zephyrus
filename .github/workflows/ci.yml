@@ -132,7 +132,7 @@ jobs:
     env:
       APP_ENV: testing
       APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
-      HUMMINGBIRD_PATIENT_CONTEXT_KEY: test-hummingbird-patient-context-key-v1
+      NIGHTINGALE_CONTEXT_KEY: test-hummingbird-patient-context-key-v1
       APP_URL: http://zephyrus.test
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
@@ -260,7 +260,7 @@ jobs:
     env:
       APP_ENV: testing
       APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
-      HUMMINGBIRD_PATIENT_CONTEXT_KEY: test-hummingbird-patient-context-key-v1
+      NIGHTINGALE_CONTEXT_KEY: test-hummingbird-patient-context-key-v1
       APP_URL: http://zephyrus.test
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
@@ -535,7 +535,7 @@ jobs:
     env:
       APP_ENV: testing
       APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
-      HUMMINGBIRD_PATIENT_CONTEXT_KEY: test-hummingbird-patient-context-key-v1
+      NIGHTINGALE_CONTEXT_KEY: test-hummingbird-patient-context-key-v1
       APP_URL: http://127.0.0.1:8084
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
@@ -649,7 +649,7 @@ jobs:
     env:
       APP_ENV: testing
       APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
-      HUMMINGBIRD_PATIENT_CONTEXT_KEY: test-hummingbird-patient-context-key-v1
+      NIGHTINGALE_CONTEXT_KEY: test-hummingbird-patient-context-key-v1
       APP_URL: http://127.0.0.1:8085
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
@@ -1160,7 +1160,7 @@ jobs:
           echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
           xcrun simctl boot "$simulator_udid" 2>/dev/null || true
 
-      # HummingbirdPatient.xcodeproj is COMMITTED, so this job builds it
+      # Nightingale.xcodeproj is COMMITTED, so this job builds it
       # directly — no XcodeGen needed here. The project-drift verify, the
       # patient source boundary, and the Release transport/boundary chain
       # run in the parallel REQUIRED sibling 'Hummingbird patient (iOS
@@ -1172,8 +1172,8 @@ jobs:
       - name: Build Debug for testing (iPhone Simulator)
         run: |
           xcodebuild \
-            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
-            -scheme HummingbirdPatient \
+            -project "$IOS_PATIENT_ROOT/Nightingale.xcodeproj" \
+            -scheme Nightingale \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination "generic/platform=iOS Simulator" \
@@ -1190,13 +1190,13 @@ jobs:
       - name: Run XCTest unit suite
         run: |
           xcodebuild \
-            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
-            -scheme HummingbirdPatient \
+            -project "$IOS_PATIENT_ROOT/Nightingale.xcodeproj" \
+            -scheme Nightingale \
             -configuration Debug \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
             -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
-            -resultBundlePath "$RUNNER_TEMP/HummingbirdPatientUnitTests.xcresult" \
-            -only-testing:HummingbirdPatientTests \
+            -resultBundlePath "$RUNNER_TEMP/NightingaleUnitTests.xcresult" \
+            -only-testing:NightingaleTests \
             -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -1209,13 +1209,13 @@ jobs:
           XCUITEST_RETRY_FLAGS: ${{ github.event_name == 'pull_request' && '-retry-tests-on-failure -test-iterations 3 -test-repetition-relaunch-enabled YES' || '' }}
         run: |
           xcodebuild \
-            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
-            -scheme HummingbirdPatient \
+            -project "$IOS_PATIENT_ROOT/Nightingale.xcodeproj" \
+            -scheme Nightingale \
             -configuration Debug \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
             -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
-            -resultBundlePath "$RUNNER_TEMP/HummingbirdPatientUITests.xcresult" \
-            -only-testing:HummingbirdPatientUITests \
+            -resultBundlePath "$RUNNER_TEMP/NightingaleUITests.xcresult" \
+            -only-testing:NightingaleUITests \
             -parallel-testing-enabled NO \
             $XCUITEST_RETRY_FLAGS \
             CODE_SIGNING_ALLOWED=NO \
@@ -1232,8 +1232,8 @@ jobs:
         with:
           name: hummingbird-patient-ios-verification
           path: |
-            ${{ runner.temp }}/HummingbirdPatientUnitTests.xcresult
-            ${{ runner.temp }}/HummingbirdPatientUITests.xcresult
+            ${{ runner.temp }}/NightingaleUnitTests.xcresult
+            ${{ runner.temp }}/NightingaleUITests.xcresult
           if-no-files-found: warn
           retention-days: 14
 
@@ -1280,7 +1280,7 @@ jobs:
         run: |
           bash scripts/ci/verify-hummingbird-patient-xcode-project.sh "$IOS_PATIENT_ROOT"
           bash scripts/ci/verify-hummingbird-patient-boundary.sh source "$IOS_PATIENT_ROOT"
-          xcodebuild -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" -list
+          xcodebuild -project "$IOS_PATIENT_ROOT/Nightingale.xcodeproj" -list
 
       # ARCHS=arm64: the Release artifact is plist/strings-verified and
       # uploaded, never executed on x86_64 — the fat x86_64 slice only
@@ -1288,8 +1288,8 @@ jobs:
       - name: Build Release for iPhone Simulator
         run: |
           xcodebuild \
-            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
-            -scheme HummingbirdPatient \
+            -project "$IOS_PATIENT_ROOT/Nightingale.xcodeproj" \
+            -scheme Nightingale \
             -configuration Release \
             -sdk iphonesimulator \
             -destination "generic/platform=iOS Simulator" \
@@ -1303,7 +1303,7 @@ jobs:
 
       - name: Verify patient Release app boundary
         run: |
-          release_app="$RUNNER_TEMP/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/HummingbirdPatient.app"
+          release_app="$RUNNER_TEMP/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/Nightingale.app"
           bash scripts/ci/verify-hummingbird-patient-boundary.sh artifact "$release_app"
           bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" patient
 
@@ -1312,6 +1312,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: hummingbird-patient-ios-release
-          path: ${{ runner.temp }}/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/HummingbirdPatient.app
+          path: ${{ runner.temp }}/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/Nightingale.app
           if-no-files-found: warn
           retention-days: 14
