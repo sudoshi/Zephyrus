@@ -57,6 +57,7 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
     onApplyView: vi.fn(),
     onCopyViewLink: vi.fn(),
     onCopySavedViewLink: vi.fn(),
+    onTaskModeChange: vi.fn(),
     onTourPrev: vi.fn(),
     onTourNext: vi.fn(),
     onTourAutoToggle: vi.fn(),
@@ -77,6 +78,7 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
       categories={[]}
       layers={{ base: true, tokens: true, trails: true, heat: true, ghosts: true, barriers: true, rounds: true, pathway: false }}
       layerControls={layerControls}
+      taskMode="investigate"
       censusScope="all"
       showDeviationScope={false}
       metrics={{ active: 12, events: 40, occupiedLocations: 9 }}
@@ -242,6 +244,38 @@ describe('NavigatorToolbar saved views (N-7)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Save current view to slot 3' }));
     expect(handlers.onSaveView).toHaveBeenCalledWith(2);
+  });
+});
+
+describe('NavigatorToolbar task modes (E6)', () => {
+  it('offers Monitor / Investigate / Rounds and routes the change', () => {
+    const handlers = renderToolbar({ taskMode: 'monitor' });
+
+    const group = screen.getByRole('radiogroup', { name: 'Task mode' });
+    expect(group).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: 'Investigate' }));
+    expect(handlers.onTaskModeChange).toHaveBeenCalledWith('investigate');
+  });
+
+  it('Monitor hides the investigation kit — Find, Speed, and saved views', () => {
+    renderToolbar({ taskMode: 'monitor' });
+    expect(screen.queryByLabelText('Find')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Speed')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View 1' })).not.toBeInTheDocument();
+    // Core monitoring controls remain.
+    expect(screen.getByLabelText('Floor')).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'Census scope' })).toBeInTheDocument();
+  });
+
+  it('Investigate reveals the investigation kit', () => {
+    renderToolbar({ taskMode: 'investigate' });
+    expect(screen.getByLabelText('Find')).toBeInTheDocument();
+    expect(screen.getByLabelText('Speed')).toBeInTheDocument();
+  });
+
+  it('Rounds hides the occupancy rollup so the walk is the focus', () => {
+    renderToolbar({ taskMode: 'rounds' });
+    expect(screen.queryByLabelText('Occupancy timer rollup')).not.toBeInTheDocument();
   });
 });
 

@@ -101,7 +101,7 @@ import NavigatorSmallMultiples from './NavigatorSmallMultiples';
 import NavigatorStructureNav from './NavigatorStructureNav';
 import NavigatorToolbar from './NavigatorToolbar';
 import { gridToWorldCells, densityGrid, heatBounds } from '@/features/patientFlowNavigator/trailHeat';
-import type { LayerControl, NavigatorMetrics } from './NavigatorToolbar';
+import type { LayerControl, NavigatorMetrics, NavigatorTaskMode } from './NavigatorToolbar';
 import './PatientFlowNavigator.css';
 import { formatDurationMinutes } from '@/lib/duration';
 
@@ -490,6 +490,9 @@ export default function PatientFlowNavigator({
   const [ortho, setOrtho] = useState(false);
   // E4: GSTC flatten — draw the last-6h trail density on the 3D floor.
   const [floorHeatOn, setFloorHeatOn] = useState(false);
+  // E6: task mode — progressive disclosure of the toolbar (WN-6). Default
+  // Monitor is the resting at-a-glance layout minus the investigation kit.
+  const [taskMode, setTaskMode] = useState<NavigatorTaskMode>('monitor');
   const [roundsRun, setRoundsRun] = useState<RunSummary | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [inspectorAction, setInspectorAction] = useState<{ label: string; href: string } | null>(null);
@@ -2190,6 +2193,8 @@ export default function PatientFlowNavigator({
         categories={categories}
         layers={layers}
         layerControls={layerControls}
+        taskMode={taskMode}
+        onTaskModeChange={setTaskMode}
         censusScope={censusScope}
         showDeviationScope={conformanceEnabled}
         metrics={metrics}
@@ -2263,8 +2268,9 @@ export default function PatientFlowNavigator({
       )}
 
       {/* E4: the hourly small-multiples analysis card — the non-replay path to
-          "what happened this shift". Desk affordance; hidden on wall/kiosk. */}
-      {!handoff.wall && patientDotsVisible && (
+          "what happened this shift". Desk affordance; hidden on wall/kiosk and
+          revealed only in Investigate mode (E6 progressive disclosure). */}
+      {!handoff.wall && patientDotsVisible && taskMode === 'investigate' && (
         <NavigatorSmallMultiples
           tracks={tracks}
           locations={locations}
