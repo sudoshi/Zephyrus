@@ -42,13 +42,13 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
     onToggleLive: vi.fn(),
     onResetCamera: vi.fn(),
     onFocusPatients: vi.fn(),
-    onFocusDelayed: vi.fn(),
+    onFocusCensusScope: vi.fn(),
     onAskEddy: vi.fn(),
     onSpeedChange: vi.fn(),
     onFiltersChange: vi.fn(),
     onFloorSelect: vi.fn(),
     onLayerChange: vi.fn(),
-    onBarrierFinderChange: vi.fn(),
+    onCensusScopeChange: vi.fn(),
     onSearchSubmit: vi.fn(),
     onSelectSearchResult: vi.fn(),
     onSaveView: vi.fn(),
@@ -71,9 +71,10 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
       floors={[]}
       services={[]}
       categories={[]}
-      layers={{ base: true, tokens: true, trails: true, heat: true, ghosts: true, barriers: true, rounds: true }}
+      layers={{ base: true, tokens: true, trails: true, heat: true, ghosts: true, barriers: true, rounds: true, pathway: false }}
       layerControls={layerControls}
-      barrierFinder={false}
+      censusScope="all"
+      showDeviationScope={false}
       metrics={{ active: 12, events: 40, occupiedLocations: 9 }}
       occupancy={occupancy}
       eddyEnabled={false}
@@ -101,7 +102,19 @@ describe('NavigatorToolbar census scope (B-1/B-2)', () => {
     expect(screen.getByRole('radio', { name: 'All' })).toBeChecked();
 
     fireEvent.click(screen.getByRole('radio', { name: 'Delayed' }));
-    expect(handlers.onBarrierFinderChange).toHaveBeenCalledWith(true);
+    expect(handlers.onCensusScopeChange).toHaveBeenCalledWith('delayed');
+  });
+
+  it('hides the Pathway deviations radio while the adherence surface is dark (C5)', () => {
+    renderToolbar();
+    expect(screen.queryByRole('radio', { name: 'Pathway deviations' })).not.toBeInTheDocument();
+  });
+
+  it('offers the Pathway deviations scope when the surface is on (C3)', () => {
+    const handlers = renderToolbar({ showDeviationScope: true });
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Pathway deviations' }));
+    expect(handlers.onCensusScopeChange).toHaveBeenCalledWith('deviations');
   });
 
   it('keeps the Barriers layer switch with its disambiguating tooltip', () => {
@@ -118,7 +131,7 @@ describe('NavigatorToolbar census scope (B-1/B-2)', () => {
 
 describe('NavigatorToolbar delayed-only state (B-3/B-4)', () => {
   it('shows the filter chip with the count and relabels Active → Delayed', () => {
-    renderToolbar({ barrierFinder: true });
+    renderToolbar({ censusScope: 'delayed' });
 
     expect(screen.getByText('Filtered: delayed locations only (12)')).toBeInTheDocument();
     // The metric cell carrying the filtered count is labeled Delayed, not Active.
@@ -127,18 +140,18 @@ describe('NavigatorToolbar delayed-only state (B-3/B-4)', () => {
   });
 
   it('flies the camera only via the explicit Focus action', () => {
-    const handlers = renderToolbar({ barrierFinder: true });
+    const handlers = renderToolbar({ censusScope: 'delayed' });
 
-    expect(handlers.onFocusDelayed).not.toHaveBeenCalled();
+    expect(handlers.onFocusCensusScope).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Focus' }));
-    expect(handlers.onFocusDelayed).toHaveBeenCalledTimes(1);
+    expect(handlers.onFocusCensusScope).toHaveBeenCalledTimes(1);
   });
 
-  it('dismissing the chip clears the delayed-only scope', () => {
-    const handlers = renderToolbar({ barrierFinder: true });
+  it('dismissing the chip clears the scope', () => {
+    const handlers = renderToolbar({ censusScope: 'delayed' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Clear delayed-only filter' }));
-    expect(handlers.onBarrierFinderChange).toHaveBeenCalledWith(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Clear census scope filter' }));
+    expect(handlers.onCensusScopeChange).toHaveBeenCalledWith('all');
   });
 
   it('renders no chip and the plain Active metric when unfiltered', () => {
@@ -146,6 +159,23 @@ describe('NavigatorToolbar delayed-only state (B-3/B-4)', () => {
 
     expect(screen.queryByText(/Filtered: delayed locations only/)).not.toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
+  });
+});
+
+describe('NavigatorToolbar pathway-deviations scope (C3)', () => {
+  it('announces the scope, relabels the metric, and clears via the chip', () => {
+    const handlers = renderToolbar({ censusScope: 'deviations', showDeviationScope: true });
+
+    expect(screen.getByText('Filtered: pathway-deviation locations only (12)')).toBeInTheDocument();
+    expect(screen.getByText('12').nextElementSibling).toHaveTextContent('Deviations');
+    expect(screen.queryByText('Active')).not.toBeInTheDocument();
+
+    expect(handlers.onFocusCensusScope).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Focus' }));
+    expect(handlers.onFocusCensusScope).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear census scope filter' }));
+    expect(handlers.onCensusScopeChange).toHaveBeenCalledWith('all');
   });
 });
 

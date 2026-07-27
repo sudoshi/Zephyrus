@@ -1,6 +1,6 @@
 # Patient Flow 4D Navigator — Formative Usability Test Protocol
 
-**Version:** 1.0 (2026-07-19) · **Parent:** [FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md](../plans/FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md) §H3
+**Version:** 1.2 (2026-07-27; v1.1 added T8/T9 for the journey drawer, v1.2 adds T10 for the Phase C adherence surface) · **Parent:** [FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md](../plans/FLOW-4D-HFE-CLOSURE-PLAN-2026-07-19.md) §H3
 **Type:** formative, scenario-based, think-aloud, with situation-awareness probes
 **Surface under test:** `/rtdc/patient-flow-navigator` on the prod demo environment (post-H1 deploy)
 
@@ -75,7 +75,20 @@ match list → drawer is plain HTML → F frames the trace).**
 Hand the participant a `?patient=` link (as if sent by a colleague): "open this and
 tell me what your colleague wanted you to see."
 **Pass: lands selected + journey open + framed without any navigation help.**
-*(A per-patient adherence SAGAT probe joins as T10 when the Phase C surface ships.)*
+
+### T10 — Pathway adherence SAGAT probe (Phase C claim; v1.2 addition; requires `FLOW4D_CONFORMANCE_ENABLED`, clinical personas only)
+With the Pathway layer on and a seeded deviant sepsis case in the scene, the
+participant selects that patient (any path). Display freeze, then: **"Is this
+patient on or off their sepsis bundle — and how do you know?"** Follow-up while
+unfrozen: "which step, and by how much?" (ground truth: the panel's deviation
+line + computed evidence, e.g. "antibiotics 42 min past the 3-hour target").
+Watch for: reading the amber bracket as an alarm rather than a review flag
+(earned-urgency probe), and for trusting the panel without noticing the batch
+timestamp (freshness-honesty probe — ask "is this live?"; the correct answer
+is no, a 30-minute batch).
+**Pass: on/off answered correctly WITH the evidence source named (glyph or
+panel, not a guess); "is this live?" answered "no / batch" by 100% — a wrong
+answer there is a P1 (CF-4 failure).**
 
 ## 4. Situation-awareness probes (SAGAT-lite)
 

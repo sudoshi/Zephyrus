@@ -11,6 +11,8 @@ import {
   FORECAST_COLOR,
   GHOST_COLORS,
   OCCUPANCY_STATUS_COLORS,
+  PATHWAY_DEVIATION_COLOR,
+  PATHWAY_DEVIATION_EMISSIVE,
   ROUND_PINNED_COLOR,
   ROUND_STOP_COLORS,
   TIMER_PIP_COLORS,
@@ -169,6 +171,17 @@ export class NavigatorScene {
 
   private traceLineMaterial: THREE.LineBasicMaterial | null = null;
 
+  // Phase C (plan §7.2): pathway-deviation glyphs. A hollow amber bracket
+  // rides above a deviant patient's token; entries are ptok → worded chip
+  // state ("sepsis · late step"). Amber cap is the VOCABULARY's contract.
+  private pathwayLayer = new THREE.Group();
+
+  private glyphByPatient = new Map<string, THREE.Mesh>();
+
+  private pathwayDeviations = new Map<string, string>();
+
+  private pathwayEnabled = false;
+
   private heatSingleMaterial: THREE.MeshStandardMaterial;
 
   private heatMultiMaterial: THREE.MeshStandardMaterial;
@@ -194,6 +207,21 @@ export class NavigatorScene {
   // A flat ring, distinct from spheres/pillars/diamonds — a round stop reads
   // as "someone still has to visit here", not census or a barrier.
   private roundGeometry = new THREE.TorusGeometry(2.2, 0.42, 10, 26);
+
+  // A hollow SQUARE outline (4-segment ring baked 45°), billboarded — distinct
+  // from the filled delayed triangle, the filled barrier diamond, and the flat
+  // rounds torus (the CVD pair set is shape-discriminated, AT-3).
+  private bracketGeometry = (() => {
+    const geometry = new THREE.RingGeometry(0.85, 1.25, 4);
+    geometry.rotateZ(Math.PI / 4);
+    return geometry;
+  })();
+
+  private pathwayMaterial = new THREE.MeshStandardMaterial({
+    color: PATHWAY_DEVIATION_COLOR,
+    emissive: PATHWAY_DEVIATION_EMISSIVE,
+    side: THREE.DoubleSide,
+  });
 
   private raycaster = new THREE.Raycaster();
 
@@ -258,6 +286,7 @@ export class NavigatorScene {
       }
     };
     collect(this.roundsLayer.children);
+    collect(this.pathwayLayer.children);
     collect(this.barrierLayer.children);
     collect(this.patientLayer.children);
     collect(this.ghostLayer.children);
@@ -360,7 +389,7 @@ export class NavigatorScene {
     grid.position.y = -0.12;
     this.scene.add(grid);
 
-    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.ghostLayer, this.patientLayer, this.barrierLayer, this.roundsLayer, this.roundsRouteLayer);
+    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.ghostLayer, this.patientLayer, this.barrierLayer, this.roundsLayer, this.roundsRouteLayer, this.pathwayLayer);
 
     // Tour Auto pauses when the OPERATOR grabs the camera; OrbitControls only
     // dispatches 'start' for real input, never for programmatic flights.
@@ -489,6 +518,11 @@ export class NavigatorScene {
         return typeof data.round_patient_uuid === 'string'
           ? { kind: 'round-stop', id: data.round_patient_uuid }
           : null;
+      // Clicking the bracket selects the PATIENT it flags — the entity
+      // registry re-resolves to the token, and the orchestrator opens the
+      // journey (with its adherence panel) exactly as a token click would.
+      case 'pathway-deviation':
+        return typeof data.patient_id === 'string' ? { kind: 'patient', id: data.patient_id } : null;
       default:
         return null;
     }
@@ -635,10 +669,35 @@ export class NavigatorScene {
       // path must present identical inspector payloads.
       token.userData = patientTokenInspectorData(state, redactIdentity);
       visible.add(state.patientId);
+
+      // Phase C glyph: a hollow amber bracket riding above a deviant token.
+      // Billboarded; hidden with the token, in trace mode (others dimmed —
+      // the bracket must not out-shout the traced story), and when the
+      // Pathway layer is off. userData is state + ptok only, never identity.
+      const chip = this.pathwayDeviations.get(state.patientId);
+      let glyph = this.glyphByPatient.get(state.patientId);
+      if (chip) {
+        if (!glyph) {
+          glyph = new THREE.Mesh(this.bracketGeometry, this.pathwayMaterial);
+          this.glyphByPatient.set(state.patientId, glyph);
+          this.pathwayLayer.add(glyph);
+        }
+        glyph.position.set(state.position.x, state.position.y + 3.1, state.position.z);
+        glyph.quaternion.copy(this.camera.quaternion);
+        glyph.visible = this.pathwayEnabled && layerVisible
+          && (trace === null || state.patientId === trace);
+        glyph.userData = { kind: 'pathway-deviation', label: chip, patient_id: state.patientId };
+      } else if (glyph) {
+        glyph.visible = false;
+      }
     }
 
     for (const [patientId, token] of this.tokenByPatient.entries()) {
-      if (!visible.has(patientId)) token.visible = false;
+      if (!visible.has(patientId)) {
+        token.visible = false;
+        const glyph = this.glyphByPatient.get(patientId);
+        if (glyph) glyph.visible = false;
+      }
     }
 
     // Follow mode (B3): glide the orbit pivot (and camera, preserving the
@@ -736,6 +795,31 @@ export class NavigatorScene {
   /** Trace mode on/off (B3). Caller owns triggering the bucketed rebuild. */
   setTraceMode(patientId: string | null): void {
     this.tracePatientId = patientId;
+  }
+
+  /**
+   * Phase C: the deviant-patient set for the glyph layer (ptok → worded chip
+   * state). Stale glyph meshes are pruned here; positions/visibility apply on
+   * the per-frame updateTokens path.
+   */
+  setPathwayDeviations(entries: Map<string, string>, enabled: boolean): void {
+    this.pathwayDeviations = entries;
+    this.pathwayEnabled = enabled;
+    for (const [patientId, glyph] of this.glyphByPatient.entries()) {
+      if (!entries.has(patientId)) {
+        this.pathwayLayer.remove(glyph);
+        this.glyphByPatient.delete(patientId);
+      }
+    }
+  }
+
+  /** Visible deviation glyphs right now — the soak/urgency census counter. */
+  pathwayGlyphCount(): number {
+    let count = 0;
+    for (const glyph of this.glyphByPatient.values()) {
+      if (glyph.visible) count += 1;
+    }
+    return count;
   }
 
   /** Camera follows this token during replay; null stops following. */
@@ -1289,6 +1373,8 @@ export class NavigatorScene {
     this.clearGroup(this.barrierLayer);
     this.clearGroup(this.roundsLayer);
     this.clearGroup(this.roundsRouteLayer);
+    this.clearGroup(this.pathwayLayer);
+    this.glyphByPatient.clear();
     this.roundStopMeshByUuid.clear();
     this.queueSpriteMaterials.forEach((material) => {
       material.map?.dispose();
@@ -1317,6 +1403,8 @@ export class NavigatorScene {
     this.forecastGeometry.dispose();
     this.barrierGeometry.dispose();
     this.roundGeometry.dispose();
+    this.bracketGeometry.dispose();
+    this.pathwayMaterial.dispose();
     this.orbit.dispose();
     this.renderer.dispose();
   }
@@ -1484,11 +1572,18 @@ export class NavigatorScene {
         && child.geometry !== this.timerPipGeometry
         && child.geometry !== this.forecastGeometry
         && child.geometry !== this.barrierGeometry
-        && child.geometry !== this.roundGeometry) {
+        && child.geometry !== this.roundGeometry
+        && child.geometry !== this.bracketGeometry) {
         child.geometry.dispose();
       }
     }
-    if (group === this.patientLayer) this.tokenByPatient.clear();
+    if (group === this.patientLayer) {
+      this.tokenByPatient.clear();
+      // Glyphs exist only as riders on tokens — clearing the token registry
+      // without clearing theirs would leave brackets floating over nothing.
+      this.clearGroup(this.pathwayLayer);
+      this.glyphByPatient.clear();
+    }
   }
 
   private disposeObject(object: THREE.Object3D): void {

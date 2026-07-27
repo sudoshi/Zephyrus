@@ -55,6 +55,17 @@ export { ROUND_STOP_COLORS };
 export const ROUND_PINNED_COLOR = 0xeaa640;
 
 /**
+ * Pathway-deviation glyph (FLOW-4D §7.2 Phase C) — AMBER, permanently. The
+ * earned-urgency cap for this layer lives HERE, not in a caller: an observed
+ * pathway deviation is a variance to review, never a coral emergency; whether
+ * any hard breach may ever escalate past amber is plan OQ-1's [SU] ruling.
+ * Pinned by cvdPalette.test.ts — the pair set with the coral delayed cue is
+ * shape-discriminated (hollow bracket vs filled triangle), never color-only.
+ */
+export const PATHWAY_DEVIATION_COLOR = 0xeaa640; // = BARRIER_COLORS.warning amber
+export const PATHWAY_DEVIATION_EMISSIVE = 0x4a2e08;
+
+/**
  * Patient-token identity hue is clamped to 160°–280° (teal → blue → violet)
  * so a token can never impersonate amber/coral status colors (finding E-3).
  */
@@ -154,6 +165,7 @@ export const ELEMENT_LABELS: Record<string, string> = {
   'forecast-heat': 'Forecast census',
   barrier: 'Open barrier',
   'round-stop': 'Round stop',
+  'pathway-deviation': 'Pathway deviation',
 };
 
 export const CATEGORY_LABELS: Record<string, string> = {
@@ -210,7 +222,8 @@ export type SceneShape =
   | 'diamond'
   | 'ring'
   | 'block'
-  | 'triangle';
+  | 'triangle'
+  | 'bracket';
 
 export interface LegendEntry {
   key: string;
@@ -370,6 +383,19 @@ export const LEGEND_SECTIONS: LegendSection[] = [
         colorHex: ROUND_PINNED_COLOR,
         description: 'Amber, slightly larger: pinned for attention.',
         layer: 'rounds',
+      },
+    ],
+  },
+  {
+    title: 'Pathways',
+    entries: [
+      {
+        key: 'pathway-deviation',
+        label: 'Pathway deviation',
+        shape: 'bracket',
+        colorHex: PATHWAY_DEVIATION_COLOR,
+        description: 'Hollow amber bracket above a patient: an observed care-pathway deviation from the 30-minute conformance batch — a variance to review, never an alarm. Amber always; detail lives in the journey panel.',
+        layer: 'pathway',
       },
     ],
   },

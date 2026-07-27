@@ -5,6 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Domain\Arena\ArenaService;
 use App\Domain\Arena\FlowReviewService;
 use App\Http\Controllers\Controller;
+use App\Services\Eddy\EddyActionService;
+use App\Services\PatientFlow\PathwayDeviationSceneService;
+use App\Services\PatientFlow\PatientFlowEventAccessService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -94,6 +98,110 @@ class ArenaController extends Controller
             'Cache-Control' => 'private, no-store, max-age=0',
             'Pragma' => 'no-cache',
         ]);
+    }
+
+    /**
+     * Bulk deviation flags for the scene's glyph layer + census scope (plan §8
+     * C3). Under EnsureFlow4dConformanceEnabled + EnforceFlowLens:scoped-patients;
+     * rows ride the same window filters and lens gate as the scene's own event
+     * feed, keyed by opaque ptok refs. Cache-only, like caseConformance.
+     */
+    public function sceneConformance(
+        Request $request,
+        PatientFlowEventAccessService $access,
+        PathwayDeviationSceneService $scene,
+    ): JsonResponse {
+        $payload = $scene->build($access->context($request), [
+            'from' => $request->query('from'),
+            'to' => $request->query('to'),
+            'limit' => $request->query('limit', 5000),
+        ]);
+        $payload['generated_at'] = now()->toJSON();
+
+        return response()->json($payload)->withHeaders([
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'Pragma' => 'no-cache',
+        ]);
+    }
+
+    /**
+     * "Open an exception note" (plan §7.2, CF-5 variance-to-review framing):
+     * drafts a governed Eddy-plane proposal against a CACHED deviation verdict —
+     * never hand-rolled governance records, never auto-approved. The note lands
+     * as Recommendation(draft) → OperationalAction(draft) → Approval(pending)
+     * through EddyActionService::propose(approve: false).
+     */
+    public function conformanceExceptionNote(Request $request, EddyActionService $eddy): JsonResponse
+    {
+        $scope = $request->attributes->get('flow_scope');
+
+        if (! is_array($scope) || ($scope['type'] ?? null) !== 'patient' || empty($scope['patient_ref'])) {
+            return response()->json([
+                'error' => [
+                    'code' => 'exception_note_requires_patient_scope',
+                    'message' => 'This endpoint requires scope=patient:{ptok_…}.',
+                ],
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'pathway' => ['required', 'string', 'max:60'],
+            'note' => ['required', 'string', 'max:2000'],
+            'deviations' => ['sometimes', 'array', 'max:20'],
+            'deviations.*' => ['string', 'max:80'],
+        ]);
+
+        // The note must answer a REAL cached deviation — the same cache the
+        // panel rendered from (honest provenance; no verdict, no note).
+        $verdicts = $this->arena->caseConformance(
+            $this->arena->caseOidsForPatient((string) $scope['patient_ref']),
+        );
+        $verdict = collect($verdicts['verdicts'] ?? [])->first(
+            fn (array $candidate): bool => $candidate['pathway'] === $validated['pathway']
+                && $candidate['conformant'] === false,
+        );
+
+        if ($verdict === null) {
+            return response()->json([
+                'error' => [
+                    'code' => 'no_cached_deviation',
+                    'message' => 'No cached non-conformant verdict for this pathway and patient.',
+                ],
+            ], 422);
+        }
+
+        $noted = array_values(array_intersect(
+            array_filter((array) ($validated['deviations'] ?? []), 'is_string'),
+            $verdict['deviations'],
+        ));
+
+        try {
+            $result = $eddy->propose($request->user(), [
+                'action_type' => 'flag_pathway_deviation',
+                'title' => 'Pathway exception note — '.$validated['pathway'],
+                'rationale' => $validated['note'],
+                'surface' => 'patient_flow_4d',
+                'params' => [
+                    'exception_note' => true,
+                    'pathway' => $validated['pathway'],
+                    'pathway_version' => $verdict['pathway_version'],
+                    'deviations' => $noted !== [] ? $noted : $verdict['deviations'],
+                    'as_of_batch' => $verdict['computed_at'],
+                    // Opaque HMAC context ref — the same non-identifying handle
+                    // the authorized client already holds; resolvable only
+                    // through lens-authorized surfaces. Never an identifier.
+                    'patient_context_ref' => $scope['patient_context_ref'],
+                ],
+            ], approve: false);
+        } catch (AuthorizationException $exception) {
+            return response()->json([
+                'error' => ['code' => 'eddy_role_required', 'message' => $exception->getMessage()],
+            ], 403);
+        }
+
+        return response()->json($result + [
+            'patient_context_ref' => $scope['patient_context_ref'],
+        ], 201);
     }
 
     public function petrinet(Request $request): JsonResponse

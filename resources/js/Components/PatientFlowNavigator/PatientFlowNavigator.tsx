@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePage } from '@inertiajs/react';
 import {
   createPatientFlowEventSource,
+  fetchCaseConformance,
   fetchPatientFlowAmbient,
   fetchPatientFlowBarriers,
   fetchPatientFlowEpoch,
@@ -10,12 +11,16 @@ import {
   fetchPatientFlowOccupancy,
   fetchPatientFlowProjections,
   fetchPatientFlowSummary,
+  fetchSceneConformance,
+  postExceptionNote,
 } from '@/features/patientFlowNavigator/api';
+import { pathwayLabel, sceneChipLabel } from '@/features/patientFlowNavigator/adherence';
 import { adoptEpoch } from '@/features/patientFlowNavigator/epoch';
 import { eventDensityBuckets, fetchPatientJourney, journeyEventTicks } from '@/features/patientFlowNavigator/journey';
 import type { JourneyAlignAnchor } from '@/features/patientFlowNavigator/journey';
 import type { PatientJourney } from '@/features/patientFlowNavigator/journeySchemas';
 import NavigatorJourneyDrawer from './NavigatorJourneyDrawer';
+import type { DrawerAdherence } from './NavigatorJourneyDrawer';
 import {
   parseTime,
   patientStatesAt,
@@ -173,7 +178,7 @@ export function parseHandoff(): HandoffParams {
 
 function defaultLayersForLens(lens: FlowLens | null | undefined): PatientLayerState {
   if (!lens) {
-    return { base: true, tokens: true, trails: true, heat: true, ghosts: true, barriers: true, rounds: true };
+    return { base: true, tokens: true, trails: true, heat: true, ghosts: true, barriers: true, rounds: true, pathway: false };
   }
   const has = (layer: string): boolean => lens.layers.includes(layer);
   const dots = lens.patient_dots !== 'none';
@@ -189,8 +194,15 @@ function defaultLayersForLens(lens: FlowLens | null | undefined): PatientLayerSt
     // Round stops are opaque tokens (no identity in the scene payload), so
     // the same doctrine applies; the toggle only appears when a run exists.
     rounds: true,
+    // Phase C: deviation glyphs default OFF for every lens (§7.2) — the
+    // operator opts in; the toggle only appears when the conformance flag
+    // and a patient-dots lens compose.
+    pathway: false,
   };
 }
+
+/** Census scope (B-1 family + §7.2 C3): which occupancy disks render. */
+type NavigatorCensusScope = 'all' | 'delayed' | 'deviations';
 
 /**
  * Lens redaction for the inspector (G7 on web): `none` → aggregate fields
@@ -294,6 +306,10 @@ export default function PatientFlowNavigator({
   const patientDotsVisible = dotsPolicy !== 'none';
   const page = usePage<PageProps>();
   const eddyEnabled = Boolean(page.props.eddy?.enabled);
+  // Phase C (§7.2): ARENA ∧ FLOW4D_CONFORMANCE_ENABLED pre-composed server-side;
+  // the lens leg composes here. Flag off → this file renders byte-identical.
+  const conformanceEnabled = Boolean(page.props.arena?.conformance_enabled) && patientDotsVisible;
+  const arenaAiEnabled = Boolean(page.props.arena?.ai_enabled);
   const openEddyWithPrefill = useEddyStore((state) => state.openWithPrefill);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -309,7 +325,12 @@ export default function PatientFlowNavigator({
     search: '',
   });
   const layersRef = useRef<PatientLayerState>(defaultLayersForLens(lens));
-  const barrierFinderRef = useRef(false);
+  const censusScopeRef = useRef<NavigatorCensusScope>('all');
+  // Phase C scene flags: ptok → worded chip state, refreshed on the
+  // conformance poll; version feeds the heavy-layer bucket key.
+  const deviationsRef = useRef<Map<string, string>>(new Map());
+  const deviationsVersionRef = useRef(0);
+  const conformanceCadenceRef = useRef(30);
   const projectionsRef = useRef<ProjectionItem[]>([]);
   const serverOccupancyRef = useRef<{
     asOfMs: number;
@@ -342,7 +363,7 @@ export default function PatientFlowNavigator({
   const [roundStops, setRoundStops] = useState<RoundStop[]>([]);
   const [filters, setFilters] = useState<PatientFlowFilters>(filtersRef.current);
   const [layers, setLayers] = useState<PatientLayerState>(layersRef.current);
-  const [barrierFinder, setBarrierFinder] = useState(false);
+  const [censusScope, setCensusScope] = useState<NavigatorCensusScope>('all');
   const [currentTime, setCurrentTime] = useState(currentTimeRef.current);
   const [speed, setSpeed] = useState(60);
   const [playing, setPlaying] = useState(false);
@@ -363,6 +384,9 @@ export default function PatientFlowNavigator({
   // F-6 pt 2 — dataset-epoch rebootstrap: bumping the nonce re-runs the whole
   // bootstrap atomically (all four datasets together, never one at a time).
   const [bootstrapNonce, setBootstrapNonce] = useState(0);
+  // Bumped when the lazy scene chunk finishes mounting, so effects that
+  // mirror React state onto the scene re-run against a live sceneRef.
+  const [sceneNonce, setSceneNonce] = useState(0);
   const [rebuildNotice, setRebuildNotice] = useState<string | null>(null);
   const epochRef = useRef<string | null>(null);
   const rebootstrappingRef = useRef(false);
@@ -375,6 +399,9 @@ export default function PatientFlowNavigator({
   const [journeyAlign, setJourneyAlign] = useState<JourneyAlignAnchor>('clock');
   const [journeyFollow, setJourneyFollow] = useState(false);
   const [journeyLinkCopied, setJourneyLinkCopied] = useState(false);
+  // Phase C: the open journey's cached adherence verdicts (null = surface off
+  // for this page/persona — the drawer renders byte-identical to Phase B).
+  const [adherence, setAdherence] = useState<DrawerAdherence | null>(null);
   const journeyPatientRef = useRef<string | null>(null);
   const journeyFollowRef = useRef(false);
   useEffect(() => {
@@ -584,8 +611,18 @@ export default function PatientFlowNavigator({
     if (roundStops.length > 0) {
       controls.push({ key: 'rounds', label: 'Rounds', id: 'flow-layer-rounds' });
     }
+    // Phase C: the deviation-glyph layer — flag ∧ patient-dots composed;
+    // default off (the operator opts in), absent entirely while dark.
+    if (conformanceEnabled) {
+      controls.push({
+        key: 'pathway',
+        label: 'Pathway',
+        id: 'flow-layer-pathway',
+        title: 'Care-pathway deviation glyphs (30-minute conformance batch)',
+      });
+    }
     return controls;
-  }, [lens, patientDotsVisible, roundStops.length]);
+  }, [conformanceEnabled, lens, patientDotsVisible, roundStops.length]);
 
   // ---- scene refresh: cheap per-frame tokens, bucketed heavy layers -------
   // Reads wall-clock now from the ref so the callback identity stays stable
@@ -613,13 +650,25 @@ export default function PatientFlowNavigator({
     );
     const occupancyInsights = useServerOccupancy ? serverOccupancy!.occupancy : localOccupancy.insights;
     const occupancySummary = useServerOccupancy ? serverOccupancy!.summary : localOccupancy.summary;
-    const visibleOccupancyInsights = barrierFinderRef.current
+    // C3: the deviations census scope isolates the LOCATIONS of flagged
+    // patients — same chip/metric/Focus discipline as the delayed scope.
+    const scope = censusScopeRef.current;
+    const deviantLocations = scope === 'deviations'
+      ? new Set(states
+          .filter((state) => deviationsRef.current.has(state.patientId))
+          .map((state) => state.event.to_location)
+          .filter(Boolean))
+      : null;
+    const visibleOccupancyInsights = scope === 'delayed'
       ? occupancyInsights.filter(isBarrierOrDelay)
-      : occupancyInsights;
+      : deviantLocations !== null
+        ? occupancyInsights.filter((insight) => deviantLocations.has(insight.location))
+        : occupancyInsights;
     lastVisibleStatesRef.current = states;
     lastOccupancyInsightsRef.current = occupancyInsights;
     // Only the visible disks are selectable in the scene; the list mirrors them.
     setActionableInsights(visibleOccupancyInsights.filter((insight) => insight.primaryStatus !== 'ok'));
+    scene.setPathwayDeviations(deviationsRef.current, layersRef.current.pathway);
     scene.updateTokens(
       states,
       layersRef.current.tokens && dotsPolicy !== 'none',
@@ -633,7 +682,8 @@ export default function PatientFlowNavigator({
       Math.floor(wallNowMs / 60_000),
       JSON.stringify(filtersRef.current),
       JSON.stringify(layersRef.current),
-      barrierFinderRef.current ? 'barriers' : 'all',
+      censusScopeRef.current,
+      deviationsVersionRef.current,
       eventsRef.current.length,
       projectionsRef.current.length,
       barriersRef.current.length,
@@ -719,10 +769,10 @@ export default function PatientFlowNavigator({
     }
 
     setMetrics({
-      active: barrierFinderRef.current ? visibleOccupancyInsights.length : (useServerOccupancy ? occupancySummary.active : states.length),
+      active: scope !== 'all' ? visibleOccupancyInsights.length : (useServerOccupancy ? occupancySummary.active : states.length),
       events: eventsRef.current.filter((event) => parseTime(event.occurred_at) <= timeMs).length,
       occupiedLocations: occupied
-        || new Set((barrierFinderRef.current || useServerOccupancy ? visibleOccupancyInsights.map((item) => item.location) : states.map((state) => state.event.to_location)).filter(Boolean)).size,
+        || new Set((scope !== 'all' || useServerOccupancy ? visibleOccupancyInsights.map((item) => item.location) : states.map((state) => state.event.to_location)).filter(Boolean)).size,
     });
     // N-5: the Find field shows how many tokens the search matched.
     // H1.2: the first matches render as a selectable list — the keyboard/AT
@@ -745,7 +795,7 @@ export default function PatientFlowNavigator({
     locationsRef.current = locations;
     filtersRef.current = filters;
     layersRef.current = layers;
-    barrierFinderRef.current = barrierFinder;
+    censusScopeRef.current = censusScope;
     projectionsRef.current = projections;
     barriersRef.current = barriers;
     roundStopsRef.current = roundStops;
@@ -755,15 +805,15 @@ export default function PatientFlowNavigator({
     tracksRef.current = tracks;
     placementIndexRef.current = placementIndex;
     refreshScene();
-  }, [events, locations, filters, layers, barrierFinder, projections, barriers, roundStops, speed, playing, live, tracks, placementIndex, refreshScene]);
+  }, [events, locations, filters, layers, censusScope, projections, barriers, roundStops, speed, playing, live, tracks, placementIndex, refreshScene]);
 
-  // B-4: no camera side effect here — flying to the delayed set is an explicit
+  // B-4: no camera side effect here — flying to the scoped set is an explicit
   // "Focus" action on the filter chip, never a consequence of toggling scope.
   useEffect(() => {
-    barrierFinderRef.current = barrierFinder;
+    censusScopeRef.current = censusScope;
     lastBucketKeyRef.current = '';
     refreshScene();
-  }, [barrierFinder, refreshScene]);
+  }, [censusScope, refreshScene]);
 
   // S-1: repaint when wall-clock now advances (the now-minute is part of the
   // heavy-layer bucket key, so severity and gating rebuild with the fresh now).
@@ -785,6 +835,7 @@ export default function PatientFlowNavigator({
       ? { uuid: roundsRunRef.current.run_uuid, status: roundsRunRef.current.status }
       : null),
     epoch: () => epochRef.current,
+    pathwayGlyphs: () => sceneRef.current?.pathwayGlyphCount() ?? null,
   }), []);
 
   // Live-follow: slide the 48h window with wall-clock now, but only in
@@ -1020,6 +1071,51 @@ export default function PatientFlowNavigator({
     };
   }, []);
 
+  // Phase C scene flags (§7.2 C3) — which visible patients carry a cached
+  // non-conformant verdict, keyed by ptok. Cache-only server-side, 30-minute
+  // batch; polled every 5 min (barriers-overlay idiom) so a wall picks up a
+  // fresh batch mid-session. Any failure empties the layer, never the
+  // navigator. Gated: absent flag/persona means this effect never fetches.
+  useEffect(() => {
+    if (!conformanceEnabled) return undefined;
+    let cancelled = false;
+
+    const apply = (entries: Map<string, string>, cadence: number | null): void => {
+      deviationsRef.current = entries;
+      deviationsVersionRef.current += 1;
+      if (cadence && cadence > 0) conformanceCadenceRef.current = cadence;
+      lastBucketKeyRef.current = '';
+      refreshScene();
+    };
+
+    const load = (): void => {
+      if (document.visibilityState === 'hidden') return;
+      void fetchSceneConformance({ persona: lens?.role_id }).then((result) => {
+        if (cancelled) return;
+        if (result.kind !== 'ok' || !result.data.available) {
+          apply(new Map(), null);
+          return;
+        }
+        const entries = new Map<string, string>();
+        for (const patient of result.data.patients ?? []) {
+          entries.set(patient.ref, sceneChipLabel(
+            patient.pathways.map((flag) => ({ pathway: flag.pathway, deviations: flag.deviations ?? [] })),
+          ));
+        }
+        apply(entries, result.data.cadence_minutes ?? null);
+      });
+    };
+
+    load();
+    const timer = window.setInterval(load, 300_000);
+    document.addEventListener('visibilitychange', load);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', load);
+    };
+  }, [conformanceEnabled, lens?.role_id, refreshScene]);
+
   // Virtual Rounds overlay (plan §8.1) — the most recent open run's scene
   // stops, opaque tokens only. Feature flag off (404), no run, or any failure
   // simply leaves the overlay empty; the navigator never degrades.
@@ -1161,8 +1257,14 @@ export default function PatientFlowNavigator({
           );
           // B1: a patient selection opens their journey; anything else closes
           // it so the inspector slot always describes the current selection.
-          if (data.kind === 'patient') {
+          // (Phase C fixed the original kind test: token userData carries
+          // 'patient-token', so a direct canvas click never opened the drawer
+          // — only the list/deep-link paths did. A deviation-glyph click
+          // routes to the SAME patient journey, where the adherence panel is.)
+          if (data.kind === 'patient-token') {
             openJourneyRef.current(String(redacted.patient_context_ref ?? redacted.patient_id ?? ''));
+          } else if (data.kind === 'pathway-deviation' && typeof data.patient_id === 'string') {
+            openJourneyRef.current(data.patient_id);
           } else {
             closeJourneyRef.current();
           }
@@ -1193,6 +1295,11 @@ export default function PatientFlowNavigator({
         },
       });
       sceneRef.current = scene;
+      // Ordering guard: state-mirroring effects (trace/follow) that fired
+      // while the lazy chunk was still loading saw a null sceneRef and
+      // no-oped; bumping the nonce re-runs them against the live scene.
+      // (Exposed by the ?patient= deep link on a slow first load.)
+      setSceneNonce((nonce) => nonce + 1);
       scene.setHoverEnabled(!(playingRef.current && speedRef.current > 60));
       lastBucketKeyRef.current = '';
       lastRoundsKeyRef.current = '';
@@ -1282,9 +1389,17 @@ export default function PatientFlowNavigator({
   // typing-context guard applies — Escape inside the Find field must clear
   // only the field, never the operator's selection.
 
-  // B-4: the explicit camera action for the Delayed-only census scope — the
-  // operator asks for the flight; the checkbox never causes it.
-  const focusDelayed = useCallback((): void => {
+  // B-4: the explicit camera action for a narrowed census scope — the
+  // operator asks for the flight; the radio never causes it. Delayed flies
+  // to the delayed disks; Deviations flies to the flagged patients' tokens.
+  const focusCensusScope = useCallback((): void => {
+    if (censusScopeRef.current === 'deviations') {
+      const points = lastVisibleStatesRef.current
+        .filter((state) => deviationsRef.current.has(state.patientId))
+        .map((state) => state.position);
+      if (points.length) sceneRef.current?.focusOn(points);
+      return;
+    }
     const points = lastOccupancyInsightsRef.current
       .filter(isBarrierOrDelay)
       .map((item) => item.position);
@@ -1326,7 +1441,35 @@ export default function PatientFlowNavigator({
     setJourneyData(null);
     setJourneyFollow(false);
     setJourneyLinkCopied(false);
+    setAdherence(null);
   }, []);
+
+  // Phase C: the drawer's adherence read — cached verdicts for the opened
+  // patient (same ptok scope + persona chain as the journey itself). A
+  // forbidden read means the surface simply is not there for this persona;
+  // errors render a quiet unavailability line, never a broken drawer.
+  const loadAdherenceForPatient = useCallback((patientContextRef: string): void => {
+    if (!conformanceEnabled) {
+      setAdherence(null);
+      return;
+    }
+    setAdherence({ state: 'loading', verdicts: [], asOf: null, cadenceMinutes: conformanceCadenceRef.current });
+    void fetchCaseConformance({ patientContextRef, persona: lens?.role_id }).then((result) => {
+      if (journeyPatientRef.current !== patientContextRef) return; // stale response
+      if (result.kind === 'ok') {
+        setAdherence({
+          state: 'ok',
+          verdicts: result.data.verdicts ?? [],
+          asOf: result.data.computed_at ?? null,
+          cadenceMinutes: conformanceCadenceRef.current,
+        });
+        return;
+      }
+      setAdherence(result.kind === 'forbidden'
+        ? null
+        : { state: 'error', verdicts: [], asOf: null, cadenceMinutes: conformanceCadenceRef.current });
+    });
+  }, [conformanceEnabled, lens?.role_id]);
 
   // Opens the journey for an opaque patient context ref. Persona rides the
   // request (F-1) and the patient is addressed only through the ptok scope —
@@ -1338,6 +1481,7 @@ export default function PatientFlowNavigator({
     setJourneyFollow(false);
     setJourneyLinkCopied(false);
     setJourneyState('loading');
+    loadAdherenceForPatient(patientContextRef);
 
     void fetchPatientJourney({ patientContextRef, persona: lens?.role_id }).then((result) => {
       if (journeyPatientRef.current !== patientContextRef) return; // stale response
@@ -1350,11 +1494,36 @@ export default function PatientFlowNavigator({
       // journey miss must never cost the operator the selection itself).
       journeyPatientRef.current = null;
       setJourneyState('idle');
+      setAdherence(null);
       setStatus(result.kind === 'forbidden'
         ? 'Journey not available for this persona'
         : 'Journey unavailable — inspector fallback');
     });
+  }, [lens?.role_id, loadAdherenceForPatient]);
+
+  // C1: the governed exception-note draft — resolves true only when the note
+  // landed as a PENDING approval on the Eddy plane (never auto-approved).
+  const draftExceptionNote = useCallback(async (pathway: string, deviations: string[], note: string): Promise<boolean> => {
+    const ptok = journeyPatientRef.current;
+    if (!ptok) return false;
+    const result = await postExceptionNote({
+      patientContextRef: ptok,
+      pathway,
+      note,
+      deviations,
+      persona: lens?.role_id,
+    });
+    return result.kind === 'ok';
   }, [lens?.role_id]);
+
+  // "Explain this deviation" (§7.2) — the AI plane, only when the copilot is
+  // on. State-only prompt: pathway + worded deviation + computed evidence;
+  // never an identifier (Eddy's phi policy is prompt-minimized regardless).
+  const explainDeviation = useCallback((pathway: string, deviationLabel: string, evidence: string | null): void => {
+    openEddyWithPrefill(
+      `On the ${pathwayLabel(pathway)} care pathway, explain this observed deviation and what typically causes it operationally: "${deviationLabel}"${evidence ? ` (${evidence})` : ''}. This is from the 4D Navigator's conformance batch.`,
+    );
+  }, [openEddyWithPrefill]);
 
   // The scene's onSelect closure is constructed once at mount; route through
   // refs so it always calls the current opener/closer (the file-wide pattern).
@@ -1497,13 +1666,13 @@ export default function PatientFlowNavigator({
     scene.setTraceMode(journeyState === 'ok' ? journeyPatientRef.current : null);
     lastBucketKeyRef.current = '';
     refreshScene();
-  }, [journeyData, journeyState, refreshScene]);
+  }, [journeyData, journeyState, refreshScene, sceneNonce]);
 
   // B3 — follow-patient: explicit drawer toggle; operator camera input or
   // closing the journey clears it.
   useEffect(() => {
     sceneRef.current?.setFollowPatient(journeyFollow ? journeyPatientRef.current : null);
-  }, [journeyData, journeyFollow]);
+  }, [journeyData, journeyFollow, sceneNonce]);
 
   // B4 — the ?patient= cross-surface pivot (PJ-3): once events are loaded,
   // select the patient and open their journey (one attempt per mount; the
@@ -1761,7 +1930,8 @@ export default function PatientFlowNavigator({
         categories={categories}
         layers={layers}
         layerControls={layerControls}
-        barrierFinder={barrierFinder}
+        censusScope={censusScope}
+        showDeviationScope={conformanceEnabled}
         metrics={metrics}
         occupancy={occupancy}
         eddyEnabled={eddyEnabled}
@@ -1772,12 +1942,12 @@ export default function PatientFlowNavigator({
         onToggleLive={() => (live ? disconnectLive() : connectLive())}
         onResetCamera={resetCamera}
         onFocusPatients={focusActivePatients}
-        onFocusDelayed={focusDelayed}
+        onFocusCensusScope={focusCensusScope}
         onSpeedChange={setSpeed}
         onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
         onFloorSelect={handleFloorSelect}
         onLayerChange={(key, value) => setLayers((prev) => ({ ...prev, [key]: value }))}
-        onBarrierFinderChange={setBarrierFinder}
+        onCensusScopeChange={setCensusScope}
         onAskEddy={askEddy}
         searchMatches={searchMatches}
         searchResults={searchResults}
@@ -1822,10 +1992,13 @@ export default function PatientFlowNavigator({
           onFollowToggle={setJourneyFollow}
           onCopyLink={copyJourneyLink}
           copiedLink={journeyLinkCopied}
+          adherence={adherence}
+          onExceptionNote={conformanceEnabled ? draftExceptionNote : undefined}
+          onExplainDeviation={conformanceEnabled && arenaAiEnabled && eddyEnabled ? explainDeviation : undefined}
         />
       )}
 
-      <NavigatorLegend layers={layers} />
+      <NavigatorLegend layers={layers} showPathways={conformanceEnabled} />
 
       {toastMessage && (
         <div className="patient-flow-toast" role="status">{toastMessage}</div>

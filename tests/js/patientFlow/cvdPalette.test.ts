@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BARRIER_COLORS,
   LEGEND_SECTIONS,
   OCCUPANCY_STATUS_COLORS,
+  PATHWAY_DEVIATION_COLOR,
 } from '@/features/patientFlowNavigator/sceneVocabulary';
 
 /**
@@ -73,5 +75,34 @@ describe('census status palette under deuteranopia (H1.1)', () => {
     expect(entry?.layer).toBe('heat');
     // Worded, never color alone.
     expect(entry?.description).toContain('shape');
+  });
+});
+
+describe('pathway-deviation glyph pair set (Phase C, AT-3)', () => {
+  it('pins the amber cap: the glyph IS the warning amber, never coral', () => {
+    expect(PATHWAY_DEVIATION_COLOR).toBe(BARRIER_COLORS.warning.color);
+    expect(PATHWAY_DEVIATION_COLOR).not.toBe(BARRIER_COLORS.critical.color);
+    expect(PATHWAY_DEVIATION_COLOR).not.toBe(OCCUPANCY_STATUS_COLORS.delayed.color);
+  });
+
+  it('discriminates the confusable amber/coral pair by SHAPE, worded in the legend', () => {
+    // Amber deviation vs coral delayed is exactly the hue axis deuteranopia
+    // collapses (the test above) — so the pair set is shape-discriminated:
+    // hollow bracket vs filled triangle vs filled diamond vs flat ring.
+    const entries = LEGEND_SECTIONS.flatMap((section) => section.entries);
+    const glyph = entries.find((candidate) => candidate.key === 'pathway-deviation');
+    expect(glyph).toBeDefined();
+    expect(glyph?.shape).toBe('bracket');
+    expect(glyph?.layer).toBe('pathway');
+    expect(glyph?.description.toLowerCase()).toContain('amber');
+    expect(glyph?.description.toLowerCase()).toContain('never');
+
+    const shapesInPlay = new Set(
+      entries
+        .filter((candidate) => ['pathway-deviation', 'occupancy-delayed-cue', 'barrier-warning', 'round-stop-pinned'].includes(candidate.key))
+        .map((candidate) => candidate.shape),
+    );
+    // Every amber-capable element keeps a distinct silhouette.
+    expect(shapesInPlay.size).toBe(4);
   });
 });

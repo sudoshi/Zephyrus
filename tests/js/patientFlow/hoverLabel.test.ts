@@ -73,4 +73,15 @@ describe('hoverLabelFor identity exclusion (H5.2)', () => {
   it('collapses a name identical to the element label', () => {
     expect(hoverLabelFor({ kind: 'patient-token', label: 'Patient' })).toBe('Patient');
   });
+
+  it('words the pathway-deviation glyph as state, never identity (§7.2 C3)', () => {
+    const label = hoverLabelFor({
+      kind: 'pathway-deviation',
+      label: 'sepsis · late step',
+      patient_id: 'ptok_abcabcabcabcabcabcabcabc',
+    });
+    expect(label).toBe('Pathway deviation · sepsis · late step');
+    // The ptok is opaque, but the chip must not surface even that handle.
+    expect(label).not.toContain('ptok_');
+  });
 });
