@@ -1167,7 +1167,12 @@ export default function PatientFlowNavigator({
             closeJourneyRef.current();
           }
         },
-        onUserCameraStart: () => setTourAuto(false),
+        // The operator's hand always wins: camera input pauses the rounds
+        // Auto tour AND patient follow (B3) in one gesture.
+        onUserCameraStart: () => {
+          setTourAuto(false);
+          setJourneyFollow(false);
+        },
         // E-4 hover chip: identity-free by construction AND by guard test —
         // hoverLabelFor lives in sceneVocabulary, pinned by hoverLabel.test.ts.
         hoverLabel: hoverLabelFor,
@@ -1470,7 +1475,9 @@ export default function PatientFlowNavigator({
       if (key === 'h') {
         sceneRef.current?.resetCamera();
       } else if (key === 'f') {
-        if (!sceneRef.current?.focusSelection()) focusActivePatients();
+        // focusTrace frames the whole traced story when a journey is open
+        // and falls back to the plain selection focus otherwise (B3).
+        if (!sceneRef.current?.focusTrace()) focusActivePatients();
       } else if (key === 'n') {
         if (!historical) handleScrub(nowMsRef.current);
       } else if (event.key === '?') {
@@ -1480,6 +1487,23 @@ export default function PatientFlowNavigator({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [closeJourney, dismissIntro, focusActivePatients, handleScrub, historical]);
+
+  // B3 — trace mode mirrors the journey drawer: open journey = traced story
+  // in-scene (gradient trail + dwell markers, others dimmed). Toggling clears
+  // the bucket key so the trail layer rebuilds immediately.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    scene.setTraceMode(journeyState === 'ok' ? journeyPatientRef.current : null);
+    lastBucketKeyRef.current = '';
+    refreshScene();
+  }, [journeyData, journeyState, refreshScene]);
+
+  // B3 — follow-patient: explicit drawer toggle; operator camera input or
+  // closing the journey clears it.
+  useEffect(() => {
+    sceneRef.current?.setFollowPatient(journeyFollow ? journeyPatientRef.current : null);
+  }, [journeyData, journeyFollow]);
 
   // B4 — the ?patient= cross-surface pivot (PJ-3): once events are loaded,
   // select the patient and open their journey (one attempt per mount; the
@@ -1792,7 +1816,7 @@ export default function PatientFlowNavigator({
           onAlignChange={setJourneyAlign}
           onClose={closeJourney}
           onFocus={() => {
-            if (!sceneRef.current?.focusSelection()) focusActivePatients();
+            if (!sceneRef.current?.focusTrace()) focusActivePatients();
           }}
           followEnabled={journeyFollow}
           onFollowToggle={setJourneyFollow}

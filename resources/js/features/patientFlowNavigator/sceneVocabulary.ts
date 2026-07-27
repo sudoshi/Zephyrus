@@ -71,6 +71,48 @@ export function patientHue(value: string): number {
 }
 
 // ---------------------------------------------------------------------------
+// Trace mode (plan B3, PJ-2) — the selected patient's story in-scene. The
+// gradient runs dim slate (oldest) → the patient's own identity color
+// (newest), so direction of travel is readable without animation; dwell
+// markers scale with time-in-place (stagnation IS the signal — space-time
+// path doctrine). Hue stays inside the identity clamp; saturation/lightness
+// stay below status salience. Pure + three-free so tests can pin them.
+// ---------------------------------------------------------------------------
+
+export const TRACE_DWELL_MIN_MINUTES = 30;
+
+/** hsl → rgb (0..1 each); h in degrees. Pure, allocation-light. */
+export function hslToRgb(hueDegrees: number, saturation: number, lightness: number): [number, number, number] {
+  const h = ((hueDegrees % 360) + 360) % 360 / 360;
+  if (saturation === 0) return [lightness, lightness, lightness];
+  const q = lightness < 0.5 ? lightness * (1 + saturation) : lightness + saturation - lightness * saturation;
+  const p = 2 * lightness - q;
+  const channel = (t: number): number => {
+    let x = t;
+    if (x < 0) x += 1;
+    if (x > 1) x -= 1;
+    if (x < 1 / 6) return p + (q - p) * 6 * x;
+    if (x < 1 / 2) return q;
+    if (x < 2 / 3) return p + (q - p) * (2 / 3 - x) * 6;
+    return p;
+  };
+  return [channel(h + 1 / 3), channel(h), channel(h - 1 / 3)];
+}
+
+/** Gradient stop for the trace trail at normalized age t (0 oldest → 1 newest). */
+export function traceGradientRgb(t: number, patientId: string): [number, number, number] {
+  const clamped = Math.min(1, Math.max(0, t));
+  const hue = patientHue(patientId);
+  return hslToRgb(hue, 0.15 + 0.55 * clamped, 0.24 + 0.34 * clamped);
+}
+
+/** Dwell-marker scale: 0 below the threshold, then log growth, hard-capped. */
+export function dwellNodeScale(dwellMinutes: number): number {
+  if (!Number.isFinite(dwellMinutes) || dwellMinutes < TRACE_DWELL_MIN_MINUTES) return 0;
+  return Math.min(2.2, 0.5 + Math.log10(dwellMinutes / TRACE_DWELL_MIN_MINUTES + 1) * 1.6);
+}
+
+// ---------------------------------------------------------------------------
 // Base-model category treatments (plan §5.2) — glTF `extras.category` is
 // already in mesh.userData; these tints make hallway/room/bed/ED legible.
 // All tints stay in the blue/slate operational family. `floor` and unknown
@@ -203,6 +245,14 @@ export const LEGEND_SECTIONS: LegendSection[] = [
         shape: 'line',
         colorHex: 0x49c6df,
         description: 'Where that patient has been up to the scrubbed time.',
+        layer: 'trails',
+      },
+      {
+        key: 'trace-dwell',
+        label: 'Dwell marker',
+        shape: 'sphere',
+        colorHex: 0x49c6df,
+        description: 'On the selected patient’s trace: time spent in one place — bigger means longer. Identity color, never status.',
         layer: 'trails',
       },
     ],
