@@ -30,7 +30,7 @@ Both post-split samples (runs 30284124065, 30285723272) landed in a degraded mac
 
 ## Standing conclusions
 
-- **The nominal merge gate is now Browser-chain-bound (~11.5–13 m finish offset)**: Frontend (4m43s) → Browser (6m37s) run serially. That chain is the next gate lever (e.g., overlapping Playwright setup with the frontend build) — out of this tranche's scope, and the plan §5 note about Playwright `workers:1` (deliberate SSE-safety choice) still applies to any attempt.
+- **The nominal merge gate is now Browser-chain-bound (~11.5–13 m finish offset)**: Frontend (4m43s) → Browser (6m37s) run serially. That chain is the next gate lever (e.g., overlapping Playwright setup with the frontend build) — out of this tranche's scope, and the plan §5 note about Playwright `workers:1` (deliberate SSE-safety choice) still applies to any attempt. *[Followed up 2026-07-27, PR #103 — see `DEVLOG-browser-chain-decouple-2026-07-27.md`: a thin `Frontend build (Vite)` job cut Browser's finish +12m15s → +9m24s; the gate is now floor-bound (Browser ~+9.5 m vs patient iOS ~+10–14 m).]*
 - **Staff iOS is XCUITest-bound (~8–10 m of a ~13 m calm job)** — S3's measured null (no clone parallelization on standard runners) is the binding constraint; further staff-wall cuts require either journey-content decisions (governance, not CI edits) or larger runner pools.
 - **DerivedData caching stays rejected**: the plan §5 do-NOT-do entry stands, and after the split the Debug build is no longer on the gate path's critical section; the exact-key compiled-intermediates variant documented in the tranche analysis is not worth its fragility at the current step costs.
 - macOS fleet-health variance (2–7×) now dominates all remaining iOS wall variance; no CI edit fixes that class.
