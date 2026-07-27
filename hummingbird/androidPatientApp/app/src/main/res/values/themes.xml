@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.HummingbirdPatient.Base" parent="android:style/Theme.Material.Light.NoActionBar">
+    <style name="Theme.Nightingale.Base" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowBackground">#F7FAFC</item>
@@ -7,5 +7,5 @@
         <item name="android:statusBarColor">#F7FAFC</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
-    <style name="Theme.HummingbirdPatient" parent="Theme.HummingbirdPatient.Base" />
+    <style name="Theme.Nightingale" parent="Theme.Nightingale.Base" />
 </resources>

@@ -30,7 +30,7 @@ class PatientMessageCipher
     public function encrypt(string $plaintext, string $keyVersion, string $context): string
     {
         $configuredVersion = trim((string) config(
-            'hummingbird-patient.messaging.encryption_key_version',
+            'nightingale.messaging.encryption_key_version',
         ));
 
         if ($configuredVersion === '' || ! hash_equals($configuredVersion, $keyVersion)) {
@@ -97,10 +97,10 @@ class PatientMessageCipher
     private function keyForVersion(string $keyVersion): string
     {
         $currentVersion = trim((string) config(
-            'hummingbird-patient.messaging.encryption_key_version',
+            'nightingale.messaging.encryption_key_version',
         ));
         $configured = $currentVersion !== '' && hash_equals($currentVersion, $keyVersion)
-            ? config('hummingbird-patient.messaging.encryption_key')
+            ? config('nightingale.messaging.encryption_key')
             : $this->previousKey($keyVersion);
 
         if (is_string($configured) && trim($configured) !== '') {
@@ -116,7 +116,7 @@ class PatientMessageCipher
 
     private function previousKey(string $keyVersion): mixed
     {
-        $encoded = config('hummingbird-patient.messaging.previous_encryption_keys_json');
+        $encoded = config('nightingale.messaging.previous_encryption_keys_json');
         if (! is_string($encoded) || trim($encoded) === '') {
             return null;
         }

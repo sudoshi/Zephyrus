@@ -4,8 +4,8 @@ use App\Http\Middleware\AssignRequestIdentity;
 use App\Http\Middleware\AuditUserRequests;
 use App\Http\Middleware\EnforceApiIngressContract;
 use App\Http\Middleware\EnsureClinicalFailureOutputSafe;
-use App\Http\Middleware\EnsureHummingbirdPatientEnabled;
-use App\Http\Middleware\EnsureHummingbirdPatientFeatureEnabled;
+use App\Http\Middleware\EnsureNightingaleEnabled;
+use App\Http\Middleware\EnsureNightingaleFeatureEnabled;
 use App\Http\Middleware\EnsurePatientRealm;
 use App\Http\Middleware\EnsurePatientStaffMessagingEnabled;
 use App\Http\Middleware\EnsureSessionIsCurrent;
@@ -54,8 +54,8 @@ return $builder
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'admin.scope' => RequireAdminScope::class,
-            'patient.enabled' => EnsureHummingbirdPatientEnabled::class,
-            'patient.feature' => EnsureHummingbirdPatientFeatureEnabled::class,
+            'patient.enabled' => EnsureNightingaleEnabled::class,
+            'patient.feature' => EnsureNightingaleFeatureEnabled::class,
             'patient.realm' => EnsurePatientRealm::class,
             'patient.response' => ProtectPatientResponse::class,
             'patient.staff-messaging' => EnsurePatientStaffMessagingEnabled::class,
@@ -67,14 +67,14 @@ return $builder
         // from absent routes. The response guard wraps both gates and auth errors.
         $middleware->prependToPriorityList(
             AuthenticatesRequests::class,
-            EnsureHummingbirdPatientFeatureEnabled::class,
+            EnsureNightingaleFeatureEnabled::class,
         );
         $middleware->prependToPriorityList(
-            EnsureHummingbirdPatientFeatureEnabled::class,
-            EnsureHummingbirdPatientEnabled::class,
+            EnsureNightingaleFeatureEnabled::class,
+            EnsureNightingaleEnabled::class,
         );
         $middleware->prependToPriorityList(
-            EnsureHummingbirdPatientEnabled::class,
+            EnsureNightingaleEnabled::class,
             ProtectPatientResponse::class,
         );
         // The staff session-inventory guard must wrap Sanctum and every later

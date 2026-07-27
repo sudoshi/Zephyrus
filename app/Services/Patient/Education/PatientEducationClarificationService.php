@@ -43,7 +43,7 @@ class PatientEducationClarificationService
         string $educationItemUuid,
         array $input,
     ): array {
-        if (! (bool) config('hummingbird-patient.features.messaging')) {
+        if (! (bool) config('nightingale.features.messaging')) {
             throw PatientMessagingFailure::notFound();
         }
 
@@ -204,7 +204,7 @@ class PatientEducationClarificationService
 
         $policy = PatientReleasePolicyVersion::query()
             ->effective()
-            ->where('version', (string) config('hummingbird-patient.policy_version'))
+            ->where('version', (string) config('nightingale.policy_version'))
             ->first();
 
         if (! $policy instanceof PatientReleasePolicyVersion) {

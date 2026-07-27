@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Patient\Demo\HummingbirdPatientReferenceIdentityProvisioner;
+use App\Services\Patient\Demo\NightingaleReferenceIdentityProvisioner;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -17,7 +17,7 @@ class HummingbirdProvisionReferencePatientIdentityCommand extends Command
 
     protected $description = 'Dry-run or idempotently bind the command-owned synthetic inpatient to Hummingbird Patient enrollment';
 
-    public function handle(HummingbirdPatientReferenceIdentityProvisioner $provisioner): int
+    public function handle(NightingaleReferenceIdentityProvisioner $provisioner): int
     {
         if ($this->option('show-secrets') && ! $this->option('commit')) {
             $this->error('--show-secrets requires --commit because enrollment material is generated only once.');

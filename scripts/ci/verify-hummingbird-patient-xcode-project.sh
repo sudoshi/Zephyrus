@@ -8,7 +8,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 patient_root="$1"
-project_name="HummingbirdPatient.xcodeproj"
+project_name="Nightingale.xcodeproj"
 
 [[ -f "$patient_root/project.yml" && -d "$patient_root/$project_name" ]] || {
     echo "Incomplete Hummingbird patient Xcode project at: $patient_root" >&2

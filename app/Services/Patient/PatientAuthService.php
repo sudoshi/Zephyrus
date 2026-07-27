@@ -499,7 +499,7 @@ class PatientAuthService
     ): array {
         $sessionUuid = (string) Str::uuid7();
         $refreshExpiresAt = CarbonImmutable::now()->addDays(
-            (int) config('hummingbird-patient.token.refresh_ttl_days', 14),
+            (int) config('nightingale.token.refresh_ttl_days', 14),
         );
 
         $session = PatientSession::query()->create([
@@ -546,9 +546,9 @@ class PatientAuthService
         PatientSession $session,
         Request $request,
     ): array {
-        $accessTtlMinutes = (int) config('hummingbird-patient.token.access_ttl_minutes', 15);
+        $accessTtlMinutes = (int) config('nightingale.token.access_ttl_minutes', 15);
         $configuredRefreshExpiry = CarbonImmutable::now()->addDays(
-            (int) config('hummingbird-patient.token.refresh_ttl_days', 14),
+            (int) config('nightingale.token.refresh_ttl_days', 14),
         );
         $sessionExpiry = CarbonImmutable::instance($session->expires_at);
         $refreshExpiresAt = $configuredRefreshExpiry->lessThan($sessionExpiry)

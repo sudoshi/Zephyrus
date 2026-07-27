@@ -11,7 +11,7 @@ use Symfony\Component\Yaml\Yaml;
 
 require dirname(__DIR__).'/vendor/autoload.php';
 
-const PATIENT_CONTRACT = 'docs/hummingbird/api-contract/hummingbird-patient.v1.yaml';
+const PATIENT_CONTRACT = 'docs/hummingbird/api-contract/nightingale.v1.yaml';
 const PATIENT_ROUTE_PREFIX = '/api/patient/v1';
 
 /** @param list<string> $errors */
@@ -231,7 +231,7 @@ foreach ($paths as $relativePath => $pathItem) {
         }
 
         $releasePolicy = $operation['x-zephyrus-release-policy'] ?? [];
-        if (($releasePolicy['product_flag'] ?? null) !== 'HUMMINGBIRD_PATIENT_ENABLED'
+        if (($releasePolicy['product_flag'] ?? null) !== 'NIGHTINGALE_ENABLED'
             || ($releasePolicy['default'] ?? null) !== 'disabled'
             || ($releasePolicy['disabled_status'] ?? null) !== 404) {
             $errors[] = "{$operationKey} must document fail-closed product and feature-gate behavior.";
@@ -434,7 +434,7 @@ foreach (Route::getRoutes() as $route) {
         $routeOperations[$operationKey] = true;
         $routeAbilities[$operationKey] = $abilities;
         if (is_string($feature)) {
-            $routeFeatureFlags[$operationKey] = 'HUMMINGBIRD_PATIENT_'.strtoupper($feature).'_ENABLED';
+            $routeFeatureFlags[$operationKey] = 'NIGHTINGALE_'.strtoupper($feature).'_ENABLED';
         }
     }
 }

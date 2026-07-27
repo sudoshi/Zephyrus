@@ -164,12 +164,12 @@ class PatientEducationClarificationApiTest extends TestCase
         ]);
 
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.policy_version' => (string) $fixture['policy']->version,
-            'hummingbird-patient.features.pathway' => true,
-            'hummingbird-patient.features.messaging' => true,
-            'hummingbird-patient.features.teach_back' => true,
-            'hummingbird-patient.messaging' => [
+            'nightingale.enabled' => true,
+            'nightingale.policy_version' => (string) $fixture['policy']->version,
+            'nightingale.features.pathway' => true,
+            'nightingale.features.messaging' => true,
+            'nightingale.features.teach_back' => true,
+            'nightingale.messaging' => [
                 'governance_status' => 'approved',
                 'policy_version' => 'test-messaging-policy-v1',
                 'urgent_guidance_version' => self::GUIDANCE_VERSION,

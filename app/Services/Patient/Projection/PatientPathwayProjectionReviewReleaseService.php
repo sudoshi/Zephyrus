@@ -107,7 +107,7 @@ class PatientPathwayProjectionReviewReleaseService
                 ->first();
             $releasedAt = now();
             $producerVersion = (string) config(
-                'hummingbird-patient.pathway_history_releases.producer_version',
+                'nightingale.pathway_history_releases.producer_version',
                 'patient-pathway-history-clinical-release-v1',
             );
             $release = PatientEncounterProjection::query()->create([
@@ -220,7 +220,7 @@ class PatientPathwayProjectionReviewReleaseService
             || $lockedDraft->release_state !== 'draft'
             || $lockedDraft->released_at !== null
             || $lockedDraft->source_version !== (string) config(
-                'hummingbird-patient.pathway_history_drafts.producer_version',
+                'nightingale.pathway_history_drafts.producer_version',
                 'patient-pathway-history-draft-v1',
             )
             || (string) ($lockedDraft->provenance['projection_method'] ?? '') !== self::DRAFT_PROJECTION_METHOD
@@ -237,7 +237,7 @@ class PatientPathwayProjectionReviewReleaseService
         }
         $policy = PatientReleasePolicyVersion::query()
             ->effective()
-            ->where('version', (string) config('hummingbird-patient.policy_version'))
+            ->where('version', (string) config('nightingale.policy_version'))
             ->lockForUpdate()
             ->first();
         if (! $policy instanceof PatientReleasePolicyVersion
@@ -275,9 +275,9 @@ class PatientPathwayProjectionReviewReleaseService
     private function assertAvailable(): void
     {
         if (DB::getDriverName() !== 'pgsql'
-            || ! (bool) config('hummingbird-patient.enabled')
-            || ! (bool) config('hummingbird-patient.features.pathway')
-            || ! (bool) config('hummingbird-patient.features.pathway_history_releases')
+            || ! (bool) config('nightingale.enabled')
+            || ! (bool) config('nightingale.features.pathway')
+            || ! (bool) config('nightingale.features.pathway_history_releases')
             || ! (bool) config('care-pathways.patient_enabled')
             || ! (bool) config('care-pathways.assignment_enabled')) {
             throw new RuntimeException('patient_pathway_history_releases_unavailable');
