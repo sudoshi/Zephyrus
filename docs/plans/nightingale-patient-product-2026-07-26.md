@@ -302,11 +302,18 @@ human visual review records correct brand, crop, contrast, and no unwanted trans
       patient-creation permissions.
 - [x] Classify each existing Hummingbird Patient source file as reusable safety primitive,
       reusable product behavior, test/fixture-only, or rejected legacy behavior. The
-      machine-checked universe contains 255 tracked product sources: 122 unique sources
-      covered by the two prior ledgers plus a final 133-source journey, preference,
+      machine-checked universe contains 256 tracked product sources: 122 unique sources
+      covered by the two prior ledgers plus a final 134-source journey, preference,
       presentation, synthetic/debug, persistence, and release ledger. The union covers all
-      255 sources with exact path-list and byte checksums. Classification completeness does
+      256 sources with exact path-list and byte checksums. Classification completeness does
       not approve any source for migration or runtime adoption.
+- [x] Correct the mainline iOS release-path collision without repurposing the legacy
+      reference app: restore its exact Hummingbird Patient bundle/display identities, move
+      the Nightingale export policy to `nightingale/iosApp`, map the Apple registry only to
+      the independent Nightingale project/scheme, reject future collisions in CI, and
+      verify exported IPA identity/build metadata with one positive and four negative
+      mutations. Signing, upload, store acceptance, tester distribution, and pilot
+      authorization remain open.
 - [ ] Port primitives into Nightingale by reviewed commits, not a blind directory copy:
       patient API boundary, protected storage, lifecycle/screen-capture privacy cover,
       accessibility presentation preferences, patient-safe vocabulary, and volatile drafts.
@@ -473,9 +480,9 @@ part of application development work.
        index, execution log, and CI for the verified communication/notification slice while
        leaving every Nightingale operation, network client, notification provider, patient
        mutation, production query, and production activation disabled.
-9. [x] Close the remaining 133-source journey, preference, accessibility presentation,
+9. [x] Close the remaining 134-source journey, preference, accessibility presentation,
        synthetic/debug, persistence, and release-classification slice. Mechanically prove
-       full 255-source universe coverage; pin direct top-level Messages navigation, unsafe
+       full 256-source universe coverage; pin direct top-level Messages navigation, unsafe
        first-record selection, iOS aggregate-context drift, Android composite-path context
        drift, preference-surface mismatch, semantically inert Android reduced motion,
        test-only release exclusion, rejected deployed reference provisioning, and
@@ -547,6 +554,13 @@ part of application development work.
         packaging; and retain non-PHI screenshots/hierarchies. Keep every translation,
         human assistive-technology review, full WCAG claim, live screen, identity/source
         approval, patient capability, distribution, pilot, and production gate open.
+21. [x] Reconcile current `main` without allowing its legacy iOS release-path collision to
+        redefine Nightingale. Restore the reference Hummingbird Patient project to its
+        exact prior identity, move the export policy and registry mapping to
+        `nightingale/iosApp`, add fail-closed registry/export/IPA checks, and revalidate
+        both checksum-pinned migration ledgers plus the dependent Today evidence against
+        the corrected 256-source universe. Do not sign, upload, distribute, activate, or
+        claim store readiness.
 
 ## 10. Explicit holds
 

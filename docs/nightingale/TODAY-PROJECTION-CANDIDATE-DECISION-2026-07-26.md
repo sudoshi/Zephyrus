@@ -142,9 +142,9 @@ collapsing into a misleading empty list.
 
 ## 4. Evidence baseline
 
-The complete Hummingbird Patient product universe contains 255 classified source files with
+The complete Hummingbird Patient product universe contains 256 classified source files with
 inventory digest
-`d6f680b73278786f8004826029e6a9413f921db4ce03df8873bde4c23c62d99c`.
+`a307e1957df7ef78eb61a9a9123f3902fd8929ebb3aaeb4dce48f2c88fb4a881`.
 This candidate additionally pins the exact bytes of 14 direct Today inputs.
 
 | Direct source                                                                           | SHA-256                                                            | Candidate use                                                                       |

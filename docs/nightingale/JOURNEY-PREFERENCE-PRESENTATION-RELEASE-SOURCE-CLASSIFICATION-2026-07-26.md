@@ -2,7 +2,9 @@
 
 **Decision date:** 2026-07-26
 
-**Reviewed source commit:** `e8f2b33bca79c4134f2476f41702430da72816d7`
+**Reviewed source commit:** `45ddf907c0f15e378b37a1b0726724e346cb29fd`
+
+**Last source revalidation:** 2026-07-27
 
 **Status:** Complete source classification; evidence only; no implementation, route,
 network client, source adapter, preference persistence, patient mutation, pathway release,
@@ -18,25 +20,25 @@ activation is approved.
 ## 1. Decision
 
 The legacy Hummingbird Patient source-classification phase is now closed at repository
-scope. The tracked product universe contains exactly **255 sources**:
+scope. The tracked product universe contains exactly **256 sources**:
 
 - **122 unique sources** were already covered by the identity/first-read and
   communication/notification ledgers;
-- this final slice classifies the remaining **133 sources**; and
-- the union covers all **255 of 255** sources in the defined universe.
+- this final slice classifies the remaining **134 sources**; and
+- the union covers all **256 of 256** sources in the defined universe.
 
 This is classification completeness, not functional parity, implementation completeness,
 clinical approval, release readiness, or permission to copy the legacy patient app.
 
-The final 133 sources resolve to exactly one required migration class each:
+The final 134 sources resolve to exactly one required migration class each:
 
 | Required class            | Sources | Result                                                                                    |
 | ------------------------- | ------: | ----------------------------------------------------------------------------------------- |
-| Reusable safety primitive |      41 | Retain the control objective; independently reimplement only after applicable approval.   |
+| Reusable safety primitive |      42 | Retain the control objective; independently reimplement only after applicable approval.   |
 | Reusable product behavior |      20 | Hold the patient need/behavior pending contract, content, authorization, and UX approval. |
 | Test/fixture only         |      28 | Retain as synthetic test or provenance evidence; never ship or execute in production.     |
 | Rejected legacy behavior  |      44 | Do not migrate legacy identity, packaging, assets, activation, or provisioning behavior.  |
-| **Total**                 | **133** | Every final-slice source has one exact class, decision, SHA-256, surface, and domain set. |
+| **Total**                 | **134** | Every final-slice source has one exact class, decision, SHA-256, surface, and domain set. |
 
 No source is classified as “copy as-is.” Even a reusable safety primitive transfers only
 as a requirement and testable property, never as implicit approval of legacy code, schema,
@@ -82,8 +84,8 @@ The following are not silently ignored:
 
 | Inventory                         | Count | SHA-256 path-list digest                                           |
 | --------------------------------- | ----: | ------------------------------------------------------------------ |
-| Full legacy patient-product scope |   255 | `d6f680b73278786f8004826029e6a9413f921db4ce03df8873bde4c23c62d99c` |
-| Final unclassified slice          |   133 | `dd74e3d050839815f731b02af1b2d3d4886e1837913f17e8bc87244c4ad172d2` |
+| Full legacy patient-product scope |   256 | `a307e1957df7ef78eb61a9a9123f3902fd8929ebb3aaeb4dce48f2c88fb4a881` |
+| Final unclassified slice          |   134 | `4301de88a9071214001c2a58aa8fbc624bb49f24bb566428c8a1ef98aa44c13d` |
 
 The digest is calculated over lexicographically sorted repository-relative paths with a
 final newline. Every final-slice entry also carries the SHA-256 of the exact file bytes at
@@ -99,6 +101,37 @@ The verifier fails if:
 - any runtime/production permission becomes true; or
 - a required finding is softened.
 
+### 2.4 Legacy release-path collision revalidation
+
+Current `main` introduced a release-path collision after the original classification: it
+assigned `net.acumenus.nightingale` and the Nightingale display name to the historical
+`hummingbird/iosPatientApp` target and placed a Nightingale export profile inside that
+legacy root. That would have allowed two source trees to claim the same patient-product
+identity and contradicted the independently governed Nightingale application boundary.
+
+Correction commit `85316fbc5794735a77a0a4fa0e0096e18db4240b` restores the legacy project,
+generated project, and Info.plist to their exact pre-collision Hummingbird Patient
+identities; removes its Nightingale export profile; points the Apple registry to
+`nightingale/iosApp`, project `Nightingale.xcodeproj`, and scheme `Nightingale`; and keeps
+the export profile under that independent root. Product-boundary CI now rejects any
+registry reversal, legacy Nightingale identifier, misplaced export profile, malformed
+export policy, or exported IPA bundle/build mismatch.
+
+Follow-up test correction commit `45ddf907c0f15e378b37a1b0726724e346cb29fd`
+removes a competing manual Activity recreation from the Android pseudolocale harness and
+waits for the platform-managed locale relaunch to become resumed. The complete API 35
+instrumentation suite passes 10/10. This changes one classified test-source checksum but
+does not change the 256-path universe, 134-path final slice, any classification,
+disposition, runtime permission, or activation decision.
+
+The only new path retained inside the legacy product universe is
+`hummingbird/iosPatientApp/.gitignore`. It excludes generated Xcode, archive, derived-data,
+and per-user artifacts and is classified as the
+`generated_artifact_hygiene_principle`: a portable repository-safety objective, not
+Nightingale runtime code or permission to reuse the legacy root. The corrected universe
+therefore grows by one source, from 255 to 256, while all patient runtime behavior and
+findings remain unchanged.
+
 ## 3. Surface reconciliation
 
 ### 3.1 Final-slice source surfaces
@@ -111,7 +144,7 @@ The verifier fails if:
 | Backend services       |      14 | HMAC/audit, authored inputs, source reconciliation, draft/release, demo fixtures |
 | Database migrations    |      11 | Projection kinds, immutable history, preferences/goals, outbox, review/release   |
 | Backend tests          |       9 | Synthetic provisioning, authored inputs, pathway history/source/release behavior |
-| iOS packaging          |       5 | Legacy project, scheme, Info.plist, and generation ownership                     |
+| iOS packaging          |       6 | Legacy project, scheme, Info.plist, ignore rules, and generation ownership       |
 | iOS source             |      12 | App boot, shell, journeys, preferences, presentation, privacy                    |
 | iOS assets             |      11 | Legacy icon and scenic Hummingbird imagery                                       |
 | iOS unit/UI tests      |       3 | Presentation/state/session behavior                                              |
@@ -122,7 +155,7 @@ The verifier fails if:
 | Android resources      |      13 | Hummingbird imagery, icons, themes, strings, network/backup controls             |
 | Android tests          |      12 | Auth/session/privacy/presentation/product-boundary and debug/release controls    |
 | Android asset evidence |       1 | Legacy asset provenance                                                          |
-| **Total**              | **133** |                                                                                  |
+| **Total**              | **134** |                                                                                  |
 
 ### 3.2 Decision groups
 
@@ -138,6 +171,7 @@ The verifier fails if:
 | `testing_only_projection_fixture`         |       1 | Test/fixture only         | Test only      |
 | `append_only_projection_schema_principle` |      11 | Reusable safety primitive | Principle only |
 | `asset_provenance_evidence`               |       1 | Test/fixture only         | Test only      |
+| `generated_artifact_hygiene_principle`    |       1 | Reusable safety primitive | Principle only |
 | `legacy_packaging_identity_rejected`      |      14 | Rejected legacy behavior  | Reject         |
 | `test_fixture_evidence`                   |      24 | Test/fixture only         | Test only      |
 | `debug_synthetic_fixture`                 |       2 | Test/fixture only         | Test only      |
@@ -147,7 +181,7 @@ The verifier fails if:
 | `native_presentation_safety_principle`    |       6 | Reusable safety primitive | Principle only |
 | `release_synthetic_exclusion_principle`   |       2 | Reusable safety primitive | Principle only |
 | `legacy_runtime_activation_rejected`      |       1 | Rejected legacy behavior  | Reject         |
-| **Total**                                 | **133** |                           |                |
+| **Total**                                 | **134** |                           |                |
 
 ## 4. Patient-journey functional analysis
 
@@ -704,7 +738,7 @@ The eleven migration files are classified as safety-principle evidence only. Thi
 
 ## 11. Prioritized implementation sequence
 
-The fastest safe path is not to port all 133 sources. It is to resolve the smallest set of
+The fastest safe path is not to port all 134 sources. It is to resolve the smallest set of
 decisions that unlock one coherent patient journey:
 
 ### Phase 1 — Approve one read-only Today slice
@@ -751,7 +785,7 @@ decisions that unlock one coherent patient journey:
 
 - Exact full-universe definition and path-list digest.
 - Exact final-slice definition and path-list digest.
-- SHA-256 for every one of 133 final-slice sources.
+- SHA-256 for every one of 134 final-slice sources.
 - One class, disposition, surface, decision, and domain set per source.
 - Closure across all three classification ledgers.
 - Patient-journey, preference, accessibility, synthetic/debug, persistence, and release

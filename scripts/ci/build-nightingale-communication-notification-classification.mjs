@@ -459,8 +459,8 @@ const manifest = {
     schema_version: 1,
     classification_id:
         "nightingale-communication-notification-source-classification.v1",
-    reviewed_source_commit: "be8405a0f768bf239862b790b3eeae80b8aad2ad",
-    reviewed_at: "2026-07-26",
+    reviewed_source_commit: "b6ea087747d7ea88c8a076f06f4c91a2636ea029",
+    reviewed_at: "2026-07-27",
     status: "evidence_only_not_approved_for_implementation",
     scope:
         Object.keys(categories).length > 0

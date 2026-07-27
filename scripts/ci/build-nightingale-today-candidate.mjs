@@ -1137,9 +1137,9 @@ const candidate = {
         free_text_recording_permitted: false,
     },
     evidence: {
-        product_universe_source_count: 255,
+        product_universe_source_count: 256,
         product_universe_inventory_digest:
-            "d6f680b73278786f8004826029e6a9413f921db4ce03df8873bde4c23c62d99c",
+            "a307e1957df7ef78eb61a9a9123f3902fd8929ebb3aaeb4dce48f2c88fb4a881",
         classification_ids: [
             "nightingale-source-classification.v1",
             "nightingale-journey-preference-presentation-release-source-classification.v1",

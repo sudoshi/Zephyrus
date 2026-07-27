@@ -186,11 +186,11 @@ function inspect(document, { verifyFiles = true } = {}) {
     );
     assert(
         document.reviewed_source_commit ===
-            "be8405a0f768bf239862b790b3eeae80b8aad2ad",
+            "b6ea087747d7ea88c8a076f06f4c91a2636ea029",
         "reviewed_source_commit changed without a new classification version",
     );
     assert(
-        document.reviewed_at === "2026-07-26",
+        document.reviewed_at === "2026-07-27",
         "review date changed without a new classification version",
     );
     assert(

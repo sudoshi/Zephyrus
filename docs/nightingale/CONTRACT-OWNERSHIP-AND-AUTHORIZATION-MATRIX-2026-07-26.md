@@ -16,7 +16,7 @@ this document.
 their
 [decision record](./IDENTITY-SESSION-RECOVERY-AND-SOURCE-CANDIDATE-DECISION-2026-07-26.md),
 and the
-[complete 255-source migration classification](./JOURNEY-PREFERENCE-PRESENTATION-RELEASE-SOURCE-CLASSIFICATION-2026-07-26.md)
+[complete 256-source migration classification](./JOURNEY-PREFERENCE-PRESENTATION-RELEASE-SOURCE-CLASSIFICATION-2026-07-26.md)
 
 ## 1. Outcome
 
@@ -344,8 +344,8 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
       native parity delta, ten pinned findings, and negative enforcement of zero
       runtime/route/provider/channel/payload/polling/offline-queue/production adoption.
 - [x] Source-by-source evidence classification for the remaining journey, preference,
-      accessibility-presentation, synthetic/debug, persistence, and release slice: 133 exact
-      files, SHA-256 lineage, full 255-source universe closure, native context/preference/
+      accessibility-presentation, synthetic/debug, persistence, and release slice: 134 exact
+      files, SHA-256 lineage, full 256-source universe closure, native context/preference/
       motion/navigation deltas, rejected deployed reference provisioning, and negative
       enforcement of zero implementation/runtime/source/mutation/production/deployment
       adoption.
@@ -373,6 +373,6 @@ Until these gates are met, `paths` remains empty.
 The encounter-access, Today, identity/source, and three source-classification ledgers are
 pre-contract evidence for these gates, not proof that an approval gate is complete. The
 route/compatibility ADR, default-deny prerequisite ports, 174 combined prerequisite/
-encounter/Today cases, complete 255-source inventory, and detailed native/backend deltas
+encounter/Today cases, complete 256-source inventory, and detailed native/backend deltas
 exist, but no owner is named, identity provider/source adapter is approved, clinical field
 matrix is released, or backend/native operation parity implementation exists.

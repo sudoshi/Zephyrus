@@ -11,7 +11,7 @@ permission, authentication, clinical projection, care-team messaging, or product
 activation. The source of record is the
 [Nightingale product plan](../plans/nightingale-patient-product-2026-07-26.md) and its
 [execution log](../devlog/DEVLOG-nightingale-patient-product-2026-07-26.md).
-The bounded 255-source Hummingbird Patient predecessor universe is fully classified across
+The bounded 256-source Hummingbird Patient predecessor universe is fully classified across
 three checksum-pinned ledgers; this is migration evidence, not implementation approval. A
 held Today candidate now defines field-level release, freshness, uncertainty, language,
 correction, and offline semantics across 68 synthetic outcomes while the executable
@@ -50,6 +50,7 @@ privacy approval, or statement about a future connected product.
 Current product-identity records:
 
 - [Product identity and support naming checklist](./PRODUCT-IDENTITY-AND-SUPPORT-NAMING-CHECKLIST-2026-07-26.md)
+- [Nightingale TestFlight and iOS distribution boundary](./TESTFLIGHT.md)
 - [Legacy migration classification](./MIGRATION-CLASSIFICATION-2026-07-26.md)
 - [Identity, recovery, and protected-state decisions](./IDENTITY-RECOVERY-AND-PROTECTED-STATE-DECISIONS-2026-07-26.md)
 - [Contract ownership and authorization matrix](./CONTRACT-OWNERSHIP-AND-AUTHORIZATION-MATRIX-2026-07-26.md)
@@ -77,7 +78,7 @@ Current product-identity records:
 - [Today projection candidate and fixtures](./api-contract/candidates/today/v0/candidate.json)
 - [65-file checksum-pinned source ledger](./migration/candidates/v0/source-classification.json)
 - [130-file communication/notification checksum ledger](./migration/candidates/v0/communication-notification-source-classification.json)
-- [133-file journey/preference/presentation/release checksum ledger](./migration/candidates/v0/journey-preference-presentation-release-source-classification.json)
+- [134-file journey/preference/presentation/release checksum ledger](./migration/candidates/v0/journey-preference-presentation-release-source-classification.json)
 - [Launcher, themed-icon, and splash evidence](../evidence/nightingale/brand-identity-2026-07-26/README.md)
 - [Accessibility/language-readiness screenshots and hierarchies](../evidence/nightingale/accessibility-language-readiness-2026-07-27/README.md)
 
@@ -92,7 +93,7 @@ Current product-identity records:
   `source-candidates/`, and `migration/candidates/` are non-runnable decision/fixture
   evidence. They do not add a path, bind a provider or source adapter, permit client
   generation or a source query, or authorize implementation.
-- The three migration ledgers now mechanically cover all 255 tracked sources in the bounded
+- The three migration ledgers now mechanically cover all 256 tracked sources in the bounded
   legacy Hummingbird Patient product universe. Complete classification means every source
   has an evidence disposition; it does not mean any source is approved to migrate.
 - Add clinical, content, privacy, accessibility, and release evidence under `safety/` only

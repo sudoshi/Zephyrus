@@ -4,7 +4,8 @@
 **Status:** complete evidence classification for this bounded slice; not approved for
 implementation, runtime adoption, patient disclosure, mutation, notification delivery,
 production data use, or release
-**Reviewed source commit:** `be8405a0f768bf239862b790b3eeae80b8aad2ad`
+**Reviewed source commit:** `b6ea087747d7ea88c8a076f06f4c91a2636ea029`
+**Last source revalidation:** 2026-07-27
 **Machine-readable ledger:**
 [`migration/candidates/v0/communication-notification-source-classification.json`](./migration/candidates/v0/communication-notification-source-classification.json)
 **Verifier:**
@@ -84,7 +85,25 @@ The exact path inventory has SHA-256 digest
 Every file also has its own SHA-256 digest in the machine-readable ledger. Removal,
 replacement, duplication, or content drift fails CI.
 
-### 2.3 Dispositions
+### 2.3 Base-refresh revalidation
+
+The feature stream was synchronized with `origin/main` at
+`b6ea087747d7ea88c8a076f06f4c91a2636ea029` after the original classification. All 130
+classified paths were mechanically compared with that exact commit and match it. Exactly
+one source digest changed: `routes/api.php`, from
+`a1443123cbee888a55f988aa1ca713fe31eac39fa6cf05a0306eef0def3aad35` to
+`052d9afd466b2646385986297e9ce3ec6a886d299b35c76067f5a0f21d7fa082`.
+
+The twelve added lines register three Zephyrus staff/operations reads: scoped Arena
+per-case conformance, an aggregate patient-flow epoch, and a scoped patient-flow journey.
+They do not add, alias, enable, or modify a Nightingale route, patient communication
+operation, notification provider, patient-native transport, or communication delivery
+state. The broad `routes/api.php` evidence source therefore remains classified under
+`routes_rejected`; no implementation permission, finding, disposition, or activation gate
+changes. This is a source revalidation of the same v1 classification, not a new functional
+approval.
+
+### 2.4 Dispositions
 
 | Disposition                | Sources | Meaning                                                                                                     |
 | -------------------------- | ------: | ----------------------------------------------------------------------------------------------------------- |

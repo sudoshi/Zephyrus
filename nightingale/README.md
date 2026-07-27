@@ -12,6 +12,11 @@ The initial native applications are intentionally safe shells: they demonstrate 
 - `backgrounds/` — the governed seven-image decorative background catalog, its immutable
   source/derivative lineage, and the exact shared iOS/Android app derivatives.
 
+The independent iOS release-tooling boundary is documented in
+[Nightingale TestFlight and iOS distribution](../docs/nightingale/TESTFLIGHT.md). The shared
+repository helper maps Nightingale only to `iosApp/`; the historical Hummingbird Patient
+target is not a release source.
+
 Both native apps select the same background for the patient’s local Gregorian date, keep
 the photograph out of accessibility semantics, and preserve a complete text-only
 experience when imagery is hidden. See

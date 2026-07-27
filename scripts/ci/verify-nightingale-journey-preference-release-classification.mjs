@@ -38,17 +38,17 @@ const priorManifestPaths = [
     "docs/nightingale/migration/candidates/v0/source-classification.json",
     "docs/nightingale/migration/candidates/v0/communication-notification-source-classification.json",
 ];
-const expectedReviewedCommit = "e8f2b33bca79c4134f2476f41702430da72816d7";
+const expectedReviewedCommit = "45ddf907c0f15e378b37a1b0726724e346cb29fd";
 const expectedClassificationId =
     "nightingale-journey-preference-presentation-release-source-classification.v1";
 const expectedStatus = "evidence_only_not_approved_for_implementation";
-const expectedUniverseCount = 255;
+const expectedUniverseCount = 256;
 const expectedPriorCount = 122;
-const expectedSourceCount = 133;
+const expectedSourceCount = 134;
 const expectedUniverseDigest =
-    "d6f680b73278786f8004826029e6a9413f921db4ce03df8873bde4c23c62d99c";
+    "a307e1957df7ef78eb61a9a9123f3902fd8929ebb3aaeb4dce48f2c88fb4a881";
 const expectedSliceDigest =
-    "dd74e3d050839815f731b02af1b2d3d4886e1837913f17e8bc87244c4ad172d2";
+    "4301de88a9071214001c2a58aa8fbc624bb49f24bb566428c8a1ef98aa44c13d";
 
 const expectedScope = [
     "journey_projection_content",
@@ -63,13 +63,13 @@ const expectedScope = [
 const expectedClassCounts = {
     reusable_product_behavior: 20,
     rejected_legacy_behavior: 44,
-    reusable_safety_primitive: 41,
+    reusable_safety_primitive: 42,
     test_fixture_only: 28,
 };
 const expectedDispositionCounts = {
     held: 20,
     reject: 44,
-    principle_only: 41,
+    principle_only: 42,
     test_only: 28,
 };
 const classDisposition = {
@@ -91,7 +91,7 @@ const expectedSurfaceCounts = {
     legacy_android_source: 9,
     legacy_android_resource: 13,
     legacy_android_release_source: 2,
-    legacy_ios_packaging: 5,
+    legacy_ios_packaging: 6,
     legacy_ios_source: 12,
     legacy_ios_asset: 11,
     legacy_ios_test: 2,
@@ -109,6 +109,7 @@ const expectedDecisionCounts = {
     testing_only_projection_fixture: 1,
     append_only_projection_schema_principle: 11,
     asset_provenance_evidence: 1,
+    generated_artifact_hygiene_principle: 1,
     legacy_packaging_identity_rejected: 14,
     test_fixture_evidence: 24,
     debug_synthetic_fixture: 2,
@@ -123,7 +124,7 @@ const expectedCategoryCounts = {
     journey_projection_content: 44,
     source_reconciliation_release: 33,
     governance_audit_persistence: 53,
-    release_packaging_identity: 60,
+    release_packaging_identity: 61,
     synthetic_debug: 16,
     accessibility_presentation: 48,
     account_preferences: 10,
@@ -153,9 +154,9 @@ const expectedConstraintKeys = [
     "deployment_permitted",
 ];
 const expectedFindingValues = {
-    product_source_universe_count: 255,
+    product_source_universe_count: 256,
     previously_classified_unique_count: 122,
-    final_slice_source_count: 133,
+    final_slice_source_count: 134,
     all_product_sources_classified: true,
     all_product_sources_approved_for_migration: false,
     server_and_native_preference_surfaces_match: false,
@@ -187,7 +188,8 @@ const expectedSourceFields = [
     "decision_id",
 ];
 const requiredReportFragments = [
-    "the union covers all **255 of 255** sources",
+    "the union covers all **256 of 256** sources",
+    "Legacy release-path collision revalidation",
     "Android reduced motion is currently semantically inert",
     "iOS context aggregation is not field-level provenance",
     "Android composite My Path context is incomplete",
@@ -330,7 +332,7 @@ function inspect(
         "reviewed_source_commit changed without a new classification version",
     );
     assert(
-        document.reviewed_at === "2026-07-26",
+        document.reviewed_at === "2026-07-27",
         "reviewed_at changed without a new classification version",
     );
     assert(
@@ -624,7 +626,7 @@ function inspect(
                 inventory.universe.every((relativePath) =>
                     covered.has(relativePath),
                 ),
-            "the three ledgers do not cover 255 of 255 product sources",
+            "the three ledgers do not cover 256 of 256 product sources",
         );
     }
 

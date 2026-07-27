@@ -1762,3 +1762,114 @@ deployment authorization.
 - The already-existing synthetic production reference outcome remains unchanged. This
   slice performed no production database access or mutation.
 - Scoped commit, push, and exact-SHA CI ratification remain required for this slice.
+
+## 2026-07-27 — Current-main integration and independent iOS release-boundary correction
+
+### Exact-SHA failure and source-ledger revalidation
+
+- Exact-SHA CI run `30278248743` passed 19 of 20 jobs and failed only the Nightingale
+  contract-foundation job. The exact failure was a stale `routes/api.php` digest in the
+  evidence-only communication/notification source ledger; all native iOS and Android jobs
+  passed.
+- Synchronized the isolated Nightingale feature stream with `origin/main` commit
+  `b6ea087747d7ea88c8a076f06f4c91a2636ea029`. The streams had no overlapping changed
+  paths, and the merge completed without conflict.
+- Revalidated every one of the 130 classified communication/notification source paths
+  against that exact main commit. All paths match it. Only `routes/api.php` changed from
+  the prior evidence snapshot.
+- Inspected the twelve-line route delta. It adds three Zephyrus staff/operations reads:
+  scoped Arena per-case conformance, an aggregate patient-flow epoch, and a scoped
+  patient-flow journey. It adds no Nightingale route, communication operation,
+  notification provider, patient-native transport, or communication state.
+- Reissued the generated ledger with the current route digest and advanced its reviewed
+  source commit/date. The `routes_rejected` disposition, all ten required findings, all
+  17 decisions, and every default-deny constraint remain unchanged.
+
+### Legacy release-path collision found and corrected
+
+- The deeper product-universe pass found a material mainline regression: the historical
+  `hummingbird/iosPatientApp` project, generated project, and Info.plist had been renamed
+  to the Nightingale bundle/display identity, and a Nightingale App Store export profile
+  had been placed inside that legacy root. This created two competing Nightingale iOS
+  sources and contradicted the independent-product decision.
+- Correction commit `85316fbc5794735a77a0a4fa0e0096e18db4240b` restores the three
+  legacy identity-bearing files to their exact pre-collision Hummingbird Patient bytes.
+  The Nightingale export policy now lives under `nightingale/iosApp`; the non-secret Apple
+  registry points only to `nightingale/iosApp`, `Nightingale.xcodeproj`, and the
+  `Nightingale` scheme.
+- Added a fail-closed IPA identity verifier. It reads an IPA without extraction, rejects
+  unsafe paths or multiple top-level applications, and requires the expected bundle ID,
+  build number, marketing version, and `APPL` package type. Its self-test passes one
+  positive and rejects wrong-bundle, wrong-build, duplicate-app, and malformed-archive
+  mutations.
+- The root TestFlight helper now requires a registry bundle ID, decimal-only build number,
+  an exact safe export-cleanup target, and a verified exported IPA before it can report a
+  successful export. No archive, signature, upload, App Store query, tester distribution,
+  or pilot action was performed.
+- Product-boundary CI now rejects legacy Nightingale identity, a misplaced export profile,
+  registry reversal, export-policy drift, missing independent distribution documentation,
+  or IPA-verifier failure. The generated legacy Xcode project, mobile brand surfaces,
+  product boundary, plist parsing, helper syntax, and Nightingale Release build settings
+  all pass locally.
+
+### Corrected universe and dependent evidence
+
+- The only new tracked source retained under the legacy patient roots is
+  `hummingbird/iosPatientApp/.gitignore`. It is classified as a reusable generated-artifact
+  hygiene principle, not product behavior. The complete migration universe is therefore
+  256 paths: 122 unique prior-ledger sources plus 134 final-slice sources.
+- The full-universe digest is
+  `a307e1957df7ef78eb61a9a9123f3902fd8929ebb3aaeb4dce48f2c88fb4a881`;
+  the final-slice path digest is
+  `4301de88a9071214001c2a58aa8fbc624bb49f24bb566428c8a1ef98aa44c13d`.
+  The final slice contains 42 reusable safety primitives, 20 held product behaviors, 28
+  test/fixture-only sources, and 44 rejected legacy behaviors.
+- Reissued the dependent, still-held Today evidence with the corrected universe identity.
+  Its 68 synthetic outcomes, 24 adversarial mutations, 14 direct-source checksums, empty
+  executable contract, and all activation=false conditions remain unchanged.
+- Checked only the new mainline-collision correction and revalidation checklist section.
+  The broad signed-distribution/store/upgrade item remains open, as do every live identity,
+  source, clinical content, communication, notification, independent review, pilot, and
+  release gate.
+
+### Current-main native reacceptance and lifecycle correction
+
+- Re-ran the signed Nightingale iOS Debug suite on the iPhone 16e simulator running iOS
+  26.3.1. All 11 unit tests and all six UI journeys passed, including double-length text,
+  accessibility text in landscape, Debug-only RTL, display preferences, the offline
+  privacy message, and the lifecycle privacy cover.
+- Built the independent Nightingale iOS target in unsigned Release configuration and
+  passed the exact Release-artifact verifier. Its bundle identifier is
+  `net.acumenus.nightingale`; its executable SHA-256 is
+  `a747b4efbfdd33e94c39fa996e76f9798ed51232e4412c57e1798b48394615f9`.
+- Independently built the restored legacy Hummingbird Patient iOS target in unsigned
+  Release configuration and passed its patient-transport artifact verifier. Its bundle
+  identifier is `net.acumenus.hummingbird.patient`; its executable SHA-256 is
+  `098e92a7be150ad25c3572c4ea1c0976e218dc76ec1fff0105551c9f03c1bdeb`.
+  This proves the two Release products no longer collide; it does not approve either
+  artifact for signing or distribution.
+- Android Debug and Release unit suites each passed 8/8. `lintDebug`, `lintRelease`,
+  Debug assembly, unsigned Release assembly, and the exact Release APK verifier passed
+  under Android Studio's bundled Java 21 runtime. The Debug APK SHA-256 is
+  `6511676a6ce092b2a868b1bc6f28027f7a60dd13f27da1e994a74473fdab2b47`;
+  the unsigned Release APK SHA-256 remains
+  `28b055b8873f8db9cf98a24edacdbf74349fbb6c6fd013175df12bca4e7f673e`.
+- The first complete Android emulator run passed nine of ten journeys but exposed a
+  harness race: changing `LocaleManager.applicationLocales` automatically destroyed and
+  recreated the Activity while the helper also called `ActivityScenario.recreate()`.
+  The helper now waits for the platform-created replacement Activity to reach `RESUMED`
+  with the requested resource locale instead of issuing a competing recreate. The failed
+  case then passed alone, and the complete API 35 suite passed 10/10.
+- The first Gradle preflight used the shell's Java 8 runtime and failed before project
+  configuration. It is not accepted evidence. The complete accepted command used Android
+  Studio's Java 21 runtime and passed all requested unit, lint, assembly, and emulator
+  tasks.
+- Test correction commit `45ddf907c0f15e378b37a1b0726724e346cb29fd` is the new exact
+  reviewed source commit for the final 134-source classification. The product-universe
+  and final-slice path sets and digests are unchanged; the changed Android test source
+  byte checksum and dependent Today direct-source evidence are regenerated from that
+  commit.
+- No production database access, mutation, migration, provisioning, deployment, patient
+  disclosure, live identity/source binding, networking, message, notification, or
+  activation occurred in this reacceptance slice. Exact-SHA CI remains required after the
+  scoped evidence commit is published.

@@ -24,7 +24,7 @@ const outputPath = path.join(
     repoRoot,
     "docs/nightingale/migration/candidates/v0/journey-preference-presentation-release-source-classification.json",
 );
-const reviewedSourceCommit = "e8f2b33bca79c4134f2476f41702430da72816d7";
+const reviewedSourceCommit = "45ddf907c0f15e378b37a1b0726724e346cb29fd";
 const priorManifestPaths = [
     "docs/nightingale/migration/candidates/v0/source-classification.json",
     "docs/nightingale/migration/candidates/v0/communication-notification-source-classification.json",
@@ -128,6 +128,13 @@ const decisions = {
         rationale:
             "The legacy asset record is retained as non-runnable provenance and verification evidence. Its Hummingbird sources, derived files, visual ownership, and product identity do not transfer to Nightingale, whose separately supplied nightingale artwork and provenance remain authoritative.",
         categories: ["test_fixture_evidence", "release_packaging_identity"],
+    },
+    generated_artifact_hygiene_principle: {
+        classification: "reusable_safety_primitive",
+        disposition: "principle_only",
+        rationale:
+            "Excluding generated Xcode products, derived data, archives, and per-user state from version control is a portable repository-safety principle. The legacy root and exact ignore file do not migrate; Nightingale retains its own independently governed build-output exclusions.",
+        categories: ["release_packaging_identity"],
     },
     legacy_packaging_identity_rejected: {
         classification: "rejected_legacy_behavior",
@@ -308,6 +315,9 @@ function decisionIdFor(relativePath) {
         return "append_only_audit_safety_principle";
     }
     if (relativePath.startsWith("hummingbird/iosPatientApp/")) {
+        if (relativePath === "hummingbird/iosPatientApp/.gitignore") {
+            return "generated_artifact_hygiene_principle";
+        }
         if (relativePath.includes("/Assets.xcassets/")) {
             return "legacy_brand_assets_rejected";
         }
@@ -402,6 +412,9 @@ function surfaceFor(relativePath) {
         return "legacy_ios_ui_test";
     }
     if (relativePath.startsWith("hummingbird/iosPatientApp/")) {
+        if (relativePath === "hummingbird/iosPatientApp/.gitignore") {
+            return "legacy_ios_packaging";
+        }
         if (relativePath.includes("/Assets.xcassets/")) {
             return "legacy_ios_asset";
         }
@@ -525,7 +538,7 @@ const document = {
     classification_id:
         "nightingale-journey-preference-presentation-release-source-classification.v1",
     reviewed_source_commit: reviewedSourceCommit,
-    reviewed_at: "2026-07-26",
+    reviewed_at: "2026-07-27",
     status: "evidence_only_not_approved_for_implementation",
     scope: [
         "journey_projection_content",

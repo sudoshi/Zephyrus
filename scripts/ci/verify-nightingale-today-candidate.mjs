@@ -751,16 +751,16 @@ function inspect(
         "final source classification ledger identity changed",
     );
     assert(
-        finalLedger.product_universe?.source_count === 255,
+        finalLedger.product_universe?.source_count === 256,
         "product universe source count changed",
     );
     assert(
         finalLedger.product_universe?.inventory_digest ===
-            "d6f680b73278786f8004826029e6a9413f921db4ce03df8873bde4c23c62d99c",
+            "a307e1957df7ef78eb61a9a9123f3902fd8929ebb3aaeb4dce48f2c88fb4a881",
         "product universe digest changed",
     );
     assert(
-        candidate.evidence?.product_universe_source_count === 255,
+        candidate.evidence?.product_universe_source_count === 256,
         "candidate evidence source count changed",
     );
     assert(
