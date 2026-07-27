@@ -43,6 +43,7 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
     onResetCamera: vi.fn(),
     onFocusPatients: vi.fn(),
     onCanonicalView: vi.fn(),
+    onToggleOrtho: vi.fn(),
     onFocusCensusScope: vi.fn(),
     onAskEddy: vi.fn(),
     onSpeedChange: vi.fn(),
@@ -81,6 +82,7 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
       metrics={{ active: 12, events: 40, occupiedLocations: 9 }}
       occupancy={occupancy}
       eddyEnabled={false}
+      orthoActive={false}
       searchMatches={null}
       searchResults={[]}
       savedViews={[false, false, false]}
@@ -254,6 +256,21 @@ describe('NavigatorToolbar canonical views (E2)', () => {
       fireEvent.click(screen.getByRole('button', { name: label }));
       expect(handlers.onCanonicalView).toHaveBeenCalledWith(view);
     }
+  });
+});
+
+describe('NavigatorToolbar ortho toggle (E3)', () => {
+  it('exposes the plan-view toggle as a pressable, reflecting active state', () => {
+    const handlers = renderToolbar({ orthoActive: false });
+    const toggle = screen.getByRole('button', { name: 'Top-down plan view' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(toggle);
+    expect(handlers.onToggleOrtho).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks the toggle pressed while plan view is active', () => {
+    renderToolbar({ orthoActive: true });
+    expect(screen.getByRole('button', { name: 'Top-down plan view' })).toHaveAttribute('aria-pressed', 'true');
   });
 });
 

@@ -103,7 +103,15 @@ export class NavigatorScene {
 
   private scene: THREE.Scene;
 
-  private camera: THREE.PerspectiveCamera;
+  // The ACTIVE camera (raycast, flight, billboards, render all read this).
+  // E3 swaps it between the perspective iso camera and a top-down ortho one.
+  private camera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
+
+  private perspectiveCamera: THREE.PerspectiveCamera;
+
+  private orthoCamera: THREE.OrthographicCamera;
+
+  private orthoEnabled = false;
 
   private orbit: OrbitControls;
 
@@ -293,10 +301,16 @@ export class NavigatorScene {
   private readonly onResize = (): void => {
     const width = this.container.clientWidth;
     const height = this.container.clientHeight;
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
+    this.perspectiveCamera.aspect = width / height;
+    this.perspectiveCamera.updateProjectionMatrix();
+    // E3: the ortho frustum re-derives from its framed height on aspect change.
+    if (this.orthoEnabled) this.applyOrthoFrustum(this.orthoFrameHeight);
     this.renderer.setSize(width, height);
   };
+
+  // E3: the world-space vertical extent the ortho camera frames; focus/fit
+  // updates it, resize re-derives the frustum from it.
+  private orthoFrameHeight = 180;
 
   // Reused per-cast buffers — the 20 Hz hover path must not allocate.
   private raycastScratch: THREE.Object3D[] = [];
@@ -400,8 +414,13 @@ export class NavigatorScene {
     this.scene.background = new THREE.Color(0x121514);
     this.scene.fog = new THREE.Fog(0x121514, 150, 470);
 
-    this.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1400);
-    this.camera.position.copy(HOME_POSITION);
+    this.perspectiveCamera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1400);
+    this.perspectiveCamera.position.copy(HOME_POSITION);
+    // E3 ortho camera — frustum sized on toggle; up = −z so north reads "up"
+    // in plan view. Far plane clears the fixed high vantage it flies to.
+    this.orthoCamera = new THREE.OrthographicCamera(-100, 100, 100, -100, 0.1, 2000);
+    this.orthoCamera.up.set(0, 0, -1);
+    this.camera = this.perspectiveCamera;
 
     this.orbit = new OrbitControls(this.camera, this.renderer.domElement);
     this.orbit.target.copy(HOME_TARGET);
@@ -1373,6 +1392,12 @@ export class NavigatorScene {
     dir: THREE.Vector3,
     options?: { instant?: boolean },
   ): void {
+    // E3: in plan view there is no arc — reframe the ortho camera straight
+    // down, mapping the requested framing distance to the frustum height.
+    if (this.orthoEnabled) {
+      this.frameOrtho(target.clone(), Math.max(40, distance));
+      return;
+    }
     const toDir = dir.clone().normalize();
     if (options?.instant) {
       this.flight = null;
@@ -1541,32 +1566,106 @@ export class NavigatorScene {
     return true;
   }
 
-  /** Camera pose snapshot for saved views (N-7). */
+  /** Camera pose snapshot for saved views / view links (N-7/E5). Always the
+   *  perspective pose — bookmarks and links are perspective-framed. */
   getCameraView(): CameraView {
+    const position = this.perspectiveCamera.position;
     return {
-      position: { x: this.camera.position.x, y: this.camera.position.y, z: this.camera.position.z },
+      position: { x: position.x, y: position.y, z: position.z },
       target: { x: this.orbit.target.x, y: this.orbit.target.y, z: this.orbit.target.z },
     };
   }
 
-  /** Restore a saved camera pose (N-7). */
+  /** Restore a saved camera pose (N-7). Exits ortho — bookmarks are iso. */
   setCameraView(view: CameraView): void {
-    this.camera.position.set(view.position.x, view.position.y, view.position.z);
+    if (this.orthoEnabled) this.setOrthographic(false);
+    this.perspectiveCamera.position.set(view.position.x, view.position.y, view.position.z);
     this.orbit.target.set(view.target.x, view.target.y, view.target.z);
     this.orbit.update();
   }
 
   resetCamera(): void {
     this.flight = null;
-    this.camera.position.copy(HOME_POSITION);
+    // Home is the panic key — always land in the perspective iso overview.
+    if (this.orthoEnabled) this.setOrthographic(false);
+    this.perspectiveCamera.position.copy(HOME_POSITION);
     this.orbit.target.copy(HOME_TARGET);
     this.orbit.update();
   }
 
   /** E2 canonical "House" view: fly (arc) to the default iso overview. */
   flyToHome(options?: { instant?: boolean }): void {
+    if (this.orthoEnabled) {
+      this.frameOrtho(HOME_TARGET.clone(), this.orthoFrameHeight);
+      return;
+    }
     const dir = HOME_POSITION.clone().sub(HOME_TARGET);
     this.flyTo(HOME_TARGET.clone(), dir.length(), dir.normalize(), options);
+  }
+
+  /**
+   * E3: toggle the top-down orthographic plan view. Ortho reads structure and
+   * spread without perspective foreshortening — locked straight-down, pan +
+   * zoom only. The active camera swaps beneath OrbitControls, raycast, flight,
+   * and billboards (all read `this.camera`); the perspective iso view restores
+   * on toggle-off. Returns the new state.
+   */
+  setOrthographic(enabled: boolean): boolean {
+    if (enabled === this.orthoEnabled) return this.orthoEnabled;
+    this.flight = null;
+    const target = this.orbit.target.clone();
+
+    if (enabled) {
+      // Frame the same vertical extent the perspective view currently shows.
+      const distance = this.perspectiveCamera.position.distanceTo(target);
+      const height = 2 * distance * Math.tan((this.perspectiveCamera.fov * Math.PI) / 180 / 2);
+      this.camera = this.orthoCamera;
+      this.orbit.object = this.orthoCamera;
+      this.orbit.minPolarAngle = 0;
+      this.orbit.maxPolarAngle = 0; // locked straight down (plan view)
+      this.frameOrtho(target, Math.max(40, height));
+    } else {
+      // Restore the iso perspective looking at the same target, distance
+      // recovered from the ortho frame height so the scale barely jumps.
+      const distance = this.orthoFrameHeight / (2 * Math.tan((this.perspectiveCamera.fov * Math.PI) / 180 / 2));
+      this.camera = this.perspectiveCamera;
+      this.orbit.object = this.perspectiveCamera;
+      this.orbit.minPolarAngle = 0;
+      this.orbit.maxPolarAngle = Math.PI * 0.49;
+      this.perspectiveCamera.position.copy(target).addScaledVector(NavigatorScene.ISO_DIR, distance);
+      this.orbit.target.copy(target);
+      this.orbit.update();
+    }
+
+    this.orthoEnabled = enabled;
+    return this.orthoEnabled;
+  }
+
+  isOrthographic(): boolean {
+    return this.orthoEnabled;
+  }
+
+  /** Point the ortho camera straight down at `target`, framing `height`. */
+  private frameOrtho(target: THREE.Vector3, height: number): void {
+    this.orbit.target.copy(target);
+    // A fixed high vantage — ortho scale is frustum-based, not distance-based,
+    // so any height that clears the scene works; the tiny +z avoids the pole.
+    this.orthoCamera.position.set(target.x, target.y + 800, target.z + 0.001);
+    this.applyOrthoFrustum(height);
+    this.orbit.update();
+  }
+
+  /** Size the ortho frustum to frame `height` world units at the current aspect. */
+  private applyOrthoFrustum(height: number): void {
+    this.orthoFrameHeight = height;
+    const aspect = this.container.clientWidth / Math.max(1, this.container.clientHeight);
+    const halfH = height / 2;
+    const halfW = halfH * aspect;
+    this.orthoCamera.left = -halfW;
+    this.orthoCamera.right = halfW;
+    this.orthoCamera.top = halfH;
+    this.orthoCamera.bottom = -halfH;
+    this.orthoCamera.updateProjectionMatrix();
   }
 
   /** Renderer memory/draw counters for the H4 soak hook (soakHook.ts). */

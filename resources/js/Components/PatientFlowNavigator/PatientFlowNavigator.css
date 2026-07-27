@@ -1252,6 +1252,99 @@
 /* --- Action list (F-8): non-pointer selection of delayed locations + barriers,
    below the feed. Same scoped overlay treatment as the other panels. --------- */
 
+/* E3 structure traversal — a collapsed disclosure at the bottom-left that
+   expands upward into a keyboard-walkable floor→unit→bed tree. Quiet chrome;
+   never a status color (structure is not an alarm). */
+.patient-flow-structure-nav {
+  position: absolute;
+  z-index: 3;
+  left: 16px;
+  bottom: 16px;
+  width: min(300px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+}
+
+.patient-flow-structure-toggle {
+  align-self: flex-start;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  background: rgba(27, 31, 29, 0.92);
+  color: #ddd6c7;
+  font-size: 11px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+
+.patient-flow-structure-toggle:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 2px;
+}
+
+.patient-flow-structure-tree {
+  order: -1;
+  margin: 0 0 6px;
+  padding: 6px;
+  list-style: none;
+  max-height: min(46vh, 440px);
+  overflow: auto;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  background: rgba(27, 31, 29, 0.94);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+}
+
+.patient-flow-structure-tree li {
+  margin: 0;
+}
+
+.patient-flow-structure-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #ddd6c7;
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 4px 6px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.patient-flow-structure-row.kind-floor {
+  color: #f3efe5;
+  font-weight: 500;
+}
+
+.patient-flow-structure-row:hover,
+.patient-flow-structure-row:focus-visible {
+  background: rgba(224, 163, 63, 0.14);
+  color: #ffd795;
+  outline: none;
+}
+
+.patient-flow-structure-caret {
+  width: 10px;
+  flex: 0 0 auto;
+  color: #b9b2a6;
+}
+
+.patient-flow-structure-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patient-flow-structure-count {
+  flex: 0 0 auto;
+  color: #b9b2a6;
+  font-variant-numeric: tabular-nums;
+}
+
 .patient-flow-action-list {
   position: absolute;
   z-index: 3;

@@ -96,6 +96,7 @@ import NavigatorFloorRail from './NavigatorFloorRail';
 import NavigatorInspector from './NavigatorInspector';
 import NavigatorIntro from './NavigatorIntro';
 import NavigatorLegend from './NavigatorLegend';
+import NavigatorStructureNav from './NavigatorStructureNav';
 import NavigatorToolbar from './NavigatorToolbar';
 import type { LayerControl, NavigatorMetrics } from './NavigatorToolbar';
 import './PatientFlowNavigator.css';
@@ -475,6 +476,8 @@ export default function PatientFlowNavigator({
   const [searchMatches, setSearchMatches] = useState<number | null>(null);
   const [searchResults, setSearchResults] = useState<Array<{ patientId: string; label: string }>>([]);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  // E3: top-down orthographic plan view (the `O` key + toolbar toggle).
+  const [ortho, setOrtho] = useState(false);
   const [roundsRun, setRoundsRun] = useState<RunSummary | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [inspectorAction, setInspectorAction] = useState<{ label: string; href: string } | null>(null);
@@ -1807,6 +1810,7 @@ export default function PatientFlowNavigator({
       }
       const key = event.key.toLowerCase();
       if (key === 'h') {
+        setOrtho(false);
         sceneRef.current?.resetCamera();
       } else if (key === 'f') {
         // focusTrace frames the whole traced story when a journey is open
@@ -1814,6 +1818,10 @@ export default function PatientFlowNavigator({
         if (!sceneRef.current?.focusTrace()) focusActivePatients();
       } else if (key === 'n') {
         if (!historical) handleScrub(nowMsRef.current);
+      } else if (key === 'o') {
+        // E3: toggle the top-down orthographic plan view.
+        const scene = sceneRef.current;
+        if (scene) setOrtho(scene.setOrthographic(!scene.isOrthographic()));
       } else if (event.key === '?') {
         setShortcutsOpen((value) => !value);
       }
@@ -1821,6 +1829,13 @@ export default function PatientFlowNavigator({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [closeJourney, dismissIntro, focusActivePatients, handleScrub, historical]);
+
+  // E3: keep the ortho toggle in sync when Home/canonical views exit plan view
+  // (resetCamera drops ortho; the toolbar toggle must reflect that).
+  const toggleOrtho = useCallback((): void => {
+    const scene = sceneRef.current;
+    if (scene) setOrtho(scene.setOrthographic(!scene.isOrthographic()));
+  }, []);
 
   // E2 — SDF unit-name billboards. Rebuilt only when the unit set, floor
   // filter, or Model layer changes (not per frame); the scene owns per-frame
@@ -2128,9 +2143,11 @@ export default function PatientFlowNavigator({
           setPlaying((value) => !value);
         }}
         onToggleLive={() => (live ? disconnectLive() : connectLive())}
-        onResetCamera={resetCamera}
+        onResetCamera={() => { setOrtho(false); resetCamera(); }}
         onFocusPatients={focusActivePatients}
         onCanonicalView={applyCanonicalView}
+        orthoActive={ortho}
+        onToggleOrtho={toggleOrtho}
         onFocusCensusScope={focusCensusScope}
         onSpeedChange={setSpeed}
         onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
@@ -2165,6 +2182,12 @@ export default function PatientFlowNavigator({
         barriers={layers.barriers ? barriers : []}
         onSelectLocation={selectLocationFromList}
         onSelectBarrier={selectBarrierFromList}
+      />
+
+      <NavigatorStructureNav
+        locations={locations}
+        onSelectBed={selectLocationFromList}
+        onFrame={(points) => sceneRef.current?.focusOn(points)}
       />
 
       {journeyState === 'idle' ? (
@@ -2210,6 +2233,7 @@ export default function PatientFlowNavigator({
             <div><dt>H</dt><dd>Home view</dd></div>
             <div><dt>F</dt><dd>Focus selection (or active patients)</dd></div>
             <div><dt>N</dt><dd>Jump to now</dd></div>
+            <div><dt>O</dt><dd>Top-down plan view (orthographic)</dd></div>
             <div><dt>↑ ↓</dt><dd>Step floors (floor rail focused)</dd></div>
             <div><dt>← → ↑ ↓</dt><dd>Pan the camera (click the scene first)</dd></div>
             <div><dt>Enter</dt><dd>In Find: fly to matches</dd></div>

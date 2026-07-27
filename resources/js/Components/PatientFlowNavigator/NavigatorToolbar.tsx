@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bookmark, Bot, Home, Link2, Pause, Play, Radio, ScanSearch } from 'lucide-react';
+import { Bookmark, Bot, Grid3x3, Home, Link2, Pause, Play, Radio, ScanSearch } from 'lucide-react';
 import type {
   OccupancySummary,
   PatientFlowAmbient,
@@ -62,6 +62,9 @@ interface NavigatorToolbarProps {
   onFocusPatients: () => void;
   /** E2 canonical views — Top / House / Floor / Bed, each a van Wijk arc. */
   onCanonicalView: (view: 'top' | 'house' | 'floor' | 'bed') => void;
+  /** E3: whether the top-down orthographic plan view is active. */
+  orthoActive: boolean;
+  onToggleOrtho: () => void;
   /** Explicit camera flight to the narrowed census set (B-4). */
   onFocusCensusScope: () => void;
   onAskEddy: () => void;
@@ -118,6 +121,8 @@ export default function NavigatorToolbar({
   onResetCamera,
   onFocusPatients,
   onCanonicalView,
+  orthoActive,
+  onToggleOrtho,
   onFocusCensusScope,
   onAskEddy,
   onSpeedChange,
@@ -232,6 +237,16 @@ export default function NavigatorToolbar({
           onClick={onFocusPatients}
         >
           <ScanSearch />
+        </button>
+        <button
+          className={`patient-flow-icon-button ${orthoActive ? 'active' : ''}`}
+          type="button"
+          title="Top-down plan view (O) — orthographic, no perspective"
+          aria-label="Top-down plan view"
+          aria-pressed={orthoActive}
+          onClick={onToggleOrtho}
+        >
+          <Grid3x3 />
         </button>
         <button
           className="patient-flow-icon-button"
