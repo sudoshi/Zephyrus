@@ -60,15 +60,15 @@ class StaffPatientCommunicationApiTest extends TestCase
         $workItemUuid = (string) Str::uuid7();
 
         foreach ([
-            'nightingale.enabled',
-            'nightingale.features.messaging',
-            'nightingale.staff_messaging.enabled',
+            'hummingbird-patient.enabled',
+            'hummingbird-patient.features.messaging',
+            'hummingbird-patient.staff_messaging.enabled',
         ] as $flag) {
             config([
-                'nightingale.enabled' => true,
-                'nightingale.features.messaging' => true,
-                'nightingale.staff_messaging.enabled' => true,
-                'nightingale.staff_messaging.governance_status' => 'approved',
+                'hummingbird-patient.enabled' => true,
+                'hummingbird-patient.features.messaging' => true,
+                'hummingbird-patient.staff_messaging.enabled' => true,
+                'hummingbird-patient.staff_messaging.governance_status' => 'approved',
                 $flag => false,
             ]);
 
@@ -84,10 +84,10 @@ class StaffPatientCommunicationApiTest extends TestCase
         }
 
         config([
-            'nightingale.enabled' => true,
-            'nightingale.features.messaging' => true,
-            'nightingale.staff_messaging.enabled' => true,
-            'nightingale.staff_messaging.governance_status' => 'draft_requires_approval',
+            'hummingbird-patient.enabled' => true,
+            'hummingbird-patient.features.messaging' => true,
+            'hummingbird-patient.staff_messaging.enabled' => true,
+            'hummingbird-patient.staff_messaging.governance_status' => 'draft_requires_approval',
         ]);
 
         $this->withToken($token)
@@ -262,7 +262,7 @@ class StaffPatientCommunicationApiTest extends TestCase
             'is_deleted' => false,
         ]);
         config([
-            'nightingale.staff_messaging.pilot_unit_ids' => [
+            'hummingbird-patient.staff_messaging.pilot_unit_ids' => [
                 $fixture['unit']->getKey(),
                 $destinationUnit->getKey(),
             ],
@@ -1441,9 +1441,9 @@ class StaffPatientCommunicationApiTest extends TestCase
         config([
             'hummingbird.patient_context.signing_key' => str_repeat('s', 32),
             'hummingbird.patient_context.ttl_minutes' => 15,
-            'nightingale.enabled' => true,
-            'nightingale.features.messaging' => true,
-            'nightingale.messaging' => [
+            'hummingbird-patient.enabled' => true,
+            'hummingbird-patient.features.messaging' => true,
+            'hummingbird-patient.messaging' => [
                 'governance_status' => 'approved',
                 'policy_version' => self::POLICY_VERSION,
                 'urgent_guidance_version' => self::GUIDANCE_VERSION,
@@ -1459,7 +1459,7 @@ class StaffPatientCommunicationApiTest extends TestCase
                     ],
                 ],
             ],
-            'nightingale.staff_messaging' => [
+            'hummingbird-patient.staff_messaging' => [
                 'enabled' => true,
                 'governance_status' => 'approved',
                 'consumer_key' => 'patient-message-staff-inbox-v1',

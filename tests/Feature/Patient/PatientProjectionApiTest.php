@@ -484,7 +484,7 @@ class PatientProjectionApiTest extends TestCase
     public function test_policy_version_mismatch_fails_closed_and_is_audited(): void
     {
         $fixture = $this->fixture('projection-policy-mismatch');
-        config(['nightingale.policy_version' => 'unapproved-policy-version']);
+        config(['hummingbird-patient.policy_version' => 'unapproved-policy-version']);
 
         $response = $this->getAsPatient(
             $this->token($fixture['principal']),
@@ -504,12 +504,12 @@ class PatientProjectionApiTest extends TestCase
     {
         $fixture = $this->app->make(SyntheticPatientProjectionProvisioner::class)->provision($seed);
         config([
-            'nightingale.enabled' => true,
-            'nightingale.policy_version' => (string) $fixture['policy']->version,
-            'nightingale.features.today' => true,
-            'nightingale.features.pathway' => true,
-            'nightingale.features.rounds_summary' => true,
-            'nightingale.features.care_team' => true,
+            'hummingbird-patient.enabled' => true,
+            'hummingbird-patient.policy_version' => (string) $fixture['policy']->version,
+            'hummingbird-patient.features.today' => true,
+            'hummingbird-patient.features.pathway' => true,
+            'hummingbird-patient.features.rounds_summary' => true,
+            'hummingbird-patient.features.care_team' => true,
         ]);
 
         return $fixture;

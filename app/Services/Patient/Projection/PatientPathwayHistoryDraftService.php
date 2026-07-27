@@ -67,7 +67,7 @@ class PatientPathwayHistoryDraftService
 
             $policy = PatientReleasePolicyVersion::query()
                 ->effective()
-                ->where('version', (string) config('nightingale.policy_version'))
+                ->where('version', (string) config('hummingbird-patient.policy_version'))
                 ->lockForUpdate()
                 ->first();
             if (! $policy instanceof PatientReleasePolicyVersion) {
@@ -83,7 +83,7 @@ class PatientPathwayHistoryDraftService
             $sourceObservedAt = $this->latestObservation($lockedInstance, $stages, $milestones);
             $content = $this->content($stages, $milestones);
             $sourceVersion = (string) config(
-                'nightingale.pathway_history_drafts.producer_version',
+                'hummingbird-patient.pathway_history_drafts.producer_version',
                 'patient-pathway-history-draft-v1',
             );
             $guard = app(PatientProjectionContentGuard::class);
@@ -113,7 +113,7 @@ class PatientPathwayHistoryDraftService
 
             $cursor = PatientProjectionCursor::query()->create([
                 'source_system_key' => (string) config(
-                    'nightingale.pathway_history_drafts.source_system_key',
+                    'hummingbird-patient.pathway_history_drafts.source_system_key',
                     'care-pathways.pathway-history-v1',
                 ),
                 'projection_kind' => self::PROJECTION_KIND,
@@ -211,9 +211,9 @@ class PatientPathwayHistoryDraftService
     private function assertAvailable(): void
     {
         if (DB::getDriverName() !== 'pgsql'
-            || ! (bool) config('nightingale.enabled')
-            || ! (bool) config('nightingale.features.pathway')
-            || ! (bool) config('nightingale.features.pathway_history_drafts')
+            || ! (bool) config('hummingbird-patient.enabled')
+            || ! (bool) config('hummingbird-patient.features.pathway')
+            || ! (bool) config('hummingbird-patient.features.pathway_history_drafts')
             || ! (bool) config('care-pathways.patient_enabled')) {
             throw new RuntimeException('patient_pathway_history_drafts_unavailable');
         }
@@ -240,7 +240,7 @@ class PatientPathwayHistoryDraftService
             );
             if (PatientProjectionFailure::query()
                 ->where('source_system_key', (string) config(
-                    'nightingale.pathway_history_drafts.source_system_key',
+                    'hummingbird-patient.pathway_history_drafts.source_system_key',
                     'care-pathways.pathway-history-v1',
                 ))
                 ->where('projection_kind', self::PROJECTION_KIND)
@@ -252,7 +252,7 @@ class PatientPathwayHistoryDraftService
 
             PatientProjectionFailure::query()->create([
                 'source_system_key' => (string) config(
-                    'nightingale.pathway_history_drafts.source_system_key',
+                    'hummingbird-patient.pathway_history_drafts.source_system_key',
                     'care-pathways.pathway-history-v1',
                 ),
                 'projection_kind' => self::PROJECTION_KIND,
@@ -437,11 +437,11 @@ class PatientPathwayHistoryDraftService
     private function freshness(Carbon $sourceObservedAt): string
     {
         $minutes = max(0, $sourceObservedAt->diffInMinutes(now()));
-        if ($minutes <= (int) config('nightingale.pathway_history_drafts.current_after_minutes', 30)) {
+        if ($minutes <= (int) config('hummingbird-patient.pathway_history_drafts.current_after_minutes', 30)) {
             return 'current';
         }
 
-        return $minutes <= (int) config('nightingale.pathway_history_drafts.stale_after_minutes', 240)
+        return $minutes <= (int) config('hummingbird-patient.pathway_history_drafts.stale_after_minutes', 240)
             ? 'aging'
             : 'stale';
     }

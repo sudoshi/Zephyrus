@@ -61,10 +61,10 @@ class MessagingController extends Controller
             $principal = $request->user();
             $input = $request->validated();
             $result = match ($input['topic_code'] ?? null) {
-                'care_preference' => (bool) config('nightingale.features.care_preferences')
+                'care_preference' => (bool) config('hummingbird-patient.features.care_preferences')
                     ? $this->carePreferences->submit($request, $principal, $encounterUuid, $input)
                     : $this->messaging->createThread($request, $principal, $encounterUuid, $input),
-                'patient_goal' => (bool) config('nightingale.features.patient_goals')
+                'patient_goal' => (bool) config('hummingbird-patient.features.patient_goals')
                     ? $this->patientGoals->submit($request, $principal, $encounterUuid, $input)
                     : $this->messaging->createThread($request, $principal, $encounterUuid, $input),
                 default => $this->messaging->createThread($request, $principal, $encounterUuid, $input),

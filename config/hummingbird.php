@@ -26,10 +26,10 @@ return [
     // APP_KEY does not silently become the patient-reference policy.
     'patient_context' => [
         'signing_key' => env(
-            'NIGHTINGALE_CONTEXT_KEY',
+            'HUMMINGBIRD_PATIENT_CONTEXT_KEY',
             env('APP_ENV', 'production') === 'production' ? null : env('APP_KEY'),
         ),
-        'ttl_minutes' => max(1, min(1440, (int) env('NIGHTINGALE_CONTEXT_TTL_MINUTES', 15))),
+        'ttl_minutes' => max(1, min(1440, (int) env('HUMMINGBIRD_PATIENT_CONTEXT_TTL_MINUTES', 15))),
     ],
 
     // APNs (Apple Push Notification service), token-based (.p8) auth. When key_id + team_id +

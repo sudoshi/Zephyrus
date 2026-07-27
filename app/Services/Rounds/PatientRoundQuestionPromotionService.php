@@ -670,10 +670,10 @@ class PatientRoundQuestionPromotionService
     private function isEnabled(): bool
     {
         return (bool) config('rounds.patient_question_bridge_enabled')
-            && (bool) config('nightingale.enabled')
-            && (bool) config('nightingale.features.messaging')
-            && (bool) config('nightingale.features.rounds_questions')
-            && (bool) config('nightingale.staff_messaging.enabled')
-            && config('nightingale.staff_messaging.governance_status') === 'approved';
+            && (bool) config('hummingbird-patient.enabled')
+            && (bool) config('hummingbird-patient.features.messaging')
+            && (bool) config('hummingbird-patient.features.rounds_questions')
+            && (bool) config('hummingbird-patient.staff_messaging.enabled')
+            && config('hummingbird-patient.staff_messaging.governance_status') === 'approved';
     }
 }

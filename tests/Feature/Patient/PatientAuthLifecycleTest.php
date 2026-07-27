@@ -288,10 +288,10 @@ class PatientAuthLifecycleTest extends TestCase
     private function enablePatientAuth(): void
     {
         config([
-            'nightingale.enabled' => true,
-            'nightingale.features.enrollment' => true,
-            'nightingale.features.token_exchange' => true,
-            'nightingale.features.profile' => true,
+            'hummingbird-patient.enabled' => true,
+            'hummingbird-patient.features.enrollment' => true,
+            'hummingbird-patient.features.token_exchange' => true,
+            'hummingbird-patient.features.profile' => true,
         ]);
     }
 

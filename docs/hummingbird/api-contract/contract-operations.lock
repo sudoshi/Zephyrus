@@ -1,7 +1,7 @@
 # Hummingbird contract operations baseline — APPEND-ONLY.
 #
 # Every operation (METHOD full-path [operationId]) published by the two OpenAPI
-# contracts (hummingbird-bff.v1.yaml, nightingale.v1.yaml). An operation
+# contracts (hummingbird-bff.v1.yaml, hummingbird-patient.v1.yaml). An operation
 # may only be REMOVED or RENAMED here if it has a record in
 # contract-breaking-changes.v1.yaml; scripts/verify-hummingbird-contract-baseline.php
 # fails CI when a baselined operation disappears from the specs without one, or

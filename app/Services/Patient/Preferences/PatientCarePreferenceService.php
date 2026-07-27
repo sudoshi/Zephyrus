@@ -41,7 +41,7 @@ class PatientCarePreferenceService
         string $encounterUuid,
         array $input,
     ): array {
-        if (! (bool) config('nightingale.features.care_preferences')) {
+        if (! (bool) config('hummingbird-patient.features.care_preferences')) {
             throw PatientMessagingFailure::notFound();
         }
 

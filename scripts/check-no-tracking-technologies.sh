@@ -20,7 +20,7 @@ ROOTS=(
   resources/js
   resources/views
   hummingbird/androidPatientApp/app/src
-  hummingbird/iosPatientApp/Nightingale
+  hummingbird/iosPatientApp/HummingbirdPatient
   package.json
   hummingbird/androidPatientApp
   hummingbird/iosPatientApp/project.yml

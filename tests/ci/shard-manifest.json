@@ -851,11 +851,11 @@
       "shard": 2,
       "weight_s": 0.595
     },
-    "tests/Feature/Patient/NightingaleReferenceIdentityProvisionerTest.php": {
+    "tests/Feature/Patient/HummingbirdPatientReferenceIdentityProvisionerTest.php": {
       "shard": 2,
       "weight_s": 11.713
     },
-    "tests/Feature/Patient/NightingaleReferenceProjectionDraftProvisionerTest.php": {
+    "tests/Feature/Patient/HummingbirdPatientReferenceProjectionDraftProvisionerTest.php": {
       "shard": 0,
       "weight_s": 8.102
     },

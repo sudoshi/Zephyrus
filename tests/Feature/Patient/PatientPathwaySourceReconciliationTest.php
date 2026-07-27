@@ -177,10 +177,10 @@ class PatientPathwaySourceReconciliationTest extends TestCase
     private function enableSourceReconciliation(array $approvedSources = ['test-pathway-adapter.v1']): void
     {
         config([
-            'nightingale.enabled' => true,
-            'nightingale.features.pathway' => true,
-            'nightingale.features.pathway_source_reconciliation' => true,
-            'nightingale.pathway_source_reconciliation.approved_sources' => $approvedSources,
+            'hummingbird-patient.enabled' => true,
+            'hummingbird-patient.features.pathway' => true,
+            'hummingbird-patient.features.pathway_source_reconciliation' => true,
+            'hummingbird-patient.pathway_source_reconciliation.approved_sources' => $approvedSources,
             'care-pathways.patient_enabled' => true,
             'care-pathways.assignment_enabled' => true,
         ]);

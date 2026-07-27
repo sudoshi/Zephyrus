@@ -25,8 +25,8 @@ class PatientCommunicationEscalationService
     /** @return array{selected: int, escalated: int, skipped: int, failed: int} */
     public function escalateDue(?int $limit = null): array
     {
-        if (! (bool) config('nightingale.staff_messaging.enabled', false)
-            || config('nightingale.staff_messaging.governance_status') !== 'approved'
+        if (! (bool) config('hummingbird-patient.staff_messaging.enabled', false)
+            || config('hummingbird-patient.staff_messaging.governance_status') !== 'approved'
         ) {
             throw StaffPatientCommunicationFailure::unavailable();
         }

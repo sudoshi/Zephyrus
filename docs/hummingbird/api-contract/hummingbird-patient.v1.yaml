@@ -1,0 +1,3318 @@
+openapi: 3.1.0
+info:
+  title: Hummingbird Patient API
+  version: 1.0.0-draft
+  description: >-
+    Contract for the separately secured Hummingbird inpatient product. The API
+    exposes only opaque patient-product handles and governed projections. It is
+    fail-closed by default, is isolated to the patient identity realm, and does
+    not expose source-system linkage values.
+  x-governance-status: draft-not-approved
+  x-contract-owner: Patient Experience Platform
+  x-zephyrus-identifier-policy:
+    permitted: opaque_patient_product_uuids_only
+    source_linkage_fields: prohibited
+    embedded_source_meaning: prohibited
+
+servers:
+  - url: https://{host}/api/patient/v1
+    description: Patient product API boundary
+    variables:
+      host:
+        default: zephyrus.example.org
+
+security: []
+
+tags:
+  - name: enrollment
+  - name: authentication
+  - name: profile
+  - name: encounters
+  - name: sessions
+  - name: notification-devices
+  - name: messaging
+
+paths:
+  /auth/enroll/challenge/verify:
+    post:
+      operationId: verifyPatientEnrollmentChallenge
+      tags: [enrollment]
+      summary: Verify an enrollment challenge and issue a patient session
+      security: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: enrollment_challenge
+        required_abilities: []
+      x-zephyrus-data-classification:
+        request: patient_identity_secret
+        response: patient_authentication_secret
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: non_idempotent
+        idempotency_key: unsupported
+        retry: only_after_definitive_transport_failure
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_ENROLLMENT_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [404, 413, 415, 422, 429, 500]
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.auth.enrollment_succeeded]
+        denial_events: [patient.auth.enrollment_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: not_applicable
+        provenance: enrollment_challenge_and_access_grant
+        uncertainty: not_applicable
+        retraction: challenge_consumption_or_revocation_prevents_reuse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollmentVerificationRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/TokenPairCreated"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /auth/token:
+    post:
+      operationId: exchangePatientCredentials
+      tags: [authentication]
+      summary: Exchange patient credentials for a new session
+      security: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: patient_password
+        required_abilities: []
+      x-zephyrus-data-classification:
+        request: patient_identity_secret
+        response: patient_authentication_secret
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: non_idempotent
+        idempotency_key: unsupported
+        retry: only_after_definitive_transport_failure
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_TOKEN_EXCHANGE_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 413, 415, 422, 423, 429, 500]
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.auth.token_issued]
+        denial_events: [patient.auth.token_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: not_applicable
+        provenance: patient_principal
+        uncertainty: not_applicable
+        retraction: account_deactivation_or_session_revocation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TokenExchangeRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/TokenPairOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /auth/token/refresh:
+    post:
+      operationId: refreshPatientSession
+      tags: [authentication]
+      summary: Rotate a patient refresh credential and its token family
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:refresh"]
+        accepted_token_name_prefixes: ["patient-refresh:"]
+      x-zephyrus-data-classification:
+        request: patient_authentication_secret
+        response: patient_authentication_secret
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: non_idempotent
+        idempotency_key: unsupported
+        retry: never_replay_a_consumed_refresh_credential
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_TOKEN_EXCHANGE_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.auth.token_refreshed]
+        denial_events: [patient.auth.refresh_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: not_applicable
+        provenance: patient_session
+        uncertainty: not_applicable
+        retraction: refresh_reuse_revokes_the_session_family
+      responses:
+        "200":
+          $ref: "#/components/responses/TokenPairOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /auth/token/revoke:
+    post:
+      operationId: revokePatientSession
+      tags: [authentication]
+      summary: Revoke the current patient session
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        any_required_ability: ["patient:access", "patient:refresh"]
+        accepted_token_name_prefixes: ["patient-access:", "patient-refresh:"]
+      x-zephyrus-data-classification:
+        request: patient_authentication_secret
+        response: patient_session_state
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: idempotent_outcome
+        idempotency_key: unsupported
+        retry: permitted_with_same_credential_until_revoked
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_TOKEN_EXCHANGE_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.auth.token_revoked]
+        denial_events: []
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: not_applicable
+        provenance: patient_session
+        uncertainty: not_applicable
+        retraction: immediate_session_family_revocation
+      responses:
+        "200":
+          $ref: "#/components/responses/SessionRevokedOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /me:
+    get:
+      operationId: getPatientProfile
+      tags: [profile]
+      summary: Read the authenticated patient-product profile
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+      x-zephyrus-data-classification:
+        request: patient_session_state
+        response: patient_identity
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe
+        idempotency_key: not_applicable
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_PROFILE_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.profile.viewed]
+        denial_events: []
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: generated_at_request_time
+        provenance: patient_principal
+        uncertainty: not_applicable
+        retraction: account_deactivation_removes_access
+      responses:
+        "200":
+          $ref: "#/components/responses/ProfileOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /me/preferences:
+    put:
+      operationId: updatePatientPreferences
+      tags: [profile]
+      summary: Replace the supplied patient-product preference values
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+      x-zephyrus-data-classification:
+        request: patient_preferences
+        response: patient_identity
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: idempotent
+        idempotency_key: unsupported
+        retry: permitted_with_same_body
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_PROFILE_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 413, 415, 422, 429, 500]
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.profile.preferences_updated]
+        denial_events: []
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: generated_at_request_time
+        provenance: patient_principal
+        uncertainty: not_applicable
+        retraction: account_deactivation_removes_access
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientPreferencesInput"
+      responses:
+        "200":
+          $ref: "#/components/responses/ProfileOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /me/notification-devices/{deviceUuid}:
+    parameters:
+      - $ref: "#/components/parameters/NotificationDeviceUuid"
+    put:
+      operationId: registerPatientNotificationDevice
+      tags: [notification-devices]
+      summary: Register or rotate one encrypted patient notification-device token
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        ownership_policy: authenticated_principal_notification_devices_only
+      x-zephyrus-data-classification:
+        request: patient_notification_provider_secret
+        response: patient_notification_device_metadata
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: idempotent_resource_replacement
+        idempotency_key: unsupported
+        retry: permitted_with_same_device_handle_and_body
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_NOTIFICATION_DEVICES_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 413, 415, 422, 429, 500, 503]
+        cross_principal_behavior: generic_not_found
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.notification_device.registered]
+        denial_events: [patient.notification_device.registration_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: generated_at_request_time
+        provenance: patient_notification_device_registry
+        uncertainty: registration_does_not_guarantee_delivery
+        retraction: explicit_patient_revocation_or_provider_feedback_removes_eligibility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientNotificationDeviceRegistrationInput"
+      responses:
+        "200":
+          $ref: "#/components/responses/PatientNotificationDeviceRegistrationOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+    delete:
+      operationId: revokePatientNotificationDevice
+      tags: [notification-devices]
+      summary: Revoke one notification-device registration owned by the authenticated patient
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        ownership_policy: authenticated_principal_notification_devices_only
+      x-zephyrus-data-classification:
+        request: opaque_patient_notification_device_handle
+        response: patient_notification_device_revocation_state
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: idempotent_outcome
+        idempotency_key: not_required_for_resource_delete
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_NOTIFICATION_DEVICES_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
+        cross_principal_behavior: generic_not_found
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.notification_device.revoked]
+        denial_events: [patient.notification_device.revoke_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: generated_at_request_time
+        provenance: patient_notification_device_registry
+        uncertainty: revocation_does_not_retract_already_delivered_provider_messages
+        retraction: explicit_patient_revocation
+      responses:
+        "200":
+          $ref: "#/components/responses/PatientNotificationDeviceRevokedOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /me/sessions:
+    get:
+      operationId: listPatientSessions
+      tags: [sessions]
+      summary: List the authenticated patient's active device sessions
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        ownership_policy: authenticated_principal_sessions_only
+      x-zephyrus-data-classification:
+        request: patient_session_state
+        response: patient_device_session_metadata
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe
+        idempotency_key: not_applicable
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_SESSION_MANAGEMENT_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.auth.sessions_viewed]
+        denial_events: []
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: generated_at_request_time
+        provenance: patient_session_registry
+        uncertainty: not_applicable
+        retraction: revoked_or_expired_sessions_are_omitted
+      responses:
+        "200":
+          $ref: "#/components/responses/PatientSessionListOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /me/sessions/{sessionUuid}:
+    parameters:
+      - $ref: "#/components/parameters/SessionUuid"
+    delete:
+      operationId: revokePatientSessionById
+      tags: [sessions]
+      summary: Revoke one session owned by the authenticated patient
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        ownership_policy: authenticated_principal_sessions_only
+      x-zephyrus-data-classification:
+        request: opaque_patient_session_handle
+        response: patient_session_revocation_state
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: idempotent
+        idempotency_key: not_required_for_resource_delete
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_SESSION_MANAGEMENT_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
+        cross_principal_behavior: generic_not_found
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.auth.session_revoked]
+        denial_events: [patient.auth.session_revoke_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: generated_at_request_time
+        provenance: patient_session_registry
+        uncertainty: not_applicable
+        retraction: immediate_token_family_revocation
+      responses:
+        "200":
+          $ref: "#/components/responses/PatientSessionRevokedOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /encounters:
+    get:
+      operationId: listPatientEncounterAccess
+      tags: [encounters]
+      summary: List governed encounter handles currently accessible to the principal
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: active_non_revoked_grant
+      x-zephyrus-data-classification:
+        request: patient_session_state
+        response: patient_phi_minimized
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe
+        idempotency_key: not_applicable
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_ENCOUNTERS_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.encounter.disclosed]
+        denial_events: []
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: grant_updated_at
+        provenance: patient_encounter_access_grant
+        uncertainty: no_clinical_assertion_is_made
+        retraction: revoked_expired_or_suspended_grants_are_omitted
+      responses:
+        "200":
+          $ref: "#/components/responses/EncounterListOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /encounters/{encounterUuid}/today:
+    parameters:
+      - $ref: "#/components/parameters/EncounterUuid"
+    get:
+      operationId: getPatientTodayProjection
+      tags: [encounters]
+      summary: Read the latest governed Today projection for an accessible encounter
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: active_grant_with_today_read_scope_and_released_projection_relationship
+      x-zephyrus-data-classification:
+        request: patient_session_state
+        response: patient_phi_released_projection
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe
+        idempotency_key: not_applicable
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_TODAY_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
+        unavailable_content_status: 404
+        existence_oracle_prevented: true
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.projection.disclosed]
+        denial_events: [patient.projection.disclosure_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: meta.source_freshness_from_projection_observation
+        provenance: data.provenance_allowlist
+        uncertainty: data.uncertainty_patient_language
+        retraction: corrected_or_retracted_release_target_is_omitted_with_indistinguishable_404; a separately released correction replacement may carry a source-free revision_notice
+      responses:
+        "200":
+          $ref: "#/components/responses/TodayProjectionOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /encounters/{encounterUuid}/pathway:
+    parameters:
+      - $ref: "#/components/parameters/EncounterUuid"
+    get:
+      operationId: getPatientPathwayProjection
+      tags: [encounters]
+      summary: Read the latest governed pathway projection for an accessible encounter
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: active_grant_with_pathway_read_scope_and_released_projection_relationship
+      x-zephyrus-data-classification:
+        request: patient_session_state
+        response: patient_phi_released_projection
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe
+        idempotency_key: not_applicable
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_PATHWAY_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
+        unavailable_content_status: 404
+        existence_oracle_prevented: true
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.projection.disclosed]
+        denial_events: [patient.projection.disclosure_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: meta.source_freshness_from_projection_observation
+        provenance: data.provenance_allowlist
+        uncertainty: data.uncertainty_patient_language
+        retraction: corrected_or_retracted_release_target_is_omitted_with_indistinguishable_404; a separately released correction replacement may carry a source-free revision_notice
+      responses:
+        "200":
+          $ref: "#/components/responses/PathwayProjectionOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /encounters/{encounterUuid}/pathway/events:
+    parameters:
+      - $ref: "#/components/parameters/EncounterUuid"
+    get:
+      operationId: getPatientPathwayEvents
+      tags: [encounters]
+      summary: Read the latest governed pathway-events timeline for an accessible encounter
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: active_grant_with_pathway_read_scope_and_released_projection_relationship
+      x-zephyrus-data-classification:
+        request: patient_session_state
+        response: patient_phi_released_projection
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe
+        idempotency_key: not_applicable
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_PATHWAY_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
+        unavailable_content_status: 404
+        existence_oracle_prevented: true
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.projection.disclosed]
+        denial_events: [patient.projection.disclosure_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: meta.source_freshness_from_projection_observation
+        provenance: data.provenance_allowlist
+        uncertainty: data.uncertainty_patient_language
+        retraction: corrected_or_retracted_release_target_is_omitted_with_indistinguishable_404; a separately released correction replacement may carry a source-free revision_notice
+      responses:
+        "200":
+          $ref: "#/components/responses/PathwayEventsProjectionOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /encounters/{encounterUuid}/discharge-readiness:
+    parameters:
+      - $ref: "#/components/parameters/EncounterUuid"
+    get:
+      operationId: getPatientDischargeReadiness
+      tags: [encounters]
+      summary: Read the latest governed discharge-readiness projection for an accessible encounter
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: active_grant_with_pathway_read_scope_and_released_projection_relationship
+      x-zephyrus-data-classification:
+        request: patient_session_state
+        response: patient_phi_released_projection
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe
+        idempotency_key: not_applicable
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_PATHWAY_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
+        unavailable_content_status: 404
+        existence_oracle_prevented: true
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.projection.disclosed]
+        denial_events: [patient.projection.disclosure_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: meta.source_freshness_from_projection_observation
+        provenance: data.provenance_allowlist
+        uncertainty: data.uncertainty_patient_language
+        retraction: corrected_or_retracted_release_target_is_omitted_with_indistinguishable_404; a separately released correction replacement may carry a source-free revision_notice
+      responses:
+        "200":
+          $ref: "#/components/responses/DischargeReadinessProjectionOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /encounters/{encounterUuid}/rounds/summary:
+    parameters:
+      - $ref: "#/components/parameters/EncounterUuid"
+    get:
+      operationId: getPatientRoundsSummary
+      tags: [encounters]
+      summary: Read the latest released plain-language care-conversation summary for an accessible encounter
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: active_grant_with_pathway_read_scope_and_released_projection_relationship
+      x-zephyrus-data-classification:
+        request: patient_session_state
+        response: patient_phi_released_projection
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe
+        idempotency_key: not_applicable
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_ROUNDS_SUMMARY_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
+        unavailable_content_status: 404
+        existence_oracle_prevented: true
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.projection.disclosed]
+        denial_events: [patient.projection.disclosure_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: meta.source_freshness_from_projection_observation
+        provenance: data.provenance_allowlist
+        uncertainty: data.uncertainty_patient_language
+        retraction: corrected_or_retracted_release_target_is_omitted_with_indistinguishable_404; a separately released correction replacement may carry a source-free revision_notice
+      responses:
+        "200":
+          $ref: "#/components/responses/RoundsSummaryProjectionOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /encounters/{encounterUuid}/care-team:
+    parameters:
+      - $ref: "#/components/parameters/EncounterUuid"
+    get:
+      operationId: getPatientCareTeamProjection
+      tags: [encounters]
+      summary: Read the latest governed Care Team projection for an accessible encounter
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: active_grant_with_care_team_read_scope_and_released_projection_relationship
+      x-zephyrus-data-classification:
+        request: patient_session_state
+        response: patient_phi_released_projection
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe
+        idempotency_key: not_applicable
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_CARE_TEAM_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: draft_not_approved
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500]
+        unavailable_content_status: 404
+        existence_oracle_prevented: true
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.projection.disclosed]
+        denial_events: [patient.projection.disclosure_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: meta.source_freshness_from_projection_observation
+        provenance: data.provenance_allowlist
+        uncertainty: data.uncertainty_patient_language
+        retraction: corrected_or_retracted_release_target_is_omitted_with_indistinguishable_404; a separately released correction replacement may carry a source-free revision_notice
+      responses:
+        "200":
+          $ref: "#/components/responses/CareTeamProjectionOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /encounters/{encounterUuid}/message-topics:
+    parameters:
+      - $ref: "#/components/parameters/EncounterUuid"
+    get:
+      operationId: listPatientMessageTopics
+      tags: [messaging]
+      summary: List approved non-urgent communication topics for an accessible encounter
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: active_grant_with_messaging_read_scope
+      x-zephyrus-data-classification:
+        request: patient_session_state
+        response: approved_patient_communication_policy
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe
+        idempotency_key: not_applicable
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: approved_local_policy_also_required
+        mutation_dependencies_required: false
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500, 503]
+        existence_oracle_prevented: true
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.messaging.topics_viewed]
+        denial_events: [patient.messaging.access_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: request_time_approved_policy
+        provenance: approved_local_communication_policy
+        uncertainty: response_window_is_expectation_not_guarantee
+        retraction: policy_withdrawal_fails_closed
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageTopicsOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /encounters/{encounterUuid}/threads:
+    parameters:
+      - $ref: "#/components/parameters/EncounterUuid"
+    get:
+      operationId: listPatientMessageThreads
+      tags: [messaging]
+      summary: List the authenticated principal's communication threads for an encounter
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: active_grant_with_messaging_read_scope
+      x-zephyrus-data-classification:
+        request: patient_session_state
+        response: highly_restricted_patient_communication
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe
+        idempotency_key: not_applicable
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: approved_local_policy_also_required
+        mutation_dependencies_required: false
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500, 503]
+        existence_oracle_prevented: true
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.messaging.threads_viewed]
+        denial_events: [patient.messaging.access_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: current_thread_projection
+        provenance: immutable_messages_and_routing_facts
+        uncertainty: ownership_and_response_window_are_explicit
+        retraction: revoked_grant_removes_access_immediately
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageThreadListOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+    post:
+      operationId: createPatientMessageThread
+      tags: [messaging]
+      summary: Open a non-urgent encounter-scoped thread with an initial message
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: active_grant_with_messaging_read_and_write_scopes
+      x-zephyrus-data-classification:
+        request: highly_restricted_patient_communication
+        response: highly_restricted_patient_communication
+        storage: application_encrypted_append_only_content_with_optional_content_free_patient_preference_or_personal_goal_association
+      x-zephyrus-idempotency:
+        semantics: exactly_once_equivalent_outcome
+        idempotency_key: required_uuid_header
+        retry: same_key_or_client_message_uuid_with_exact_encounter_bound_payload
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: approved_local_policy_also_required
+        mutation_readiness: current_message_encryption_key_and_staff_handoff_consumer
+        care_preference_association:
+          topic_code: care_preference
+          feature_flag: HUMMINGBIRD_PATIENT_CARE_PREFERENCES_ENABLED
+          default: disabled
+          semantics: patient_authored_nonclinical_preference_not_a_care_plan_order_consent_or_assessment
+        patient_goal_association:
+          topic_code: patient_goal
+          feature_flag: HUMMINGBIRD_PATIENT_GOALS_ENABLED
+          default: disabled
+          semantics: patient_authored_nonclinical_personal_goal_not_a_clinical_goal_care_plan_order_consent_or_assessment
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500, 503]
+        existence_oracle_prevented: true
+      x-zephyrus-audit:
+        required: true
+        success_events:
+          [
+            patient.messaging.thread_created,
+            patient.messaging.thread_creation_replayed,
+            patient.care_preference.submitted,
+            patient.care_preference.replayed,
+            patient.goal.submitted,
+            patient.goal.replayed,
+          ]
+        denial_events: [patient.messaging.access_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: accepted_at_transaction_commit
+        provenance: authenticated_principal_and_active_encounter_grant
+        uncertainty: response_window_is_expectation_not_guarantee_and_a_care_preference_or_patient_goal_never_changes_clinical_care_on_its_own
+        retraction: later_correction_or_retraction_fact_only
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientMessageThreadCreateRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageThreadCreated"
+        "201":
+          $ref: "#/components/responses/MessageThreadCreated"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /encounters/{encounterUuid}/education/{educationItemUuid}/clarifications:
+    parameters:
+      - $ref: "#/components/parameters/EncounterUuid"
+      - $ref: "#/components/parameters/EducationItemUuid"
+    post:
+      operationId: requestPatientEducationClarification
+      tags: [messaging]
+      summary: Request an explanation of one education item in the currently released care pathway
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: active_grant_with_pathway_and_messaging_read_and_write_scopes
+      x-zephyrus-data-classification:
+        request: highly_restricted_patient_communication
+        response: highly_restricted_patient_communication
+        storage: application_encrypted_append_only_content_with_content_free_released_education_association
+      x-zephyrus-idempotency:
+        semantics: exactly_once_equivalent_outcome
+        idempotency_key: required_uuid_header
+        retry: same_key_or_client_message_uuid_with_exact_released_education_bound_payload
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_TEACH_BACK_ENABLED
+        prerequisite_feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: approved_local_messaging_policy_also_required
+        mutation_readiness: current_message_encryption_key_and_accountable_handoff_consumer
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500, 503]
+        existence_oracle_prevented: true
+      x-zephyrus-audit:
+        required: true
+        success_events:
+          [
+            patient.education.clarification_requested,
+            patient.education.clarification_replayed,
+          ]
+        denial_events: [patient.education.clarification_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: education_item_must_belong_to_the_currently_released_pathway_at_transaction_commit
+        provenance: authenticated_principal_released_pathway_projection_and_encrypted_message_ledger
+        uncertainty: request_for_explanation_does_not_establish_understanding_completion_consent_or_a_clinician_assessment
+        retraction: message_correction_or_withdrawal_preserves_immutable_history_without_rewriting_the_education_association
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientEducationClarificationRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageThreadCreated"
+        "201":
+          $ref: "#/components/responses/MessageThreadCreated"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /threads/{threadUuid}:
+    parameters:
+      - $ref: "#/components/parameters/ThreadUuid"
+    get:
+      operationId: getPatientMessageThread
+      tags: [messaging]
+      summary: Read one authorized thread and its patient-visible immutable messages
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: owning_active_grant_with_messaging_read_scope
+      x-zephyrus-data-classification:
+        request: opaque_patient_thread_handle
+        response: highly_restricted_patient_communication
+        storage: no_client_cache
+      x-zephyrus-idempotency:
+        semantics: safe
+        idempotency_key: not_applicable
+        retry: permitted
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: approved_local_policy_also_required
+        mutation_dependencies_required: false
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 429, 500, 503]
+        cross_principal_behavior: generic_not_found
+      x-zephyrus-audit:
+        required: true
+        success_events: [patient.messaging.thread_viewed]
+        denial_events: [patient.messaging.access_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: current_thread_projection_and_immutable_content
+        provenance: patient_experience_messaging_ledger
+        uncertainty: delivery_and_ownership_states_are_explicit
+        retraction: explicit_retraction_fact_preserves_history
+        history_window: newest_1000_patient_visible_facts_with_explicit_truncation_indicator
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageThreadDetailOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /threads/{threadUuid}/messages:
+    parameters:
+      - $ref: "#/components/parameters/ThreadUuid"
+    post:
+      operationId: sendPatientMessage
+      tags: [messaging]
+      summary: Append a patient-visible message to an open authorized thread
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: owning_active_grant_with_messaging_read_and_write_scopes
+      x-zephyrus-data-classification:
+        request: highly_restricted_patient_communication
+        response: highly_restricted_patient_communication
+        storage: application_encrypted_append_only_content
+      x-zephyrus-idempotency:
+        semantics: exactly_once_equivalent_outcome
+        idempotency_key: required_uuid_header
+        retry: same_key_or_client_message_uuid_with_exact_thread_bound_payload
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: approved_local_policy_also_required
+        mutation_readiness: current_message_encryption_key_and_staff_handoff_consumer
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500, 503]
+        closed_thread_status: 409
+      x-zephyrus-audit:
+        required: true
+        success_events:
+          [
+            patient.messaging.message_sent,
+            patient.messaging.message_send_replayed,
+          ]
+        denial_events: [patient.messaging.access_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: accepted_at_transaction_commit
+        provenance: authenticated_principal_and_versioned_thread
+        uncertainty: response_window_is_expectation_not_guarantee
+        retraction: later_correction_or_retraction_fact_only
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientMessageCreateRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/PatientMessageCreated"
+        "201":
+          $ref: "#/components/responses/PatientMessageCreated"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /threads/{threadUuid}/messages/{messageUuid}/amend:
+    parameters:
+      - $ref: "#/components/parameters/ThreadUuid"
+      - $ref: "#/components/parameters/MessageUuid"
+    post:
+      operationId: amendPatientMessage
+      tags: [messaging]
+      summary: Append one immutable correction or withdrawal to an eligible patient-authored message
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: owning_active_grant_with_messaging_read_and_write_scopes_and_source_message_authorship
+      x-zephyrus-data-classification:
+        request: highly_restricted_patient_communication
+        response: highly_restricted_patient_communication
+        storage: application_encrypted_append_only_content_or_content_free_retraction_fact
+      x-zephyrus-idempotency:
+        semantics: exactly_once_equivalent_outcome
+        idempotency_key: required_uuid_header
+        retry: same_key_or_client_message_uuid_with_exact_action_source_thread_bound_payload
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: approved_local_policy_also_required
+        mutation_readiness: current_message_encryption_key_and_care_team_handoff_consumer
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500, 503]
+        non_amendable_source_status: 409
+        cross_principal_behavior: generic_not_found
+      x-zephyrus-audit:
+        required: true
+        success_events:
+          [
+            patient.messaging.message_corrected,
+            patient.messaging.message_retracted,
+            patient.messaging.message_amend_replayed,
+          ]
+        denial_events: [patient.messaging.access_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: accepted_at_transaction_commit
+        provenance: authenticated_principal_and_versioned_thread
+        uncertainty: amendment_does_not_rewrite_a_message_already_seen_by_the_care_team
+        retraction: one_following_correction_or_content_free_withdrawal_fact_may_relate_to_each_source_message
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientMessageAmendRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/PatientMessageCreated"
+        "201":
+          $ref: "#/components/responses/PatientMessageCreated"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+  /threads/{threadUuid}/close:
+    parameters:
+      - $ref: "#/components/parameters/ThreadUuid"
+    post:
+      operationId: closePatientMessageThread
+      tags: [messaging]
+      summary: Close an authorized thread while preserving its immutable history
+      security:
+        - patientBearer: []
+      x-zephyrus-authorization:
+        realm: patient
+        authentication: bearer
+        required_abilities: ["patient:access"]
+        accepted_token_name_prefixes: ["patient-access:"]
+        relationship_policy: owning_active_grant_with_messaging_read_and_write_scopes
+      x-zephyrus-data-classification:
+        request: patient_communication_state_transition
+        response: highly_restricted_patient_communication
+        storage: append_only_routing_fact_and_versioned_thread_projection
+      x-zephyrus-idempotency:
+        semantics: idempotent_exact_outcome
+        idempotency_key: required_uuid_header
+        retry: same_key_and_exact_payload_only
+      x-zephyrus-release-policy:
+        product_flag: HUMMINGBIRD_PATIENT_ENABLED
+        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        default: disabled
+        disabled_status: 404
+        governance_status: approved_local_policy_also_required
+        mutation_readiness: current_message_encryption_key_and_staff_handoff_consumer
+      x-zephyrus-error-behavior:
+        envelope: PatientErrorEnvelope
+        diagnostic_detail_exposed: false
+        expected_statuses: [401, 403, 404, 409, 413, 415, 422, 429, 500, 503]
+        cross_principal_behavior: generic_not_found
+      x-zephyrus-audit:
+        required: true
+        success_events:
+          [
+            patient.messaging.thread_closed,
+            patient.messaging.thread_close_replayed,
+          ]
+        denial_events: [patient.messaging.access_denied]
+        secret_values_recorded: false
+      x-zephyrus-projection-semantics:
+        freshness: closed_at_transaction_commit
+        provenance: authenticated_principal_and_versioned_thread
+        uncertainty: not_applicable
+        retraction: closure_is_preserved_as_an_immutable_routing_fact
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageThreadCloseRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageThreadClosedOk"
+        default:
+          $ref: "#/components/responses/PatientError"
+
+components:
+  parameters:
+    EncounterUuid:
+      name: encounterUuid
+      in: path
+      required: true
+      description: Opaque patient-product encounter handle from the encounter-access response.
+      schema:
+        $ref: "#/components/schemas/OpaqueUuid"
+    EducationItemUuid:
+      name: educationItemUuid
+      in: path
+      required: true
+      description: Opaque patient-product education item handle from the currently released pathway projection.
+      schema:
+        $ref: "#/components/schemas/OpaqueUuid"
+    SessionUuid:
+      name: sessionUuid
+      in: path
+      required: true
+      description: Opaque patient-product session handle returned by the session registry.
+      schema:
+        $ref: "#/components/schemas/OpaqueUuid"
+    NotificationDeviceUuid:
+      name: deviceUuid
+      in: path
+      required: true
+      description: Opaque patient-product device-registration handle generated and retained by the patient app installation.
+      schema:
+        $ref: "#/components/schemas/OpaqueUuid"
+    ThreadUuid:
+      name: threadUuid
+      in: path
+      required: true
+      description: Opaque patient-product communication thread handle.
+      schema:
+        $ref: "#/components/schemas/OpaqueUuid"
+    MessageUuid:
+      name: messageUuid
+      in: path
+      required: true
+      description: Opaque patient-product message handle within an authorized communication thread.
+      schema:
+        $ref: "#/components/schemas/OpaqueUuid"
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Client-generated UUID reused only for an exact replay of this mutation.
+      schema:
+        $ref: "#/components/schemas/OpaqueUuid"
+
+  securitySchemes:
+    patientBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
+      description: >-
+        A patient-realm credential with exactly one patient ability. Access and
+        refresh credentials are not interchangeable.
+
+  responses:
+    TokenPairCreated:
+      description: Patient session created.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TokenPairSuccessEnvelope"
+    TokenPairOk:
+      description: Patient session credentials rotated or issued.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TokenPairSuccessEnvelope"
+    SessionRevokedOk:
+      description: Current patient session revoked.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SessionRevokedSuccessEnvelope"
+    PatientSessionListOk:
+      description: Active patient device sessions returned.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PatientSessionListSuccessEnvelope"
+    PatientSessionRevokedOk:
+      description: Owned patient session revoked or confirmed already revoked.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PatientSessionRevocationSuccessEnvelope"
+    PatientNotificationDeviceRegistrationOk:
+      description: Encrypted notification-device registration accepted without returning provider-token material.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PatientNotificationDeviceRegistrationSuccessEnvelope"
+    PatientNotificationDeviceRevokedOk:
+      description: Owned notification-device registration revoked or confirmed already revoked.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PatientNotificationDeviceRevocationSuccessEnvelope"
+    ProfileOk:
+      description: Patient-product profile returned.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ProfileSuccessEnvelope"
+    EncounterListOk:
+      description: Governed encounter handles returned.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EncounterListSuccessEnvelope"
+    TodayProjectionOk:
+      description: Latest governed Today projection returned.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TodayProjectionSuccessEnvelope"
+    PathwayProjectionOk:
+      description: Latest governed pathway projection returned.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PathwayProjectionSuccessEnvelope"
+    PathwayEventsProjectionOk:
+      description: Latest governed pathway-events timeline returned.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PathwayEventsProjectionSuccessEnvelope"
+    DischargeReadinessProjectionOk:
+      description: Latest governed discharge-readiness projection returned.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DischargeReadinessProjectionSuccessEnvelope"
+    RoundsSummaryProjectionOk:
+      description: Latest released plain-language care-conversation summary returned.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RoundsSummaryProjectionSuccessEnvelope"
+    CareTeamProjectionOk:
+      description: Latest governed Care Team projection returned.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CareTeamProjectionSuccessEnvelope"
+    MessageTopicsOk:
+      description: Approved communication topics and immediate-help guidance returned.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MessageTopicsSuccessEnvelope"
+    MessageThreadListOk:
+      description: Authorized encounter communication threads returned.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MessageThreadListSuccessEnvelope"
+    MessageThreadCreated:
+      description: Communication thread and initial immutable message accepted atomically.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MessageThreadMutationSuccessEnvelope"
+    MessageThreadDetailOk:
+      description: Authorized thread and patient-visible immutable messages returned.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MessageThreadDetailSuccessEnvelope"
+    PatientMessageCreated:
+      description: Patient message accepted exactly once.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PatientMessageMutationSuccessEnvelope"
+    MessageThreadClosedOk:
+      description: Thread closure recorded with immutable routing history.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MessageThreadMutationSuccessEnvelope"
+    PatientError:
+      description: >-
+        Stable patient-safe failure. Unhandled diagnostics and request-derived
+        clinical values are never returned.
+      headers:
+        Cache-Control:
+          $ref: "#/components/headers/NoStore"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PatientErrorEnvelope"
+
+  headers:
+    NoStore:
+      description: Patient responses must not be persisted by shared or private HTTP caches.
+      schema:
+        type: string
+        const: max-age=0, no-store, private
+
+  schemas:
+    PatientSuccessEnvelope:
+      type: object
+      required: [data, meta, links]
+      properties:
+        data:
+          description: Operation-specific patient-safe result.
+        meta:
+          $ref: "#/components/schemas/PatientMeta"
+        links:
+          $ref: "#/components/schemas/PatientLinks"
+      additionalProperties: false
+
+    PatientErrorEnvelope:
+      type: object
+      required: [data, error, meta, links]
+      properties:
+        data:
+          type: "null"
+        error:
+          $ref: "#/components/schemas/PatientErrorDetail"
+        errors:
+          $ref: "#/components/schemas/PatientValidationErrors"
+        meta:
+          $ref: "#/components/schemas/PatientMeta"
+        links:
+          $ref: "#/components/schemas/PatientLinks"
+      additionalProperties: false
+
+    PatientMeta:
+      type: object
+      required: [request_id, generated_at, source_freshness, policy_version]
+      properties:
+        request_id:
+          type: string
+          minLength: 1
+          description: Correlation handle assigned at ingress.
+        generated_at:
+          type: string
+          format: date-time
+        source_freshness:
+          $ref: "#/components/schemas/SourceFreshness"
+        policy_version:
+          type: string
+          minLength: 1
+          description: Disclosure-policy version applied to the response.
+        state_vocabulary_version:
+          type: string
+          minLength: 1
+          description: >-
+            Additive patient-state-vocabulary version used by native clients to
+            detect a state-language mismatch. It is not an approval of free
+            text, translated content, or a clinical release.
+        as_of:
+          type: string
+          format: date-time
+          description: Temporary compatibility alias for generated_at.
+        stale:
+          type: boolean
+          description: Temporary compatibility alias; source_freshness is authoritative.
+        version:
+          type: [integer, "null"]
+          minimum: 0
+        count:
+          type: integer
+          minimum: 0
+        idempotency_replayed:
+          type: boolean
+          description: Present on replay-protected mutations; true only when an existing exact result was returned.
+      additionalProperties: false
+
+    SourceFreshness:
+      type: object
+      required: [status, observed_at]
+      properties:
+        status:
+          type: string
+          enum:
+            [
+              current,
+              aging,
+              stale,
+              unknown,
+              unavailable,
+              no_data,
+              not_applicable,
+            ]
+        observed_at:
+          type: [string, "null"]
+          format: date-time
+        maximum_age_seconds:
+          type: [integer, "null"]
+          minimum: 0
+        reason:
+          type: [string, "null"]
+          maxLength: 240
+      additionalProperties: false
+
+    PatientLinks:
+      type: object
+      description: Patient-product links only; empty when no safe transition is available.
+      additionalProperties:
+        type: string
+        format: uri-reference
+
+    PatientErrorDetail:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - account_inactive
+            - account_locked
+            - conflict
+            - forbidden
+            - invalid_credentials
+            - invalid_enrollment_challenge
+            - invalid_refresh_token
+            - idempotency_conflict
+            - messaging_unavailable
+            - message_not_amendable
+            - not_found
+            - patient_realm_required
+            - payload_too_large
+            - rate_limited
+            - request_failed
+            - service_unavailable
+            - stale_thread_version
+            - thread_closed
+            - thread_message_limit_reached
+            - unauthenticated
+            - unsupported_media_type
+            - urgent_guidance_changed
+            - validation_failed
+        message:
+          type: string
+          minLength: 1
+          maxLength: 240
+      additionalProperties: false
+
+    PatientValidationErrors:
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          type: string
+          maxLength: 500
+
+    TokenPairSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/PatientTokenPair"
+
+    SessionRevokedSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/SessionRevoked"
+
+    PatientSessionListSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/PatientSessionList"
+
+    PatientSessionRevocationSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/PatientSessionRevocation"
+
+    PatientNotificationDeviceRegistrationSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/PatientNotificationDeviceRegistration"
+
+    PatientNotificationDeviceRevocationSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/PatientNotificationDeviceRevocation"
+
+    ProfileSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/PatientProfile"
+
+    EncounterListSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/EncounterList"
+            meta:
+              $ref: "#/components/schemas/EncounterListMeta"
+
+    TodayProjectionSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/TodayProjection"
+            meta:
+              $ref: "#/components/schemas/PatientProjectionMeta"
+
+    PathwayProjectionSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/PathwayProjection"
+            meta:
+              $ref: "#/components/schemas/PatientProjectionMeta"
+
+    PathwayEventsProjectionSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/PathwayEventsProjection"
+            meta:
+              $ref: "#/components/schemas/PatientProjectionMeta"
+
+    DischargeReadinessProjectionSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/DischargeReadinessProjection"
+            meta:
+              $ref: "#/components/schemas/PatientProjectionMeta"
+
+    RoundsSummaryProjectionSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/RoundsSummaryProjection"
+            meta:
+              $ref: "#/components/schemas/PatientProjectionMeta"
+
+    CareTeamProjectionSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/CareTeamProjection"
+            meta:
+              $ref: "#/components/schemas/PatientProjectionMeta"
+
+    MessageTopicsSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/PatientMessageTopicsResult"
+
+    MessageThreadListSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/PatientMessageThreadListResult"
+
+    MessageThreadMutationSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/PatientMessageThreadMutationResult"
+
+    MessageThreadDetailSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/PatientMessageThreadDetailResult"
+
+    PatientMessageMutationSuccessEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/PatientSuccessEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/PatientMessageMutationResult"
+
+    EncounterListMeta:
+      allOf:
+        - $ref: "#/components/schemas/PatientMeta"
+        - type: object
+          required: [count, version]
+
+    PatientProjectionMeta:
+      allOf:
+        - $ref: "#/components/schemas/PatientMeta"
+        - type: object
+          required: [version, as_of, stale]
+          properties:
+            version:
+              type: integer
+              minimum: 1
+            as_of:
+              type: string
+              format: date-time
+            stale:
+              type: boolean
+
+    PatientTokenPair:
+      type: object
+      required:
+        [
+          token_type,
+          access_token,
+          refresh_token,
+          expires_in,
+          session_uuid,
+          abilities,
+        ]
+      properties:
+        token_type:
+          type: string
+          const: Bearer
+        access_token:
+          type: string
+          minLength: 20
+          writeOnly: true
+        refresh_token:
+          type: string
+          minLength: 20
+          writeOnly: true
+        expires_in:
+          type: integer
+          minimum: 60
+          description: Access credential lifetime in seconds.
+        session_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        abilities:
+          type: array
+          minItems: 1
+          maxItems: 1
+          prefixItems:
+            - type: string
+              const: "patient:access"
+      additionalProperties: false
+
+    SessionRevoked:
+      type: object
+      required: [revoked]
+      properties:
+        revoked:
+          type: boolean
+          const: true
+      additionalProperties: false
+
+    PatientSessionList:
+      type: object
+      required: [sessions]
+      properties:
+        sessions:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/PatientSessionSummary"
+      additionalProperties: false
+
+    PatientSessionSummary:
+      type: object
+      required:
+        - session_uuid
+        - current
+        - status
+        - device
+        - auth_method
+        - assurance_level
+        - last_seen_at
+        - expires_at
+        - created_at
+      properties:
+        session_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        current:
+          type: boolean
+        status:
+          type: string
+          const: active
+        device:
+          $ref: "#/components/schemas/PatientSessionDevice"
+        auth_method:
+          type: string
+          enum: [password, enrollment, federated, passkey, recovery]
+        assurance_level:
+          type: [string, "null"]
+          maxLength: 32
+        last_seen_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+      additionalProperties: false
+
+    PatientSessionDevice:
+      type: object
+      required: [uuid, platform, name, app_version, os_version]
+      properties:
+        uuid:
+          oneOf:
+            - $ref: "#/components/schemas/OpaqueUuid"
+            - type: "null"
+        platform:
+          type: [string, "null"]
+          enum: [ios, android, web, null]
+        name:
+          type: [string, "null"]
+          maxLength: 190
+        app_version:
+          type: [string, "null"]
+          maxLength: 80
+        os_version:
+          type: [string, "null"]
+          maxLength: 80
+      additionalProperties: false
+
+    PatientSessionRevocation:
+      type: object
+      required: [session_uuid, revoked, already_revoked]
+      properties:
+        session_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        revoked:
+          type: boolean
+          const: true
+        already_revoked:
+          type: boolean
+      additionalProperties: false
+
+    PatientNotificationDeviceRegistrationInput:
+      type: object
+      required: [platform, environment, installation_uuid, push_token]
+      properties:
+        platform:
+          type: string
+          enum: [ios, android]
+        environment:
+          type: string
+          enum: [sandbox, production]
+        installation_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        push_token:
+          type: string
+          minLength: 16
+          maxLength: 4096
+          writeOnly: true
+          description: Provider-issued secret. It is encrypted at rest and never returned or audited.
+        app_version:
+          type: [string, "null"]
+          maxLength: 80
+        os_version:
+          type: [string, "null"]
+          maxLength: 80
+        locale:
+          type: [string, "null"]
+          maxLength: 35
+      additionalProperties: false
+
+    PatientNotificationDeviceRegistration:
+      type: object
+      required: [device]
+      properties:
+        device:
+          $ref: "#/components/schemas/PatientNotificationDevice"
+      additionalProperties: false
+
+    PatientNotificationDevice:
+      type: object
+      required: [device_uuid, platform, environment, status, last_seen_at]
+      properties:
+        device_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        platform:
+          type: string
+          enum: [ios, android]
+        environment:
+          type: string
+          enum: [sandbox, production]
+        status:
+          type: string
+          const: active
+        last_seen_at:
+          type: string
+          format: date-time
+      additionalProperties: false
+
+    PatientNotificationDeviceRevocation:
+      type: object
+      required: [device_uuid, revoked, already_revoked]
+      properties:
+        device_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        revoked:
+          type: boolean
+          const: true
+        already_revoked:
+          type: boolean
+      additionalProperties: false
+
+    EnrollmentVerificationRequest:
+      type: object
+      required:
+        - challenge_uuid
+        - challenge_token
+        - verification_code
+        - display_name
+        - email
+        - password
+        - password_confirmation
+      properties:
+        challenge_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        challenge_token:
+          type: string
+          minLength: 32
+          maxLength: 512
+          writeOnly: true
+        verification_code:
+          type: string
+          minLength: 6
+          maxLength: 32
+          writeOnly: true
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          format: password
+          minLength: 12
+          writeOnly: true
+        password_confirmation:
+          type: string
+          format: password
+          minLength: 12
+          writeOnly: true
+        device:
+          $ref: "#/components/schemas/PatientDevice"
+      additionalProperties: false
+
+    TokenExchangeRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          format: password
+          maxLength: 1024
+          writeOnly: true
+        device:
+          $ref: "#/components/schemas/PatientDevice"
+      additionalProperties: false
+
+    PatientDevice:
+      type: object
+      properties:
+        uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        platform:
+          type: string
+          enum: [ios, android, web]
+        name:
+          type: [string, "null"]
+          maxLength: 120
+        app_version:
+          type: [string, "null"]
+          maxLength: 40
+        os_version:
+          type: [string, "null"]
+          maxLength: 40
+      additionalProperties: false
+
+    PatientPreferencesInput:
+      type: object
+      properties:
+        locale:
+          type: string
+          minLength: 2
+          maxLength: 16
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+        text_size:
+          type: string
+          enum: [standard, large, extra_large]
+        reduced_motion:
+          type: boolean
+        high_contrast:
+          type: boolean
+        notification_preview:
+          type: string
+          enum: [hidden, generic]
+        preferred_channel:
+          type: string
+          enum: [push, email, sms, none]
+      additionalProperties: false
+
+    PatientProfile:
+      type: object
+      required:
+        - principal_uuid
+        - principal_type
+        - display_name
+        - email_verified
+        - phone_verified
+        - locale
+        - timezone
+        - preferences
+      properties:
+        principal_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        principal_type:
+          type: string
+          enum: [patient, representative]
+        display_name:
+          type: string
+          maxLength: 160
+        email:
+          type: [string, "null"]
+          format: email
+          maxLength: 254
+        phone_e164:
+          type: [string, "null"]
+          pattern: '^\+[1-9][0-9]{7,14}$'
+        email_verified:
+          type: boolean
+        phone_verified:
+          type: boolean
+        locale:
+          type: string
+          maxLength: 16
+        timezone:
+          type: string
+          maxLength: 64
+        preferences:
+          $ref: "#/components/schemas/PatientPreferences"
+      additionalProperties: false
+
+    PatientPreferences:
+      type: object
+      properties:
+        text_size:
+          type: string
+          enum: [standard, large, extra_large]
+        reduced_motion:
+          type: boolean
+        high_contrast:
+          type: boolean
+        notification_preview:
+          type: string
+          enum: [hidden, generic]
+        preferred_channel:
+          type: string
+          enum: [push, email, sms, none]
+      additionalProperties: false
+
+    EncounterList:
+      type: object
+      required: [encounters]
+      properties:
+        encounters:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientEncounterAccess"
+      additionalProperties: false
+
+    PatientEncounterAccess:
+      type: object
+      required:
+        [
+          encounter_uuid,
+          grant_uuid,
+          relationship,
+          scopes,
+          valid_from,
+          expires_at,
+          version,
+        ]
+      properties:
+        encounter_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        grant_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        relationship:
+          type: string
+          enum: [self, legal_representative, guardian, caregiver, proxy, other]
+        scopes:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z][a-z0-9_-]*(?::[a-z][a-z0-9_-]*)?$"
+        valid_from:
+          type: [string, "null"]
+          format: date-time
+        expires_at:
+          type: [string, "null"]
+          format: date-time
+        version:
+          type: integer
+          minimum: 1
+      additionalProperties: false
+
+    PatientMessageTopicsResult:
+      type: object
+      required: [topics, immediate_help]
+      properties:
+        topics:
+          type: array
+          maxItems: 25
+          items:
+            $ref: "#/components/schemas/PatientMessageTopic"
+        immediate_help:
+          $ref: "#/components/schemas/PatientImmediateHelpGuidance"
+      additionalProperties: false
+
+    PatientMessageTopic:
+      type: object
+      required: [code, label, description, expected_response_window]
+      properties:
+        code:
+          type: string
+          pattern: "^[a-z][a-z0-9_]{1,78}[a-z0-9]$"
+        label:
+          type: string
+          minLength: 3
+          maxLength: 120
+        description:
+          type: string
+          minLength: 10
+          maxLength: 300
+        expected_response_window:
+          type: string
+          minLength: 10
+          maxLength: 240
+      additionalProperties: false
+
+    PatientImmediateHelpGuidance:
+      type: object
+      required: [version, text]
+      properties:
+        version:
+          type: string
+          minLength: 1
+          maxLength: 120
+        text:
+          type: string
+          minLength: 20
+          maxLength: 500
+      additionalProperties: false
+
+    PatientMessageThreadCreateRequest:
+      type: object
+      description: >-
+        Unknown properties are rejected and JSON values are validated without
+        type coercion. When an approved `care_preference` or `patient_goal`
+        topic and its corresponding default-off feature are both enabled, the
+        initial encrypted message is also linked to one patient-authored,
+        content-free fact. A preference fact is not a clinical care-plan
+        change, order, consent, or assessment; a personal-goal fact is not a
+        clinical goal or any clinical care-plan mutation.
+      required:
+        [topic_code, message, client_message_uuid, urgent_guidance_version]
+      properties:
+        topic_code:
+          type: string
+          pattern: "^[a-z][a-z0-9_]{1,78}[a-z0-9]$"
+        message:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        client_message_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        urgent_guidance_version:
+          type: string
+          minLength: 1
+          maxLength: 120
+      additionalProperties: false
+
+    PatientEducationClarificationRequest:
+      type: object
+      description: >-
+        A patient-authored request to explain a released education item. It does
+        not attest comprehension, education completion, consent, or any
+        clinician assessment. Unknown properties are rejected.
+      required: [message, client_message_uuid, urgent_guidance_version]
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        client_message_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        urgent_guidance_version:
+          type: string
+          minLength: 1
+          maxLength: 120
+      additionalProperties: false
+
+    PatientMessageCreateRequest:
+      type: object
+      description: Unknown properties are rejected and thread_version must be a JSON integer.
+      required:
+        [message, client_message_uuid, thread_version, urgent_guidance_version]
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        client_message_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        thread_version:
+          type: integer
+          minimum: 1
+        urgent_guidance_version:
+          type: string
+          minLength: 1
+          maxLength: 120
+      additionalProperties: false
+
+    PatientMessageAmendRequest:
+      type: object
+      description: >-
+        Append one immutable correction or content-free withdrawal to an eligible
+        patient-authored message. Unknown properties are rejected and
+        thread_version must be a JSON integer.
+      required:
+        [action, client_message_uuid, thread_version, urgent_guidance_version]
+      properties:
+        action:
+          type: string
+          enum: [correction, retraction]
+        message:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Required only for correction; prohibited for retraction.
+        client_message_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        thread_version:
+          type: integer
+          minimum: 1
+        urgent_guidance_version:
+          type: string
+          minLength: 1
+          maxLength: 120
+      additionalProperties: false
+
+    MessageThreadCloseRequest:
+      type: object
+      description: Unknown properties are rejected and thread_version must be a JSON integer.
+      required: [thread_version, close_reason]
+      properties:
+        thread_version:
+          type: integer
+          minimum: 1
+        close_reason:
+          type: string
+          enum: [question_answered, no_longer_needed, created_in_error, other]
+      additionalProperties: false
+
+    PatientMessageThreadListResult:
+      type: object
+      required: [threads, immediate_help]
+      properties:
+        threads:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PatientMessageThreadSummary"
+        immediate_help:
+          $ref: "#/components/schemas/PatientImmediateHelpGuidance"
+      additionalProperties: false
+
+    PatientMessageThreadMutationResult:
+      type: object
+      required: [thread]
+      properties:
+        thread:
+          $ref: "#/components/schemas/PatientMessageThreadSummary"
+      additionalProperties: false
+
+    PatientMessageThreadDetailResult:
+      type: object
+      required: [thread, immediate_help]
+      properties:
+        thread:
+          $ref: "#/components/schemas/PatientMessageThreadDetail"
+        immediate_help:
+          $ref: "#/components/schemas/PatientImmediateHelpGuidance"
+      additionalProperties: false
+
+    PatientMessageMutationResult:
+      type: object
+      required: [thread, message]
+      properties:
+        thread:
+          $ref: "#/components/schemas/PatientMessageThreadSummary"
+        message:
+          $ref: "#/components/schemas/PatientVisibleMessage"
+      additionalProperties: false
+
+    PatientMessageThreadSummary:
+      allOf:
+        - $ref: "#/components/schemas/PatientMessageThreadBase"
+      unevaluatedProperties: false
+
+    PatientMessageThreadBase:
+      type: object
+      required:
+        - thread_uuid
+        - topic
+        - status
+        - ownership_state
+        - expected_response_window
+        - version
+        - last_message_at
+        - created_at
+        - closed_at
+        - close_reason
+      properties:
+        thread_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        topic:
+          $ref: "#/components/schemas/PatientMessageThreadTopic"
+        status:
+          type: string
+          enum: [open, closed]
+        ownership_state:
+          type: string
+          enum:
+            [
+              awaiting_team,
+              assigned,
+              acknowledged,
+              responded,
+              rerouted,
+              escalated,
+              closed,
+            ]
+        expected_response_window:
+          type: string
+          minLength: 10
+          maxLength: 240
+        version:
+          type: integer
+          minimum: 1
+        last_message_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: [string, "null"]
+          format: date-time
+        close_reason:
+          type: [string, "null"]
+          enum:
+            [question_answered, no_longer_needed, created_in_error, other, null]
+
+    PatientMessageThreadDetail:
+      allOf:
+        - $ref: "#/components/schemas/PatientMessageThreadBase"
+        - type: object
+          required: [messages, history_truncated]
+          properties:
+            messages:
+              type: array
+              maxItems: 1000
+              items:
+                $ref: "#/components/schemas/PatientVisibleMessage"
+            history_truncated:
+              type: boolean
+              description: True when older patient-visible facts exist outside the chronologically ordered newest 1,000 facts returned here.
+      unevaluatedProperties: false
+
+    PatientMessageThreadTopic:
+      type: object
+      required: [code, label, description]
+      properties:
+        code:
+          type: string
+          pattern: "^[a-z][a-z0-9_]{1,78}[a-z0-9]$"
+        label:
+          type: string
+          minLength: 3
+          maxLength: 120
+        description:
+          type: string
+          minLength: 10
+          maxLength: 300
+      additionalProperties: false
+
+    PatientVisibleMessage:
+      type: object
+      required:
+        - message_uuid
+        - sender_display_role
+        - message_kind
+        - body
+        - relates_to_message_uuid
+        - delivery_state
+        - sent_at
+      properties:
+        message_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        sender_display_role:
+          type: string
+          enum: [You, Care team]
+        message_kind:
+          type: string
+          enum: [message, correction, retraction, system_status]
+        body:
+          type: [string, "null"]
+          maxLength: 4000
+        relates_to_message_uuid:
+          oneOf:
+            - $ref: "#/components/schemas/OpaqueUuid"
+            - type: "null"
+        delivery_state:
+          type: string
+          enum: [sent, delivered, assigned, acknowledged, responded, closed]
+        sent_at:
+          type: string
+          format: date-time
+      additionalProperties: false
+
+    OpaqueUuid:
+      type: string
+      format: uuid
+      pattern: "^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[1-8][0-9A-Fa-f]{3}-[89AaBb][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}$"
+      description: Patient-product handle with no embedded source-system meaning.
+
+    PatientProjectionBase:
+      type: object
+      required:
+        - projection_uuid
+        - encounter_uuid
+        - kind
+        - content
+        - uncertainty
+        - provenance
+        - observed_at
+        - generated_at
+        - released_at
+      properties:
+        projection_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        encounter_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        kind:
+          type: string
+          enum:
+            [
+              today,
+              pathway,
+              pathway_events,
+              discharge_readiness,
+              rounds_summary,
+              care_team,
+            ]
+        content:
+          type: object
+          description: Kind-specific, patient-language content released under policy.
+        uncertainty:
+          $ref: "#/components/schemas/ProjectionUncertainty"
+        provenance:
+          $ref: "#/components/schemas/ProjectionProvenance"
+        revision_notice:
+          $ref: "#/components/schemas/PatientProjectionRevisionNotice"
+        observed_at:
+          type: string
+          format: date-time
+        generated_at:
+          type: string
+          format: date-time
+        released_at:
+          type: string
+          format: date-time
+      additionalProperties: false
+
+    PatientProjectionRevisionNotice:
+      type: object
+      description: >-
+        A bounded acknowledgement shown only on an already authorized,
+        separately released correction replacement. It never includes the
+        withdrawn projection identifier, correction reason, actor, or timing.
+      required: [kind, message]
+      properties:
+        kind:
+          type: string
+          enum: [correction]
+        message:
+          $ref: "#/components/schemas/PatientLanguageText"
+      additionalProperties: false
+
+    TodayProjection:
+      allOf:
+        - $ref: "#/components/schemas/PatientProjectionBase"
+        - type: object
+          properties:
+            kind:
+              type: string
+              const: today
+            content:
+              $ref: "#/components/schemas/TodayProjectionContent"
+
+    PathwayProjection:
+      allOf:
+        - $ref: "#/components/schemas/PatientProjectionBase"
+        - type: object
+          properties:
+            kind:
+              type: string
+              const: pathway
+            content:
+              $ref: "#/components/schemas/PathwayProjectionContent"
+
+    PathwayEventsProjection:
+      allOf:
+        - $ref: "#/components/schemas/PatientProjectionBase"
+        - type: object
+          properties:
+            kind:
+              type: string
+              const: pathway_events
+            content:
+              $ref: "#/components/schemas/PathwayEventsProjectionContent"
+
+    DischargeReadinessProjection:
+      allOf:
+        - $ref: "#/components/schemas/PatientProjectionBase"
+        - type: object
+          properties:
+            kind:
+              type: string
+              const: discharge_readiness
+            content:
+              $ref: "#/components/schemas/DischargeReadinessProjectionContent"
+
+    RoundsSummaryProjection:
+      allOf:
+        - $ref: "#/components/schemas/PatientProjectionBase"
+        - type: object
+          properties:
+            kind:
+              type: string
+              const: rounds_summary
+            content:
+              $ref: "#/components/schemas/RoundsSummaryProjectionContent"
+
+    CareTeamProjection:
+      allOf:
+        - $ref: "#/components/schemas/PatientProjectionBase"
+        - type: object
+          properties:
+            kind:
+              type: string
+              const: care_team
+            content:
+              $ref: "#/components/schemas/CareTeamProjectionContent"
+
+    ProjectionProvenance:
+      type: object
+      required:
+        [
+          projection_method,
+          source_class,
+          input_classes,
+          review_state,
+          producer_version,
+        ]
+      properties:
+        projection_method:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        source_class:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        input_classes:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 2000
+        review_state:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        producer_version:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      additionalProperties: false
+
+    ProjectionUncertainty:
+      type: object
+      required: [level, explanation, can_change, reviewed_at]
+      properties:
+        level:
+          type: string
+          enum: [low, medium, high, unknown]
+        explanation:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        can_change:
+          type: boolean
+        reviewed_at:
+          type: string
+          format: date-time
+      additionalProperties: false
+
+    TodayProjectionContent:
+      type: object
+      required: [headline, summary]
+      properties:
+        headline:
+          $ref: "#/components/schemas/PatientLanguageText"
+        summary:
+          $ref: "#/components/schemas/PatientLanguageText"
+        schedule:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientScheduleItem"
+        next_steps:
+          $ref: "#/components/schemas/PatientLanguageList"
+        care_location:
+          $ref: "#/components/schemas/PatientCareLocation"
+        discharge_outlook:
+          $ref: "#/components/schemas/PatientDischargeOutlook"
+        questions:
+          $ref: "#/components/schemas/PatientLanguageList"
+        notices:
+          $ref: "#/components/schemas/PatientLanguageList"
+      additionalProperties: false
+
+    PatientScheduleItem:
+      type: object
+      required: [item_uuid, label, status, time_window, can_change]
+      properties:
+        item_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        label:
+          $ref: "#/components/schemas/PatientLanguageText"
+        detail:
+          $ref: "#/components/schemas/PatientLanguageText"
+        category:
+          type: string
+          enum: [test, procedure, transport, other]
+        status:
+          type: string
+          enum:
+            [
+              requested,
+              planned,
+              confirmed,
+              in_progress,
+              completed,
+              delayed,
+              canceled,
+            ]
+        time_window:
+          $ref: "#/components/schemas/PatientLanguageText"
+        timing_confidence:
+          $ref: "#/components/schemas/PatientTimingConfidence"
+        preparation:
+          $ref: "#/components/schemas/PatientLanguageText"
+        can_change:
+          type: boolean
+      additionalProperties: false
+
+    PatientCareLocation:
+      type: object
+      required: [status]
+      properties:
+        facility_display_name:
+          $ref: "#/components/schemas/PatientLanguageText"
+        unit_display_name:
+          $ref: "#/components/schemas/PatientLanguageText"
+        room_display_name:
+          $ref: "#/components/schemas/PatientLanguageText"
+        status:
+          type: string
+          enum: [current, updating, unknown]
+      additionalProperties: false
+
+    PatientDischargeOutlook:
+      type: object
+      required: [estimated_range, confidence, can_change]
+      properties:
+        estimated_range:
+          $ref: "#/components/schemas/PatientLanguageText"
+        confidence:
+          $ref: "#/components/schemas/PatientTimingConfidence"
+        readiness_topics:
+          $ref: "#/components/schemas/PatientLanguageList"
+        remaining_steps:
+          $ref: "#/components/schemas/PatientLanguageList"
+        can_change:
+          type: boolean
+      additionalProperties: false
+
+    PathwayProjectionContent:
+      type: object
+      required: [headline, summary]
+      properties:
+        headline:
+          $ref: "#/components/schemas/PatientLanguageText"
+        summary:
+          $ref: "#/components/schemas/PatientLanguageText"
+        current_stage:
+          $ref: "#/components/schemas/PatientLanguageText"
+        stages:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientPathwayStage"
+        milestones:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientPathwayMilestone"
+        goals:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientPathwayGoal"
+        education:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientEducationItem"
+        questions:
+          $ref: "#/components/schemas/PatientLanguageList"
+        notices:
+          $ref: "#/components/schemas/PatientLanguageList"
+      additionalProperties: false
+
+    PatientPathwayStage:
+      type: object
+      required: [stage_uuid, title, status, summary, can_change]
+      properties:
+        stage_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        title:
+          $ref: "#/components/schemas/PatientLanguageText"
+        status:
+          type: string
+          enum: [planned, current, completed, delayed, canceled]
+        summary:
+          $ref: "#/components/schemas/PatientLanguageText"
+        expected_range:
+          $ref: "#/components/schemas/PatientLanguageText"
+        timing_confidence:
+          $ref: "#/components/schemas/PatientTimingConfidence"
+        can_change:
+          type: boolean
+      additionalProperties: false
+
+    PatientPathwayMilestone:
+      type: object
+      required: [milestone_uuid, title, status]
+      properties:
+        milestone_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        title:
+          $ref: "#/components/schemas/PatientLanguageText"
+        status:
+          type: string
+          enum: [planned, current, completed, delayed, canceled]
+        detail:
+          $ref: "#/components/schemas/PatientLanguageText"
+        timing:
+          $ref: "#/components/schemas/PatientLanguageText"
+        timing_confidence:
+          $ref: "#/components/schemas/PatientTimingConfidence"
+        can_change:
+          type: boolean
+      additionalProperties: false
+
+    PatientPathwayGoal:
+      type: object
+      required: [goal_uuid, author_type, label, status]
+      properties:
+        goal_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        author_type:
+          type: string
+          enum: [patient, representative, care_team]
+        label:
+          $ref: "#/components/schemas/PatientLanguageText"
+        explanation:
+          $ref: "#/components/schemas/PatientLanguageText"
+        status:
+          type: string
+          enum: [proposed, planned, in_progress, completed, paused, canceled]
+        target_range:
+          $ref: "#/components/schemas/PatientLanguageText"
+      additionalProperties: false
+
+    PatientEducationItem:
+      type: object
+      required: [item_uuid, title, summary]
+      properties:
+        item_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        title:
+          $ref: "#/components/schemas/PatientLanguageText"
+        summary:
+          $ref: "#/components/schemas/PatientLanguageText"
+      additionalProperties: false
+
+    PathwayEventsProjectionContent:
+      type: object
+      required: [headline, summary]
+      properties:
+        headline:
+          $ref: "#/components/schemas/PatientLanguageText"
+        summary:
+          $ref: "#/components/schemas/PatientLanguageText"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientPathwayEvent"
+        notices:
+          $ref: "#/components/schemas/PatientLanguageList"
+      additionalProperties: false
+
+    PatientPathwayEvent:
+      type: object
+      required: [event_uuid, title, when, status]
+      properties:
+        event_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        title:
+          $ref: "#/components/schemas/PatientLanguageText"
+        when:
+          $ref: "#/components/schemas/PatientLanguageText"
+        detail:
+          $ref: "#/components/schemas/PatientLanguageText"
+        status:
+          type: string
+          enum: [planned, current, completed, delayed, canceled]
+      additionalProperties: false
+
+    DischargeReadinessProjectionContent:
+      type: object
+      required: [headline, summary]
+      properties:
+        headline:
+          $ref: "#/components/schemas/PatientLanguageText"
+        summary:
+          $ref: "#/components/schemas/PatientLanguageText"
+        estimated_range:
+          $ref: "#/components/schemas/PatientLanguageText"
+        estimated_confidence:
+          $ref: "#/components/schemas/PatientTimingConfidence"
+        criteria:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientDischargeCriterion"
+        unresolved_needs:
+          $ref: "#/components/schemas/PatientLanguageList"
+        medications:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientDischargeMedication"
+        follow_up:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientDischargeFollowUp"
+        warning_signs:
+          $ref: "#/components/schemas/PatientLanguageList"
+        contacts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientDischargeContact"
+        questions:
+          $ref: "#/components/schemas/PatientLanguageList"
+        notices:
+          $ref: "#/components/schemas/PatientLanguageList"
+      additionalProperties: false
+
+    RoundsSummaryProjectionContent:
+      type: object
+      required: [headline, summary]
+      properties:
+        headline:
+          $ref: "#/components/schemas/PatientLanguageText"
+        summary:
+          $ref: "#/components/schemas/PatientLanguageText"
+        round_window:
+          $ref: "#/components/schemas/PatientLanguageText"
+        topics:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientRoundsTopic"
+        next_steps:
+          $ref: "#/components/schemas/PatientLanguageList"
+        questions:
+          $ref: "#/components/schemas/PatientLanguageList"
+        notices:
+          $ref: "#/components/schemas/PatientLanguageList"
+      additionalProperties: false
+
+    PatientRoundsTopic:
+      type: object
+      required: [topic_uuid, title, summary, status]
+      properties:
+        topic_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        title:
+          $ref: "#/components/schemas/PatientLanguageText"
+        summary:
+          $ref: "#/components/schemas/PatientLanguageText"
+        status:
+          type: string
+          enum: [discussed, current, planned]
+      additionalProperties: false
+
+    PatientDischargeCriterion:
+      type: object
+      required: [item_uuid, label, status]
+      properties:
+        item_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        label:
+          $ref: "#/components/schemas/PatientLanguageText"
+        status:
+          type: string
+          enum: [met, pending, at_risk]
+        detail:
+          $ref: "#/components/schemas/PatientLanguageText"
+      additionalProperties: false
+
+    PatientDischargeMedication:
+      type: object
+      required: [item_uuid, name]
+      properties:
+        item_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        name:
+          $ref: "#/components/schemas/PatientLanguageText"
+        purpose:
+          $ref: "#/components/schemas/PatientLanguageText"
+      additionalProperties: false
+
+    PatientDischargeFollowUp:
+      type: object
+      required: [item_uuid, label, when]
+      properties:
+        item_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        label:
+          $ref: "#/components/schemas/PatientLanguageText"
+        when:
+          $ref: "#/components/schemas/PatientLanguageText"
+      additionalProperties: false
+
+    PatientDischargeContact:
+      type: object
+      required: [item_uuid, label, route]
+      properties:
+        item_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        label:
+          $ref: "#/components/schemas/PatientLanguageText"
+        route:
+          type: string
+          enum: [speak_with_bedside_staff, call_button_for_urgent_help]
+      additionalProperties: false
+
+    CareTeamProjectionContent:
+      type: object
+      required: [headline, summary]
+      properties:
+        headline:
+          $ref: "#/components/schemas/PatientLanguageText"
+        summary:
+          $ref: "#/components/schemas/PatientLanguageText"
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientCareTeamMember"
+        communication_options:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientCommunicationOption"
+        questions:
+          $ref: "#/components/schemas/PatientLanguageList"
+        notices:
+          $ref: "#/components/schemas/PatientLanguageList"
+      additionalProperties: false
+
+    PatientCareTeamMember:
+      type: object
+      required:
+        [member_uuid, display_name, role, responsibilities, contact_route]
+      properties:
+        member_uuid:
+          $ref: "#/components/schemas/OpaqueUuid"
+        display_name:
+          $ref: "#/components/schemas/PatientLanguageText"
+        role:
+          $ref: "#/components/schemas/PatientLanguageText"
+        service:
+          $ref: "#/components/schemas/PatientLanguageText"
+        responsibilities:
+          $ref: "#/components/schemas/PatientLanguageList"
+        contact_route:
+          $ref: "#/components/schemas/PatientCommunicationOption"
+      additionalProperties: false
+
+    PatientCommunicationOption:
+      type: string
+      enum:
+        - speak_with_bedside_staff
+        - call_button_for_urgent_help
+
+    PatientTimingConfidence:
+      type: string
+      enum: [confirmed, estimated, unknown]
+
+    PatientLanguageText:
+      type: string
+      minLength: 1
+      maxLength: 2000
+
+    PatientLanguageList:
+      type: array
+      items:
+        $ref: "#/components/schemas/PatientLanguageText"

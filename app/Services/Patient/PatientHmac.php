@@ -27,7 +27,7 @@ class PatientHmac
 
     private function secret(): string
     {
-        $configured = trim((string) config('nightingale.hmac_secret'));
+        $configured = trim((string) config('hummingbird-patient.hmac_secret'));
 
         if (strlen($configured) >= 32) {
             return $configured;

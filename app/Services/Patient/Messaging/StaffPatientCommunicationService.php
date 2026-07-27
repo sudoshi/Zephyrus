@@ -993,10 +993,10 @@ class StaffPatientCommunicationService
 
     private function assertAvailable(): void
     {
-        if (! (bool) config('nightingale.enabled', false)
-            || ! (bool) config('nightingale.features.messaging', false)
-            || ! (bool) config('nightingale.staff_messaging.enabled', false)
-            || config('nightingale.staff_messaging.governance_status') !== 'approved'
+        if (! (bool) config('hummingbird-patient.enabled', false)
+            || ! (bool) config('hummingbird-patient.features.messaging', false)
+            || ! (bool) config('hummingbird-patient.staff_messaging.enabled', false)
+            || config('hummingbird-patient.staff_messaging.governance_status') !== 'approved'
             || ! $this->schemaReady()
         ) {
             throw StaffPatientCommunicationFailure::unavailable();

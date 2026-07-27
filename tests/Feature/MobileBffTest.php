@@ -573,9 +573,9 @@ class MobileBffTest extends TestCase
             $policyVersion.'|'.$poolKey,
         );
         config([
-            'nightingale.enabled' => true,
-            'nightingale.features.messaging' => true,
-            'nightingale.messaging' => [
+            'hummingbird-patient.enabled' => true,
+            'hummingbird-patient.features.messaging' => true,
+            'hummingbird-patient.messaging' => [
                 'governance_status' => 'approved',
                 'policy_version' => $policyVersion,
                 'urgent_guidance_version' => 'mobile-bff-guidance-v1',
@@ -589,7 +589,7 @@ class MobileBffTest extends TestCase
                     ],
                 ],
             ],
-            'nightingale.staff_messaging' => [
+            'hummingbird-patient.staff_messaging' => [
                 'enabled' => true,
                 'governance_status' => 'approved',
                 'consumer_key' => 'patient-message-staff-inbox-v1',

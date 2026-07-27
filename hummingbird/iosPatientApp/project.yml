@@ -1,4 +1,4 @@
-name: Nightingale
+name: HummingbirdPatient
 options:
   bundleIdPrefix: net.acumenus
   deploymentTarget:
@@ -9,11 +9,11 @@ settings:
     SWIFT_VERSION: "5.0"
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
 targets:
-  Nightingale:
+  HummingbirdPatient:
     type: application
     platform: iOS
     sources:
-      - Nightingale
+      - HummingbirdPatient
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.hummingbird.patient
@@ -24,7 +24,7 @@ targets:
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1"
     info:
-      path: Nightingale/Info.plist
+      path: HummingbirdPatient/Info.plist
       properties:
         CFBundleDisplayName: Hummingbird Patient
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
@@ -35,42 +35,42 @@ targets:
         HBPPatientAPIEnabled: false
         HBPPatientAPIBaseURL: ""
 
-  NightingaleTests:
+  HummingbirdPatientTests:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - NightingaleTests
+      - HummingbirdPatientTests
     dependencies:
-      - target: Nightingale
+      - target: HummingbirdPatient
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.hummingbird.patient.tests
         GENERATE_INFOPLIST_FILE: "YES"
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Nightingale.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Nightingale"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/HummingbirdPatient.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HummingbirdPatient"
         BUNDLE_LOADER: "$(TEST_HOST)"
 
-  NightingaleUITests:
+  HummingbirdPatientUITests:
     type: bundle.ui-testing
     platform: iOS
     sources:
-      - NightingaleUITests
+      - HummingbirdPatientUITests
     dependencies:
-      - target: Nightingale
+      - target: HummingbirdPatient
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.hummingbird.patient.ui-tests
         GENERATE_INFOPLIST_FILE: "YES"
 
 schemes:
-  Nightingale:
+  HummingbirdPatient:
     build:
       targets:
-        Nightingale: all
-        NightingaleTests:
+        HummingbirdPatient: all
+        HummingbirdPatientTests:
           - test
-        NightingaleUITests:
+        HummingbirdPatientUITests:
           - test
     test:
       targets:
-        - NightingaleTests
-        - NightingaleUITests
+        - HummingbirdPatientTests
+        - HummingbirdPatientUITests

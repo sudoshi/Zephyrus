@@ -40,7 +40,7 @@ class PatientAuthoredGoalService
         string $encounterUuid,
         array $input,
     ): array {
-        if (! (bool) config('nightingale.features.patient_goals')
+        if (! (bool) config('hummingbird-patient.features.patient_goals')
             || ($input['topic_code'] ?? null) !== self::TOPIC_CODE) {
             throw PatientMessagingFailure::notFound();
         }

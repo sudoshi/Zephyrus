@@ -4,17 +4,17 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val patientApiEnabled = providers.gradleProperty("nightingale.api.enabled")
+val patientApiEnabled = providers.gradleProperty("hummingbird.patient.api.enabled")
     .orElse("false")
-val patientApiBaseUrl = providers.gradleProperty("nightingale.api.baseUrl")
+val patientApiBaseUrl = providers.gradleProperty("hummingbird.patient.api.baseUrl")
     .orElse("https://zephyrus.acumenus.net")
 
 android {
-    namespace = "net.acumenus.nightingale"
+    namespace = "net.acumenus.hummingbird.patient"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "net.acumenus.nightingale"
+        applicationId = "net.acumenus.hummingbird.patient"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -115,9 +115,9 @@ tasks.register("verifyPatientProductBoundary") {
         }
 
         val volatileInputFiles = listOf(
-            "src/main/java/net/acumenus/nightingale/ui/PatientAuthenticationScreen.kt",
-            "src/main/java/net/acumenus/nightingale/ui/PatientMessagingPanel.kt",
-            "src/main/java/net/acumenus/nightingale/ui/PatientSessionManagementScreen.kt",
+            "src/main/java/net/acumenus/hummingbird/patient/ui/PatientAuthenticationScreen.kt",
+            "src/main/java/net/acumenus/hummingbird/patient/ui/PatientMessagingPanel.kt",
+            "src/main/java/net/acumenus/hummingbird/patient/ui/PatientSessionManagementScreen.kt",
         ).map(projectDir::resolve)
         val forbiddenSavedStateSymbols = listOf(
             "remember" + "Saveable",

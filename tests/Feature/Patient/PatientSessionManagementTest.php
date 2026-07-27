@@ -187,9 +187,9 @@ class PatientSessionManagementTest extends TestCase
     private function enablePatientSessions(): void
     {
         config([
-            'nightingale.enabled' => true,
-            'nightingale.features.token_exchange' => true,
-            'nightingale.features.session_management' => true,
+            'hummingbird-patient.enabled' => true,
+            'hummingbird-patient.features.token_exchange' => true,
+            'hummingbird-patient.features.session_management' => true,
         ]);
     }
 

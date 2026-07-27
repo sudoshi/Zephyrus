@@ -23,7 +23,7 @@ class PatientEncounterProjectionPolicy
             && $projection->released_at !== null
             && $projection->released_at->isPast()
             && $policy !== null
-            && $policy->version === (string) config('nightingale.policy_version')
+            && $policy->version === (string) config('hummingbird-patient.policy_version')
             && $policy->status === 'active'
             && $policy->approved_at !== null
             && $policy->effective_from !== null

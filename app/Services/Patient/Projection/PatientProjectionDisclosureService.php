@@ -79,7 +79,7 @@ class PatientProjectionDisclosureService
 
         $policy = PatientReleasePolicyVersion::query()
             ->effective()
-            ->where('version', (string) config('nightingale.policy_version'))
+            ->where('version', (string) config('hummingbird-patient.policy_version'))
             ->first();
 
         if ($policy === null) {

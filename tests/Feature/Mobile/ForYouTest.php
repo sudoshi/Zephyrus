@@ -82,9 +82,9 @@ class ForYouTest extends TestCase
         $this->workItem($pool, 'pool_owned');
 
         foreach ([
-            'nightingale.enabled',
-            'nightingale.features.messaging',
-            'nightingale.staff_messaging.enabled',
+            'hummingbird-patient.enabled',
+            'hummingbird-patient.features.messaging',
+            'hummingbird-patient.staff_messaging.enabled',
         ] as $disabledFlag) {
             $this->enablePatientCommunications();
             config([$disabledFlag => false]);
@@ -99,7 +99,7 @@ class ForYouTest extends TestCase
         }
 
         $this->enablePatientCommunications();
-        config(['nightingale.staff_messaging.governance_status' => 'draft_requires_approval']);
+        config(['hummingbird-patient.staff_messaging.governance_status' => 'draft_requires_approval']);
 
         $this->assertSame([], $this->communicationItems($this->forYou($staff)->assertOk()));
     }
@@ -322,10 +322,10 @@ class ForYouTest extends TestCase
     private function enablePatientCommunications(): void
     {
         config([
-            'nightingale.enabled' => true,
-            'nightingale.features.messaging' => true,
-            'nightingale.staff_messaging.enabled' => true,
-            'nightingale.staff_messaging.governance_status' => 'approved',
+            'hummingbird-patient.enabled' => true,
+            'hummingbird-patient.features.messaging' => true,
+            'hummingbird-patient.staff_messaging.enabled' => true,
+            'hummingbird-patient.staff_messaging.governance_status' => 'approved',
         ]);
     }
 

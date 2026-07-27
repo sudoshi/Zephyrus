@@ -21,7 +21,7 @@ class PatientResponseMetadataTest extends TestCase
         $container = new Container;
         Container::setInstance($container);
         $container->instance('config', new Repository([
-            'nightingale' => require dirname(__DIR__, 3).'/config/nightingale.php',
+            'hummingbird-patient' => require dirname(__DIR__, 3).'/config/hummingbird-patient.php',
             'hummingbird-patient-content' => require dirname(__DIR__, 3).'/config/hummingbird-patient-content.php',
         ]));
     }

@@ -388,7 +388,7 @@ final class PatientCommunicationPoolResolver
     /** @return list<int> */
     private function pilotUnitIds(): array
     {
-        return collect(config('nightingale.staff_messaging.pilot_unit_ids', []))
+        return collect(config('hummingbird-patient.staff_messaging.pilot_unit_ids', []))
             ->map(static fn (mixed $id): int => (int) $id)
             ->filter(static fn (int $id): bool => $id > 0)
             ->unique()

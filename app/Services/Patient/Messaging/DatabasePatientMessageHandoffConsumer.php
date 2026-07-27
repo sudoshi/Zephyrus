@@ -92,7 +92,7 @@ class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffRead
      */
     public function consumeBatch(string $workerRef, ?int $limit = null): array
     {
-        $policyVersion = trim((string) config('nightingale.messaging.policy_version'));
+        $policyVersion = trim((string) config('hummingbird-patient.messaging.policy_version'));
         if (! $this->infrastructureReady()) {
             throw new RuntimeException('patient_message_handoff_not_ready');
         }
@@ -107,7 +107,7 @@ class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffRead
             0,
         );
 
-        $limit = max(1, min(500, $limit ?? (int) config('nightingale.staff_messaging.batch_size', 100)));
+        $limit = max(1, min(500, $limit ?? (int) config('hummingbird-patient.staff_messaging.batch_size', 100)));
         $outboxIds = PatientNotificationOutbox::query()
             ->where('destination', 'staff_inbox')
             ->where('available_at', '<=', now())
@@ -403,13 +403,13 @@ class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffRead
     {
         if (! $this->infrastructureReady()
             || $policyVersion === ''
-            || config('nightingale.messaging.governance_status') !== 'approved'
+            || config('hummingbird-patient.messaging.governance_status') !== 'approved'
             || $this->pilotUnitIds() === []
         ) {
             return false;
         }
 
-        $topics = config('nightingale.messaging.topics');
+        $topics = config('hummingbird-patient.messaging.topics');
         if (! is_array($topics) || $topics === []) {
             return false;
         }
@@ -436,8 +436,8 @@ class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffRead
 
     private function infrastructureReady(): bool
     {
-        return (bool) config('nightingale.staff_messaging.enabled', false)
-            && config('nightingale.staff_messaging.governance_status') === 'approved'
+        return (bool) config('hummingbird-patient.staff_messaging.enabled', false)
+            && config('hummingbird-patient.staff_messaging.governance_status') === 'approved'
             && ! collect(self::REQUIRED_TABLES)->contains(
                 fn (string $table): bool => ! Schema::hasTable($table),
             );
@@ -545,7 +545,7 @@ class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffRead
     /** @return list<int> */
     private function pilotUnitIds(): array
     {
-        return collect(config('nightingale.staff_messaging.pilot_unit_ids', []))
+        return collect(config('hummingbird-patient.staff_messaging.pilot_unit_ids', []))
             ->map(static fn (mixed $id): int => (int) $id)
             ->filter(static fn (int $id): bool => $id > 0)
             ->unique()
@@ -561,12 +561,12 @@ class DatabasePatientMessageHandoffConsumer implements PatientMessageHandoffRead
 
     private function consumerKey(): string
     {
-        return (string) config('nightingale.staff_messaging.consumer_key', 'patient-message-staff-inbox-v1');
+        return (string) config('hummingbird-patient.staff_messaging.consumer_key', 'patient-message-staff-inbox-v1');
     }
 
     private function heartbeatTtlSeconds(): int
     {
-        return max(30, min(600, (int) config('nightingale.staff_messaging.heartbeat_ttl_seconds', 120)));
+        return max(30, min(600, (int) config('hummingbird-patient.staff_messaging.heartbeat_ttl_seconds', 120)));
     }
 
     private function safeErrorCode(Throwable $exception): string

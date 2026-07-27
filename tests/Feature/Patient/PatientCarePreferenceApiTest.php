@@ -150,11 +150,11 @@ class PatientCarePreferenceApiTest extends TestCase
         ]);
 
         config([
-            'nightingale.enabled' => true,
-            'nightingale.policy_version' => (string) $fixture['policy']->version,
-            'nightingale.features.messaging' => true,
-            'nightingale.features.care_preferences' => $enabled,
-            'nightingale.messaging' => [
+            'hummingbird-patient.enabled' => true,
+            'hummingbird-patient.policy_version' => (string) $fixture['policy']->version,
+            'hummingbird-patient.features.messaging' => true,
+            'hummingbird-patient.features.care_preferences' => $enabled,
+            'hummingbird-patient.messaging' => [
                 'governance_status' => 'approved',
                 'policy_version' => 'test-care-preference-policy-v1',
                 'urgent_guidance_version' => self::GUIDANCE_VERSION,

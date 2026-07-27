@@ -19,7 +19,7 @@ require dirname(__DIR__).'/vendor/autoload.php';
  */
 const SPECS = [
     'docs/hummingbird/api-contract/hummingbird-bff.v1.yaml',
-    'docs/hummingbird/api-contract/nightingale.v1.yaml',
+    'docs/hummingbird/api-contract/hummingbird-patient.v1.yaml',
 ];
 const LOCK_PATH = 'docs/hummingbird/api-contract/contract-operations.lock';
 const CHANGES_PATH = 'docs/hummingbird/api-contract/contract-breaking-changes.v1.yaml';
