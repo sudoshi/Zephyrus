@@ -47,6 +47,9 @@ Independent verification of the shipped state against `origin/main`, live CI, an
 
 ## Still open (deliberately, none in program scope)
 
-- **Staff iOS build-side** (4.8 m Debug build, 2.7 m project verify, 2.1 m Release build) — the only lever that still moves the full-run wall; pending an explicit call.
-- **Dead index drop** (`ancillary_orders_reconciliation_key_idx`, superseded by #78's provable predicate) — non-additive, approval-gated.
-- **S3 XCUITest parallelization** — revisit only on larger runner pools (split preserved in closed PR #77).
+*All three items below were dispositioned by [SU] ruling on 2026-07-27 ("Close out those remaining items. Approved."):*
+
+- **Staff iOS build-side** (4.8 m Debug build, 2.7 m project verify, 2.1 m Release build) — the only lever that still moves the full-run wall; pending an explicit call. *Closed without action: the optional tranche is declined; reopen only on explicit request.*
+- **Dead index drop** (`ancillary_orders_reconciliation_key_idx`, superseded by #78's provable predicate) — non-additive, approval-gated. *Approved and executed: migration `2026_07_27_000100` drops it (`down()` restores the original definition); prod `pg_stat_user_indexes` at drop time showed 0 scans on it vs 2,303 on the successor. `AncillarySpineMigrationTest` now asserts the successor present and the dead index absent.*
+- **Stage-2 §3.2.9 budget ratification** — *ratified: the ≤15 m backend critical-path budget is adopted with 3-clean-run evidence (runs 30201161345 / 30230900947 / 30233798984, worst backend shard 7m20s; backend lanes are retry-free on every lane). Recorded in the plan's Budgets annotation.*
+- **S3 XCUITest parallelization** — revisit only on larger runner pools (split preserved in closed PR #77). *(Standing do-NOT-do, not an open item — unchanged.)*
