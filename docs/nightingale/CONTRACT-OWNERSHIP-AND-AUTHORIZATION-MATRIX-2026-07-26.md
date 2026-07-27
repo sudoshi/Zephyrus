@@ -361,6 +361,11 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
       checksums, and 23 adversarial mutations. It keeps every operation, representative,
       clinical release, communication, notification, offline PHI, source, database,
       production, and deployment permission false.
+- [x] Route-free generic non-disclosure foundation: exact relationship, context-binding,
+      resource, and public-disposition vocabularies; one identifier-free 404 tuple for all
+      unknown, revoked, expired, cross-principal, wrong-encounter, omitted-resource, and
+      failed-precondition cases; and an independently repeated 40-row truth table with one
+      non-authorizing continue row and 39 withholds.
 - [ ] Approved Nightingale identity, representative, enrollment, recovery, and session
       contract.
 - [ ] Approved authoritative current-inpatient source, lifecycle, cohort, linkage,
@@ -380,7 +385,8 @@ Until these gates are met, `paths` remains empty.
 The encounter-access, Today, patient-journey reference, identity/source, and three
 source-classification ledgers are pre-contract evidence for these gates, not proof that an
 approval gate is complete. The route/compatibility ADR, default-deny prerequisite ports,
-the previously recorded 174 prerequisite/encounter/Today cases, 27 additional cross-surface
-journey cases, complete 256-source inventory, and detailed native/backend deltas exist, but
+the previously recorded 174 identity/source/encounter/Today cases, 40 route-free generic
+non-disclosure permutations, 27 additional cross-surface journey cases, complete 256-source
+inventory, and detailed native/backend deltas exist, but
 no owner is named, identity provider/source adapter is approved, clinical field matrix is
 released, or backend/native operation parity implementation exists.

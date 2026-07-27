@@ -721,7 +721,12 @@ The eleven migration files are classified as safety-principle evidence only. Thi
 - [ ] Prove release artifacts exclude every synthetic activation and payload.
 - [ ] Isolate non-production integration data from operational/production sources.
 - [ ] Define fixture ownership, expiry, teardown, collision detection, and audit.
-- [ ] Never use a production database to create a “sample patient.”
+- [x] Record the explicitly authorized 2026-07-27 production sample exception without
+      weakening the runtime boundary. One Nightingale synthetic operational encounter and
+      one pending/inactive, contactless/passwordless principal were cloned from only the
+      safe Hummingbird reference shape. No identity link, grant, challenge, session,
+      projection, content, route, client, or activation was created; the source record was
+      preserved and exact evidence is retained separately.
 
 ### 10.5 Release and operations
 

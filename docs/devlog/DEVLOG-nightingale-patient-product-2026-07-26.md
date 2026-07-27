@@ -1958,3 +1958,105 @@ deployment authorization.
   wildcard, rule disablement, credential-shaped regex, or production-secret exception was
   introduced. The failed run remains failed evidence; a new exact-SHA history and
   working-tree scan is required.
+
+## 2026-07-27 — Route-free generic non-disclosure foundation
+
+### Bounded implementation
+
+- Added Nightingale-owned relationship, current-context-binding, resource-release, and
+  disclosure-disposition vocabularies plus a pure generic non-disclosure gate under
+  `app/Nightingale/Disclosure`.
+- The gate accepts no identifier or patient value and has no framework, route, controller,
+  provider, source, database, audit-writer, or native caller. It cannot activate or
+  disclose anything.
+- Unknown, revoked, expired, cross-principal, wrong-encounter, omitted-resource, and failed
+  upstream-precondition states all produce the exact same public failure tuple: status
+  `404`, code `not_found`, and cache policy `private, no-store, max-age=0`. There is no
+  message, internal reason, identifier, redirect, or retry field.
+- Only the all-positive combination of prerequisite continuation, active relationship,
+  matching current context, and released resource returns
+  `continue_to_governed_projection_evaluation`. That disposition is explicitly weaker than
+  authorization or clinical release.
+
+### Independent proof
+
+- Expanded the backend PHPUnit foundation to 21 tests and 111 assertions. Seven named
+  cases directly cover the master-plan requirement, and the exhaustive test evaluates all
+  40 combinations: one continues and 39 withhold.
+- Expanded the dependency-free backend verifier to pin the exact state vocabularies,
+  public tuple, one/39 cardinality, and runtime non-registration. It repeats the 40-row
+  truth table independently of PHPUnit and remains part of the existing contract CI job.
+- Added
+  `docs/nightingale/GENERIC-NON-DISCLOSURE-FOUNDATION-2026-07-27.md` with the evaluation
+  matrix, audit boundary, runtime limitations, evidence inventory, verification commands,
+  and unresolved operation-specific requirements.
+- Checked only the Stream D generic non-disclosure item. Operation-specific identity,
+  source, authorization, audit, timing-equivalence, HTTP-edge, clinical/content,
+  language, native-client, reviewer, pilot, and production requirements remain open.
+- No production database access, mutation, migration, patient creation, route, identity or
+  source binding, patient disclosure, network client, clinical content, communication,
+  notification, representative access, activation, distribution, or deployment occurred
+  in this implementation slice.
+
+### Native regression reacceptance
+
+- Booted the iPhone 16e simulator on iOS 26.3.1 and ran the complete signed Debug test
+  scheme from a fresh DerivedData directory. All 11 Nightingale unit tests and all six
+  UI journeys passed with zero failures or skips, including persistence, double-length
+  reflow, largest-text landscape, foundation copy, lifecycle privacy cover, and
+  right-to-left layout.
+- Cold-booted the wiped `hb` Android 15/API 35 AVD without a snapshot. The accepted Java
+  21/Android SDK invocation reran all eight Debug JVM tests, all eight Release JVM tests,
+  and all ten installed instrumentation journeys with zero failures, errors, or skips.
+- The first Android invocation was not accepted evidence because the isolated shell did not
+  export `ANDROID_HOME`; Gradle stopped before dependency resolution or test execution.
+  The accepted invocation explicitly pinned Android Studio Java 21, `ANDROID_HOME`, and
+  `ANDROID_SDK_ROOT`.
+- Both emulators were shut down after result-XML reconciliation. This native pass proves
+  that the backend-only non-disclosure slice did not regress the current offline products;
+  it does not make the new backend sample reachable from either app.
+
+## 2026-07-27 — Authorized Nightingale production sample clone
+
+### Direction change and source preservation
+
+- The prior production audit had deliberately remained read-only because the plan then
+  prohibited a Nightingale production sample. The operator subsequently gave an explicit
+  direction to create the Nightingale sample and to use the deprecated Hummingbird Patient
+  reference patient as its source template.
+- Preserved the Hummingbird operational encounter, principal, identity link, grant, and
+  expired enrollment-challenge records unchanged. No Hummingbird credential, challenge,
+  external UUID, keyed digest, encrypted source reference, projection content, or
+  product-owner value was copied.
+- Cloned only the safe synthetic shape: patient principal type, `en-US` locale,
+  `America/New_York` timezone, medical/surgical unit 85, no bed, acuity 2, and an active
+  operational/not-discharged state.
+
+### Transactional creation
+
+- The first serializable, advisory-locked transaction created exactly one
+  `prod.encounters` row with patient reference `demo-nightingale-reference-inpatient` and
+  owner `nightingale-reference-patient-provisioner-v1`. Exact zero-cardinality, owner
+  collision, unit availability, lock-timeout, statement-timeout, constraint, and
+  pre-commit row checks were enforced.
+- The second serializable transaction selected exactly one safe Hummingbird template
+  principal, generated a fresh UUIDv7, and created exactly one `Nightingale Reference
+Patient` principal. It is synthetic, product-tagged `nightingale`, pending, inactive,
+  and has no email, phone, password, verification timestamp, or authentication history.
+- A fresh read-only reconciliation proved one exact operational row and one exact
+  principal, with zero Nightingale identity links, encounter grants, enrollment
+  challenges, sessions, access-audit events, and notification devices. It also reproved
+  the original Hummingbird encounter/principal/identity/grant one/one/one/one
+  cardinalities.
+
+### Boundary
+
+- The sample cannot log in or reach patient data. It has no database-level identity/
+  encounter association, no projection, no route, no source adapter, and no native caller.
+  Nightingale's executable contract remains empty and both native applications remain
+  offline.
+- No migration, clinical content, representative record, message, notification, feature
+  activation, pilot enrollment, application deployment, or teardown occurred.
+- The complete secret-free preflight, transaction, reconciliation, residual-risk, and
+  follow-up record is
+  `docs/evidence/nightingale/production-sample-patient-2026-07-27/README.md`.

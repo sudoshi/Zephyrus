@@ -134,8 +134,12 @@ output.
 
 ### 5.3 Safety, privacy, and content isolation
 
-- No production fixture, sample patient, synthetic patient principal, active grant, release,
-  patient session, or feature flag is created by application development work.
+- Application development does not create production fixtures, sample principals, active
+  grants, releases, sessions, or feature flags. The sole exception is the separately and
+  explicitly authorized 2026-07-27 production sample clone: one synthetic operational
+  encounter and one pending/inactive, contactless/passwordless Nightingale principal,
+  documented under `docs/evidence/nightingale/production-sample-patient-2026-07-27/`.
+  It has no identity link, grant, challenge, session, content, route, client, or activation.
 - Clinical content requires distinct source provenance, clinical review, patient-language
   review, accessibility review, release authority, and rollback/retraction behavior.
 - App-switcher/capture protection, protected storage, generic notifications, secure
@@ -353,8 +357,12 @@ or legacy patient namespace; iOS and Android migration suites pass equivalent sa
       27 synthetic cases, 12 exact evidence-source checksums, and 23 adversarial mutations;
       it adds no operation and keeps every runtime, representative, clinical release,
       communication, notification, database, production, and deployment permission false.
-- [ ] Prove generic non-disclosure for unknown, revoked, expired, cross-principal,
-      wrong-encounter, and omitted-resource requests.
+- [x] Prove generic non-disclosure for unknown, revoked, expired, cross-principal,
+      wrong-encounter, and omitted-resource requests. The route-free Nightingale domain
+      gate returns one exact identifier-free 404/code/cache tuple for all 39
+      non-disclosable combinations in its exhaustive 40-row truth table; the sole positive
+      row only continues to later governed projection evaluation. There is still no route,
+      query, patient content, or authorization.
 - [ ] Keep clinical approval, content release, feature activation, pilot enrollment, and
       source-connector deployment separate and default-off.
 
@@ -543,14 +551,18 @@ part of application development work.
         clipboard primitives, and inspect the installed apps and Release artifacts. This
         remains candidate engineering evidence; any live identity, data, telemetry,
         networking, store declaration, signed distribution, or privacy approval is held.
-19. [x] Reconcile the separately requested production sample-patient objective through an
-        explicitly authorized, read-only, transaction-scoped existence and safety audit.
-        Production already contains exactly one active, provisioner-owned synthetic
-        reference encounter and one command-owned pending/inactive identity foundation, so
-        no duplicate patient or second identity was created. The two legacy enrollment
-        challenges are time-expired despite retaining `issued` state. This legacy
-        Hummingbird reference foundation is not a Nightingale patient, credential, session,
-        activation, source approval, or permission to reuse the rejected provisioner.
+19. [x] Reconcile and fulfill the separately requested production sample-patient objective.
+        The first authorized review was read-only and found one legacy Hummingbird reference
+        foundation. A later explicit direction required a Nightingale sample using that
+        deprecated product's sample as the template. Two serializable, advisory-locked,
+        cardinality-checked transactions created exactly one Nightingale-owned operational
+        synthetic encounter and one fresh UUIDv7 patient principal. Only principal type,
+        locale/timezone, unit, acuity, and safe lifecycle shape were carried forward.
+        Credentials, sessions, challenges, grants, identity links, digests, encrypted
+        references, external identifiers, projections, and content were not copied. The
+        Nightingale principal remains pending/inactive and the Hummingbird template remains
+        unchanged. Exact evidence is retained under
+        `docs/evidence/nightingale/production-sample-patient-2026-07-27/`.
 20. [x] Close the current offline shell's bounded accessibility/language-readiness gap.
         Govern 15 exact cross-platform English strings, three headings, and two restrained
         status-announcement paths; pass iOS double-length/RTL and Android `en-XA`/`ar-XB`
@@ -568,15 +580,16 @@ part of application development work.
 
 ## 10. Explicit holds
 
-- No production database access for patient creation, fixture insertion, identity enrollment,
-  data correction, or feature activation belongs to this stream.
-- A separately authorized production read-only audit may establish existence and safety
-  facts, but it does not admit production data into Nightingale scope or authorize a
-  mutation. The 2026-07-26 audit performed no write and deliberately did not duplicate the
-  pre-existing synthetic reference foundation.
-- No credential pasted into chat, shell history, source, documentation, fixture, or test is a
-  permitted secret source.
-- No Nightingale patient is created, no patient feature is enabled, no migration is run, and
-  no production release occurs from this plan alone.
+- No further production database access for patient creation, fixture insertion, identity
+  enrollment, data correction, or feature activation belongs to this stream without a new
+  explicit authorization. The bounded 2026-07-27 exception created only the documented
+  synthetic encounter and pending/inactive principal.
+- The production credential supplied by the operator is runtime-only. It is not committed,
+  copied into source/documentation/fixtures/tests, or treated as an application secret
+  source.
+- One Nightingale synthetic sample exists, but it is not identity-linked, login-capable,
+  encounter-authorized, content-bearing, routed, enrolled, activated, or a real patient.
+  No patient feature, migration, or production application release occurs from this plan
+  alone.
 - No staff Hummingbird code is copied into Nightingale, and no patient code is made a staff
   Hummingbird runtime mode.

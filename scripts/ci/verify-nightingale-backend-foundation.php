@@ -3,6 +3,11 @@
 
 declare(strict_types=1);
 
+use App\Nightingale\Disclosure\NightingaleDisclosureDisposition;
+use App\Nightingale\Disclosure\NightingaleEncounterBindingState;
+use App\Nightingale\Disclosure\NightingaleGenericNonDisclosureGate;
+use App\Nightingale\Disclosure\NightingaleRelationshipState;
+use App\Nightingale\Disclosure\NightingaleResourceState;
 use App\Nightingale\EncounterAccess\NightingaleEncounterAccessPreconditionGate;
 use App\Nightingale\EncounterAccess\NightingalePreconditionDisposition;
 use App\Nightingale\Identity\NightingaleIdentityBoundary;
@@ -49,6 +54,11 @@ $requiredPhpFiles = [
     'app/Nightingale/Inpatient/UnconfiguredNightingaleInpatientContextSource.php',
     'app/Nightingale/EncounterAccess/NightingalePreconditionDisposition.php',
     'app/Nightingale/EncounterAccess/NightingaleEncounterAccessPreconditionGate.php',
+    'app/Nightingale/Disclosure/NightingaleRelationshipState.php',
+    'app/Nightingale/Disclosure/NightingaleEncounterBindingState.php',
+    'app/Nightingale/Disclosure/NightingaleResourceState.php',
+    'app/Nightingale/Disclosure/NightingaleDisclosureDisposition.php',
+    'app/Nightingale/Disclosure/NightingaleGenericNonDisclosureGate.php',
 ];
 foreach ($requiredPhpFiles as $relativePath) {
     $path = "{$repositoryRoot}/{$relativePath}";
@@ -241,6 +251,113 @@ foreach (NightingaleIdentityState::cases() as $identityState) {
     }
 }
 
+$expectedRelationshipStates = [
+    'unknown',
+    'active',
+    'revoked',
+    'expired',
+    'cross_principal',
+];
+$expectedEncounterBindingStates = [
+    'matches_current_context',
+    'wrong_encounter',
+];
+$expectedResourceStates = [
+    'released',
+    'omitted',
+];
+$expectedDisclosureDispositions = [
+    'withhold_not_found',
+    'continue_to_governed_projection_evaluation',
+];
+foreach ([
+    'relationship' => [
+        array_map(
+            static fn (NightingaleRelationshipState $case): string => $case->value,
+            NightingaleRelationshipState::cases(),
+        ),
+        $expectedRelationshipStates,
+    ],
+    'encounter binding' => [
+        array_map(
+            static fn (NightingaleEncounterBindingState $case): string => $case->value,
+            NightingaleEncounterBindingState::cases(),
+        ),
+        $expectedEncounterBindingStates,
+    ],
+    'resource' => [
+        array_map(
+            static fn (NightingaleResourceState $case): string => $case->value,
+            NightingaleResourceState::cases(),
+        ),
+        $expectedResourceStates,
+    ],
+    'disclosure disposition' => [
+        array_map(
+            static fn (NightingaleDisclosureDisposition $case): string => $case->value,
+            NightingaleDisclosureDisposition::cases(),
+        ),
+        $expectedDisclosureDispositions,
+    ],
+] as $name => [$actual, $expected]) {
+    if ($actual !== $expected) {
+        $fail("{$name} state vocabulary changed");
+    }
+}
+
+$disclosureGate = new NightingaleGenericNonDisclosureGate;
+$expectedPublicFailure = [
+    'status' => 404,
+    'code' => 'not_found',
+    'cache_control' => 'private, no-store, max-age=0',
+];
+$continueCount = 0;
+$withholdCount = 0;
+foreach (NightingalePreconditionDisposition::cases() as $preconditions) {
+    foreach (NightingaleRelationshipState::cases() as $relationship) {
+        foreach (NightingaleEncounterBindingState::cases() as $encounterBinding) {
+            foreach (NightingaleResourceState::cases() as $resource) {
+                $result = $disclosureGate->evaluate(
+                    $preconditions,
+                    $relationship,
+                    $encounterBinding,
+                    $resource,
+                );
+                $shouldContinue = $preconditions
+                    === NightingalePreconditionDisposition::ContinueToGovernedEvaluation
+                    && $relationship === NightingaleRelationshipState::Active
+                    && $encounterBinding
+                    === NightingaleEncounterBindingState::MatchesCurrentContext
+                    && $resource === NightingaleResourceState::Released;
+
+                if ($shouldContinue) {
+                    $continueCount++;
+                    if ($result
+                        !== NightingaleDisclosureDisposition::ContinueToGovernedProjectionEvaluation
+                        || $result->publicFailure() !== null
+                    ) {
+                        $fail('fully positive disclosure state did not continue without a failure tuple');
+                    }
+
+                    continue;
+                }
+
+                $withholdCount++;
+                if ($result !== NightingaleDisclosureDisposition::WithholdNotFound
+                    || $result->publicFailure() !== $expectedPublicFailure
+                ) {
+                    $fail(
+                        'non-disclosable state did not collapse to the exact generic public failure tuple',
+                    );
+                }
+            }
+        }
+    }
+}
+if ($continueCount !== 1 || $withholdCount !== 39) {
+    $fail("disclosure truth-table cardinality changed: {$continueCount} continue, {$withholdCount} withhold");
+}
+
 $routeProvider = file_get_contents("{$repositoryRoot}/app/Providers/RouteServiceProvider.php");
 if (preg_match('/Route::[^;]*(?:nightingale|Nightingale)/s', $routeProvider) === 1) {
     $fail('RouteServiceProvider contains a Nightingale route registration');
@@ -257,6 +374,7 @@ $runtimeTokens = [
     '/api/nightingale',
     'NightingaleIdentityBoundary',
     'NightingaleInpatientContextSource',
+    'NightingaleGenericNonDisclosureGate',
 ];
 foreach ($runtimeRegistrationRoots as $root) {
     $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(

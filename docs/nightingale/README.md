@@ -20,7 +20,12 @@ families through 27 synthetic cases, including transfer, procedure, test/result 
 communication handoff, discharge, identity correction, representative lifecycle, language/
 interpreter support, accommodations, sensitive denial, source outage/staleness, and content
 retraction/correction. The catalog has no operation or runtime permission and is not
-clinical approval. Nightingale now also has two device-local display-comfort controls:
+clinical approval. A route-free generic non-disclosure foundation now collapses 39 of 40
+relationship/context/resource state combinations—including all required unknown, revoked,
+expired, cross-principal, wrong-encounter, and omitted-resource cases—to one exact 404
+tuple; the sole positive combination may only proceed to later governed projection
+evaluation. The gate is unreachable from an application request and adds no route, query,
+content, or authorization. Nightingale now also has two device-local display-comfort controls:
 reduced motion and decorative-imagery suppression. They are presentation-only, remain
 separate from care-account preferences, and do not authorize patient access. The current
 offline shell now also has a bounded maximum-text, landscape, semantic-order, target-size,
@@ -52,6 +57,13 @@ reason `CA92.1`, no Android network permission, cleartext denial, system-only tr
 backup exclusion. This is candidate engineering evidence, not a store declaration,
 privacy approval, or statement about a future connected product.
 
+An explicitly authorized production operation on 2026-07-27 cloned only the safe
+Hummingbird reference-patient shape into one Nightingale synthetic encounter and one
+pending/inactive, contactless/passwordless Nightingale principal. The source record remains
+unchanged, and the Nightingale clone has no identity link, grant, challenge, session,
+projection, route, or native caller. See the
+[production sample-patient evidence](../evidence/nightingale/production-sample-patient-2026-07-27/README.md).
+
 Current product-identity records:
 
 - [Product identity and support naming checklist](./PRODUCT-IDENTITY-AND-SUPPORT-NAMING-CHECKLIST-2026-07-26.md)
@@ -63,6 +75,7 @@ Current product-identity records:
 - [Encounter-access held-candidate decision](./ENCOUNTER-ACCESS-CANDIDATE-DECISION-2026-07-26.md)
 - [Today projection held-candidate decision](./TODAY-PROJECTION-CANDIDATE-DECISION-2026-07-26.md)
 - [Patient-journey reference-scenario held-candidate decision](./PATIENT-JOURNEY-REFERENCE-SCENARIO-CANDIDATE-DECISION-2026-07-27.md)
+- [Generic non-disclosure route-free foundation](./GENERIC-NON-DISCLOSURE-FOUNDATION-2026-07-27.md)
 - [Route, compatibility, identity, and inpatient-source ADR](./ROUTE-COMPATIBILITY-IDENTITY-SOURCE-ADR-2026-07-26.md)
 - [Identity, session, recovery, and inpatient-source held-candidate decision](./IDENTITY-SESSION-RECOVERY-AND-SOURCE-CANDIDATE-DECISION-2026-07-26.md)
 - [Identity-input, enrollment/recovery, first-read, and error source classification](./IDENTITY-INPUT-FIRST-READ-ERROR-SOURCE-CLASSIFICATION-2026-07-26.md)
@@ -88,6 +101,7 @@ Current product-identity records:
 - [134-file journey/preference/presentation/release checksum ledger](./migration/candidates/v0/journey-preference-presentation-release-source-classification.json)
 - [Launcher, themed-icon, and splash evidence](../evidence/nightingale/brand-identity-2026-07-26/README.md)
 - [Accessibility/language-readiness screenshots and hierarchies](../evidence/nightingale/accessibility-language-readiness-2026-07-27/README.md)
+- [Authorized production sample-patient evidence](../evidence/nightingale/production-sample-patient-2026-07-27/README.md)
 
 ## Lineage and filing rules
 
@@ -103,6 +117,9 @@ Current product-identity records:
 - The patient-journey reference catalog is a synthetic cross-surface acceptance model. Its
   15 families and 27 cases do not approve clinical content, representative access,
   communication, notification, production data, or a live journey operation.
+- The generic non-disclosure gate is a route-free domain invariant. Its one/39 truth table
+  does not approve a route, identity/source adapter, patient record, clinical release,
+  audit implementation, HTTP timing policy, native client, pilot, or production use.
 - The three migration ledgers now mechanically cover all 256 tracked sources in the bounded
   legacy Hummingbird Patient product universe. Complete classification means every source
   has an evidence disposition; it does not mean any source is approved to migrate.
