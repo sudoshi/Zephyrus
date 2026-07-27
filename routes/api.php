@@ -188,6 +188,11 @@ Route::middleware(['web', 'auth', 'throttle:30,1', EnsureArenaEnabled::class])
         Route::get('/map', [ArenaController::class, 'map']);
         Route::get('/performance', [ArenaController::class, 'performance']);
         Route::get('/conformance', [ArenaController::class, 'conformance']);
+        // Per-patient adherence read (FLOW-4D plan A2): cached case verdicts
+        // for one patient. Layered gates — ARENA_ENABLED (group) AND the flow
+        // lens patient scope (A2P authorization + audit inside patientScope()).
+        Route::get('/conformance/case', [ArenaController::class, 'caseConformance'])
+            ->middleware(EnforceFlowLens::class.':scoped-patients');
         Route::get('/petrinet', [ArenaController::class, 'petrinet']);
         Route::get('/capacity', [ArenaController::class, 'capacity']);
 
