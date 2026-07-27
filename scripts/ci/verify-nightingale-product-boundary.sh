@@ -27,6 +27,13 @@ copy_verifier="$repo_root/scripts/ci/verify-nightingale-foundation-copy.mjs"
 ios_background_catalog="$ios_source/NightingaleBackgroundCatalog.swift"
 ios_background_link="$repo_root/nightingale/iosApp/NightingaleBackgrounds"
 android_background_catalog="$android_source/java/net/acumenus/nightingale/NightingaleBackgroundCatalog.kt"
+apple_registry="$repo_root/.appledeploy.example"
+ios_export_options="$repo_root/nightingale/iosApp/ExportOptions.plist"
+nightingale_testflight_record="$repo_root/docs/nightingale/TESTFLIGHT.md"
+legacy_patient_ios_project="$repo_root/hummingbird/iosPatientApp/project.yml"
+legacy_patient_ios_info="$repo_root/hummingbird/iosPatientApp/HummingbirdPatient/Info.plist"
+legacy_patient_ios_export="$repo_root/hummingbird/iosPatientApp/ExportOptions.plist"
+ipa_verifier="$repo_root/scripts/appledeploy/verify_ipa.py"
 
 for required_path in \
     "$ios_source" \
@@ -52,13 +59,101 @@ for required_path in \
     "$copy_verifier" \
     "$ios_background_catalog" \
     "$ios_background_link" \
-    "$android_background_catalog"
+    "$android_background_catalog" \
+    "$apple_registry" \
+    "$ios_export_options" \
+    "$nightingale_testflight_record" \
+    "$legacy_patient_ios_project" \
+    "$legacy_patient_ios_info" \
+    "$ipa_verifier"
 do
     [[ -e "$required_path" ]] || {
         echo "Missing Nightingale boundary input: $required_path" >&2
         exit 66
     }
 done
+
+python3 "$ipa_verifier" --self-test
+
+[[ ! -e "$legacy_patient_ios_export" ]] || {
+    echo "The legacy Hummingbird Patient iOS root must not own Nightingale export configuration." >&2
+    exit 1
+}
+
+grep -Fqx -- 'NIGHTINGALE_BUNDLE_ID=net.acumenus.nightingale' "$apple_registry" || {
+    echo "The Apple registry is missing the independent Nightingale bundle identifier." >&2
+    exit 1
+}
+
+grep -Fqx -- 'NIGHTINGALE_DIR=nightingale/iosApp' "$apple_registry" || {
+    echo "The Apple registry must build Nightingale only from nightingale/iosApp." >&2
+    exit 1
+}
+
+grep -Fqx -- 'NIGHTINGALE_XCODEPROJ=Nightingale.xcodeproj' "$apple_registry" || {
+    echo "The Apple registry must use the independent Nightingale Xcode project." >&2
+    exit 1
+}
+
+grep -Fqx -- 'NIGHTINGALE_SCHEME=Nightingale' "$apple_registry" || {
+    echo "The Apple registry must use the independent Nightingale scheme." >&2
+    exit 1
+}
+
+grep -Fq -- 'PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.hummingbird.patient' \
+    "$legacy_patient_ios_project" || {
+    echo "The legacy patient reference must retain its Hummingbird Patient bundle identity." >&2
+    exit 1
+}
+
+grep -Fq -- 'CFBundleDisplayName: Hummingbird Patient' "$legacy_patient_ios_project" || {
+    echo "The legacy patient reference must retain its Hummingbird Patient display name." >&2
+    exit 1
+}
+
+grep -Fq -- '<string>Hummingbird Patient</string>' "$legacy_patient_ios_info" || {
+    echo "The legacy patient reference Info.plist must retain its display name." >&2
+    exit 1
+}
+
+if grep -nF -- 'net.acumenus.nightingale' \
+    "$legacy_patient_ios_project" \
+    "$legacy_patient_ios_info"
+then
+    echo "The legacy Hummingbird Patient project must not claim Nightingale identity." >&2
+    exit 1
+fi
+
+python3 - "$ios_export_options" <<'PY'
+import plistlib
+import sys
+from pathlib import Path
+
+try:
+    export = plistlib.loads(Path(sys.argv[1]).read_bytes())
+except (OSError, plistlib.InvalidFileException) as error:
+    raise SystemExit(f"The Nightingale export options are invalid: {error}")
+
+expected = {
+    "destination": "export",
+    "manageAppVersionAndBuildNumber": False,
+    "method": "app-store-connect",
+    "signingStyle": "automatic",
+    "teamID": "TKXPY255A2",
+    "uploadSymbols": True,
+}
+if export != expected:
+    raise SystemExit(
+        "The Nightingale export policy changed from the exact reviewed "
+        "App Store Connect configuration."
+    )
+PY
+
+grep -Fq -- '**Authoritative source root:** `nightingale/iosApp`' \
+    "$nightingale_testflight_record" || {
+    echo "The Nightingale distribution record must name the independent iOS source root." >&2
+    exit 1
+}
 
 command -v node >/dev/null 2>&1 || {
     echo "Node is required to verify the Nightingale background catalog." >&2

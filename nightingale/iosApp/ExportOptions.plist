@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Used by ./testflight.sh for `xcodebuild -exportArchive` on Nightingale
-     (bundle id net.acumenus.nightingale). App Store distribution, automatic
-     signing under team TKXPY255A2. destination=export produces a local signed
-     .ipa; the script uploads it separately so the same archive can be
-     re-exported without re-signing. -->
+<!-- Nightingale-only App Store export policy used by the repository TestFlight
+     helper after an authorized archive is built from nightingale/iosApp.
+     This file configures export; it does not authorize signing, upload,
+     tester distribution, patient access, or pilot activation. -->
 <plist version="1.0">
 <dict>
 	<key>method</key>

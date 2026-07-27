@@ -467,7 +467,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.acumenus.nightingale;
+				PRODUCT_BUNDLE_IDENTIFIER = net.acumenus.hummingbird.patient;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -551,7 +551,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = net.acumenus.nightingale;
+				PRODUCT_BUNDLE_IDENTIFIER = net.acumenus.hummingbird.patient;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -567,7 +567,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "net.acumenus.nightingale.ui-tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "net.acumenus.hummingbird.patient.ui-tests";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = HummingbirdPatient;
@@ -640,7 +640,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "net.acumenus.nightingale.ui-tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "net.acumenus.hummingbird.patient.ui-tests";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = HummingbirdPatient;
@@ -657,7 +657,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = net.acumenus.nightingale.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = net.acumenus.hummingbird.patient.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HummingbirdPatient.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HummingbirdPatient";
@@ -674,7 +674,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = net.acumenus.nightingale.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = net.acumenus.hummingbird.patient.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HummingbirdPatient.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HummingbirdPatient";

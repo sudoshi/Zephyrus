@@ -8,6 +8,7 @@ androidApp/local.properties
 iosApp/*.xcodeproj/
 iosApp/DerivedData/
 iosApp/build/
+iosApp/.build-archive/
 iosApp/*.xcuserstate
 iosApp/*.xcuserdatad/
 iosApp/xcuserdata/

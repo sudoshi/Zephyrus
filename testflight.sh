@@ -29,6 +29,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="${APPLEDEPLOY_FILE:-$REPO_ROOT/.appledeploy}"
 ASC_API="$REPO_ROOT/scripts/appledeploy/asc_api.py"
+IPA_VERIFIER="$REPO_ROOT/scripts/appledeploy/verify_ipa.py"
 
 # ── output ─────────────────────────────────────────────────────────────────────
 if [ -t 1 ]; then
@@ -67,7 +68,7 @@ resolve_app() {
   APP_SLUG="$slug"
   APP_NAME="${!name_var:-$slug}"
   APP_ID="${!id_var:-}"
-  APP_BUNDLE="${!bundle_var:-}"
+  APP_BUNDLE="${!bundle_var:?${bundle_var} missing in .appledeploy}"
   APP_DIR="$REPO_ROOT/${!dir_var:?${dir_var} missing in .appledeploy}"
   APP_PROJ="${!proj_var:?${proj_var} missing in .appledeploy}"
   APP_SCHEME="${!scheme_var:?${scheme_var} missing in .appledeploy}"
@@ -139,6 +140,9 @@ ship_one() {
   local slug="$1"
   resolve_app "$slug"
 
+  [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]] \
+    || die "$APP_SLUG: build number must contain decimal digits only"
+
   local archive="$APP_DIR/.build-archive/$APP_SCHEME.xcarchive"
   local export_dir="$APP_DIR/.build-archive/export"
 
@@ -165,6 +169,8 @@ ship_one() {
   step "Exporting signed App Store .ipa"
   local export_opts="$APP_DIR/ExportOptions.plist"
   [ -f "$export_opts" ] || die "$APP_SLUG: missing $export_opts"
+  [ "$export_dir" = "$APP_DIR/.build-archive/export" ] \
+    || die "$APP_SLUG: refusing unsafe export cleanup target: $export_dir"
   rm -rf "$export_dir"
   xcodebuild -exportArchive \
     -archivePath "$archive" \
@@ -175,6 +181,7 @@ ship_one() {
   local ipa
   ipa="$(find "$export_dir" -maxdepth 1 -name '*.ipa' | head -1)"
   [ -n "$ipa" ] || die "$APP_SLUG: no .ipa produced — check the export log above"
+  python3 "$IPA_VERIFIER" "$ipa" "$APP_BUNDLE" "$BUILD_NUMBER"
   ok "exported $ipa"
 
   if [ "$DO_UPLOAD" -eq 0 ]; then
