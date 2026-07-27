@@ -499,9 +499,9 @@ SQL);
             ['enabled' => true, 'governance_status' => 'draft_requires_approval'],
         ] as $staffMessaging) {
             config([
-                'hummingbird-patient.enabled' => true,
-                'hummingbird-patient.features.messaging' => true,
-                'hummingbird-patient.staff_messaging' => $staffMessaging,
+                'nightingale.enabled' => true,
+                'nightingale.features.messaging' => true,
+                'nightingale.staff_messaging' => $staffMessaging,
             ]);
 
             try {
@@ -716,9 +716,9 @@ SQL);
     private function configure(array $units): void
     {
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.messaging' => true,
-            'hummingbird-patient.messaging' => [
+            'nightingale.enabled' => true,
+            'nightingale.features.messaging' => true,
+            'nightingale.messaging' => [
                 'governance_status' => 'approved',
                 'policy_version' => self::POLICY_VERSION,
                 'urgent_guidance_version' => 'lifecycle-guidance-v1',
@@ -733,9 +733,9 @@ SQL);
                     ],
                 ],
             ],
-            'hummingbird-patient.staff_messaging.enabled' => true,
-            'hummingbird-patient.staff_messaging.governance_status' => 'approved',
-            'hummingbird-patient.staff_messaging.pilot_unit_ids' => collect($units)
+            'nightingale.staff_messaging.enabled' => true,
+            'nightingale.staff_messaging.governance_status' => 'approved',
+            'nightingale.staff_messaging.pilot_unit_ids' => collect($units)
                 ->map(static fn (Unit $unit): int => (int) $unit->getKey())
                 ->all(),
         ]);

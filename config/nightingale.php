@@ -15,86 +15,86 @@ return [
     |
     */
 
-    'enabled' => (bool) env('HUMMINGBIRD_PATIENT_ENABLED', false),
+    'enabled' => (bool) env('NIGHTINGALE_ENABLED', false),
 
     // Dedicated domain key for patient-realm lookup and audit digests. This
     // must not reuse APP_KEY. PatientHmac supplies a deterministic fallback in
     // APP_ENV=testing only and fails closed everywhere else.
-    'hmac_secret' => env('HUMMINGBIRD_PATIENT_HMAC_SECRET'),
+    'hmac_secret' => env('NIGHTINGALE_HMAC_SECRET'),
 
-    'policy_version' => env('HUMMINGBIRD_PATIENT_POLICY_VERSION', 'patient-disclosure-v1-draft'),
+    'policy_version' => env('NIGHTINGALE_POLICY_VERSION', 'patient-disclosure-v1-draft'),
 
     'features' => [
-        'enrollment' => (bool) env('HUMMINGBIRD_PATIENT_ENROLLMENT_ENABLED', false),
-        'token_exchange' => (bool) env('HUMMINGBIRD_PATIENT_TOKEN_EXCHANGE_ENABLED', false),
-        'profile' => (bool) env('HUMMINGBIRD_PATIENT_PROFILE_ENABLED', false),
-        'session_management' => (bool) env('HUMMINGBIRD_PATIENT_SESSION_MANAGEMENT_ENABLED', false),
+        'enrollment' => (bool) env('NIGHTINGALE_ENROLLMENT_ENABLED', false),
+        'token_exchange' => (bool) env('NIGHTINGALE_TOKEN_EXCHANGE_ENABLED', false),
+        'profile' => (bool) env('NIGHTINGALE_PROFILE_ENABLED', false),
+        'session_management' => (bool) env('NIGHTINGALE_SESSION_MANAGEMENT_ENABLED', false),
         // Registers an encrypted, revocable provider token only. This does
         // not enable a notification provider, payload delivery, or push.
-        'notification_devices' => (bool) env('HUMMINGBIRD_PATIENT_NOTIFICATION_DEVICES_ENABLED', false),
-        'encounters' => (bool) env('HUMMINGBIRD_PATIENT_ENCOUNTERS_ENABLED', false),
-        'today' => (bool) env('HUMMINGBIRD_PATIENT_TODAY_ENABLED', false),
-        'pathway' => (bool) env('HUMMINGBIRD_PATIENT_PATHWAY_ENABLED', false),
+        'notification_devices' => (bool) env('NIGHTINGALE_NOTIFICATION_DEVICES_ENABLED', false),
+        'encounters' => (bool) env('NIGHTINGALE_ENCOUNTERS_ENABLED', false),
+        'today' => (bool) env('NIGHTINGALE_TODAY_ENABLED', false),
+        'pathway' => (bool) env('NIGHTINGALE_PATHWAY_ENABLED', false),
         // Produces a governed *draft* My Path projection from already
         // version-pinned, append-only pathway history. This cannot release a
         // projection or substitute for an approved production source adapter.
-        'pathway_history_drafts' => (bool) env('HUMMINGBIRD_PATIENT_PATHWAY_HISTORY_DRAFTS_ENABLED', false),
+        'pathway_history_drafts' => (bool) env('NIGHTINGALE_PATHWAY_HISTORY_DRAFTS_ENABLED', false),
         // Admits only an allowlisted, connector-internal pathway status
         // snapshot. It appends history only and cannot release a projection.
-        'pathway_source_reconciliation' => (bool) env('HUMMINGBIRD_PATIENT_PATHWAY_SOURCE_RECONCILIATION_ENABLED', false),
+        'pathway_source_reconciliation' => (bool) env('NIGHTINGALE_PATHWAY_SOURCE_RECONCILIATION_ENABLED', false),
         // Requires a separate clinical review and a different catalog release
         // manager before one pathway draft can become patient-visible.
-        'pathway_history_releases' => (bool) env('HUMMINGBIRD_PATIENT_PATHWAY_HISTORY_RELEASES_ENABLED', false),
+        'pathway_history_releases' => (bool) env('NIGHTINGALE_PATHWAY_HISTORY_RELEASES_ENABLED', false),
         // Allows a patient to request clarification about an education item
         // that is already present in their currently released pathway. This
         // creates an accountable message only; it never records completion,
         // comprehension, consent, or a clinician assessment.
-        'teach_back' => (bool) env('HUMMINGBIRD_PATIENT_TEACH_BACK_ENABLED', false),
+        'teach_back' => (bool) env('NIGHTINGALE_TEACH_BACK_ENABLED', false),
         // Persists a content-free, patient-authored care-preference association
         // beside the existing encrypted accountable message. It never writes
         // or amends a clinical care plan, order, consent, or assessment.
-        'care_preferences' => (bool) env('HUMMINGBIRD_PATIENT_CARE_PREFERENCES_ENABLED', false),
+        'care_preferences' => (bool) env('NIGHTINGALE_CARE_PREFERENCES_ENABLED', false),
         // Persists a content-free patient-authored personal-goal association
         // beside its encrypted accountable message. It is never a clinical
         // goal, care-plan change, order, consent, or assessment.
-        'patient_goals' => (bool) env('HUMMINGBIRD_PATIENT_GOALS_ENABLED', false),
+        'patient_goals' => (bool) env('NIGHTINGALE_GOALS_ENABLED', false),
         // Allows only the explicitly approved `rounds_question` messaging
         // topic. It does not grant access to the staff virtual-rounds API.
-        'rounds_questions' => (bool) env('HUMMINGBIRD_PATIENT_ROUNDS_QUESTIONS_ENABLED', false),
+        'rounds_questions' => (bool) env('NIGHTINGALE_ROUNDS_QUESTIONS_ENABLED', false),
         // A released, plain-language patient summary of rounds. This never
         // enables or proxies the staff virtual-rounds workspace.
-        'rounds_summary' => (bool) env('HUMMINGBIRD_PATIENT_ROUNDS_SUMMARY_ENABLED', false),
-        'care_team' => (bool) env('HUMMINGBIRD_PATIENT_CARE_TEAM_ENABLED', false),
-        'messaging' => (bool) env('HUMMINGBIRD_PATIENT_MESSAGING_ENABLED', false),
+        'rounds_summary' => (bool) env('NIGHTINGALE_ROUNDS_SUMMARY_ENABLED', false),
+        'care_team' => (bool) env('NIGHTINGALE_CARE_TEAM_ENABLED', false),
+        'messaging' => (bool) env('NIGHTINGALE_MESSAGING_ENABLED', false),
     ],
 
     'token' => [
-        'access_ttl_minutes' => max(1, (int) env('HUMMINGBIRD_PATIENT_ACCESS_TTL_MINUTES', 15)),
-        'refresh_ttl_days' => max(1, (int) env('HUMMINGBIRD_PATIENT_REFRESH_TTL_DAYS', 14)),
+        'access_ttl_minutes' => max(1, (int) env('NIGHTINGALE_ACCESS_TTL_MINUTES', 15)),
+        'refresh_ttl_days' => max(1, (int) env('NIGHTINGALE_REFRESH_TTL_DAYS', 14)),
     ],
 
     'enrollment' => [
-        'max_attempts' => max(1, (int) env('HUMMINGBIRD_PATIENT_ENROLLMENT_MAX_ATTEMPTS', 5)),
+        'max_attempts' => max(1, (int) env('NIGHTINGALE_ENROLLMENT_MAX_ATTEMPTS', 5)),
     ],
 
     'notification_devices' => [
         // This key ring is deliberately independent of APP_KEY and messaging
         // body encryption. The registered provider token is never included in
         // API responses, audit metadata, logs, or notification payloads.
-        'encryption_key_version' => env('HUMMINGBIRD_PATIENT_NOTIFICATION_DEVICE_ENCRYPTION_KEY_VERSION'),
-        'encryption_key' => env('HUMMINGBIRD_PATIENT_NOTIFICATION_DEVICE_ENCRYPTION_KEY'),
+        'encryption_key_version' => env('NIGHTINGALE_NOTIFICATION_DEVICE_ENCRYPTION_KEY_VERSION'),
+        'encryption_key' => env('NIGHTINGALE_NOTIFICATION_DEVICE_ENCRYPTION_KEY'),
         'previous_encryption_keys_json' => env(
-            'HUMMINGBIRD_PATIENT_NOTIFICATION_DEVICE_PREVIOUS_ENCRYPTION_KEYS_JSON',
+            'NIGHTINGALE_NOTIFICATION_DEVICE_PREVIOUS_ENCRYPTION_KEYS_JSON',
         ),
     ],
 
     'reference_provisioning' => [
         // Fail closed. Enable only in the deployed application runtime that
         // owns the configured APP_KEY and dedicated patient HMAC secret.
-        'enabled' => (bool) env('HUMMINGBIRD_PATIENT_REFERENCE_PROVISIONING_ENABLED', false),
-        'encryption_key_version' => env('HUMMINGBIRD_PATIENT_REFERENCE_ENCRYPTION_KEY_VERSION'),
+        'enabled' => (bool) env('NIGHTINGALE_REFERENCE_PROVISIONING_ENABLED', false),
+        'encryption_key_version' => env('NIGHTINGALE_REFERENCE_ENCRYPTION_KEY_VERSION'),
         'challenge_ttl_minutes' => max(5, min(30, (int) env(
-            'HUMMINGBIRD_PATIENT_REFERENCE_CHALLENGE_TTL_MINUTES',
+            'NIGHTINGALE_REFERENCE_CHALLENGE_TTL_MINUTES',
             10,
         ))),
     ],
@@ -105,11 +105,11 @@ return [
         'source_system_key' => 'care-pathways.pathway-history-v1',
         'producer_version' => 'patient-pathway-history-draft-v1',
         'current_after_minutes' => max(1, (int) env(
-            'HUMMINGBIRD_PATIENT_PATHWAY_HISTORY_CURRENT_AFTER_MINUTES',
+            'NIGHTINGALE_PATHWAY_HISTORY_CURRENT_AFTER_MINUTES',
             30,
         )),
         'stale_after_minutes' => max(2, (int) env(
-            'HUMMINGBIRD_PATIENT_PATHWAY_HISTORY_STALE_AFTER_MINUTES',
+            'NIGHTINGALE_PATHWAY_HISTORY_STALE_AFTER_MINUTES',
             240,
         )),
     ],
@@ -141,20 +141,20 @@ return [
 
     'messaging' => [
         'governance_status' => env(
-            'HUMMINGBIRD_PATIENT_MESSAGING_POLICY_STATUS',
+            'NIGHTINGALE_MESSAGING_POLICY_STATUS',
             'draft_requires_approval',
         ),
-        'policy_version' => env('HUMMINGBIRD_PATIENT_MESSAGING_POLICY_VERSION'),
-        'urgent_guidance_version' => env('HUMMINGBIRD_PATIENT_MESSAGING_URGENT_GUIDANCE_VERSION'),
-        'urgent_guidance_text' => env('HUMMINGBIRD_PATIENT_MESSAGING_URGENT_GUIDANCE_TEXT'),
-        'default_response_window' => env('HUMMINGBIRD_PATIENT_MESSAGING_DEFAULT_RESPONSE_WINDOW'),
-        'encryption_key_version' => env('HUMMINGBIRD_PATIENT_MESSAGING_ENCRYPTION_KEY_VERSION'),
-        'encryption_key' => env('HUMMINGBIRD_PATIENT_MESSAGING_ENCRYPTION_KEY'),
+        'policy_version' => env('NIGHTINGALE_MESSAGING_POLICY_VERSION'),
+        'urgent_guidance_version' => env('NIGHTINGALE_MESSAGING_URGENT_GUIDANCE_VERSION'),
+        'urgent_guidance_text' => env('NIGHTINGALE_MESSAGING_URGENT_GUIDANCE_TEXT'),
+        'default_response_window' => env('NIGHTINGALE_MESSAGING_DEFAULT_RESPONSE_WINDOW'),
+        'encryption_key_version' => env('NIGHTINGALE_MESSAGING_ENCRYPTION_KEY_VERSION'),
+        'encryption_key' => env('NIGHTINGALE_MESSAGING_ENCRYPTION_KEY'),
         'previous_encryption_keys_json' => env(
-            'HUMMINGBIRD_PATIENT_MESSAGING_PREVIOUS_ENCRYPTION_KEYS_JSON',
+            'NIGHTINGALE_MESSAGING_PREVIOUS_ENCRYPTION_KEYS_JSON',
         ),
         'handoff_consumer' => env(
-            'HUMMINGBIRD_PATIENT_MESSAGING_HANDOFF_CONSUMER',
+            'NIGHTINGALE_MESSAGING_HANDOFF_CONSUMER',
             DatabasePatientMessageHandoffConsumer::class,
         ),
         'topics' => [
@@ -246,26 +246,26 @@ return [
     */
 
     'staff_messaging' => [
-        'enabled' => (bool) env('HUMMINGBIRD_PATIENT_STAFF_MESSAGING_ENABLED', false),
+        'enabled' => (bool) env('NIGHTINGALE_STAFF_MESSAGING_ENABLED', false),
         'governance_status' => env(
-            'HUMMINGBIRD_PATIENT_STAFF_MESSAGING_POLICY_STATUS',
+            'NIGHTINGALE_STAFF_MESSAGING_POLICY_STATUS',
             'draft_requires_approval',
         ),
         'consumer_key' => 'patient-message-staff-inbox-v1',
         'pilot_unit_ids' => array_values(array_filter(
             array_map(
                 static fn (string $value): int => (int) trim($value),
-                explode(',', (string) env('HUMMINGBIRD_PATIENT_STAFF_MESSAGING_PILOT_UNIT_IDS', '')),
+                explode(',', (string) env('NIGHTINGALE_STAFF_MESSAGING_PILOT_UNIT_IDS', '')),
             ),
             static fn (int $value): bool => $value > 0,
         )),
         'heartbeat_ttl_seconds' => max(
             30,
-            min(600, (int) env('HUMMINGBIRD_PATIENT_STAFF_MESSAGING_HEARTBEAT_TTL_SECONDS', 120)),
+            min(600, (int) env('NIGHTINGALE_STAFF_MESSAGING_HEARTBEAT_TTL_SECONDS', 120)),
         ),
         'batch_size' => max(
             1,
-            min(500, (int) env('HUMMINGBIRD_PATIENT_STAFF_MESSAGING_BATCH_SIZE', 100)),
+            min(500, (int) env('NIGHTINGALE_STAFF_MESSAGING_BATCH_SIZE', 100)),
         ),
     ],
 ];

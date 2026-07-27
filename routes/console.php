@@ -21,8 +21,8 @@ Schedule::command('integrations:execute-scheduled-activations --limit=25 --lease
     ->onOneServer()
     ->withoutOverlapping(5);
 
-if ((bool) config('hummingbird-patient.staff_messaging.enabled', false)
-    && config('hummingbird-patient.staff_messaging.governance_status') === 'approved'
+if ((bool) config('nightingale.staff_messaging.enabled', false)
+    && config('nightingale.staff_messaging.governance_status') === 'approved'
 ) {
     // A bounded, content-free handoff run keeps the readiness heartbeat fresh
     // and drains patient messages into accountable pool-owned work items. The
@@ -41,9 +41,9 @@ if ((bool) config('hummingbird-patient.staff_messaging.enabled', false)
         ->withoutOverlapping(2);
 }
 
-if ((bool) config('hummingbird-patient.enabled', false)
-    && (bool) config('hummingbird-patient.features.pathway', false)
-    && (bool) config('hummingbird-patient.features.pathway_history_drafts', false)
+if ((bool) config('nightingale.enabled', false)
+    && (bool) config('nightingale.features.pathway', false)
+    && (bool) config('nightingale.features.pathway_history_drafts', false)
     && (bool) config('care-pathways.patient_enabled', false)
 ) {
     // This is intentionally a draft-only producer. It cannot publish, notify,

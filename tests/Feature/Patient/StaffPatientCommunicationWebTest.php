@@ -21,10 +21,10 @@ class StaffPatientCommunicationWebTest extends TestCase
         parent::setUp();
 
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.messaging' => true,
-            'hummingbird-patient.staff_messaging.enabled' => true,
-            'hummingbird-patient.staff_messaging.governance_status' => 'approved',
+            'nightingale.enabled' => true,
+            'nightingale.features.messaging' => true,
+            'nightingale.staff_messaging.enabled' => true,
+            'nightingale.staff_messaging.governance_status' => 'approved',
         ]);
     }
 
@@ -70,7 +70,7 @@ class StaffPatientCommunicationWebTest extends TestCase
             ->get('/patient-communications')
             ->assertForbidden();
 
-        config(['hummingbird-patient.staff_messaging.enabled' => false]);
+        config(['nightingale.staff_messaging.enabled' => false]);
         $this->actingAs($eligible)
             ->get('/patient-communications')
             ->assertNotFound()
@@ -101,7 +101,7 @@ class StaffPatientCommunicationWebTest extends TestCase
             ->assertJsonPath('data.count', 0)
             ->assertJsonPath('links.web', url('/patient-communications'));
 
-        config(['hummingbird-patient.staff_messaging.enabled' => false]);
+        config(['nightingale.staff_messaging.enabled' => false]);
         $this->withToken($token)
             ->getJson('/api/mobile/v1/patient-communications/inbox')
             ->assertNotFound()

@@ -589,10 +589,10 @@ class PatientRoundQuestionPromotionTest extends TestCase
     {
         config([
             'rounds.patient_question_bridge_enabled' => true,
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.messaging' => true,
-            'hummingbird-patient.features.rounds_questions' => true,
-            'hummingbird-patient.messaging' => [
+            'nightingale.enabled' => true,
+            'nightingale.features.messaging' => true,
+            'nightingale.features.rounds_questions' => true,
+            'nightingale.messaging' => [
                 'governance_status' => 'approved',
                 'policy_version' => self::POLICY_VERSION,
                 'urgent_guidance_version' => 'test-guidance-v1',
@@ -608,7 +608,7 @@ class PatientRoundQuestionPromotionTest extends TestCase
                     ],
                 ],
             ],
-            'hummingbird-patient.staff_messaging' => [
+            'nightingale.staff_messaging' => [
                 'enabled' => true,
                 'governance_status' => 'approved',
             ],

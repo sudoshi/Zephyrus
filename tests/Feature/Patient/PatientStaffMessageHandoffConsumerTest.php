@@ -116,7 +116,7 @@ class PatientStaffMessageHandoffConsumerTest extends TestCase
             'is_deleted' => false,
         ]);
         config([
-            'hummingbird-patient.staff_messaging.pilot_unit_ids' => [
+            'nightingale.staff_messaging.pilot_unit_ids' => [
                 $unit->getKey(),
                 $transferredUnit->getKey(),
             ],
@@ -559,7 +559,7 @@ class PatientStaffMessageHandoffConsumerTest extends TestCase
             ->assertCreated();
 
         config([
-            'hummingbird-patient.messaging.policy_version' => 'test-staff-handoff-policy-v2',
+            'nightingale.messaging.policy_version' => 'test-staff-handoff-policy-v2',
         ]);
 
         $this->assertSame(
@@ -669,9 +669,9 @@ class PatientStaffMessageHandoffConsumerTest extends TestCase
     private function configureMessaging(Unit $unit): void
     {
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.messaging' => true,
-            'hummingbird-patient.messaging' => [
+            'nightingale.enabled' => true,
+            'nightingale.features.messaging' => true,
+            'nightingale.messaging' => [
                 'governance_status' => 'approved',
                 'policy_version' => self::POLICY_VERSION,
                 'urgent_guidance_version' => self::GUIDANCE_VERSION,
@@ -687,7 +687,7 @@ class PatientStaffMessageHandoffConsumerTest extends TestCase
                     ],
                 ],
             ],
-            'hummingbird-patient.staff_messaging' => [
+            'nightingale.staff_messaging' => [
                 'enabled' => true,
                 'governance_status' => 'approved',
                 'consumer_key' => 'patient-message-staff-inbox-v1',

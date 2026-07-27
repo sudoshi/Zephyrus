@@ -38,7 +38,7 @@ use RuntimeException;
  * projections under an effective grant and active release policy, so these
  * rows remain unavailable to every patient API request.
  */
-final class HummingbirdPatientReferenceProjectionDraftProvisioner
+final class NightingaleReferenceProjectionDraftProvisioner
 {
     public const OWNER = 'hummingbird-patient-reference-projection-draft-provisioner-v1';
 
@@ -248,7 +248,7 @@ final class HummingbirdPatientReferenceProjectionDraftProvisioner
 
         $principalQuery = PatientPrincipal::query()
             ->whereRaw("preferences #>> '{provisioning,owner}' = ?", [
-                HummingbirdPatientReferenceIdentityProvisioner::OWNER,
+                NightingaleReferenceIdentityProvisioner::OWNER,
             ]);
         if ($forUpdate) {
             $principalQuery->lockForUpdate();
@@ -270,7 +270,7 @@ final class HummingbirdPatientReferenceProjectionDraftProvisioner
         $grantQuery = PatientEncounterAccessGrant::query()
             ->where('source_encounter_id', $encounter->getKey())
             ->whereRaw("metadata->>'owner' = ?", [
-                HummingbirdPatientReferenceIdentityProvisioner::OWNER,
+                NightingaleReferenceIdentityProvisioner::OWNER,
             ]);
         if ($forUpdate) {
             $grantQuery->lockForUpdate();
@@ -301,7 +301,7 @@ final class HummingbirdPatientReferenceProjectionDraftProvisioner
             || $identity->status !== 'verified'
             || $identity->revoked_at !== null
             || ($identity->provenance['owner'] ?? null)
-                !== HummingbirdPatientReferenceIdentityProvisioner::OWNER
+                !== NightingaleReferenceIdentityProvisioner::OWNER
             || ($identity->provenance['synthetic'] ?? null) !== true) {
             throw new RuntimeException('reference_patient_projection_identity_not_safe');
         }

@@ -20,7 +20,7 @@ use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
 
-final class HummingbirdPatientReferenceIdentityProvisioner
+final class NightingaleReferenceIdentityProvisioner
 {
     public const OWNER = 'hummingbird-patient-reference-identity-provisioner-v1';
 
@@ -145,7 +145,7 @@ final class HummingbirdPatientReferenceIdentityProvisioner
 
     private function assertExecutionSafe(): void
     {
-        if (! (bool) config('hummingbird-patient.reference_provisioning.enabled', false)) {
+        if (! (bool) config('nightingale.reference_provisioning.enabled', false)) {
             throw new RuntimeException('reference_patient_provisioning_disabled');
         }
 
@@ -173,7 +173,7 @@ final class HummingbirdPatientReferenceIdentityProvisioner
 
     private function assertEncryptionConfiguration(): void
     {
-        $keyVersion = trim((string) config('hummingbird-patient.reference_provisioning.encryption_key_version'));
+        $keyVersion = trim((string) config('nightingale.reference_provisioning.encryption_key_version'));
         if (preg_match('/^[a-zA-Z0-9][a-zA-Z0-9._-]{2,63}$/', $keyVersion) !== 1) {
             throw new RuntimeException('reference_patient_encryption_key_version_unavailable');
         }
@@ -493,7 +493,7 @@ final class HummingbirdPatientReferenceIdentityProvisioner
                 'delivery_method' => 'in_person',
                 'status' => 'issued',
                 'failed_attempts' => 0,
-                'max_attempts' => (int) config('hummingbird-patient.enrollment.max_attempts', 5),
+                'max_attempts' => (int) config('nightingale.enrollment.max_attempts', 5),
                 'expires_at' => $expiresAt,
                 'metadata' => [
                     'owner' => self::OWNER,
@@ -640,13 +640,13 @@ final class HummingbirdPatientReferenceIdentityProvisioner
 
     private function encryptionKeyVersion(): string
     {
-        return trim((string) config('hummingbird-patient.reference_provisioning.encryption_key_version'));
+        return trim((string) config('nightingale.reference_provisioning.encryption_key_version'));
     }
 
     private function challengeTtlMinutes(): int
     {
         return max(5, min(30, (int) config(
-            'hummingbird-patient.reference_provisioning.challenge_ttl_minutes',
+            'nightingale.reference_provisioning.challenge_ttl_minutes',
             10,
         )));
     }

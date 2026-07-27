@@ -9,7 +9,7 @@ use App\Models\Patient\PatientIdentityLink;
 use App\Models\Patient\PatientPrincipal;
 use App\Models\Unit;
 use App\Services\Mobile\Demo\HummingbirdReferencePatientProvisioner;
-use App\Services\Patient\Demo\HummingbirdPatientReferenceIdentityProvisioner;
+use App\Services\Patient\Demo\NightingaleReferenceIdentityProvisioner;
 use App\Services\Patient\Demo\PatientEnrollmentMaterialGenerator;
 use App\Services\Patient\PatientHmac;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,7 +23,7 @@ use RuntimeException;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Tests\TestCase;
 
-class HummingbirdPatientReferenceIdentityProvisionerTest extends TestCase
+class NightingaleReferenceIdentityProvisionerTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -32,11 +32,11 @@ class HummingbirdPatientReferenceIdentityProvisionerTest extends TestCase
         parent::setUp();
 
         config([
-            'hummingbird-patient.hmac_secret' => str_repeat('patient-reference-test-hmac-', 2),
-            'hummingbird-patient.reference_provisioning.enabled' => true,
-            'hummingbird-patient.reference_provisioning.encryption_key_version' => 'test-app-key-v1',
-            'hummingbird-patient.reference_provisioning.challenge_ttl_minutes' => 10,
-            'hummingbird-patient.enrollment.max_attempts' => 5,
+            'nightingale.hmac_secret' => str_repeat('patient-reference-test-hmac-', 2),
+            'nightingale.reference_provisioning.enabled' => true,
+            'nightingale.reference_provisioning.encryption_key_version' => 'test-app-key-v1',
+            'nightingale.reference_provisioning.challenge_ttl_minutes' => 10,
+            'nightingale.enrollment.max_attempts' => 5,
         ]);
     }
 
@@ -114,14 +114,14 @@ class HummingbirdPatientReferenceIdentityProvisionerTest extends TestCase
         $this->assertSame(
             $hmac->digest(
                 'reference-identity-subject-v1',
-                HummingbirdPatientReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY."\0".$encounter->patient_ref,
+                NightingaleReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY."\0".$encounter->patient_ref,
             ),
             $identity->source_subject_digest,
         );
         $this->assertSame(
             $hmac->digest(
                 'reference-encounter-ref-v1',
-                HummingbirdPatientReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY."\0prod.encounters/".$encounter->getKey(),
+                NightingaleReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY."\0prod.encounters/".$encounter->getKey(),
             ),
             $grant->source_encounter_ref_digest,
         );
@@ -215,7 +215,7 @@ class HummingbirdPatientReferenceIdentityProvisionerTest extends TestCase
         $this->assertNull($foreign->revoked_at);
         $this->assertSame(2, PatientEnrollmentChallenge::query()
             ->where('status', 'issued')
-            ->where('metadata->owner', HummingbirdPatientReferenceIdentityProvisioner::OWNER)
+            ->where('metadata->owner', NightingaleReferenceIdentityProvisioner::OWNER)
             ->count());
     }
 
@@ -263,14 +263,14 @@ class HummingbirdPatientReferenceIdentityProvisionerTest extends TestCase
     {
         $encounter = $this->operationalEncounter();
 
-        config(['hummingbird-patient.reference_provisioning.enabled' => false]);
+        config(['nightingale.reference_provisioning.enabled' => false]);
         try {
             $this->provisioner($this->materials([]))->preview((string) $encounter->patient_ref);
             $this->fail('Expected disabled provisioning to fail closed.');
         } catch (RuntimeException $exception) {
             $this->assertSame('reference_patient_provisioning_disabled', $exception->getMessage());
         }
-        config(['hummingbird-patient.reference_provisioning.enabled' => true]);
+        config(['nightingale.reference_provisioning.enabled' => true]);
 
         Schema::partialMock()
             ->shouldReceive('hasTable')
@@ -286,7 +286,7 @@ class HummingbirdPatientReferenceIdentityProvisionerTest extends TestCase
         $hmac = $this->app->make(PatientHmac::class);
         $digest = $hmac->digest(
             'reference-identity-subject-v1',
-            HummingbirdPatientReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY."\0".$encounter->patient_ref,
+            NightingaleReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY."\0".$encounter->patient_ref,
         );
         $foreignPrincipal = PatientPrincipal::query()->create([
             'principal_uuid' => (string) Str::uuid7(),
@@ -297,7 +297,7 @@ class HummingbirdPatientReferenceIdentityProvisionerTest extends TestCase
         PatientIdentityLink::query()->create([
             'identity_link_uuid' => (string) Str::uuid7(),
             'principal_id' => $foreignPrincipal->getKey(),
-            'source_system_key' => HummingbirdPatientReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY,
+            'source_system_key' => NightingaleReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY,
             'encrypted_source_subject' => (string) $encounter->patient_ref,
             'encryption_key_version' => 'test-app-key-v1',
             'source_subject_digest' => $digest,
@@ -346,7 +346,7 @@ class HummingbirdPatientReferenceIdentityProvisionerTest extends TestCase
         $principalEncounter = $this->operationalEncounter('demo-foreign-principal-foundation');
         $principalDigest = $hmac->digest(
             'reference-identity-subject-v1',
-            HummingbirdPatientReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY."\0".$principalEncounter->patient_ref,
+            NightingaleReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY."\0".$principalEncounter->patient_ref,
         );
         $foreignPrincipal = PatientPrincipal::query()->create([
             'principal_uuid' => (string) Str::uuid7(),
@@ -380,7 +380,7 @@ class HummingbirdPatientReferenceIdentityProvisionerTest extends TestCase
         $linkEncounter = $this->operationalEncounter('demo-foreign-link-foundation');
         $linkDigest = $hmac->digest(
             'reference-identity-subject-v1',
-            HummingbirdPatientReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY."\0".$linkEncounter->patient_ref,
+            NightingaleReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY."\0".$linkEncounter->patient_ref,
         );
         $linkPrincipal = PatientPrincipal::query()->create([
             'principal_uuid' => (string) Str::uuid7(),
@@ -391,7 +391,7 @@ class HummingbirdPatientReferenceIdentityProvisionerTest extends TestCase
         $foreignLink = PatientIdentityLink::query()->create([
             'identity_link_uuid' => (string) Str::uuid7(),
             'principal_id' => $linkPrincipal->getKey(),
-            'source_system_key' => HummingbirdPatientReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY,
+            'source_system_key' => NightingaleReferenceIdentityProvisioner::SOURCE_SYSTEM_KEY,
             'encrypted_source_subject' => (string) $linkEncounter->patient_ref,
             'encryption_key_version' => 'test-app-key-v1',
             'source_subject_digest' => $linkDigest,
@@ -615,9 +615,9 @@ class HummingbirdPatientReferenceIdentityProvisionerTest extends TestCase
         ]);
     }
 
-    private function provisioner(PatientEnrollmentMaterialGenerator $generator): HummingbirdPatientReferenceIdentityProvisioner
+    private function provisioner(PatientEnrollmentMaterialGenerator $generator): NightingaleReferenceIdentityProvisioner
     {
-        return new HummingbirdPatientReferenceIdentityProvisioner(
+        return new NightingaleReferenceIdentityProvisioner(
             $this->app,
             $this->app->make('encrypter'),
             $this->app->make(PatientHmac::class),

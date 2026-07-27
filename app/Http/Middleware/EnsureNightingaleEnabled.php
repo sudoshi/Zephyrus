@@ -8,13 +8,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureHummingbirdPatientEnabled
+class EnsureNightingaleEnabled
 {
     public function __construct(private readonly PatientHmac $hmac) {}
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (! config('hummingbird-patient.enabled', false)) {
+        if (! config('nightingale.enabled', false)) {
             return $this->notFound();
         }
 

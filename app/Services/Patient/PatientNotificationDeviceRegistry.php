@@ -35,7 +35,7 @@ final class PatientNotificationDeviceRegistry
     ): PatientNotificationDevice {
         $deviceUuid = $this->canonicalUuid($deviceUuid);
         $keyVersion = trim((string) config(
-            'hummingbird-patient.notification_devices.encryption_key_version',
+            'nightingale.notification_devices.encryption_key_version',
         ));
 
         try {

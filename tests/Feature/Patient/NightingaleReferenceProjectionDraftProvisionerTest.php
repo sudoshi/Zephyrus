@@ -12,8 +12,8 @@ use App\Models\Patient\PatientReleasePolicyVersion;
 use App\Models\Patient\PatientSession;
 use App\Models\Unit;
 use App\Services\Mobile\Demo\HummingbirdReferencePatientProvisioner;
-use App\Services\Patient\Demo\HummingbirdPatientReferenceIdentityProvisioner;
-use App\Services\Patient\Demo\HummingbirdPatientReferenceProjectionDraftProvisioner;
+use App\Services\Patient\Demo\NightingaleReferenceIdentityProvisioner;
+use App\Services\Patient\Demo\NightingaleReferenceProjectionDraftProvisioner;
 use App\Services\Patient\PatientHmac;
 use App\Services\Patient\Projection\PatientProjectionDisclosureService;
 use App\Services\Patient\Projection\SyntheticPatientProjectionProvisioner;
@@ -26,7 +26,7 @@ use RuntimeException;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Tests\TestCase;
 
-class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
+class NightingaleReferenceProjectionDraftProvisionerTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -35,10 +35,10 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
         parent::setUp();
 
         config([
-            'hummingbird-patient.hmac_secret' => str_repeat('reference-projection-test-hmac-', 2),
-            'hummingbird-patient.reference_provisioning.enabled' => true,
-            'hummingbird-patient.reference_provisioning.encryption_key_version' => 'test-app-key-v1',
-            'hummingbird-patient.reference_provisioning.challenge_ttl_minutes' => 10,
+            'nightingale.hmac_secret' => str_repeat('reference-projection-test-hmac-', 2),
+            'nightingale.reference_provisioning.enabled' => true,
+            'nightingale.reference_provisioning.encryption_key_version' => 'test-app-key-v1',
+            'nightingale.reference_provisioning.challenge_ttl_minutes' => 10,
         ]);
     }
 
@@ -74,7 +74,7 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
         ]);
         $this->assertSame(2, $refusedExit);
         $this->assertStringContainsString(
-            HummingbirdPatientReferenceProjectionDraftProvisioner::CONFIRMATION,
+            NightingaleReferenceProjectionDraftProvisioner::CONFIRMATION,
             $refusedOutput,
         );
         $this->assertDatabaseCount('patient_experience.encounter_projections', 0);
@@ -86,7 +86,7 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
         $arguments = [
             '--encounter-id' => $encounter->getKey(),
             '--commit' => true,
-            '--confirm-draft-only' => HummingbirdPatientReferenceProjectionDraftProvisioner::CONFIRMATION,
+            '--confirm-draft-only' => NightingaleReferenceProjectionDraftProvisioner::CONFIRMATION,
             '--json' => true,
         ];
 
@@ -112,7 +112,7 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
         $this->assertDatabaseCount('patient_experience.sessions', 0);
 
         $policy = PatientReleasePolicyVersion::query()->sole();
-        $this->assertSame(HummingbirdPatientReferenceProjectionDraftProvisioner::POLICY_VERSION, $policy->version);
+        $this->assertSame(NightingaleReferenceProjectionDraftProvisioner::POLICY_VERSION, $policy->version);
         $this->assertSame('draft', $policy->status);
         $this->assertNull($policy->approved_by_actor_ref);
         $this->assertNull($policy->approved_at);
@@ -193,7 +193,7 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
             'approved_at' => now()->subMinute(),
             'effective_from' => now()->subMinute(),
         ]);
-        config(['hummingbird-patient.policy_version' => $activePolicy->version]);
+        config(['nightingale.policy_version' => $activePolicy->version]);
         $disclosure = $this->app->make(PatientProjectionDisclosureService::class)->disclose(
             Request::create(
                 "/api/patient/v1/encounters/{$grant->encounter_uuid}/today",
@@ -217,7 +217,7 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
         $principal->forceFill(['status' => 'active', 'is_active' => true])->save();
 
         try {
-            $this->app->make(HummingbirdPatientReferenceProjectionDraftProvisioner::class)
+            $this->app->make(NightingaleReferenceProjectionDraftProvisioner::class)
                 ->provision(
                     HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
                     (int) $encounter->getKey(),
@@ -253,7 +253,7 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
         );
 
         try {
-            $this->app->make(HummingbirdPatientReferenceProjectionDraftProvisioner::class)
+            $this->app->make(NightingaleReferenceProjectionDraftProvisioner::class)
                 ->provision(
                     HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
                     (int) $encounter->getKey(),
@@ -276,12 +276,12 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
         $encounter = $this->foundation();
         PatientReleasePolicyVersion::query()->create([
             'policy_uuid' => (string) Str::uuid(),
-            'version' => HummingbirdPatientReferenceProjectionDraftProvisioner::POLICY_VERSION,
+            'version' => NightingaleReferenceProjectionDraftProvisioner::POLICY_VERSION,
             'status' => 'draft',
             'disclosure_matrix_version' => 'patient-disclosure-matrix.v1',
             'content_contract_version' => 'patient-projection.v1',
             'rules' => [
-                'owner' => HummingbirdPatientReferenceProjectionDraftProvisioner::OWNER,
+                'owner' => NightingaleReferenceProjectionDraftProvisioner::OWNER,
                 'synthetic' => 1,
                 'draft_only' => 1,
                 'patient_visible' => 0,
@@ -290,7 +290,7 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
         ]);
 
         try {
-            $this->app->make(HummingbirdPatientReferenceProjectionDraftProvisioner::class)
+            $this->app->make(NightingaleReferenceProjectionDraftProvisioner::class)
                 ->provision(
                     HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
                     (int) $encounter->getKey(),
@@ -326,7 +326,7 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
         $principal->createToken('patient-access:'.$sessionUuid, ['patient:access']);
 
         try {
-            $this->app->make(HummingbirdPatientReferenceProjectionDraftProvisioner::class)
+            $this->app->make(NightingaleReferenceProjectionDraftProvisioner::class)
                 ->provision(
                     HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
                     (int) $encounter->getKey(),
@@ -362,7 +362,7 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
         ]);
 
         try {
-            $this->app->make(HummingbirdPatientReferenceProjectionDraftProvisioner::class)
+            $this->app->make(NightingaleReferenceProjectionDraftProvisioner::class)
                 ->provision(
                     HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF,
                     (int) $encounter->getKey(),
@@ -388,7 +388,7 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
         config(['database.connections.pgsql.host' => 'pgsql.acumenus.net']);
 
         try {
-            $this->app->make(HummingbirdPatientReferenceProjectionDraftProvisioner::class)
+            $this->app->make(NightingaleReferenceProjectionDraftProvisioner::class)
                 ->preview();
             $this->fail('Expected local-to-remote reference draft provisioning to be rejected.');
         } catch (RuntimeException $exception) {
@@ -421,7 +421,7 @@ class HummingbirdPatientReferenceProjectionDraftProvisionerTest extends TestCase
         $encounter = Encounter::query()
             ->where('patient_ref', HummingbirdReferencePatientProvisioner::DEFAULT_PATIENT_REF)
             ->sole();
-        $this->app->make(HummingbirdPatientReferenceIdentityProvisioner::class)->provision(
+        $this->app->make(NightingaleReferenceIdentityProvisioner::class)->provision(
             (string) $encounter->patient_ref,
             (int) $encounter->getKey(),
         );

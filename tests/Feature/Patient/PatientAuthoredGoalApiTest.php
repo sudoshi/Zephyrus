@@ -150,12 +150,12 @@ class PatientAuthoredGoalApiTest extends TestCase
         ]);
 
         config([
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.policy_version' => (string) $fixture['policy']->version,
-            'hummingbird-patient.features.messaging' => true,
-            'hummingbird-patient.features.care_preferences' => false,
-            'hummingbird-patient.features.patient_goals' => $enabled,
-            'hummingbird-patient.messaging' => [
+            'nightingale.enabled' => true,
+            'nightingale.policy_version' => (string) $fixture['policy']->version,
+            'nightingale.features.messaging' => true,
+            'nightingale.features.care_preferences' => false,
+            'nightingale.features.patient_goals' => $enabled,
+            'nightingale.messaging' => [
                 'governance_status' => 'approved',
                 'policy_version' => 'test-patient-goal-policy-v1',
                 'urgent_guidance_version' => self::GUIDANCE_VERSION,

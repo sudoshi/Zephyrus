@@ -7,11 +7,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureHummingbirdPatientFeatureEnabled
+class EnsureNightingaleFeatureEnabled
 {
     public function handle(Request $request, Closure $next, string $feature): Response
     {
-        if (! config("hummingbird-patient.features.{$feature}", false)) {
+        if (! config("nightingale.features.{$feature}", false)) {
             return $this->notFound();
         }
 

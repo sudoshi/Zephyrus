@@ -60,7 +60,7 @@ class PatientCommunicationEscalationServiceTest extends TestCase
             ['enabled' => false, 'governance_status' => 'approved'],
             ['enabled' => true, 'governance_status' => 'draft_requires_approval'],
         ] as $staffMessaging) {
-            config(['hummingbird-patient.staff_messaging' => $staffMessaging]);
+            config(['nightingale.staff_messaging' => $staffMessaging]);
 
             try {
                 $service->escalateDue();
@@ -550,9 +550,9 @@ class PatientCommunicationEscalationServiceTest extends TestCase
         config([
             'hummingbird.patient_context.signing_key' => str_repeat('s', 32),
             'hummingbird.patient_context.ttl_minutes' => 15,
-            'hummingbird-patient.enabled' => true,
-            'hummingbird-patient.features.messaging' => true,
-            'hummingbird-patient.messaging' => [
+            'nightingale.enabled' => true,
+            'nightingale.features.messaging' => true,
+            'nightingale.messaging' => [
                 'governance_status' => 'approved',
                 'policy_version' => self::POLICY_VERSION,
                 'urgent_guidance_version' => self::GUIDANCE_VERSION,
@@ -568,7 +568,7 @@ class PatientCommunicationEscalationServiceTest extends TestCase
                     ],
                 ],
             ],
-            'hummingbird-patient.staff_messaging' => [
+            'nightingale.staff_messaging' => [
                 'enabled' => true,
                 'governance_status' => 'approved',
                 'consumer_key' => 'patient-message-staff-inbox-v1',
