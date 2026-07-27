@@ -180,6 +180,18 @@ verification therefore reruns the affected workflow parse and Nightingale mechan
 gates; the recorded iOS and Android results continue to apply to the exact unchanged
 runtime trees.
 
+While exact-SHA CI was running, `origin/main` advanced to
+`98d9bf98f2e811f6b39c0d14bb5e0ea1b5ea7317` with documentation for the same CI
+scheduler change. The branch merged that documentation-only commit. Pinned Gitleaks
+8.28 then reported one ordinary prose phrase in the new upstream devlog under its generic
+API-key rule. The finding matched the existing Nightingale devlog false-positive class:
+`notification/delivery` following the words `API paths`.
+
+The existing `AND`-scoped exception was extended only to the exact upstream devlog path
+and exact captured phrase. A checksum-verified Gitleaks 8.28 binary then scanned all 1,082
+locally visible commits with zero findings. The exception does not match any other path or
+value and does not weaken the generic API-key rule for credentials.
+
 ## 9. Explicit non-authorization
 
 This evidence does not approve:

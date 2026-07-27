@@ -85,12 +85,15 @@ paths = [
 regexes = ['''^drgcp-[a-z0-9-]{26,65}$''']
 
 [[allowlists]]
-# Historical Nightingale devlog prose used the adjacent words "API paths,
-# notification", which the generic-api-key rule parsed as a key/value pair and
-# captured the ordinary phrase "notification/delivery". The current prose avoids that
-# construction. Keep the history exception AND-scoped to the exact document
-# and exact captured word so no credential-shaped value is exempted.
-description = "Nightingale devlog API-path prose false positive"
+# Historical devlog prose used the adjacent words "API paths, notification",
+# which the generic-api-key rule parsed as a key/value pair and captured the
+# ordinary phrase "notification/delivery". Keep the history exception
+# AND-scoped to the two exact documents and exact captured phrase so no
+# credential-shaped value is exempted.
+description = "Devlog API-path prose false positives"
 condition = "AND"
-paths = ['''^docs/devlog/DEVLOG-nightingale-patient-product-2026-07-26\.md$''']
+paths = [
+  '''^docs/devlog/DEVLOG-nightingale-patient-product-2026-07-26\.md$''',
+  '''^docs/DEVLOG-browser-chain-decouple-2026-07-27\.md$''',
+]
 regexes = ['''^notification/delivery$''']

@@ -2304,3 +2304,13 @@ deployment authorization.
 - Confirmed the automatic merge retained the controlled-pilot verifier in the
   Nightingale contract job. No runtime, contract, sample-patient, native-client, or
   database source changed after emulator acceptance.
+- During exact-SHA CI, `origin/main` advanced to documentation-only commit
+  `98d9bf98f2e811f6b39c0d14bb5e0ea1b5ea7317`; merged it without runtime changes.
+- Investigated the resulting Security failure with the pinned Gitleaks 8.28 evidence. The
+  new upstream devlog repeated the same ordinary `notification/delivery` prose phrase
+  already narrowly excepted for the Nightingale devlog. Extended that `AND`-scoped
+  allowlist only to the exact new document path and exact phrase.
+- Verified the fix with the checksum-verified pinned 8.28 macOS binary: all 1,082 locally
+  visible commits scanned with zero findings. The five working-directory findings were
+  confined to ignored Android build/test output and are absent from a clean checkout;
+  they were not treated as repository findings.
