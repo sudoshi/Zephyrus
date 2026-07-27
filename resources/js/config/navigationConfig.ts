@@ -74,12 +74,14 @@ export interface NavigationCapabilities {
   readonly run_diagnostics?: boolean;
   readonly view_patient_communications?: boolean;
   readonly respond_patient_communications?: boolean;
+  readonly view_care_pathway_catalog?: boolean;
 }
 
 /** Server-shared feature flags (Inertia `features` prop). A leaf gated on a
  *  disabled feature is hidden — never rendered as a dead link that 404s. */
 export interface NavigationFeatures {
   readonly care_pathways_demo?: boolean;
+  readonly care_pathways_catalog?: boolean;
   readonly virtual_rounds?: boolean;
   readonly home_hospital?: boolean;
   readonly patient_communications?: boolean;
@@ -192,6 +194,18 @@ const CARE_PATHWAYS: NavDomain = {
   matchPrefixes: ['/care-pathways'],
   requiredFeature: 'care_pathways_demo',
   groups: [
+    {
+      title: 'Catalog',
+      items: [
+        {
+          label: 'Catalog Explorer',
+          href: '/care-pathways/catalog',
+          icon: BookOpen,
+          requiredFeature: 'care_pathways_catalog',
+          requiredCapability: 'view_care_pathway_catalog',
+        },
+      ],
+    },
     {
       title: 'Simulation',
       items: [

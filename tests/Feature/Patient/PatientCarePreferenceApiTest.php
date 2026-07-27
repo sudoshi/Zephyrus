@@ -5,6 +5,7 @@ namespace Tests\Feature\Patient;
 use App\Contracts\Patient\PatientMessageHandoffReadiness;
 use App\Models\Encounter;
 use App\Models\Patient\PatientCarePreference;
+use App\Models\Patient\PatientEncounterAccessGrant;
 use App\Models\Patient\PatientMessage;
 use App\Models\Patient\PatientPrincipal;
 use App\Models\Patient\PatientSession;
@@ -122,7 +123,7 @@ class PatientCarePreferenceApiTest extends TestCase
         $this->assertDatabaseCount('patient_experience.messages', 1);
     }
 
-    /** @return array{principal: PatientPrincipal, grant: \App\Models\Patient\PatientEncounterAccessGrant, token: string} */
+    /** @return array{principal: PatientPrincipal, grant: PatientEncounterAccessGrant, token: string} */
     private function fixture(string $seed, bool $enabled): array
     {
         $fixture = $this->app->make(SyntheticPatientProjectionProvisioner::class)->provision($seed);
@@ -212,7 +213,7 @@ class CarePreferenceHandoffReadiness implements PatientMessageHandoffReadiness
         string $policyVersion,
         string $topicCode,
         string $responsibilityPoolKey,
-        \App\Models\Patient\PatientEncounterAccessGrant $grant,
+        PatientEncounterAccessGrant $grant,
     ): bool {
         return $policyVersion === 'test-care-preference-policy-v1'
             && in_array($topicCode, ['care_preference', 'care_plan_question'], true)

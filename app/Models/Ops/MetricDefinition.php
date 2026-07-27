@@ -2,6 +2,7 @@
 
 namespace App\Models\Ops;
 
+use App\Services\Cockpit\StatusEngine;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -38,7 +39,7 @@ class MetricDefinition extends Model
             'ok' => $this->ok_edge !== null ? (float) $this->ok_edge : null,
             'warn' => $this->warn_edge !== null ? (float) $this->warn_edge : null,
             'crit' => $this->crit_edge !== null ? (float) $this->crit_edge : null,
-            'watch_band_pct' => (float) ($metadata['watch_band_pct'] ?? \App\Services\Cockpit\StatusEngine::DEFAULT_WATCH_BAND_PCT),
+            'watch_band_pct' => (float) ($metadata['watch_band_pct'] ?? StatusEngine::DEFAULT_WATCH_BAND_PCT),
         ];
     }
 

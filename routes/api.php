@@ -15,7 +15,11 @@ use App\Http\Controllers\Api\Admin\SourceObservabilityController;
 use App\Http\Controllers\Api\Admin\SourceOnboardingController;
 use App\Http\Controllers\Api\Admin\SourceStatusFacetController;
 use App\Http\Controllers\Api\AnalyticsController;
+use App\Http\Controllers\Api\ArenaController;
+use App\Http\Controllers\Api\ArenaCopilotController;
 use App\Http\Controllers\Api\BlockScheduleController;
+use App\Http\Controllers\Api\CockpitController;
+use App\Http\Controllers\Api\CockpitStreamController;
 use App\Http\Controllers\Api\Deployment\CapabilityMatrixController;
 use App\Http\Controllers\Api\Deployment\DeploymentReadinessController;
 use App\Http\Controllers\Api\Deployment\FacilityController as DeploymentFacilityController;
@@ -32,6 +36,14 @@ use App\Http\Controllers\Api\Eddy\EddyAdminController;
 use App\Http\Controllers\Api\Eddy\EddyChatController;
 use App\Http\Controllers\Api\Evs\EvsRequestController;
 use App\Http\Controllers\Api\Facility\FacilityModelController;
+use App\Http\Controllers\Api\Home\HomeCensusController;
+use App\Http\Controllers\Api\Home\HomeCommandController;
+use App\Http\Controllers\Api\Home\HomeDecantController;
+use App\Http\Controllers\Api\Home\HomeEscalationController;
+use App\Http\Controllers\Api\Home\HomeLogisticsController;
+use App\Http\Controllers\Api\Home\HomeReferralController;
+use App\Http\Controllers\Api\Home\HomeTransitionController;
+use App\Http\Controllers\Api\Home\RpmAlertController;
 use App\Http\Controllers\Api\Lab\LabFlowBoardController;
 use App\Http\Controllers\Api\Mobile\ActivityController as MobileActivityController;
 use App\Http\Controllers\Api\Mobile\AltitudeController as MobileAltitudeController;
@@ -54,6 +66,7 @@ use App\Http\Controllers\Api\Mobile\RtdcController as MobileRtdcController;
 use App\Http\Controllers\Api\Mobile\SessionController as MobileSessionController;
 use App\Http\Controllers\Api\Mobile\StaffingController as MobileStaffingController;
 use App\Http\Controllers\Api\Mobile\TransportController as MobileTransportController;
+use App\Http\Controllers\Api\OcelProcessLandscapeController;
 use App\Http\Controllers\Api\Ops\AgentController;
 use App\Http\Controllers\Api\Ops\OperationalActionController;
 use App\Http\Controllers\Api\Ops\OperationsGraphController;
@@ -70,6 +83,13 @@ use App\Http\Controllers\Api\Pharmacy\PharmacyIvRoomController;
 use App\Http\Controllers\Api\ProviderController;
 use App\Http\Controllers\Api\Radiology\RadiologyFlowBoardController;
 use App\Http\Controllers\Api\RoomController;
+use App\Http\Controllers\Api\Rounds\RoundContributionController;
+use App\Http\Controllers\Api\Rounds\RoundPatientController;
+use App\Http\Controllers\Api\Rounds\RoundQuestionController;
+use App\Http\Controllers\Api\Rounds\RoundRunController;
+use App\Http\Controllers\Api\Rounds\RoundScopeController;
+use App\Http\Controllers\Api\Rounds\RoundTaskController;
+use App\Http\Controllers\Api\Rounds\RoundTemplateController;
 use App\Http\Controllers\Api\Rtdc\BarrierController;
 use App\Http\Controllers\Api\Rtdc\BedRequestController;
 use App\Http\Controllers\Api\Rtdc\CensusController;
@@ -82,6 +102,20 @@ use App\Http\Controllers\Api\Staffing\StaffingFulfillmentController;
 use App\Http\Controllers\Api\Transport\RegionalTransferController;
 use App\Http\Controllers\Api\Transport\TransportRequestController;
 use App\Http\Controllers\CommandCenterController;
+use App\Http\Controllers\PatientLensController;
+use App\Http\Middleware\AdminMiddleware;
+use App\Http\Middleware\EnforceFlowLens;
+use App\Http\Middleware\EnsureActiveStaffAccount;
+use App\Http\Middleware\EnsureArenaAiEnabled;
+use App\Http\Middleware\EnsureArenaEnabled;
+use App\Http\Middleware\EnsureHomeHospitalEnabled;
+use App\Http\Middleware\EnsurePatientRoundsQuestionBridgeEnabled;
+use App\Http\Middleware\EnsureRoundsEnabled;
+use App\Http\Middleware\ProtectMobileSessionResponse;
+use App\Http\Middleware\ProtectPatientCommunicationResponse;
+use App\Http\Middleware\RequireMachineToken;
+use App\Http\Middleware\TouchMobileTokenSession;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 
@@ -94,14 +128,14 @@ use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 // Health Check
 Route::get('/health', function () {
     try {
-        \Illuminate\Support\Facades\DB::connection()->getPdo();
+        DB::connection()->getPdo();
 
         return response()->json([
             'status' => 'healthy',
             'database' => 'connected',
             'timestamp' => now()->toISOString(),
         ]);
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
         return response()->json([
             'status' => 'unhealthy',
             'database' => 'disconnected',
@@ -117,62 +151,67 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('command-center')->g
 // Zephyrus 2.0 cockpit serving layer (web session auth). /snapshot is a
 // cached read of the single replaced cockpit_snapshots row (ETag/304).
 Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('cockpit')->group(function () {
-    Route::get('/snapshot', [\App\Http\Controllers\Api\CockpitController::class, 'snapshot']);
-    Route::get('/scopes', [\App\Http\Controllers\Api\CockpitController::class, 'scopes']);
-    Route::get('/face', [\App\Http\Controllers\Api\CockpitController::class, 'face']);
-    Route::get('/drill/{domain}', [\App\Http\Controllers\Api\CockpitController::class, 'drill'])
+    Route::get('/snapshot', [CockpitController::class, 'snapshot']);
+    Route::get('/scopes', [CockpitController::class, 'scopes']);
+    Route::get('/face', [CockpitController::class, 'face']);
+    Route::get('/drill/{domain}', [CockpitController::class, 'drill'])
         ->where('domain', '[a-z]+');
     // P8 WS-3 — the A2P patient lens as an in-place cockpit drill. Persona-gated
     // by EnforceFlowLens:patients (patient_dots=none personas get 403); the ptok
     // constraint 404s any non-context ref before it reaches the service.
-    Route::get('/patient/{contextRef}', [\App\Http\Controllers\PatientLensController::class, 'show'])
-        ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':patients')
+    Route::get('/patient/{contextRef}', [PatientLensController::class, 'show'])
+        ->middleware(EnforceFlowLens::class.':patients')
         ->where('contextRef', 'ptok_[a-f0-9]{24}');
-    Route::get('/stream', \App\Http\Controllers\Api\CockpitStreamController::class);
+    Route::get('/stream', CockpitStreamController::class);
     // HFE Phase 1 — alert acknowledgement (any authenticated operator; the
     // engine clears the ack on warn->crit escalation so worsening re-alarms).
-    Route::post('/alerts/{alertId}/acknowledge', [\App\Http\Controllers\Api\CockpitController::class, 'acknowledgeAlert'])
+    Route::post('/alerts/{alertId}/acknowledge', [CockpitController::class, 'acknowledgeAlert'])
         ->whereNumber('alertId');
     // P8 WS-6b — the admin threshold editor's endpoints. Both admin-gated: the
     // read backs the editor page, the write is the audited band-edge tune.
-    Route::get('/kpi-definitions', [\App\Http\Controllers\Api\CockpitController::class, 'kpiDefinitions'])
-        ->middleware(\App\Http\Middleware\AdminMiddleware::class);
-    Route::put('/kpi-definitions/{metricKey}', [\App\Http\Controllers\Api\CockpitController::class, 'updateKpiDefinition'])
-        ->middleware(\App\Http\Middleware\AdminMiddleware::class);
+    Route::get('/kpi-definitions', [CockpitController::class, 'kpiDefinitions'])
+        ->middleware(AdminMiddleware::class);
+    Route::put('/kpi-definitions/{metricKey}', [CockpitController::class, 'updateKpiDefinition'])
+        ->middleware(AdminMiddleware::class);
 });
 
 // Zephyrus 2.0 Part X (X1) — Arena OCPM serving layer. Laravel proxies to the
 // PHI-free OCPM sidecar and caches discovered maps in arena.maps. Gated by
 // EnsureArenaEnabled (ARENA_ENABLED, default off) so the group 404s while off.
-Route::middleware(['web', 'auth', 'throttle:30,1', \App\Http\Middleware\EnsureArenaEnabled::class])
+Route::middleware(['web', 'auth', 'throttle:30,1', EnsureArenaEnabled::class])
     ->prefix('arena')->group(function () {
-        Route::get('/health', [\App\Http\Controllers\Api\ArenaController::class, 'health']);
-        Route::get('/summary', [\App\Http\Controllers\Api\ArenaController::class, 'summary']);
-        Route::get('/models', [\App\Http\Controllers\Api\OcelProcessLandscapeController::class, 'index']);
-        Route::get('/models/{processId}', [\App\Http\Controllers\Api\OcelProcessLandscapeController::class, 'show'])
+        Route::get('/health', [ArenaController::class, 'health']);
+        Route::get('/summary', [ArenaController::class, 'summary']);
+        Route::get('/models', [OcelProcessLandscapeController::class, 'index']);
+        Route::get('/models/{processId}', [OcelProcessLandscapeController::class, 'show'])
             ->where('processId', '[A-Ha-h](?:[1-9]|1[0-4])');
-        Route::get('/map', [\App\Http\Controllers\Api\ArenaController::class, 'map']);
-        Route::get('/performance', [\App\Http\Controllers\Api\ArenaController::class, 'performance']);
-        Route::get('/conformance', [\App\Http\Controllers\Api\ArenaController::class, 'conformance']);
-        Route::get('/petrinet', [\App\Http\Controllers\Api\ArenaController::class, 'petrinet']);
-        Route::get('/capacity', [\App\Http\Controllers\Api\ArenaController::class, 'capacity']);
+        Route::get('/map', [ArenaController::class, 'map']);
+        Route::get('/performance', [ArenaController::class, 'performance']);
+        Route::get('/conformance', [ArenaController::class, 'conformance']);
+        // Per-patient adherence read (FLOW-4D plan A2): cached case verdicts
+        // for one patient. Layered gates — ARENA_ENABLED (group) AND the flow
+        // lens patient scope (A2P authorization + audit inside patientScope()).
+        Route::get('/conformance/case', [ArenaController::class, 'caseConformance'])
+            ->middleware(EnforceFlowLens::class.':scoped-patients');
+        Route::get('/petrinet', [ArenaController::class, 'petrinet']);
+        Route::get('/capacity', [ArenaController::class, 'capacity']);
 
         // Flow Reconciliation — the 48-Hour Flow Review. GET reads the persisted
         // artifact (arena.reviews); POST /review/run rebuilds it (the Run-review
         // action). Not AI-gated: the review is observed signal + open barriers, no
         // model in the loop — corrective-action drafting rides the copilot below.
-        Route::get('/review', [\App\Http\Controllers\Api\ArenaController::class, 'review']);
-        Route::post('/review/run', [\App\Http\Controllers\Api\ArenaController::class, 'runReview']);
+        Route::get('/review', [ArenaController::class, 'review']);
+        Route::post('/review/run', [ArenaController::class, 'runReview']);
 
         // Part X (X4) — the governed AI copilot. Nested behind EnsureArenaAiEnabled
         // (ARENA_AI_ENABLED), so these 404 unless BOTH the Arena and its AI author
         // are on. Draft endpoints only ever land pending on the Eddy plane.
-        Route::middleware(\App\Http\Middleware\EnsureArenaAiEnabled::class)->prefix('copilot')->group(function () {
-            Route::get('/narrative', [\App\Http\Controllers\Api\ArenaCopilotController::class, 'narrative']);
-            Route::post('/query', [\App\Http\Controllers\Api\ArenaCopilotController::class, 'query']);
-            Route::post('/author-map', [\App\Http\Controllers\Api\ArenaCopilotController::class, 'authorMap']);
-            Route::post('/draft-pdsa', [\App\Http\Controllers\Api\ArenaCopilotController::class, 'draftPdsa']);
-            Route::post('/draft-correction', [\App\Http\Controllers\Api\ArenaCopilotController::class, 'draftCorrection']);
+        Route::middleware(EnsureArenaAiEnabled::class)->prefix('copilot')->group(function () {
+            Route::get('/narrative', [ArenaCopilotController::class, 'narrative']);
+            Route::post('/query', [ArenaCopilotController::class, 'query']);
+            Route::post('/author-map', [ArenaCopilotController::class, 'authorMap']);
+            Route::post('/draft-pdsa', [ArenaCopilotController::class, 'draftPdsa']);
+            Route::post('/draft-correction', [ArenaCopilotController::class, 'draftCorrection']);
         });
     });
 
@@ -187,6 +226,9 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
     Route::get('/summary', [PatientFlowController::class, 'summary']);
     Route::get('/locations', [PatientFlowController::class, 'locations']);
     Route::get('/ambient', [PatientFlowController::class, 'ambient']);
+    // Dataset epoch for atomic client rebootstrap across the 6h demo refresh
+    // (Codex HFE audit F-6 pt 2). Aggregate + patient-free like /summary.
+    Route::get('/epoch', [PatientFlowController::class, 'epoch']);
     // Open operational barriers overlay — aggregate + patient-free, so it rides
     // with the other aggregate reads (un-blinds the navigator's 48h spine).
     Route::get('/barriers', [PatientFlowController::class, 'barriers']);
@@ -197,11 +239,15 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
 
     // Patient-level reads — persona-lensed (FLOW-WINDOW-PLAN §6.4, closes G7):
     // requires a flow lens whose patient_dots policy is not `none`.
-    Route::middleware(\App\Http\Middleware\EnforceFlowLens::class.':scoped-patients')->group(function () {
+    Route::middleware(EnforceFlowLens::class.':scoped-patients')->group(function () {
         Route::get('/events', [PatientFlowController::class, 'events']);
         Route::get('/tracks', [PatientFlowController::class, 'tracks']);
         Route::get('/state', [PatientFlowController::class, 'state']);
         Route::get('/fhir/bundle', [PatientFlowController::class, 'fhirBundle']);
+        // One patient's ordered journey (FLOW-4D plan §8 Phase A1). Requires
+        // scope=patient:{ptok_…} — patientScope() runs the A2P authorization
+        // + disclosure audit inside the middleware's scope resolution.
+        Route::get('/journey', [PatientFlowController::class, 'journey']);
         Route::get('/stream/adt', PatientFlowStreamController::class);
     });
 
@@ -209,11 +255,11 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
     // aggregate-safe: items are persona-clamped and identity-redacted by
     // the same lens the mobile window uses.
     Route::get('/projections', [PatientFlowController::class, 'projections'])
-        ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':scoped');
+        ->middleware(EnforceFlowLens::class.':scoped');
     Route::get('/occupancy/history', [PatientFlowController::class, 'occupancyHistory'])
-        ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':scoped');
+        ->middleware(EnforceFlowLens::class.':scoped');
     Route::get('/occupancy', [PatientFlowController::class, 'occupancy'])
-        ->middleware(\App\Http\Middleware\EnforceFlowLens::class.':scoped');
+        ->middleware(EnforceFlowLens::class.':scoped');
 });
 
 // Virtual Rounds — asynchronous/hybrid multidisciplinary rounds workflow
@@ -221,79 +267,79 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
 // Gated by VIRTUAL_ROUNDS_ENABLED (404 when off). Mutations accept an
 // Idempotency-Key header and expected versions; conflicts return 409 with the
 // current projection. All patient authorization is server-side.
-Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureRoundsEnabled::class])
+Route::middleware(['web', 'auth', 'throttle:60,1', EnsureRoundsEnabled::class])
     ->prefix('rounds')->group(function () {
-        Route::get('/templates', [\App\Http\Controllers\Api\Rounds\RoundTemplateController::class, 'index']);
-        Route::get('/scopes', [\App\Http\Controllers\Api\Rounds\RoundScopeController::class, 'index']);
+        Route::get('/templates', [RoundTemplateController::class, 'index']);
+        Route::get('/scopes', [RoundScopeController::class, 'index']);
 
-        Route::get('/runs', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'index']);
-        Route::post('/runs', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'store']);
-        Route::get('/runs/{runUuid}', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'show']);
-        Route::post('/runs/{runUuid}/start', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'start']);
-        Route::post('/runs/{runUuid}/pause', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'pause']);
-        Route::post('/runs/{runUuid}/resume', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'resume']);
-        Route::post('/runs/{runUuid}/complete', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'complete']);
-        Route::post('/runs/{runUuid}/cancel', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'cancel']);
-        Route::get('/runs/{runUuid}/board', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'board']);
-        Route::get('/runs/{runUuid}/scene', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'scene']);
-        Route::post('/runs/{runUuid}/cohort/reconcile', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'reconcile']);
-        Route::patch('/runs/{runUuid}/queue', [\App\Http\Controllers\Api\Rounds\RoundRunController::class, 'queue']);
+        Route::get('/runs', [RoundRunController::class, 'index']);
+        Route::post('/runs', [RoundRunController::class, 'store']);
+        Route::get('/runs/{runUuid}', [RoundRunController::class, 'show']);
+        Route::post('/runs/{runUuid}/start', [RoundRunController::class, 'start']);
+        Route::post('/runs/{runUuid}/pause', [RoundRunController::class, 'pause']);
+        Route::post('/runs/{runUuid}/resume', [RoundRunController::class, 'resume']);
+        Route::post('/runs/{runUuid}/complete', [RoundRunController::class, 'complete']);
+        Route::post('/runs/{runUuid}/cancel', [RoundRunController::class, 'cancel']);
+        Route::get('/runs/{runUuid}/board', [RoundRunController::class, 'board']);
+        Route::get('/runs/{runUuid}/scene', [RoundRunController::class, 'scene']);
+        Route::post('/runs/{runUuid}/cohort/reconcile', [RoundRunController::class, 'reconcile']);
+        Route::patch('/runs/{runUuid}/queue', [RoundRunController::class, 'queue']);
 
-        Route::get('/patients/{roundPatientUuid}', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'show']);
-        Route::post('/patients/{roundPatientUuid}/mark-ready', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'markReady']);
-        Route::post('/patients/{roundPatientUuid}/complete', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'complete']);
-        Route::post('/patients/{roundPatientUuid}/reopen', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'reopen']);
-        Route::post('/patients/{roundPatientUuid}/defer', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'defer']);
-        Route::post('/patients/{roundPatientUuid}/skip', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'skip']);
-        Route::post('/patients/{roundPatientUuid}/pin', [\App\Http\Controllers\Api\Rounds\RoundPatientController::class, 'pin']);
-        Route::post('/patients/{roundPatientUuid}/contributions', [\App\Http\Controllers\Api\Rounds\RoundContributionController::class, 'store']);
-        Route::post('/patients/{roundPatientUuid}/questions', [\App\Http\Controllers\Api\Rounds\RoundQuestionController::class, 'store']);
-        Route::get('/patients/{roundPatientUuid}/patient-question-threads', [\App\Http\Controllers\Api\Rounds\RoundQuestionController::class, 'availablePatientQuestions'])
-            ->middleware(\App\Http\Middleware\EnsurePatientRoundsQuestionBridgeEnabled::class)
+        Route::get('/patients/{roundPatientUuid}', [RoundPatientController::class, 'show']);
+        Route::post('/patients/{roundPatientUuid}/mark-ready', [RoundPatientController::class, 'markReady']);
+        Route::post('/patients/{roundPatientUuid}/complete', [RoundPatientController::class, 'complete']);
+        Route::post('/patients/{roundPatientUuid}/reopen', [RoundPatientController::class, 'reopen']);
+        Route::post('/patients/{roundPatientUuid}/defer', [RoundPatientController::class, 'defer']);
+        Route::post('/patients/{roundPatientUuid}/skip', [RoundPatientController::class, 'skip']);
+        Route::post('/patients/{roundPatientUuid}/pin', [RoundPatientController::class, 'pin']);
+        Route::post('/patients/{roundPatientUuid}/contributions', [RoundContributionController::class, 'store']);
+        Route::post('/patients/{roundPatientUuid}/questions', [RoundQuestionController::class, 'store']);
+        Route::get('/patients/{roundPatientUuid}/patient-question-threads', [RoundQuestionController::class, 'availablePatientQuestions'])
+            ->middleware(EnsurePatientRoundsQuestionBridgeEnabled::class)
             ->whereUuid('roundPatientUuid');
-        Route::post('/patients/{roundPatientUuid}/patient-question-threads/{threadUuid}/promote', [\App\Http\Controllers\Api\Rounds\RoundQuestionController::class, 'promotePatientQuestion'])
-            ->middleware(\App\Http\Middleware\EnsurePatientRoundsQuestionBridgeEnabled::class)
+        Route::post('/patients/{roundPatientUuid}/patient-question-threads/{threadUuid}/promote', [RoundQuestionController::class, 'promotePatientQuestion'])
+            ->middleware(EnsurePatientRoundsQuestionBridgeEnabled::class)
             ->whereUuid(['roundPatientUuid', 'threadUuid']);
-        Route::post('/patients/{roundPatientUuid}/tasks', [\App\Http\Controllers\Api\Rounds\RoundTaskController::class, 'store']);
+        Route::post('/patients/{roundPatientUuid}/tasks', [RoundTaskController::class, 'store']);
 
-        Route::post('/contributions/{contributionUuid}/submit', [\App\Http\Controllers\Api\Rounds\RoundContributionController::class, 'submit']);
-        Route::post('/contributions/{contributionUuid}/withdraw', [\App\Http\Controllers\Api\Rounds\RoundContributionController::class, 'withdraw']);
-        Route::post('/questions/{questionUuid}/resolve', [\App\Http\Controllers\Api\Rounds\RoundQuestionController::class, 'resolve']);
-        Route::post('/tasks/{taskUuid}/transition', [\App\Http\Controllers\Api\Rounds\RoundTaskController::class, 'transition']);
+        Route::post('/contributions/{contributionUuid}/submit', [RoundContributionController::class, 'submit']);
+        Route::post('/contributions/{contributionUuid}/withdraw', [RoundContributionController::class, 'withdraw']);
+        Route::post('/questions/{questionUuid}/resolve', [RoundQuestionController::class, 'resolve']);
+        Route::post('/tasks/{taskUuid}/transition', [RoundTaskController::class, 'transition']);
     });
 
 // Home Hospital — virtual-ward live data (ACUM-PRD-HAH-001; docs/home-hospital/).
 // Gated by HOME_HOSPITAL_ENABLED (404 when off). Patient-level payloads travel
 // only on this authenticated API — public Reverb channels carry aggregate
 // pings, never vitals (PHI-free-wire rule).
-Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureHomeHospitalEnabled::class])
+Route::middleware(['web', 'auth', 'throttle:60,1', EnsureHomeHospitalEnabled::class])
     ->prefix('home')->group(function () {
-        Route::get('/census', [\App\Http\Controllers\Api\Home\HomeCensusController::class, 'index']);
-        Route::get('/command', [\App\Http\Controllers\Api\Home\HomeCommandController::class, 'index']);
+        Route::get('/census', [HomeCensusController::class, 'index']);
+        Route::get('/command', [HomeCommandController::class, 'index']);
         // Patient-alert acknowledgement workflow — human actions, recorded.
-        Route::get('/alerts', [\App\Http\Controllers\Api\Home\RpmAlertController::class, 'index']);
-        Route::post('/alerts/{alertUuid}/acknowledge', [\App\Http\Controllers\Api\Home\RpmAlertController::class, 'acknowledge']);
-        Route::post('/alerts/{alertUuid}/resolve', [\App\Http\Controllers\Api\Home\RpmAlertController::class, 'resolve']);
+        Route::get('/alerts', [RpmAlertController::class, 'index']);
+        Route::post('/alerts/{alertUuid}/acknowledge', [RpmAlertController::class, 'acknowledge']);
+        Route::post('/alerts/{alertUuid}/resolve', [RpmAlertController::class, 'resolve']);
         // Escalation workflow — full response timing chain vs the 30-min floor.
-        Route::get('/escalations', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'index']);
-        Route::post('/escalations', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'store']);
-        Route::post('/escalations/{escalationUuid}/dispatch', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'dispatchResponse']);
-        Route::post('/escalations/{escalationUuid}/arrive', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'arrive']);
-        Route::post('/escalations/{escalationUuid}/resolve', [\App\Http\Controllers\Api\Home\HomeEscalationController::class, 'resolve']);
+        Route::get('/escalations', [HomeEscalationController::class, 'index']);
+        Route::post('/escalations', [HomeEscalationController::class, 'store']);
+        Route::post('/escalations/{escalationUuid}/dispatch', [HomeEscalationController::class, 'dispatchResponse']);
+        Route::post('/escalations/{escalationUuid}/arrive', [HomeEscalationController::class, 'arrive']);
+        Route::post('/escalations/{escalationUuid}/resolve', [HomeEscalationController::class, 'resolve']);
         // Referral funnel + eligibility worklists (declines always coded).
-        Route::get('/referrals', [\App\Http\Controllers\Api\Home\HomeReferralController::class, 'index']);
-        Route::post('/referrals', [\App\Http\Controllers\Api\Home\HomeReferralController::class, 'store']);
-        Route::post('/referrals/{referralUuid}/advance', [\App\Http\Controllers\Api\Home\HomeReferralController::class, 'advance']);
-        Route::post('/referrals/{referralUuid}/decline', [\App\Http\Controllers\Api\Home\HomeReferralController::class, 'decline']);
+        Route::get('/referrals', [HomeReferralController::class, 'index']);
+        Route::post('/referrals', [HomeReferralController::class, 'store']);
+        Route::post('/referrals/{referralUuid}/advance', [HomeReferralController::class, 'advance']);
+        Route::post('/referrals/{referralUuid}/decline', [HomeReferralController::class, 'decline']);
         // Transitions: inbound checklists, outbound governed handoffs, discharge.
-        Route::get('/transitions', [\App\Http\Controllers\Api\Home\HomeTransitionController::class, 'index']);
-        Route::post('/transitions/{transitionUuid}/checklist', [\App\Http\Controllers\Api\Home\HomeTransitionController::class, 'completeChecklistItem']);
-        Route::post('/episodes/{episodeUuid}/handoff', [\App\Http\Controllers\Api\Home\HomeTransitionController::class, 'startOutbound']);
-        Route::post('/episodes/{episodeUuid}/discharge', [\App\Http\Controllers\Api\Home\HomeTransitionController::class, 'discharge']);
+        Route::get('/transitions', [HomeTransitionController::class, 'index']);
+        Route::post('/transitions/{transitionUuid}/checklist', [HomeTransitionController::class, 'completeChecklistItem']);
+        Route::post('/episodes/{episodeUuid}/handoff', [HomeTransitionController::class, 'startOutbound']);
+        Route::post('/episodes/{episodeUuid}/discharge', [HomeTransitionController::class, 'discharge']);
         // Logistics — the ONE address-permitted surface.
-        Route::get('/logistics', [\App\Http\Controllers\Api\Home\HomeLogisticsController::class, 'index']);
+        Route::get('/logistics', [HomeLogisticsController::class, 'index']);
         // The decant line: home-eligible counts + free-slot forecast (huddle).
-        Route::get('/decant', [\App\Http\Controllers\Api\Home\HomeDecantController::class, 'index']);
+        Route::get('/decant', [HomeDecantController::class, 'index']);
     });
 
 // Machine-to-machine ingress only. This route intentionally lives outside the
@@ -302,7 +348,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1', \App\Http\Middleware\EnsureHo
 Route::post('/integrations/v1/patient-flow/hl7v2', [PatientFlowIngestController::class, 'hl7v2'])
     ->middleware([
         'auth:sanctum',
-        \App\Http\Middleware\RequireMachineToken::class.':integration:patient-flow:ingest',
+        RequireMachineToken::class.':integration:patient-flow:ingest',
         'throttle:machine-ingest',
     ]);
 
@@ -500,7 +546,7 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('eddy')->group(funct
 // Eddy agent callback (scoped Sanctum token: ops:read/ops:draft, NEVER ops:approve).
 Route::middleware([
     'auth:sanctum',
-    \App\Http\Middleware\RequireMachineToken::class.':ops:draft',
+    RequireMachineToken::class.':ops:draft',
     'throttle:machine-agent',
 ])->prefix('eddy/agent')->group(function () {
     Route::post('/actions/propose', [EddyActionController::class, 'propose']);
@@ -826,17 +872,17 @@ Route::prefix('auth')->group(function () {
 Route::middleware([
     'auth:sanctum',
     'staff.realm',
-    \App\Http\Middleware\EnsureActiveStaffAccount::class,
+    EnsureActiveStaffAccount::class,
     CheckForAnyAbility::class.':mobile:read',
-    \App\Http\Middleware\TouchMobileTokenSession::class,
+    TouchMobileTokenSession::class,
     'throttle:mobile-api',
 ])->prefix('mobile/v1')->group(function () {
     Route::get('/me', [MobileMeController::class, 'show']);
     Route::put('/me/preferences', [MobileMeController::class, 'updatePreferences']);
     Route::get('/me/sessions', [MobileSessionController::class, 'index'])
-        ->middleware(\App\Http\Middleware\ProtectMobileSessionResponse::class);
+        ->middleware(ProtectMobileSessionResponse::class);
     Route::delete('/me/sessions/{sessionUuid}', [MobileSessionController::class, 'destroy'])
-        ->middleware(\App\Http\Middleware\ProtectMobileSessionResponse::class);
+        ->middleware(ProtectMobileSessionResponse::class);
 
     Route::post('/devices', [MobileDeviceController::class, 'store']);
     Route::delete('/devices/{device}', [MobileDeviceController::class, 'destroy']);
@@ -868,7 +914,7 @@ Route::middleware([
     // sufficient: the service also requires current responsibility-pool
     // membership for every read and mutation.
     Route::middleware([
-        \App\Http\Middleware\ProtectPatientCommunicationResponse::class,
+        ProtectPatientCommunicationResponse::class,
         'patient.staff-messaging',
         'can:viewPatientCommunications',
     ])

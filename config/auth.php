@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Patient\PatientPrincipal;
+use App\Models\User;
+
 return [
 
     /*
@@ -71,12 +74,12 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => env('AUTH_MODEL', User::class),
         ],
 
         'patient_principals' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Patient\PatientPrincipal::class,
+            'model' => PatientPrincipal::class,
         ],
 
         // 'users' => [

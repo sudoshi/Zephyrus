@@ -5,6 +5,7 @@ namespace Tests\Feature\Cockpit;
 use App\Services\Cockpit\SnapshotBuilder;
 use App\Services\Evs\EvsOperationsService;
 use App\Services\Transport\TransportOperationsService;
+use App\Support\Operations\DurationFormatter;
 use Database\Seeders\CockpitKpiDefinitionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -170,7 +171,7 @@ class FlowLiveSourcesTest extends TestCase
         $this->assertEqualsWithDelta(61.508333333333, $measure['value'], 0.0000001);
         $this->assertSame(
             '1 hr 1 min 31 sec',
-            \App\Support\Operations\DurationFormatter::minutes($measure['value']),
+            DurationFormatter::minutes($measure['value']),
         );
     }
 }

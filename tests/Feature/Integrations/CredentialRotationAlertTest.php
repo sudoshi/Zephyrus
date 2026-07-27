@@ -4,6 +4,8 @@ namespace Tests\Feature\Integrations;
 
 use App\Contracts\OperationalAlertChannel;
 use App\Integrations\Healthcare\Services\CredentialRotationAlertService;
+use App\Integrations\Healthcare\Services\SourceConfigurationVersionService;
+use App\Integrations\Healthcare\Services\SourceLifecycleService;
 use App\Models\Org\Facility;
 use App\Models\Org\Organization;
 use App\Security\ClinicalPayloads\ClinicalContentGuard;
@@ -69,13 +71,13 @@ final class CredentialRotationAlertTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ], 'source_id');
-        app(\App\Integrations\Healthcare\Services\SourceConfigurationVersionService::class)->initialize(
+        app(SourceConfigurationVersionService::class)->initialize(
             $this->sourceId,
             null,
             'Initialize rotation alert test configuration authority.',
             (string) Str::uuid7(),
         );
-        app(\App\Integrations\Healthcare\Services\SourceLifecycleService::class)->initialize(
+        app(SourceLifecycleService::class)->initialize(
             $this->sourceId,
             null,
             'Initialize rotation alert test lifecycle authority.',

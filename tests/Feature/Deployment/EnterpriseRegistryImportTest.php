@@ -2,13 +2,19 @@
 
 namespace Tests\Feature\Deployment;
 
+use App\Integrations\Healthcare\Services\SourceConfigurationVersionService;
+use App\Integrations\Healthcare\Services\SourceLifecycleService;
+use App\Integrations\Healthcare\Services\SourceOnboardingService;
+use App\Integrations\Healthcare\Services\SourceReadinessService;
 use App\Models\Org\Facility;
 use App\Models\Org\Organization;
 use App\Models\User;
 use App\Services\Auth\StepUpAuthenticationService;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -171,7 +177,7 @@ final class EnterpriseRegistryImportTest extends TestCase
     public function test_change_history_is_append_only(): void
     {
         DB::table('hosp_org.enterprise_change_history')->insert([
-            'change_history_uuid' => (string) \Illuminate\Support\Str::uuid7(),
+            'change_history_uuid' => (string) Str::uuid7(),
             'entity_type' => 'organization',
             'entity_natural_key' => 'ENT_LEDGER',
             'change_kind' => 'create',
@@ -182,7 +188,7 @@ final class EnterpriseRegistryImportTest extends TestCase
             'recorded_at' => now(),
         ]);
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
         DB::table('hosp_org.enterprise_change_history')
             ->where('entity_natural_key', 'ENT_LEDGER')
             ->update(['change_kind' => 'update']);
@@ -200,7 +206,7 @@ final class EnterpriseRegistryImportTest extends TestCase
             ])
             ->assertOk();
 
-        $assessment = app(\App\Integrations\Healthcare\Services\SourceReadinessService::class)
+        $assessment = app(SourceReadinessService::class)
             ->evaluate($sourceId, CarbonImmutable::now(), null, persist: false);
 
         $failed = collect($assessment['requirements'])->where('status', 'failed')->pluck('code')->all();
@@ -230,7 +236,7 @@ final class EnterpriseRegistryImportTest extends TestCase
             ])
             ->assertOk();
 
-        $assessment = app(\App\Integrations\Healthcare\Services\SourceReadinessService::class)
+        $assessment = app(SourceReadinessService::class)
             ->evaluate($sourceId, CarbonImmutable::now(), null, persist: false);
 
         $topologyChecks = collect($assessment['requirements'])
@@ -254,7 +260,7 @@ final class EnterpriseRegistryImportTest extends TestCase
         ]);
 
         $sourceId = (int) DB::table('integration.sources')->insertGetId([
-            'source_uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'source_uuid' => (string) Str::uuid(),
             'source_key' => 'ent.topology.source',
             'organization_id' => $organization->organization_id,
             'facility_id' => $facility->facility_id,
@@ -271,13 +277,13 @@ final class EnterpriseRegistryImportTest extends TestCase
             'updated_at' => now(),
         ], 'source_id');
 
-        app(\App\Integrations\Healthcare\Services\SourceConfigurationVersionService::class)->initialize(
-            $sourceId, null, 'Initial enterprise topology test configuration.', (string) \Illuminate\Support\Str::uuid(),
+        app(SourceConfigurationVersionService::class)->initialize(
+            $sourceId, null, 'Initial enterprise topology test configuration.', (string) Str::uuid(),
         );
-        app(\App\Integrations\Healthcare\Services\SourceLifecycleService::class)->initialize(
+        app(SourceLifecycleService::class)->initialize(
             $sourceId, null, 'Initial enterprise topology test lifecycle.',
         );
-        app(\App\Integrations\Healthcare\Services\SourceOnboardingService::class)->initialize($sourceId);
+        app(SourceOnboardingService::class)->initialize($sourceId);
 
         return [$sourceId, $facilityKey];
     }

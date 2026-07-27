@@ -2,10 +2,12 @@
 
 namespace App\Domain\Arena;
 
+use App\Domain\Ocel\EmissionMap;
 use App\Domain\Ocel\OcelJsonExporter;
 use App\Domain\Ocel\QuantityExporter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * The Arena orchestrator (Part X §X.4.2). Mirrors the cockpit's /snapshot
@@ -108,16 +110,66 @@ class ArenaService
      * @param  array<int, array<string, mixed>>|null  $filters
      * @return array<string, mixed>
      */
-    public function conformance(?string $pathway = null, ?array $filters = null): array
+    public function conformance(?string $pathway = null, ?array $filters = null, bool $perCase = false, ?array $caseIds = null): array
     {
         $doc = $this->exporter->export();
-        $results = $this->client->conformance($doc, $pathway, $filters);
+        $results = $this->client->conformance($doc, $pathway, $filters, $perCase, $caseIds);
 
         if ($results === null) {
             return ['available' => false, 'reason' => 'sidecar_unavailable'];
         }
 
         return ['available' => true, 'pathways' => $results];
+    }
+
+    /**
+     * Cached per-case conformance verdicts for a set of OCEL case object ids —
+     * the 4D Navigator's per-patient adherence read (FLOW-4D plan §8 A2,
+     * finding CF-2). Reads arena.case_conformance ONLY (RefreshArenaConformance
+     * writes it on its own cadence); a browser request never triggers a mining
+     * run, mirroring the /cockpit/snapshot discipline.
+     *
+     * @param  list<string>  $caseOids  candidate de-identified case ids
+     *                                  (enc-<hash12> / patient-<hash12> / orcase-<id>)
+     * @return array<string, mixed>
+     */
+    public function caseConformance(array $caseOids): array
+    {
+        $caseOids = array_values(array_unique(array_filter($caseOids, 'is_string')));
+        if ($caseOids === []) {
+            return ['available' => true, 'verdicts' => [], 'computed_at' => null];
+        }
+
+        $rows = DB::table('arena.case_conformance')
+            ->whereIn('case_oid', $caseOids)
+            ->orderBy('pathway')
+            ->get();
+
+        $computedAt = null;
+        $verdicts = [];
+        foreach ($rows as $row) {
+            $rowComputedAt = Carbon::parse((string) $row->computed_at);
+            if ($computedAt === null || $rowComputedAt->gt($computedAt)) {
+                $computedAt = $rowComputedAt;
+            }
+
+            // The de-identified case oid stays server-side: an authorized
+            // client needs the verdict, never the hash it was joined on.
+            $verdicts[] = [
+                'pathway' => (string) $row->pathway,
+                'pathway_version' => (int) $row->pathway_version,
+                'conformant' => (bool) $row->conformant,
+                'deviations' => json_decode((string) $row->deviations, true) ?: [],
+                'activity_timeline' => json_decode((string) $row->activity_timeline, true) ?: (object) [],
+                'computed_at' => $rowComputedAt->toIso8601String(),
+            ];
+        }
+
+        return [
+            'available' => true,
+            'verdicts' => $verdicts,
+            'computed_at' => $computedAt?->toIso8601String(),
+        ];
     }
 
     /**
@@ -174,6 +226,64 @@ class ArenaService
         }
 
         return ['available' => true] + $result;
+    }
+
+    /**
+     * Every OCEL case object id a live patient could appear under — the
+     * deterministic hash join (FLOW-4D plan §5): EmissionMap::hashRef is the
+     * same unsalted stable hash the projector used, so Laravel (which holds
+     * identified context legitimately) recomputes the de-identified ids here
+     * and the sidecar/cache never learn identity.
+     *
+     * @return list<string>
+     */
+    public function caseOidsForPatient(string $patientRef): array
+    {
+        $oids = [];
+
+        if (($hash = EmissionMap::hashRef($patientRef)) !== null) {
+            $oids[] = 'patient-'.$hash;
+        }
+
+        if (Schema::hasTable('flow_core.flow_events')) {
+            $encounterRefs = DB::table('flow_core.flow_events')
+                ->where('patient_ref', $patientRef)
+                ->whereNotNull('encounter_ref')
+                ->distinct()
+                ->pluck('encounter_ref');
+
+            foreach ($encounterRefs as $ref) {
+                if (($hash = EmissionMap::hashRef((string) $ref)) !== null) {
+                    $oids[] = 'enc-'.$hash;
+                }
+            }
+        }
+
+        if (Schema::hasTable('prod.encounters')) {
+            $encounterIds = DB::table('prod.encounters')
+                ->where('patient_ref', $patientRef)
+                ->where('is_deleted', false)
+                ->pluck('encounter_id');
+
+            foreach ($encounterIds as $id) {
+                if (($hash = EmissionMap::hashRef((string) $id)) !== null) {
+                    $oids[] = 'enc-'.$hash;
+                }
+            }
+        }
+
+        if (Schema::hasTable('prod.or_cases')) {
+            $caseIds = DB::table('prod.or_cases')
+                ->where('patient_id', $patientRef)
+                ->where('is_deleted', false)
+                ->pluck('case_id');
+
+            foreach ($caseIds as $caseId) {
+                $oids[] = 'orcase-'.$caseId;
+            }
+        }
+
+        return array_values(array_unique($oids));
     }
 
     /** A stable fingerprint of the filter pipeline for cache keying (order-sensitive). */

@@ -41,6 +41,15 @@ export async function fetchPatientFlowLocations(persona?: string): Promise<Patie
   return response.data;
 }
 
+// Dataset epoch (Codex HFE audit F-6 pt 2). Aggregate + patient-free; returns
+// the opaque epoch id or null when this deployment has no refresh ledger —
+// null keeps every client-side epoch comparison inert by design.
+export async function fetchPatientFlowEpoch(): Promise<string | null> {
+  const response = await axios.get<{ epoch: { epoch?: unknown } | null }>('/api/patient-flow/epoch');
+  const epoch = response.data?.epoch?.epoch;
+  return typeof epoch === 'string' && epoch !== '' ? epoch : null;
+}
+
 // Open operational barriers overlay. Aggregate + patient-free, so no lens is
 // required; pass a unit_id to scope to one unit.
 export async function fetchPatientFlowBarriers(unitId?: number): Promise<PatientFlowBarriersResponse> {

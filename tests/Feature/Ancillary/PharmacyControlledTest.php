@@ -4,17 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Ancillary;
 
-use App\Services\Demo\Ancillary\AncillaryDemoScenarioService;
-use App\Services\Demo\DemoClock;
 use App\Services\Pharmacy\ControlledSubstanceOperationsService;
 use Carbon\CarbonImmutable;
-use Database\Seeders\AncillaryReferenceSeeder;
-use Database\Seeders\CaseManagementSeeder;
-use Database\Seeders\CommandCenterDemoSeeder;
-use Database\Seeders\RtdcSeeder;
-use Database\Seeders\StaffingReferenceSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Tests\Support\Scenario\UsesCommittedAncillaryScenario;
 use Tests\TestCase;
 
 /**
@@ -26,7 +20,7 @@ use Tests\TestCase;
  */
 final class PharmacyControlledTest extends TestCase
 {
-    use RefreshDatabase;
+    use UsesCommittedAncillaryScenario;
 
     private CarbonImmutable $anchor;
 
@@ -35,14 +29,6 @@ final class PharmacyControlledTest extends TestCase
         parent::setUp();
         $this->anchor = CarbonImmutable::parse('2026-07-11T14:00:00Z');
         CarbonImmutable::setTestNow($this->anchor);
-        $this->seed([
-            RtdcSeeder::class,
-            CaseManagementSeeder::class,
-            StaffingReferenceSeeder::class,
-            CommandCenterDemoSeeder::class,
-            AncillaryReferenceSeeder::class,
-        ]);
-        app(AncillaryDemoScenarioService::class)->refresh(new DemoClock($this->anchor));
     }
 
     protected function tearDown(): void
@@ -84,7 +70,7 @@ final class PharmacyControlledTest extends TestCase
         $this->assertNotNull($edOpen);
 
         DB::table('prod.adc_transactions')->insert([
-            'transaction_uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'transaction_uuid' => (string) Str::uuid(),
             'adc_station_id' => $edOpen->adc_station_id,
             'source_id' => $edOpen->source_id,
             'source_transaction_key' => $edOpen->source_transaction_key.'-resolved-test',
@@ -141,7 +127,7 @@ final class PharmacyControlledTest extends TestCase
         $this->assertNotNull($edOpen);
 
         DB::table('prod.adc_transactions')->insert([
-            'transaction_uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'transaction_uuid' => (string) Str::uuid(),
             'adc_station_id' => $edOpen->adc_station_id,
             'source_id' => $edOpen->source_id,
             'source_transaction_key' => 'demo:rx:txn:disc-fresh-test',
@@ -182,7 +168,7 @@ final class PharmacyControlledTest extends TestCase
             ['type' => 'override', 'suffix' => 'co-1'],
         ] as $row) {
             DB::table('prod.adc_transactions')->insert([
-                'transaction_uuid' => (string) \Illuminate\Support\Str::uuid(),
+                'transaction_uuid' => (string) Str::uuid(),
                 'adc_station_id' => $station,
                 'source_id' => $sourceId,
                 'source_transaction_key' => 'demo:rx:txn:ctrl-'.$row['suffix'],

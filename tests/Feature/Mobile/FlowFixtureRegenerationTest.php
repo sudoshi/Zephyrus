@@ -3,8 +3,11 @@
 namespace Tests\Feature\Mobile;
 
 use App\Models\User;
+use App\Services\Flow\FloorPlateAssetService;
+use App\Support\Hospital\HospitalManifest;
 use Database\Seeders\RtdcSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\Support\SeedsFlowStory;
 use Tests\TestCase;
@@ -43,8 +46,8 @@ class FlowFixtureRegenerationTest extends TestCase
             '--source-name' => 'flow-fixture-catalog',
             '--map-operational' => true,
         ])->assertSuccessful();
-        \Illuminate\Support\Facades\Storage::disk('local')
-            ->delete(\App\Services\Flow\FloorPlateAssetService::ASSET_PATH);
+        Storage::disk('local')
+            ->delete(FloorPlateAssetService::ASSET_PATH);
 
         $user = User::factory()->create(['role' => 'bed_manager', 'must_change_password' => false, 'is_active' => true]);
         Sanctum::actingAs($user, ['mobile:read']);
@@ -60,7 +63,7 @@ class FlowFixtureRegenerationTest extends TestCase
         // that exercises bed_statuses (+ task-depth redaction) in a fixture.
         $evsUser = User::factory()->create(['role' => 'evs', 'must_change_password' => false, 'is_active' => true]);
         Sanctum::actingAs($evsUser, ['mobile:read']);
-        $micuFloor = (int) app(\App\Support\Hospital\HospitalManifest::class)->unit('MICU')['floor'];
+        $micuFloor = (int) app(HospitalManifest::class)->unit('MICU')['floor'];
         $evsWindow = $this->getJson('/api/mobile/v1/flow/window?persona=evs&scope=floor:'.$micuFloor)
             ->assertOk()
             ->json();

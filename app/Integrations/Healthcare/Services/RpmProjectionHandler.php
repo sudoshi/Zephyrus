@@ -8,6 +8,8 @@ use App\Integrations\Healthcare\Rpm\RpmEventVocabulary;
 use App\Models\Home\RpmDevice;
 use App\Models\Home\RpmEnrollment;
 use App\Models\Home\RpmObservation;
+use App\Services\Home\RpmAlertEvaluator;
+use App\Services\Home\RpmFhirObservationRecorder;
 use InvalidArgumentException;
 use Ramsey\Uuid\Uuid;
 
@@ -22,8 +24,8 @@ use Ramsey\Uuid\Uuid;
 class RpmProjectionHandler implements ProjectionHandler
 {
     public function __construct(
-        private readonly \App\Services\Home\RpmAlertEvaluator $alerts,
-        private readonly \App\Services\Home\RpmFhirObservationRecorder $fhir,
+        private readonly RpmAlertEvaluator $alerts,
+        private readonly RpmFhirObservationRecorder $fhir,
     ) {}
 
     public function key(): string

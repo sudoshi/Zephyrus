@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Audit\UserEvent;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -70,7 +71,7 @@ final class AuditRedactionTest extends TestCase
                 ->where('recentEvents.0.actor.email', 'c***@example.test'));
     }
 
-    private function loginEvent(User $actor, string $ip, \Carbon\CarbonInterface $occurredAt): UserEvent
+    private function loginEvent(User $actor, string $ip, CarbonInterface $occurredAt): UserEvent
     {
         return UserEvent::query()->create([
             'event_uuid' => (string) Str::uuid7(),

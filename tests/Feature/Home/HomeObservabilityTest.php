@@ -7,13 +7,16 @@ use App\Integrations\Healthcare\Rpm\SyntheticRpmConnector;
 use App\Models\Home\HomeEpisode;
 use App\Models\Home\HomeEscalation;
 use App\Models\Home\RpmAlert;
+use App\Models\Home\RpmObservation;
 use App\Models\Org\Facility;
 use App\Models\Org\Organization;
 use App\Models\User;
 use App\Services\Cockpit\DrillBuilder;
+use App\Services\Cockpit\SnapshotBuilder;
 use App\Services\Eddy\EddyActionService;
 use App\Services\Home\HewsService;
 use App\Services\Home\HomeEscalationService;
+use Database\Seeders\CockpitKpiDefinitionSeeder;
 use Database\Seeders\HomeHospitalDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -195,8 +198,8 @@ class HomeObservabilityTest extends TestCase
 
     public function test_cockpit_snapshot_carries_the_home_domain_and_crit_alert(): void
     {
-        $this->seed(\Database\Seeders\CockpitKpiDefinitionSeeder::class);
-        $snapshot = app(\App\Services\Cockpit\SnapshotBuilder::class)->build();
+        $this->seed(CockpitKpiDefinitionSeeder::class);
+        $snapshot = app(SnapshotBuilder::class)->build();
 
         $this->assertArrayHasKey('home', $snapshot['domains']);
         $tiles = collect($snapshot['domains']['home']['tiles']);
@@ -218,15 +221,15 @@ class HomeObservabilityTest extends TestCase
     {
         config()->set('home_hospital.enabled', false);
 
-        $snapshot = app(\App\Services\Cockpit\SnapshotBuilder::class)->build();
+        $snapshot = app(SnapshotBuilder::class)->build();
 
         $this->assertArrayNotHasKey('home', $snapshot['domains']);
     }
 
     public function test_home_drill_builds_ward_board_and_funnel(): void
     {
-        $this->seed(\Database\Seeders\CockpitKpiDefinitionSeeder::class);
-        app(\App\Services\Cockpit\SnapshotBuilder::class)->build();
+        $this->seed(CockpitKpiDefinitionSeeder::class);
+        app(SnapshotBuilder::class)->build();
 
         $drill = app(DrillBuilder::class)->build('home');
 
@@ -264,7 +267,7 @@ class HomeObservabilityTest extends TestCase
             'observed_at' => now()->toIso8601String(),
         ]]]));
 
-        $observation = \App\Models\Home\RpmObservation::query()
+        $observation = RpmObservation::query()
             ->where('transmission_id', 'TX-FHIR-1')
             ->firstOrFail();
 

@@ -5,6 +5,8 @@ namespace Tests\Feature\Patient;
 use App\Contracts\Patient\PatientMessageHandoffReadiness;
 use App\Models\Encounter;
 use App\Models\Patient\PatientEducationClarificationRequest;
+use App\Models\Patient\PatientEncounterAccessGrant;
+use App\Models\Patient\PatientEncounterProjection;
 use App\Models\Patient\PatientMessage;
 use App\Models\Patient\PatientPrincipal;
 use App\Models\Patient\PatientSession;
@@ -135,7 +137,7 @@ class PatientEducationClarificationApiTest extends TestCase
         $this->assertDatabaseCount('patient_experience.messages', 0);
     }
 
-    /** @return array{principal: PatientPrincipal, grant: \App\Models\Patient\PatientEncounterAccessGrant, pathway: \App\Models\Patient\PatientEncounterProjection, token: string} */
+    /** @return array{principal: PatientPrincipal, grant: PatientEncounterAccessGrant, pathway: PatientEncounterProjection, token: string} */
     private function fixture(string $seed): array
     {
         $fixture = $this->app->make(SyntheticPatientProjectionProvisioner::class)->provision($seed);
@@ -225,7 +227,7 @@ class EducationClarificationHandoffReadiness implements PatientMessageHandoffRea
         string $policyVersion,
         string $topicCode,
         string $responsibilityPoolKey,
-        \App\Models\Patient\PatientEncounterAccessGrant $grant,
+        PatientEncounterAccessGrant $grant,
     ): bool {
         return $policyVersion === 'test-messaging-policy-v1'
             && $topicCode === 'education_clarification'

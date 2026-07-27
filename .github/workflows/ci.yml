@@ -8,18 +8,126 @@ on:
 
 concurrency:
   group: ci-full-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseding pushes cancel PR runs only. A cancelled main run can never
+  # satisfy the deploy gate for its commit, which left rapid back-to-back
+  # merges permanently undeployable.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Gatekeeper — tree-sha verdict reuse on main squash pushes (plan S4,
+  # [SU] evidence-chain ruling 2026-07-24). A squash merge under strict
+  # branch protection reproduces the PR head's git tree byte-for-byte
+  # (including this workflow file). When that exact tree already holds a
+  # green ci.yml verdict, re-running the suite proves nothing new: every
+  # job below skips, the run concludes success, and the deploy gate passes
+  # on the exact SHA with this job's summary pointing at the reused run.
+  # Every check fails OPEN (reuse=false -> full suite runs).
+  #
+  # Plan S4(b): the same job classifies docs-only change sets (docs/ plus
+  # root-level *.md, excluding docs/hummingbird/ whose generated files are
+  # contract-verified by backend-quality). Suite jobs skip on docs_only;
+  # the Security job deliberately keeps running on every change set so
+  # gitleaks/SAST still scan documentation diffs.
+  # ---------------------------------------------------------------------------
+  changes:
+    name: Changes (verdict-reuse gatekeeper)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      reuse: ${{ steps.verdict.outputs.reuse }}
+      docs_only: ${{ steps.docs.outputs.docs_only }}
+    steps:
+      - name: Classify docs-only change sets
+        id: docs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          echo "docs_only=false" >> "$GITHUB_OUTPUT"
+          not_provable() {
+            echo "::notice::Docs-only not provable ($1) — full suite runs."
+            exit 0
+          }
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            files_json="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --paginate --jq '[.[].filename]' | jq -cs 'add')" || not_provable "PR file list failed"
+          elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/main" ]]; then
+            [[ -n "$PUSH_BEFORE" && ! "$PUSH_BEFORE" =~ ^0+$ ]] || not_provable "no push base"
+            files_json="$(gh api "repos/$GITHUB_REPOSITORY/compare/$PUSH_BEFORE...$GITHUB_SHA" --jq '[.files[].filename]')" || not_provable "compare failed"
+            # The compare API truncates at 300 files; a truncated list cannot
+            # prove the change set is docs-only.
+            [[ "$(jq 'length' <<<"$files_json")" -lt 300 ]] || not_provable "change set too large to classify"
+          else
+            exit 0
+          fi
+          if jq -e 'length > 0 and all(test("^docs/|^[^/]+[.]md$")) and (any(test("^docs/hummingbird/")) | not)' <<<"$files_json" >/dev/null; then
+            echo "docs_only=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Docs-only fast path (plan S4b)"
+              echo "- Change set: $(jq 'length' <<<"$files_json") file(s), all under \`docs/\` or root-level \`*.md\` (\`docs/hummingbird/\` excluded)"
+              echo "- Suite jobs skip; Security (gitleaks / SAST) still runs on every change set."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Docs-only change set — suite jobs skip, security still runs."
+          fi
+
+      - name: Look up a green verdict for this exact tree
+        id: verdict
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "reuse=false" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_EVENT_NAME" != "push" || "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Not a main push — full suite runs."
+            exit 0
+          fi
+          fail_open() {
+            echo "::notice::Verdict reuse unavailable ($1) — running the full suite."
+            exit 0
+          }
+          commit_json="$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$GITHUB_SHA")" || fail_open "commit lookup failed"
+          tree_now="$(jq -r '.tree.sha' <<<"$commit_json")"
+          subject="$(jq -r '.message' <<<"$commit_json" | head -n 1)"
+          # GitHub appends the real PR number last, so a spoofed "(#N)" in a
+          # PR title cannot displace it; tree equality below is the actual
+          # security property regardless.
+          pr_number="$(grep -oE '\(#[0-9]+\)$' <<<"$subject" | tr -dc '0-9')" || true
+          [[ -n "${pr_number:-}" ]] || fail_open "no PR number in squash subject"
+          pr_head="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr_number" --jq '.head.sha')" || fail_open "PR #$pr_number lookup failed"
+          tree_pr="$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$pr_head" --jq '.tree.sha')" || fail_open "PR head commit lookup failed"
+          [[ "$tree_now" == "$tree_pr" ]] || fail_open "tree mismatch: squash $tree_now vs PR head $tree_pr"
+          run_url="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$pr_head&status=success&per_page=1" --jq '.workflow_runs[0].html_url // empty')" || fail_open "run lookup failed"
+          [[ -n "$run_url" ]] || fail_open "no successful ci.yml run exists for PR head $pr_head"
+          echo "reuse=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Verdict reuse (plan S4)"
+            echo "- Squash commit: \`$GITHUB_SHA\` (PR #$pr_number)"
+            echo "- PR head: \`$pr_head\`"
+            echo "- Identical git tree: \`$tree_now\`"
+            echo "- Reused green run: $run_url"
+            echo ""
+            echo "All suite jobs are skipped; the verdict for this exact tree is the linked run ([SU] evidence-chain ruling, 2026-07-24)."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Reusing verdict from $run_url"
+
+  # ---------------------------------------------------------------------------
   # Backend — quality/migrations plus deterministic PHPUnit shards
   # ---------------------------------------------------------------------------
   backend-quality:
     name: Backend (Laravel / quality)
     runs-on: ubuntu-latest
+    needs: changes
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 20
     env:
       APP_ENV: testing
@@ -113,8 +221,11 @@ jobs:
       - name: Prove test resource isolation
         run: php scripts/assert-test-environment.php
 
+      - name: Verify shard manifest covers every feature test exactly once
+        run: bash scripts/ci/verify-shard-manifest.sh
+
       - name: Run Pint (code style)
-        run: ./vendor/bin/pint --test
+        run: ./vendor/bin/pint --test --parallel
 
       - name: Run migrations
         run: bash scripts/capture-release-evidence.sh backend-migration php artisan migrate --force
@@ -134,7 +245,18 @@ jobs:
   backend-tests:
     name: Backend tests (${{ matrix.shard }})
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    needs: changes
+    # Plan S4: skip on verdict reuse (main pushes only — branch protection
+    # never gates those runs). The S4b docs-only skip lives on the STEPS, not
+    # here: a job-level skip never expands the matrix, so the nine required
+    # "Backend tests (…)" contexts would stay "expected" forever and a
+    # docs-only PR could never merge. With step-level skips each shard boots,
+    # runs nothing, and reports success in ~1 minute.
+    if: needs.changes.outputs.reuse != 'true'
+    # Ratcheted 30 -> 20 after S1/S2/D1: worst observed shard is ~10.5 m
+    # (feature-1 carrying the RadiologyDemoGeneratorTest swing — evidence run
+    # 30163345605), so 20 m keeps ~2x headroom while halving hung-shard burn.
+    timeout-minutes: 20
     env:
       APP_ENV: testing
       APP_KEY: base64:MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
@@ -167,6 +289,10 @@ jobs:
       RELEASE_EVIDENCE_DIR: artifacts/release-evidence/backend-${{ matrix.shard }}
     strategy:
       fail-fast: false
+      # Plan D3: 4 feature shards, each running 2 paratest workers on
+      # per-process isolated databases (was 8 serial shards) — same total
+      # test compute on half the VMs, wall ~neutral. Shard scripts run
+      # ordered passes to honor the S2 scenario/anchor invariants.
       matrix:
         shard:
           - unit
@@ -174,10 +300,6 @@ jobs:
           - feature-1
           - feature-2
           - feature-3
-          - feature-4
-          - feature-5
-          - feature-6
-          - feature-7
 
     services:
       postgres:
@@ -196,8 +318,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.docs_only != 'true'
 
       - name: Setup PHP 8.4
+        if: needs.changes.outputs.docs_only != 'true'
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
@@ -205,6 +329,7 @@ jobs:
           coverage: none
 
       - name: Cache Composer dependencies
+        if: needs.changes.outputs.docs_only != 'true'
         uses: actions/cache@v4
         with:
           path: ~/.cache/composer/files
@@ -212,22 +337,27 @@ jobs:
           restore-keys: composer-
 
       - name: Install Composer dependencies
+        if: needs.changes.outputs.docs_only != 'true'
         run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: Copy environment template
+        if: needs.changes.outputs.docs_only != 'true'
         run: cp .env.example .env
 
       - name: Prove test resource isolation
+        if: needs.changes.outputs.docs_only != 'true'
         run: php scripts/assert-test-environment.php
 
       - name: Run migrations
+        if: needs.changes.outputs.docs_only != 'true'
         run: bash scripts/capture-release-evidence.sh backend-migration php artisan migrate --force
 
       - name: Run PHPUnit shard
+        if: needs.changes.outputs.docs_only != 'true'
         run: bash scripts/capture-release-evidence.sh backend-phpunit-${{ matrix.shard }} scripts/ci/run-backend-test-shard.sh "${{ matrix.shard }}"
 
       - name: Upload backend shard evidence
-        if: always()
+        if: always() && needs.changes.outputs.docs_only != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: backend-${{ matrix.shard }}-release-evidence
@@ -241,6 +371,9 @@ jobs:
   frontend:
     name: Frontend (Vitest / Vite)
     runs-on: ubuntu-latest
+    needs: changes
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 10
     env:
       RELEASE_EVIDENCE_DIR: artifacts/release-evidence/frontend
@@ -261,11 +394,25 @@ jobs:
       - name: TypeScript type check
         run: bash scripts/capture-release-evidence.sh frontend-typescript npx tsc --noEmit
 
-      - name: Run Vitest with coverage
-        run: bash scripts/capture-release-evidence.sh frontend-vitest npx vitest run --coverage
+      # Coverage output has no PR-lane consumer; the lcov record persists
+      # from main pushes only.
+      - name: Run Vitest
+        run: bash scripts/capture-release-evidence.sh frontend-vitest npx vitest run ${{ github.event_name == 'push' && '--coverage' || '' }}
 
       - name: Vite production build
         run: bash scripts/capture-release-evidence.sh frontend-build npx vite build
+
+      # Plan S6: browser + DAST download this build and skip their own
+      # vite runs — one production build per CI run.
+      - name: Upload production build for browser/DAST reuse
+        uses: actions/upload-artifact@v4
+        with:
+          name: vite-production-build
+          path: public/build
+          if-no-files-found: error
+          # Long enough that a failed-job rerun a day or two later can still
+          # download it; the durable build record lives in release evidence.
+          retention-days: 3
 
       - name: UI canon check
         run: bash scripts/capture-release-evidence.sh frontend-ui-canon bash scripts/check-ui-canon.sh
@@ -285,6 +432,9 @@ jobs:
   security:
     name: Security (dependencies / secrets / SAST)
     runs-on: ubuntu-latest
+    needs: changes
+    # Plan S4: skip when an identical tree already holds a green verdict.
+    if: needs.changes.outputs.reuse != 'true'
     timeout-minutes: 20
     env:
       RELEASE_EVIDENCE_DIR: artifacts/release-evidence/security
@@ -335,6 +485,9 @@ jobs:
   arena:
     name: Arena sidecar (pytest / pm4py)
     runs-on: ubuntu-latest
+    needs: changes
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 15
     env:
       RELEASE_EVIDENCE_DIR: artifacts/release-evidence/arena
@@ -373,6 +526,11 @@ jobs:
   browser:
     name: Browser (Playwright / Chromium)
     runs-on: ubuntu-latest
+    # frontend is needed for the shared vite build (plan S6); the implicit
+    # success() in `if` keeps this job skipped whenever frontend skips.
+    needs: [changes, frontend]
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 20
     env:
       APP_ENV: testing
@@ -395,6 +553,7 @@ jobs:
       TEST_USERNAME: e2e_admin
       TEST_PASSWORD: BrowserOnlyPassword!123
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:8084
+      PLAYWRIGHT_SKIP_BUILD: "true"
       RELEASE_EVIDENCE_DIR: artifacts/release-evidence/browser
 
     services:
@@ -429,6 +588,22 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      # restore-keys keeps the last browser bundle warm across lockfile
+      # changes; playwright install then no-ops unless its version moved.
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
       - name: Install application and browser dependencies
         run: |
           composer install --prefer-dist --no-interaction --no-progress
@@ -437,6 +612,12 @@ jobs:
 
       - name: Prepare test application
         run: cp .env.example .env
+
+      - name: Download production build from the frontend job
+        uses: actions/download-artifact@v4
+        with:
+          name: vite-production-build
+          path: public/build
 
       - name: Run Playwright
         run: bash scripts/run-browser-suite.sh
@@ -459,6 +640,11 @@ jobs:
   dast:
     name: DAST (OWASP ZAP baseline)
     runs-on: ubuntu-latest
+    # frontend is needed for the shared vite build (plan S6); the implicit
+    # success() in `if` keeps this job skipped whenever frontend skips.
+    needs: [changes, frontend]
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 25
     env:
       APP_ENV: testing
@@ -480,6 +666,7 @@ jobs:
       DEMO_AUTO_LOGIN_ENABLED: "false"
       TEST_USERNAME: e2e_admin
       TEST_PASSWORD: BrowserOnlyPassword!123
+      DAST_SKIP_BUILD: "true"
       RELEASE_EVIDENCE_DIR: artifacts/release-evidence/dast
 
     services:
@@ -514,6 +701,13 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
       - name: Install application dependencies
         run: |
           composer install --prefer-dist --no-interaction --no-progress
@@ -521,6 +715,12 @@ jobs:
 
       - name: Prepare test application
         run: cp .env.example .env
+
+      - name: Download production build from the frontend job
+        uses: actions/download-artifact@v4
+        with:
+          name: vite-production-build
+          path: public/build
 
       - name: Run pinned ZAP baseline
         run: bash scripts/capture-release-evidence.sh dast-zap bash scripts/run-dast-suite.sh
@@ -540,6 +740,9 @@ jobs:
   hummingbird-staff-android:
     name: Hummingbird staff (Android)
     runs-on: ubuntu-24.04
+    needs: changes
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 35
     defaults:
       run:
@@ -621,15 +824,32 @@ jobs:
 
   hummingbird-staff-ios:
     name: Hummingbird staff (iOS)
-    # Staff UI uses the iOS 26 liquid-glass SDK. macos-15 currently defaults
-    # to Xcode 16.4, whose SDK cannot even parse those guarded symbols.
-    runs-on: macos-26
+    # Staff UI needs the iOS 26 liquid-glass SDK. macos-15 defaults to
+    # Xcode 16.4 but ships Xcode 26.0-26.3 side-by-side (probe 2026-07-25:
+    # full staff XCTest+XCUITest suites green under Xcode 26.3), so pin
+    # DEVELOPER_DIR instead of paying the scarce macos-26 pool's queue
+    # tail (measured up to 35.4 m; macos-15 queues in seconds).
+    runs-on: macos-15
+    needs: changes
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 45
     env:
       IOS_STAFF_ROOT: hummingbird/iosApp
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
 
     steps:
       - uses: actions/checkout@v4
+
+      # Booting a simulator takes 2-5 minutes and depends on nothing the
+      # builds produce, so start it immediately and let it overlap the build
+      # steps; the wait step before the first test blocks on readiness.
+      - name: Select and begin booting an available iPhone Simulator
+        id: simulator
+        run: |
+          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
+          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
 
       - name: Install pinned XcodeGen
         env:
@@ -660,7 +880,10 @@ jobs:
             -o "$RUNNER_TEMP/hummingbird-fixture-decoder"
           "$RUNNER_TEMP/hummingbird-fixture-decoder" "$GITHUB_WORKSPACE"
 
-      - name: Build Debug for iPhone Simulator
+      # build-for-testing writes app + test bundles into the derivedDataPath
+      # the test steps read, so XCTest/XCUITest run test-without-building
+      # instead of recompiling from scratch.
+      - name: Build Debug for testing (iPhone Simulator)
         run: |
           xcodebuild \
             -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
@@ -668,11 +891,51 @@ jobs:
             -configuration Debug \
             -sdk iphonesimulator \
             -destination "generic/platform=iOS Simulator" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-debug" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build
+            build-for-testing
 
+      - name: Wait for simulator boot to complete
+        run: xcrun simctl bootstatus "${{ steps.simulator.outputs.udid }}" -b
+
+      - name: Run XCTest unit suite
+        run: |
+          xcodebuild \
+            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
+            -scheme Hummingbird \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
+            -resultBundlePath "$RUNNER_TEMP/HummingbirdStaffUnitTests.xcresult" \
+            -only-testing:HummingbirdTests \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test-without-building
+
+      - name: Run XCUITest reference journeys
+        # In-job flake retry on PR lanes only; §3.2.9 budget-evidence runs on
+        # main must stay retry-free so ratified budgets measure true cost.
+        env:
+          XCUITEST_RETRY_FLAGS: ${{ github.event_name == 'pull_request' && '-retry-tests-on-failure -test-iterations 3 -test-repetition-relaunch-enabled YES' || '' }}
+        run: |
+          xcodebuild \
+            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
+            -scheme Hummingbird \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
+            -resultBundlePath "$RUNNER_TEMP/HummingbirdStaffUITests.xcresult" \
+            -only-testing:HummingbirdUITests \
+            -parallel-testing-enabled NO \
+            $XCUITEST_RETRY_FLAGS \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test-without-building
+
+      # The Release build gates the deploy path, not test feedback, so it
+      # runs after the tests to surface test failures sooner.
       - name: Build Release for iPhone Simulator
         run: |
           xcodebuild \
@@ -690,44 +953,6 @@ jobs:
         run: |
           release_app="$RUNNER_TEMP/hummingbird-staff-ios-release/Build/Products/Release-iphonesimulator/Hummingbird.app"
           bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" staff
-
-      - name: Select and boot an available iPhone Simulator
-        id: simulator
-        run: |
-          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
-          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
-          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
-          xcrun simctl bootstatus "$simulator_udid" -b
-
-      - name: Run XCTest unit suite
-        run: |
-          xcodebuild \
-            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
-            -scheme Hummingbird \
-            -configuration Debug \
-            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
-            -resultBundlePath "$RUNNER_TEMP/HummingbirdStaffUnitTests.xcresult" \
-            -only-testing:HummingbirdTests \
-            -parallel-testing-enabled NO \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            test
-
-      - name: Run XCUITest reference journeys
-        run: |
-          xcodebuild \
-            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
-            -scheme Hummingbird \
-            -configuration Debug \
-            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
-            -resultBundlePath "$RUNNER_TEMP/HummingbirdStaffUITests.xcresult" \
-            -only-testing:HummingbirdUITests \
-            -parallel-testing-enabled NO \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            test
 
       - name: Shut down test simulator
         if: always() && steps.simulator.outputs.udid != ''
@@ -751,6 +976,9 @@ jobs:
   hummingbird-patient-android:
     name: Hummingbird patient (Android)
     runs-on: ubuntu-24.04
+    needs: changes
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 30
     defaults:
       run:
@@ -842,12 +1070,25 @@ jobs:
   hummingbird-patient-ios:
     name: Hummingbird patient (iOS)
     runs-on: macos-15
+    needs: changes
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 40
     env:
       IOS_PATIENT_ROOT: hummingbird/iosPatientApp
 
     steps:
       - uses: actions/checkout@v4
+
+      # Booting a simulator takes 2-5 minutes and depends on nothing the
+      # builds produce, so start it immediately and let it overlap the build
+      # steps; the wait step before the first test blocks on readiness.
+      - name: Select and begin booting an available iPhone Simulator
+        id: simulator
+        run: |
+          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
+          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
 
       - name: Install pinned XcodeGen
         env:
@@ -868,7 +1109,10 @@ jobs:
           bash scripts/ci/verify-hummingbird-patient-boundary.sh source "$IOS_PATIENT_ROOT"
           xcodebuild -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" -list
 
-      - name: Build Debug for iPhone Simulator
+      # build-for-testing writes app + test bundles into the derivedDataPath
+      # the test steps read, so XCTest/XCUITest run test-without-building
+      # instead of recompiling from scratch.
+      - name: Build Debug for testing (iPhone Simulator)
         run: |
           xcodebuild \
             -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
@@ -876,11 +1120,51 @@ jobs:
             -configuration Debug \
             -sdk iphonesimulator \
             -destination "generic/platform=iOS Simulator" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-debug" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build
+            build-for-testing
 
+      - name: Wait for simulator boot to complete
+        run: xcrun simctl bootstatus "${{ steps.simulator.outputs.udid }}" -b
+
+      - name: Run XCTest unit suite
+        run: |
+          xcodebuild \
+            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
+            -scheme HummingbirdPatient \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
+            -resultBundlePath "$RUNNER_TEMP/HummingbirdPatientUnitTests.xcresult" \
+            -only-testing:HummingbirdPatientTests \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test-without-building
+
+      - name: Run XCUITest reference journeys
+        # In-job flake retry on PR lanes only; §3.2.9 budget-evidence runs on
+        # main must stay retry-free so ratified budgets measure true cost.
+        env:
+          XCUITEST_RETRY_FLAGS: ${{ github.event_name == 'pull_request' && '-retry-tests-on-failure -test-iterations 3 -test-repetition-relaunch-enabled YES' || '' }}
+        run: |
+          xcodebuild \
+            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
+            -scheme HummingbirdPatient \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
+            -resultBundlePath "$RUNNER_TEMP/HummingbirdPatientUITests.xcresult" \
+            -only-testing:HummingbirdPatientUITests \
+            -parallel-testing-enabled NO \
+            $XCUITEST_RETRY_FLAGS \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test-without-building
+
+      # The Release build gates the deploy path, not test feedback, so it
+      # runs after the tests to surface test failures sooner.
       - name: Build Release for iPhone Simulator
         run: |
           xcodebuild \
@@ -899,44 +1183,6 @@ jobs:
           release_app="$RUNNER_TEMP/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/HummingbirdPatient.app"
           bash scripts/ci/verify-hummingbird-patient-boundary.sh artifact "$release_app"
           bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" patient
-
-      - name: Select and boot an available iPhone Simulator
-        id: simulator
-        run: |
-          simulator_udid="$(bash scripts/ci/select-ios-simulator.sh)"
-          echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
-          xcrun simctl boot "$simulator_udid" 2>/dev/null || true
-          xcrun simctl bootstatus "$simulator_udid" -b
-
-      - name: Run XCTest unit suite
-        run: |
-          xcodebuild \
-            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
-            -scheme HummingbirdPatient \
-            -configuration Debug \
-            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
-            -resultBundlePath "$RUNNER_TEMP/HummingbirdPatientUnitTests.xcresult" \
-            -only-testing:HummingbirdPatientTests \
-            -parallel-testing-enabled NO \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            test
-
-      - name: Run XCUITest reference journeys
-        run: |
-          xcodebuild \
-            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
-            -scheme HummingbirdPatient \
-            -configuration Debug \
-            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
-            -resultBundlePath "$RUNNER_TEMP/HummingbirdPatientUITests.xcresult" \
-            -only-testing:HummingbirdPatientUITests \
-            -parallel-testing-enabled NO \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            test
 
       - name: Shut down test simulator
         if: always() && steps.simulator.outputs.udid != ''

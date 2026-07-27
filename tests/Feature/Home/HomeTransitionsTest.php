@@ -6,6 +6,7 @@ use App\Models\Bed;
 use App\Models\Encounter;
 use App\Models\Home\HomeEpisode;
 use App\Models\Home\HomeReferral;
+use App\Models\Home\RpmKit;
 use App\Models\Unit;
 use App\Models\User;
 use Database\Seeders\HomeHospitalDemoSeeder;
@@ -145,7 +146,7 @@ class HomeTransitionsTest extends TestCase
             ->assertJsonPath('episode.disposition', 'routine_discharge');
 
         $this->assertSame('available', Bed::find($bedId)->status);
-        $this->assertSame('available', \App\Models\Home\RpmKit::find($kitId)->status);
+        $this->assertSame('available', RpmKit::find($kitId)->status);
         $this->assertSame('discharged', $episode->fresh()->encounter->status);
 
         $cohort = HomeEpisode::query()

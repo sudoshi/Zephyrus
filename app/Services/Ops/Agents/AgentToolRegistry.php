@@ -4,6 +4,7 @@ namespace App\Services\Ops\Agents;
 
 use App\Models\User;
 use App\Services\Analytics\OperationsAnalyticsService;
+use App\Services\Cockpit\SnapshotBuilder;
 use App\Services\Ops\InterventionAttributionService;
 use App\Support\Operations\DurationFormatter;
 use Illuminate\Database\Query\Builder;
@@ -76,7 +77,7 @@ class AgentToolRegistry
      */
     private function cachedCapacitySnapshot(): array
     {
-        $cached = Cache::get(\App\Services\Cockpit\SnapshotBuilder::CACHE_KEY);
+        $cached = Cache::get(SnapshotBuilder::CACHE_KEY);
         $capacity = is_array($cached) ? ($cached['capacitySnapshot'] ?? null) : null;
 
         if (is_array($capacity) && ($capacity['tool'] ?? null) === 'capacity.snapshot') {

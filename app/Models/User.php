@@ -7,6 +7,7 @@ use App\Authorization\Capability;
 use App\Models\Auth\MobileTokenSession;
 use App\Models\Auth\UserAccessScope;
 use App\Models\Auth\UserExternalIdentity;
+use App\Models\Org\StaffMember;
 use App\Services\Authorization\RoleCapabilityService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -136,7 +137,7 @@ class User extends Authenticatable
      */
     public function staffAssignments(): HasMany
     {
-        return $this->hasMany(\App\Models\Org\StaffMember::class, 'user_id', 'id');
+        return $this->hasMany(StaffMember::class, 'user_id', 'id');
     }
 
     /**

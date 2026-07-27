@@ -10,6 +10,7 @@ use App\Services\Rounds\PatientRoundQuestionPromotionService;
 use App\Services\Rounds\RoundAuthorizationService;
 use App\Services\Rounds\RoundProjectionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -47,7 +48,7 @@ class RoundQuestionController extends RoundsController
     }
 
     public function availablePatientQuestions(
-        \Illuminate\Http\Request $request,
+        Request $request,
         string $roundPatientUuid,
     ): JsonResponse {
         $patient = $this->resolvePatient($roundPatientUuid);
@@ -85,7 +86,7 @@ class RoundQuestionController extends RoundsController
         return response()->json($this->projection->patientDetail($patient->refresh(), $request->user()), 201);
     }
 
-    public function resolve(\Illuminate\Http\Request $request, string $questionUuid): JsonResponse
+    public function resolve(Request $request, string $questionUuid): JsonResponse
     {
         $question = RoundQuestion::query()->where('question_uuid', $questionUuid)->firstOrFail();
         $patient = $question->patient;

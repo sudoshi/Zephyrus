@@ -79,7 +79,7 @@ return new class extends Migration
             if ($available) {
                 DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('eddy.migration.pgvector_install_failed', ['error' => $e->getMessage()]);
         }
 

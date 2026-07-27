@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class PatientEncounterAccessGrant extends Model
 {
@@ -75,7 +76,7 @@ class PatientEncounterAccessGrant extends Model
     {
         static::creating(function (PatientEncounterAccessGrant $grant): void {
             if (blank($grant->encounter_uuid)) {
-                $grant->encounter_uuid = (string) \Illuminate\Support\Str::uuid();
+                $grant->encounter_uuid = (string) Str::uuid();
             }
         });
     }

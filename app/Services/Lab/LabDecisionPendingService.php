@@ -258,7 +258,19 @@ final class LabDecisionPendingService
      */
     public function cockpitHealth(): array
     {
-        $queue = $this->readinessSnapshot();
+        return $this->cockpitHealthFrom($this->readinessSnapshot());
+    }
+
+    /**
+     * The same aggregate-only transform over an already-computed readiness
+     * snapshot, so a request-scoped snapshot holder can derive the cockpit
+     * seam without re-running the queue pipeline.
+     *
+     * @param  array<string, mixed>  $queue
+     * @return array<string, mixed>
+     */
+    public function cockpitHealthFrom(array $queue): array
+    {
         $destinations = collect($queue['destinationAggregates']);
         $pendingCount = (int) $destinations->sum('pendingCount');
 

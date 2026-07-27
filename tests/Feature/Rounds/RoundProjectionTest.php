@@ -2,8 +2,12 @@
 
 namespace Tests\Feature\Rounds;
 
+use App\Models\Rounds\RoundParticipant;
+use App\Models\Rounds\RoundRun;
 use App\Models\User;
+use App\Services\Rounds\RoundProjectionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\Support\SeedsRoundsStory;
 use Tests\TestCase;
 
@@ -71,8 +75,8 @@ class RoundProjectionTest extends TestCase
         // F-2 ruling (2026-07-19): under patient_dots = none, bed + queue +
         // status is re-identifiable at ward level on a shared wall — the
         // projection anchors at unit centroids (bed/facility_space stripped).
-        $run = \App\Models\Rounds\RoundRun::query()->where('run_uuid', $this->runUuid)->firstOrFail();
-        $scene = app(\App\Services\Rounds\RoundProjectionService::class)
+        $run = RoundRun::query()->where('run_uuid', $this->runUuid)->firstOrFail();
+        $scene = app(RoundProjectionService::class)
             ->scene($run, $this->chargeNurse, aggregate: true);
 
         $this->assertCount(3, $scene['data']['stops']);
@@ -85,7 +89,7 @@ class RoundProjectionTest extends TestCase
         }
 
         // The full-detail path is unchanged (contract test above still pins bed).
-        $full = app(\App\Services\Rounds\RoundProjectionService::class)
+        $full = app(RoundProjectionService::class)
             ->scene($run, $this->chargeNurse);
         $this->assertNotNull(collect($full['data']['stops'])->firstWhere('bed'));
     }
@@ -105,9 +109,9 @@ class RoundProjectionTest extends TestCase
         // Invite an off-unit consultant as a run participant: they can view,
         // but the aggregate lens must redact identifiers and clinical text.
         $consultant = User::factory()->create(['role' => 'user']);
-        $run = \App\Models\Rounds\RoundRun::query()->where('run_uuid', $this->runUuid)->firstOrFail();
-        \App\Models\Rounds\RoundParticipant::create([
-            'participant_uuid' => (string) \Illuminate\Support\Str::uuid(),
+        $run = RoundRun::query()->where('run_uuid', $this->runUuid)->firstOrFail();
+        RoundParticipant::create([
+            'participant_uuid' => (string) Str::uuid(),
             'run_id' => $run->run_id,
             'user_id' => $consultant->id,
             'role_code' => 'consultant',

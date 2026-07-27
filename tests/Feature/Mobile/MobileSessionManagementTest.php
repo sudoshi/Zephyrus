@@ -4,6 +4,7 @@ namespace Tests\Feature\Mobile;
 
 use App\Models\Auth\MobileTokenSession;
 use App\Models\User;
+use App\Services\Audit\UserAuditRecorder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -371,7 +372,7 @@ class MobileSessionManagementTest extends TestCase
             ->where('session_uuid', $target['session_uuid'])
             ->firstOrFail();
 
-        $this->mock(\App\Services\Audit\UserAuditRecorder::class, function (MockInterface $mock): void {
+        $this->mock(UserAuditRecorder::class, function (MockInterface $mock): void {
             $mock->shouldReceive('record')
                 ->once()
                 ->withArgs(static fn (
@@ -406,7 +407,7 @@ class MobileSessionManagementTest extends TestCase
         $user = $this->activeUser();
         $issued = $this->issue($user, 'ios', 'Sensitive Device Label');
 
-        $this->mock(\App\Services\Audit\UserAuditRecorder::class, function (MockInterface $mock): void {
+        $this->mock(UserAuditRecorder::class, function (MockInterface $mock): void {
             $mock->shouldReceive('record')
                 ->once()
                 ->withArgs(static fn (

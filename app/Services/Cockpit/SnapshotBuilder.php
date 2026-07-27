@@ -17,10 +17,13 @@ use App\Domain\Cockpit\Metrics\RtdcMetrics;
 use App\Domain\Cockpit\Metrics\ServiceLineMetrics;
 use App\Domain\Cockpit\Metrics\StaffingMetrics;
 use App\Domain\Cockpit\SnapshotContext;
+use App\Events\Cockpit\CockpitSnapshotUpdated;
 use App\Integrations\Healthcare\Services\SourceHealthDigestService;
 use App\Models\Cockpit\CockpitSnapshot;
 use App\Models\Ops\MetricDefinition;
 use App\Services\CommandCenterDataService;
+use App\Services\Eddy\EddyActionService;
+use App\Services\Lab\LabAggregateSnapshotFactory;
 use App\Services\Ops\Agents\AgentToolRegistry;
 use App\Support\Cockpit\MetricValue;
 use App\Support\Hospital\HospitalManifest;
@@ -120,6 +123,13 @@ class SnapshotBuilder
     {
         $facilityKey ??= $this->manifest->facilityCode();
 
+        // The authoritative snapshot must never publish a request-scoped
+        // memo captured before the caller's data changes: long-lived
+        // processes (demo:seed roll-forward cycles, dispatch_sync callers)
+        // reuse one container scope across refreshes, so the scoped lab
+        // aggregate is invalidated here before recomputing.
+        app(LabAggregateSnapshotFactory::class)->flush();
+
         ['payload' => $payload, 'context' => $ctx] = $this->buildWithContext($facilityKey);
 
         // P6: the persisted/served payload carries the flap-DAMPED open set
@@ -132,11 +142,11 @@ class SnapshotBuilder
         // ticker can hand off to the EddyDock pre-seeded (client stays
         // presentation-only; the mapping lives server-side).
         $payload['alerts'] = array_map(function (array $alert): array {
-            $action = \App\Services\Eddy\EddyActionService::actionForAlert($alert['key'], $alert['status']);
+            $action = EddyActionService::actionForAlert($alert['key'], $alert['status']);
 
             return $alert + [
                 'action' => $action,
-                'actionLabel' => \App\Services\Eddy\EddyActionService::CATALOG[$action]['label'],
+                'actionLabel' => EddyActionService::CATALOG[$action]['label'],
             ];
         }, $payload['alerts']);
 
@@ -157,7 +167,7 @@ class SnapshotBuilder
         // the snapshot over their own session. Broadcast trouble (Reverb down,
         // BROADCAST_CONNECTION=null) must never fail the refresh itself.
         try {
-            \App\Events\Cockpit\CockpitSnapshotUpdated::dispatch(
+            CockpitSnapshotUpdated::dispatch(
                 $facilityKey,
                 (string) ($payload['asOf'] ?? now()->toIso8601String()),
             );

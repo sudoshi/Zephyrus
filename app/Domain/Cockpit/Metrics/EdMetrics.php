@@ -3,6 +3,7 @@
 namespace App\Domain\Cockpit\Metrics;
 
 use App\Domain\Cockpit\SnapshotContext;
+use App\Models\Transport\TransportRequest;
 use App\Services\Cockpit\StatusEngine;
 use App\Services\Ed\NedocsService;
 use App\Support\Cockpit\MetricValue;
@@ -66,7 +67,7 @@ class EdMetrics extends BaseMetrics
 
         // Same convention as TransportOperationsService::overview()'s
         // metrics.ems_inbound — the model's active() scope.
-        $emsInbound = (int) \App\Models\Transport\TransportRequest::active()
+        $emsInbound = (int) TransportRequest::active()
             ->where('request_type', 'ems')
             ->count();
 

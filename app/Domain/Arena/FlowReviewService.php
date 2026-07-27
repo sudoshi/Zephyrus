@@ -141,7 +141,7 @@ class FlowReviewService
      *
      * @return array<int, array<string, mixed>>
      */
-    private function openHumanBarriers(\Illuminate\Support\Carbon $to): array
+    private function openHumanBarriers(Carbon $to): array
     {
         return Barrier::query()
             ->open()

@@ -6,6 +6,7 @@ use App\Models\Encounter;
 use App\Models\RtdcPrediction;
 use App\Models\RtdcReconciliation;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 
 /**
  * RTDC Step 4 — evaluate yesterday's plan. Reconciles predicted vs actual
@@ -16,7 +17,7 @@ class ReconciliationService
 {
     public function reconcile(int $unitId, CarbonInterface|string $serviceDate): RtdcReconciliation
     {
-        $date = \Illuminate\Support\Carbon::parse($serviceDate)->toDateString();
+        $date = Carbon::parse($serviceDate)->toDateString();
 
         $predictedDischarges = (float) RtdcPrediction::where('unit_id', $unitId)
             ->whereDate('service_date', $date)

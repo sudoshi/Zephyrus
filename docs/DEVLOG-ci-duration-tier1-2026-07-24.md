@@ -1,0 +1,39 @@
+# DEVLOG — CI Duration Optimization, Tier 1 (2026-07-24)
+
+**Scope:** Tier 1 (Q1–Q7) of `docs/superpowers/plans/2026-07-24-ci-duration-optimization-plan.md`.
+**Shipped:** PR #64 (squash `0458408f`), plus PR #63 (npm-audit advisory fix, merged separately).
+**Out of scope by design:** S1/S2 (gated on Q6 medians from 3 clean exact-SHA runs), S4 (needs an explicit [SU] evidence-chain ruling), Tier 3.
+
+## What landed (one commit per item)
+
+| Item | Change | Measured outcome |
+|---|---|---|
+| Q1 | Simulator selected + boot started right after checkout (both iOS jobs); `bootstatus` wait moved to just before the first test step | Boot wait **5.02 m → 7–11 s** (target <30 s) |
+| Q2 | `build-for-testing` into the test derivedDataPath; both suites run `test-without-building` | XCTest step **4.13 m → 56–83 s**, single compile phase (target ≤1.5 m) |
+| Q3 | `-retry-tests-on-failure -test-iterations 3 -test-repetition-relaunch-enabled YES` on XCUITest, **PR lanes only** | First green run self-healed **two** real flakes (31 s + 34 s failures in the patient-communication UI journeys, both passed on retry, 18/18 final). Without it: red job + ~35 m rerun |
+| Q4 | Release build + transport verify resequenced after the test suites | Test failures surface ~2 m sooner; deploy-path gate unchanged |
+| Q5 | composer/npm/pip audits hard-gate only when the diff touches the corresponding manifest/lockfile (fail-safe: always-run if diff base unavailable); new `security-nightly` workflow forces all audits daily + opens/updates an issue on failure | Security job **~1 m** on PR lanes; all four skip decisions recorded in the signed evidence log. Kills the registry-ambush red-main class (the 2026-07-24 `brace-expansion` advisory turned main red for hours on an untouched dependency) |
+| Q6 | PHPUnit 11 event extension (`PreparationStarted`/`Prepared`/`Finished`) + `DB::listen` bridge in `Tests\TestCase::refreshApplication()` → per-test setUp-vs-body wall time and query counts as NDJSON in `RELEASE_EVIDENCE_DIR` | `phpunit-setup-split.ndjson` ships in every shard artifact (feature-0: 227 records). Amplification is immediately visible, e.g. `AccountLifecycleTest`: 7.06 s total, **6.65 s setUp**, 2,257 setup queries (3.58 s) vs 163 body queries. No-op without the env var |
+| Q7 | Shard `timeout-minutes` 90→30; `cancel-in-progress` off-main only (closes the permanently-undeployable superseded-main-commit hole); Playwright Chromium cache; composer cache for browser/DAST; Vitest `--coverage` main-only | Hygiene; caches warm from the second run onward |
+
+## Notable findings during execution
+
+1. **`-maximum-test-repetitions` is not an xcodebuild flag** (it's the Xcode test-plan GUI name). Both iOS jobs failed instantly with usage exit 64 on the first run; the CLI form is `-retry-tests-on-failure -test-iterations N`. Fixed in `19a8ef44`.
+2. **Pint `--parallel` deferred.** It needs Pint ≥ 1.22; bumping 1.20.0 → 1.29.3 wants to restyle ~150 files (`fully_qualified_strict_types`, `ordered_imports`, …). That is a dedicated bump+reformat PR coordinated around open PRs, not a hygiene ratchet. (Same-tree measurement: `pint --test --parallel` finishes the whole repo in ~3.5 s wall, so the quality-job saving is real once the bump lands.)
+3. **PHPUnit 11's `runTest()` is private**, so the plan's "base-class hook" shape doesn't work; the event system (extension + three subscribers in `tests/Support/Timing/`) gives a cleaner split anyway: setup = PreparationStarted→Prepared, body(+tearDown) = Prepared→Finished.
+4. **Q3 paid for itself immediately** — the first green run absorbed two flakes that would previously have red-flagged staff iOS. Note the trade recorded in the plan: main-push runs stay retry-free for §3.2.9 budget evidence, so a flake on main still reds the deploy gate until S3/S5 attack the flake source itself.
+
+## Timing snapshot (PR #64 run `30137103167`, all green)
+
+- Backend shards: unit 1.3 m; features 7.0–24.5 m (feature-0 still carries the heavy Ancillary/Lab classes — unchanged by design; S1 waits on Q6 medians per the §3.2.9 ordering gate).
+- Staff iOS 34.6 m **including two flake-retry cycles** (~23 m in XCUITest); clean-path projection from run 1 step timings ≈ 19–20 m vs 26.9 m baseline.
+- **Patient iOS 7.9 m end-to-end** — the clean-path demonstration of Q1+Q2+Q4 on the same commit.
+- Android ×2 (5.4–5.5 m), frontend 4.3 m, browser 9.1 m, DAST 4.2 m, arena 0.7 m, quality 2.7 m, security **0.9 m**.
+
+## Follow-ups
+
+- Accumulate **3 clean exact-SHA main runs** of Q6 medians → build S1's LPT `tests/ci/shard-manifest.json`.
+- S2 (kill setUp amplification in the ~21 consumer classes) once Q6 data confirms the per-class split.
+- [SU] ruling needed before S4 (tree-sha verdict reuse on the squash push + docs-only fast path).
+- S5: macOS queue-tail de-risk (`macos-15` SDK probe first); emit queue-delay into release evidence.
+- Dedicated Pint 1.29 bump+reformat PR to unlock `--parallel` in the quality job.

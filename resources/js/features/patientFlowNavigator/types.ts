@@ -45,6 +45,8 @@ export interface PatientFlowSummary {
   source: PatientFlowSource;
   data_extent: PatientFlowDataExtent;
   suggested_initial_time: string | null;
+  /** Dataset epoch envelope (F-6 pt 2); null before any demo refresh has run. */
+  epoch?: { epoch: string; refreshed_at: string | null; status: string } | null;
   generated_at: string;
 }
 

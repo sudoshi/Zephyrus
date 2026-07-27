@@ -1,0 +1,79 @@
+name: Security nightly
+
+# Dependency audits on the CI merge gate run only when a change set touches
+# the corresponding manifest/lockfile (see scripts/security/run-security-suite.sh).
+# This scheduled sweep owns new-advisory response instead: it forces every
+# audit daily and opens (or updates) an issue on failure, so advisory triage
+# is a scheduled, owned activity rather than a merge-blocking ambush.
+
+on:
+  schedule:
+    - cron: "17 9 * * *" # daily 09:17 UTC (~05:17 ET)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  security-sweep:
+    name: Security sweep (all dependency audits)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RELEASE_EVIDENCE_DIR: artifacts/release-evidence/security-nightly
+      SECURITY_AUDIT_DEPENDENCIES: always
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Gitleaks must inspect the complete repository history.
+          fetch-depth: 0
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install pinned security tools
+        run: bash scripts/security/install-tools.sh
+
+      - name: Run full security suite (audits forced)
+        run: bash scripts/capture-release-evidence.sh security-nightly bash scripts/security/run-security-suite.sh
+
+      - name: Upload nightly security evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-nightly-evidence
+          path: artifacts/release-evidence/security-nightly
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Open or update advisory issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          title="Security nightly sweep failing"
+          existing="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')"
+          if [[ -n "$existing" ]]; then
+            gh issue comment "$existing" --body "Nightly security sweep failed again: $run_url"
+          else
+            gh issue create \
+              --title "$title" \
+              --body "The scheduled dependency-advisory sweep failed. Triage the advisory and land the remediation as an owned change (bump the affected lockfile so the CI-gate audit re-arms). Run: $run_url"
+          fi

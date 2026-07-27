@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Rtdc;
 
+use Illuminate\Session\Middleware\StartSession;
 use Tests\TestCase;
 
 class ApiSessionMiddlewareTest extends TestCase
@@ -22,6 +23,6 @@ class ApiSessionMiddlewareTest extends TestCase
             $route->excludedMiddleware(),
         );
 
-        $this->assertContains(\Illuminate\Session\Middleware\StartSession::class, $resolved);
+        $this->assertContains(StartSession::class, $resolved);
     }
 }

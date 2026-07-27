@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Rounds;
 
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -31,9 +33,9 @@ class RoundsSchemaTest extends TestCase
 
     public function test_contribution_partial_unique_blocks_duplicate_submitted_rows(): void
     {
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
 
-        \Illuminate\Support\Facades\DB::statement(<<<'SQL'
+        DB::statement(<<<'SQL'
             INSERT INTO rounds.templates (template_uuid, name) VALUES (gen_random_uuid(), 't');
             INSERT INTO rounds.runs (run_uuid, template_id, scope_type, scope_key)
                 VALUES (gen_random_uuid(), (SELECT template_id FROM rounds.templates LIMIT 1), 'unit', '1');

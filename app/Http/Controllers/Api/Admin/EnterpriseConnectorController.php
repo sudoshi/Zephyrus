@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Authorization\AuthorizationScope;
 use App\Authorization\GovernedAction;
 use App\Http\Controllers\Api\Admin\Concerns\ResolvesIntegrationCorrelation;
 use App\Http\Controllers\Controller;
 use App\Integrations\Healthcare\Services\EnterpriseConnectorControlService;
 use App\Integrations\Healthcare\Services\FhirConformanceObservationService;
 use App\Integrations\Healthcare\Services\FhirResourceProfileService;
+use App\Models\Integration\Source;
 use App\Services\Authorization\AdminScopeService;
 use App\Services\Governance\GovernedChangeService;
 use Illuminate\Http\JsonResponse;
@@ -242,7 +244,7 @@ class EnterpriseConnectorController extends Controller
     private function replayScope(Request $request): array
     {
         return $request->validate([
-            'source_id' => ['required', 'integer', 'min:1', Rule::exists(\App\Models\Integration\Source::class, 'source_id')],
+            'source_id' => ['required', 'integer', 'min:1', Rule::exists(Source::class, 'source_id')],
             'from' => ['required', 'date'],
             'to' => ['required', 'date'],
             'event_types' => ['sometimes', 'array', 'min:1', 'max:5'],
@@ -252,12 +254,12 @@ class EnterpriseConnectorController extends Controller
     }
 
     /** @param array<string, mixed> $scope */
-    private function replayAuthorizationScope(array $scope): \App\Authorization\AuthorizationScope
+    private function replayAuthorizationScope(array $scope): AuthorizationScope
     {
         $sourceId = $scope['sourceId'] ?? null;
         abort_unless(is_int($sourceId) && $sourceId > 0, 422);
 
-        return \App\Authorization\AuthorizationScope::facility(
+        return AuthorizationScope::facility(
             (int) DB::table('integration.sources')->where('source_id', $sourceId)->value('facility_id'),
         );
     }

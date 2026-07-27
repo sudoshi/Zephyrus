@@ -78,13 +78,16 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
             $this->removeOwnedRows($owner);
             $events = 0;
 
+            // markProjectedOnWrite: the projector runs on each event inside
+            // this same transaction, so the row is born 'projected' — a
+            // post-hoc flip of same-transaction inserts re-runs the payload
+            // FK check + guard trigger per row (~5.4 ms × every event).
             foreach ($scenarios as $scenario) {
                 foreach ($scenario['events'] as $ordinal => $event) {
                     $source = $sources[$event['source'] ?? 'primary'];
                     $canonical = $this->canonicalEvent($clock, $owner, $scenario, $event, $ordinal);
-                    $record = $this->writer->write($canonical, $source, replaceOwnedSynthetic: true);
+                    $record = $this->writer->write($canonical, $source, replaceOwnedSynthetic: true, markProjectedOnWrite: true);
                     $this->projector->project($canonical->withEventId($record->event_id));
-                    $record->update(['projection_status' => 'projected', 'projected_at' => now()]);
                     $events++;
                 }
             }
@@ -93,9 +96,8 @@ abstract class AbstractAncillaryDemoGenerator implements AncillaryDemoGenerator
             foreach ($this->operationalEvents($clock, $owner) as $entry) {
                 $source = $sources[$entry['source'] ?? 'secondary'];
                 $canonical = $entry['event'];
-                $record = $this->writer->write($canonical, $source, replaceOwnedSynthetic: true);
+                $record = $this->writer->write($canonical, $source, replaceOwnedSynthetic: true, markProjectedOnWrite: true);
                 $this->projector->project($canonical->withEventId($record->event_id));
-                $record->update(['projection_status' => 'projected', 'projected_at' => now()]);
                 $operational++;
             }
 

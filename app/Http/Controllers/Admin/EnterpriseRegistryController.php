@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Governance\GovernedChangeRequest;
 use App\Services\Authorization\RoleCapabilityService;
 use App\Services\Deployment\EnterpriseRegistryImportService;
+use App\Services\Governance\GovernedChangeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -88,7 +89,7 @@ class EnterpriseRegistryController extends Controller
         ]);
         $this->assertImportChange($changeRequestUuid);
 
-        $decision = app(\App\Services\Governance\GovernedChangeService::class)->decide(
+        $decision = app(GovernedChangeService::class)->decide(
             $request,
             $changeRequestUuid,
             (bool) $validated['approve'],

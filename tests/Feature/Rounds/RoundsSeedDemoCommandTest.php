@@ -3,6 +3,7 @@
 namespace Tests\Feature\Rounds;
 
 use App\Models\Rounds\RoundRun;
+use App\Services\Rounds\RoundCommandService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Tests\Support\SeedsRoundsStory;
@@ -58,7 +59,7 @@ class RoundsSeedDemoCommandTest extends TestCase
 
     public function test_refresh_retires_every_open_run_so_a_daily_pass_never_leaks_stragglers(): void
     {
-        $commands = app(\App\Services\Rounds\RoundCommandService::class);
+        $commands = app(RoundCommandService::class);
         $make = fn () => $commands->createRun($this->admin, [
             'template_uuid' => $this->roundsTemplate->template_uuid,
             'scope_type' => 'unit',

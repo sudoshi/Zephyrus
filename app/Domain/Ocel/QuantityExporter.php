@@ -2,6 +2,7 @@
 
 namespace App\Domain\Ocel;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -32,7 +33,7 @@ final class QuantityExporter
                 'object_id' => $r->object_id,
                 'item_type' => $r->item_type,
                 'delta' => (int) $r->delta,
-                'event_time' => \Carbon\Carbon::parse($r->event_time)->toIso8601String(),
+                'event_time' => Carbon::parse($r->event_time)->toIso8601String(),
             ])->all();
 
         return ['initial' => $initial, 'operations' => $operations];

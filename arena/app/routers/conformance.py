@@ -25,7 +25,13 @@ async def check_conformance(req: ConformanceRequest) -> list[PathwayConformance]
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     try:
         with resolve_ocel_path(req.ocel_path, req.ocel) as path:
-            results = conformance.check(path, pathway_key=req.pathway, filters=filters)
+            results = conformance.check(
+                path,
+                pathway_key=req.pathway,
+                filters=filters,
+                per_case=req.per_case,
+                case_ids=req.case_ids,
+            )
         return [PathwayConformance(**result) for result in results]
     except OcelUnavailable as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
