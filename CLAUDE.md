@@ -3,6 +3,13 @@
 Project guidance for Claude Code. Engineering/build/deploy conventions live in
 [AGENTS.md](./AGENTS.md); this file points at the design context.
 
+## How work is run
+
+Any change bigger than a single-file edit follows
+**[.claude/rules/parallel-agents.md](./.claude/rules/parallel-agents.md)** —
+worktree isolation, domain-boundary task splits, the single-writer file list, and
+sequential rebase-and-merge. Read it before fanning out agents or opening a branch.
+
 ## Design Context
 
 Zephyrus is a **product**-register surface (a hospital operations command center —
