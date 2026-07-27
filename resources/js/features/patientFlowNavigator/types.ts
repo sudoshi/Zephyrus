@@ -218,6 +218,10 @@ export interface PatientLayerState {
   barriers: boolean;
   /** Virtual Rounds stop rings (seam 4b sibling; plan §8.1). */
   rounds: boolean;
+  /** Pathway-deviation glyphs (FLOW-4D §7.2 Phase C) — default OFF; the
+   * toggle only surfaces when the conformance flag + a patient-dots lens
+   * compose. Amber-capped by vocabulary (G-2/G-7; coral is OQ-1's ruling). */
+  pathway: boolean;
 }
 
 export interface PatientVisibleState {

@@ -1,5 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 
+import {
+  deviationEvidence,
+  elementsMet,
+  expectedObservedLanes,
+  pathwayLabel,
+  translateDeviation,
+  PATHWAY_SPECS,
+  PATTERN_LABELS,
+} from '@/features/patientFlowNavigator/adherence';
+import type { CaseVerdict } from '@/features/patientFlowNavigator/adherenceSchemas';
 import {
   alignAnchorMs,
   alignedTimeLabel,
@@ -18,6 +28,14 @@ import type { PatientJourney } from '@/features/patientFlowNavigator/journeySche
 
 export type JourneyDrawerState = 'idle' | 'loading' | 'ok' | 'forbidden' | 'error';
 
+export interface DrawerAdherence {
+  state: 'loading' | 'ok' | 'error';
+  verdicts: CaseVerdict[];
+  /** Newest batch timestamp across the verdicts (C4 freshness honesty). */
+  asOf: string | null;
+  cadenceMinutes: number;
+}
+
 interface NavigatorJourneyDrawerProps {
   journey: PatientJourney | null;
   state: JourneyDrawerState;
@@ -31,6 +49,14 @@ interface NavigatorJourneyDrawerProps {
   onFollowToggle: (enabled: boolean) => void;
   onCopyLink: () => void;
   copiedLink: boolean;
+  /** Phase C adherence panel (§7.2). Absent (null) = surface off — the
+   * drawer renders byte-identical to Phase B. */
+  adherence?: DrawerAdherence | null;
+  /** Drafts a governed exception note; resolves true when it lands PENDING. */
+  onExceptionNote?: (pathway: string, deviations: string[], note: string) => Promise<boolean>;
+  /** "Explain this deviation" via the AI plane — only wired when
+   * ARENA_AI_ENABLED (the copilot narrative path). */
+  onExplainDeviation?: (pathway: string, deviationLabel: string, evidence: string | null) => void;
 }
 
 const ALIGN_OPTIONS: Array<{ key: JourneyAlignAnchor; label: string }> = [
@@ -41,6 +67,181 @@ const ALIGN_OPTIONS: Array<{ key: JourneyAlignAnchor; label: string }> = [
 
 function phaseLabel(phase: string): string {
   return phase.replaceAll('_', ' ');
+}
+
+function batchTimeLabel(iso: string | null): string {
+  if (!iso) return 'batch pending';
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return 'batch pending';
+  return `as of ${new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} batch`;
+}
+
+type NoteState = { mode: 'idle' | 'editing' | 'sending' | 'sent' | 'failed'; text: string };
+
+/**
+ * The adherence panel (§7.2 C1): per cached pathway verdict — an ERAS
+ * elements-met headline, pattern-language deviations with computed evidence,
+ * an expected-vs-observed strip, a provenance + batch-time line (C4: never
+ * "live"), and the governed exception-note draft. Variance-to-review framing
+ * throughout — this is state to review, never a clinician scoreboard (CF-5).
+ */
+function AdherencePanel({
+  adherence,
+  at,
+  onExceptionNote,
+  onExplainDeviation,
+}: {
+  adherence: DrawerAdherence;
+  at: (iso: string | null | undefined) => string;
+  onExceptionNote?: (pathway: string, deviations: string[], note: string) => Promise<boolean>;
+  onExplainDeviation?: (pathway: string, deviationLabel: string, evidence: string | null) => void;
+}) {
+  const [notes, setNotes] = useState<Record<string, NoteState>>({});
+
+  const noteFor = (pathway: string): NoteState => notes[pathway] ?? { mode: 'idle', text: '' };
+  const setNote = (pathway: string, next: NoteState): void =>
+    setNotes((previous) => ({ ...previous, [pathway]: next }));
+
+  const submitNote = (pathway: string, deviations: string[]): void => {
+    const current = noteFor(pathway);
+    if (!onExceptionNote || current.text.trim().length === 0) return;
+    setNote(pathway, { ...current, mode: 'sending' });
+    void onExceptionNote(pathway, deviations, current.text.trim()).then((landed) => {
+      setNote(pathway, { mode: landed ? 'sent' : 'failed', text: landed ? '' : current.text });
+    });
+  };
+
+  return (
+    <section className="patient-flow-journey-section" aria-label="Pathway adherence">
+      <h3>Pathways</h3>
+      {adherence.state === 'loading' && (
+        <p className="patient-flow-journey-note">Checking pathway conformance…</p>
+      )}
+      {adherence.state === 'error' && (
+        <p className="patient-flow-journey-note">Pathway conformance unavailable</p>
+      )}
+      {adherence.state === 'ok' && adherence.verdicts.length === 0 && (
+        <p className="patient-flow-journey-note">
+          Not on a monitored pathway in the current conformance batch.
+        </p>
+      )}
+      {adherence.state === 'ok' && adherence.verdicts.map((verdict) => {
+        const codes = verdict.deviations ?? [];
+        const timeline = verdict.activity_timeline ?? {};
+        const { met, total } = elementsMet(verdict.pathway, codes);
+        const spec = PATHWAY_SPECS[verdict.pathway];
+        const lanes = expectedObservedLanes(verdict.pathway, timeline);
+        const note = noteFor(verdict.pathway);
+        return (
+          <details
+            key={verdict.pathway}
+            className="patient-flow-adherence"
+            open={!verdict.conformant}
+          >
+            <summary>
+              <span>{pathwayLabel(verdict.pathway)}</span>
+              <span className={`patient-flow-adherence-headline patient-flow-journey-num${verdict.conformant ? '' : ' deviant'}`}>
+                {`${met} of ${total} elements met`}
+              </span>
+            </summary>
+
+            {codes.length > 0 && (
+              <ul className="patient-flow-adherence-deviations">
+                {codes.map((code) => {
+                  const translated = translateDeviation(verdict.pathway, code);
+                  const evidence = deviationEvidence(code, timeline);
+                  return (
+                    <li key={code}>
+                      <span className="patient-flow-adherence-pattern">{PATTERN_LABELS[translated.pattern]}</span>
+                      <span>
+                        {translated.label}
+                        {evidence ? <small> — {evidence}</small> : null}
+                      </span>
+                      {onExplainDeviation && (
+                        <button
+                          type="button"
+                          title="Ask the copilot to explain this deviation with its evidence"
+                          onClick={() => onExplainDeviation(verdict.pathway, translated.label, evidence)}
+                        >
+                          Explain
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+
+            {lanes.length > 1 && (
+              <ol className="patient-flow-adherence-lanes">
+                {lanes.map((lane) => (
+                  <li key={lane.key} className={lane.observedAt ? 'observed' : ''}>
+                    <span>{lane.label}</span>
+                    <span className="patient-flow-journey-num">
+                      {lane.observedAt ? at(lane.observedAt) : 'not observed'}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+
+            <p className="patient-flow-adherence-provenance">
+              Against {pathwayLabel(verdict.pathway)} v{verdict.pathway_version ?? spec?.version ?? 1}
+              {spec ? ` · owner: ${spec.ownerLabel}` : ''}
+              {' · '}
+              <span className="patient-flow-journey-num">{batchTimeLabel(verdict.computed_at ?? adherence.asOf)}</span>
+              {` · ${adherence.cadenceMinutes}-minute batch`}
+            </p>
+
+            {!verdict.conformant && onExceptionNote && (
+              <div className="patient-flow-adherence-note">
+                {note.mode === 'idle' && (
+                  <button type="button" onClick={() => setNote(verdict.pathway, { mode: 'editing', text: '' })}>
+                    Open an exception note
+                  </button>
+                )}
+                {(note.mode === 'editing' || note.mode === 'sending' || note.mode === 'failed') && (
+                  <>
+                    <textarea
+                      value={note.text}
+                      rows={3}
+                      maxLength={2000}
+                      placeholder="Clinical context for this variance — lands as a pending draft for review."
+                      aria-label={`Exception note for ${pathwayLabel(verdict.pathway)}`}
+                      disabled={note.mode === 'sending'}
+                      onChange={(event) => setNote(verdict.pathway, { ...note, mode: 'editing', text: event.target.value })}
+                    />
+                    <div className="patient-flow-adherence-note-actions">
+                      <button
+                        type="button"
+                        disabled={note.mode === 'sending' || note.text.trim().length === 0}
+                        onClick={() => submitNote(verdict.pathway, codes)}
+                      >
+                        {note.mode === 'sending' ? 'Drafting…' : 'Draft for review'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={note.mode === 'sending'}
+                        onClick={() => setNote(verdict.pathway, { mode: 'idle', text: '' })}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {note.mode === 'failed' && (
+                      <p className="patient-flow-journey-note">Draft failed — nothing was recorded. Try again.</p>
+                    )}
+                  </>
+                )}
+                {note.mode === 'sent' && (
+                  <p className="patient-flow-journey-note">Exception note drafted — pending human review.</p>
+                )}
+              </div>
+            )}
+          </details>
+        );
+      })}
+    </section>
+  );
 }
 
 export default function NavigatorJourneyDrawer({
@@ -55,6 +256,9 @@ export default function NavigatorJourneyDrawer({
   onFollowToggle,
   onCopyLink,
   copiedLink,
+  adherence = null,
+  onExceptionNote,
+  onExplainDeviation,
 }: NavigatorJourneyDrawerProps) {
   if (state === 'idle') return null;
 
@@ -151,6 +355,15 @@ export default function NavigatorJourneyDrawer({
                 )}
               </ul>
             </section>
+          )}
+
+          {adherence && (
+            <AdherencePanel
+              adherence={adherence}
+              at={at}
+              onExceptionNote={onExceptionNote}
+              onExplainDeviation={onExplainDeviation}
+            />
           )}
 
           <section className="patient-flow-journey-section">

@@ -7,6 +7,8 @@ function stubHook(overrides: Partial<Flow4dSoakHook> = {}): Flow4dSoakHook {
     rendererInfo: () => null,
     nowDeltaMs: () => null,
     roundsRun: () => null,
+    epoch: () => null,
+    pathwayGlyphs: () => null,
     ...overrides,
   };
 }
@@ -21,11 +23,13 @@ describe('installSoakHook (H4.1)', () => {
       rendererInfo: () => ({ geometries: 12, textures: 4, calls: 60, triangles: 20_000 }),
       nowDeltaMs: () => 1_500,
       roundsRun: () => ({ uuid: 'run-uuid', status: 'active' }),
+      pathwayGlyphs: () => 3,
     }));
 
     expect(window.__FLOW4D_SOAK__?.rendererInfo()).toEqual({ geometries: 12, textures: 4, calls: 60, triangles: 20_000 });
     expect(window.__FLOW4D_SOAK__?.nowDeltaMs()).toBe(1_500);
     expect(window.__FLOW4D_SOAK__?.roundsRun()).toEqual({ uuid: 'run-uuid', status: 'active' });
+    expect(window.__FLOW4D_SOAK__?.pathwayGlyphs()).toBe(3);
     uninstall();
   });
 

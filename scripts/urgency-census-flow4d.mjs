@@ -43,11 +43,25 @@ function tally(items, key) {
   return counts;
 }
 
+// Phase C deviation glyphs (§7.2 C3): one amber object per flagged patient.
+// The endpoint 404s while FLOW4D_CONFORMANCE_ENABLED is off — counted as 0,
+// silently, so the census runs identically on a pre-Phase-C wall.
+async function fetchDeviantPatients(page, config) {
+  const response = await page.request.get(
+    `${config.baseUrl}/api/arena/conformance/scene${personaQuery(config)}`,
+  );
+  if (response.status() === 401 || response.status() === 419) return { expired: true };
+  if (!response.ok()) return { count: 0 };
+  const json = await response.json();
+  return { count: Array.isArray(json.patients) ? json.patients.length : 0 };
+}
+
 async function captureSample(page, config, index) {
   const base = `${config.baseUrl}/api/patient-flow`;
   const occupancy = await fetchJson(page, `${base}/occupancy${personaQuery(config)}`);
   const barriers = await fetchJson(page, `${base}/barriers`);
-  if (occupancy.expired || barriers.expired) return { expired: true };
+  const deviations = await fetchDeviantPatients(page, config);
+  if (occupancy.expired || barriers.expired || deviations.expired) return { expired: true };
 
   const insights = occupancy.json.occupancy ?? [];
   const timers = insights.flatMap((insight) => insight.timers ?? []);
@@ -69,10 +83,13 @@ async function captureSample(page, config, index) {
       timer_status: tally(timers, 'status'),
       open_barriers: barriers.json.count ?? 0,
       barrier_categories: tally(barriers.json.open_barriers ?? [], 'category'),
+      deviation_glyphs: deviations.count,
       rendered: {
         coral_objects: delayedDisks * 2 + delayedTimers,
-        amber_objects: watchDisks + watchTimers,
-        status_objects: insights.length + delayedDisks + timers.length,
+        // Pathway-deviation glyphs are amber by vocabulary contract (never
+        // coral — OQ-1), so they land in the amber budget (H4 parity).
+        amber_objects: watchDisks + watchTimers + deviations.count,
+        status_objects: insights.length + delayedDisks + timers.length + deviations.count,
       },
     },
   };

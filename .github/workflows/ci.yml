@@ -1113,6 +1113,10 @@ jobs:
           echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
           xcrun simctl boot "$simulator_udid" 2>/dev/null || true
 
+      # Plain pinned download, deliberately uncached: measured 2026-07-27
+      # (run 30284124065) — the release-asset download is ~1 s on healthy
+      # runners while an actions/cache restore cost 41 s on a degraded one.
+      # Step cost tracks VM health, not network; the checksum pins integrity.
       - name: Install pinned XcodeGen
         env:
           XCODEGEN_VERSION: 2.46.0
@@ -1126,21 +1130,16 @@ jobs:
           echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/xcodegen/bin/xcodegen" --version
 
-      - name: Verify generated Xcode project
+      # The staff .xcodeproj is intentionally gitignored: generate it here so
+      # every later xcodebuild uses the committed project.yml specification.
+      # The spec→project determinism verify, the Swift DTO fixture decode,
+      # and the Release transport chain run in the parallel sibling job
+      # 'Hummingbird staff (iOS release)' — split, not skipped: every §3.2.7
+      # control still executes on every change set (iOS build-side tranche,
+      # 2026-07-27).
+      - name: Generate Xcode project from committed spec
         run: |
-          bash scripts/ci/verify-hummingbird-staff-xcode-project.sh "$IOS_STAFF_ROOT"
-          xcodebuild -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" -list
-
-      - name: Decode shared DTO fixtures with Swift
-        run: |
-          swiftc \
-            "$IOS_STAFF_ROOT/Hummingbird/DesignSystem/CapacityStatus.swift" \
-            "$IOS_STAFF_ROOT/Hummingbird/Networking/ISO8601DateFormatter+Flexible.swift" \
-            "$IOS_STAFF_ROOT/Hummingbird/Networking/Models.swift" \
-            "$IOS_STAFF_ROOT/Hummingbird/Features/Flow/FlowModels.swift" \
-            "$IOS_STAFF_ROOT/scripts/decode-shared-fixtures.swift" \
-            -o "$RUNNER_TEMP/hummingbird-fixture-decoder"
-          "$RUNNER_TEMP/hummingbird-fixture-decoder" "$GITHUB_WORKSPACE"
+          (cd "$IOS_STAFF_ROOT" && xcodegen generate --spec project.yml --quiet)
 
       # build-for-testing writes app + test bundles into the derivedDataPath
       # the test steps read, so XCTest/XCUITest run test-without-building
@@ -1154,8 +1153,10 @@ jobs:
             -sdk iphonesimulator \
             -destination "generic/platform=iOS Simulator" \
             -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-tests" \
+            -showBuildTimingSummary \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
             build-for-testing
 
       - name: Wait for simulator boot to complete
@@ -1196,26 +1197,6 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             test-without-building
 
-      # The Release build gates the deploy path, not test feedback, so it
-      # runs after the tests to surface test failures sooner.
-      - name: Build Release for iPhone Simulator
-        run: |
-          xcodebuild \
-            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
-            -scheme Hummingbird \
-            -configuration Release \
-            -sdk iphonesimulator \
-            -destination "generic/platform=iOS Simulator" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-release" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            build
-
-      - name: Verify staff Release app transport boundary
-        run: |
-          release_app="$RUNNER_TEMP/hummingbird-staff-ios-release/Build/Products/Release-iphonesimulator/Hummingbird.app"
-          bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" staff
-
       - name: Shut down test simulator
         if: always() && steps.simulator.outputs.udid != ''
         run: xcrun simctl shutdown "${{ steps.simulator.outputs.udid }}" 2>/dev/null || true
@@ -1228,7 +1209,96 @@ jobs:
           path: |
             ${{ runner.temp }}/HummingbirdStaffUnitTests.xcresult
             ${{ runner.temp }}/HummingbirdStaffUITests.xcresult
-            ${{ runner.temp }}/hummingbird-staff-ios-release/Build/Products/Release-iphonesimulator/Hummingbird.app
+          if-no-files-found: warn
+          retention-days: 14
+
+  hummingbird-staff-ios-release:
+    name: Hummingbird staff (iOS release)
+    # iOS build-side tranche (2026-07-27): the Release transport chain, the
+    # spec→project determinism verify, and the Swift DTO fixture decode are
+    # independent of the Debug/test chain (separate derivedData, no shared
+    # products), so they run in parallel here instead of serially extending
+    # the longest job in every full run. Q4's original keep-in-job ruling
+    # was premised on the scarce macos-26 pool that S5 abandoned. All
+    # §3.2.7 controls still execute on every change set — split, never
+    # skipped (the verdict-reuse gatekeeper is step-blind, so per-lane step
+    # skips are forbidden; whole-job semantics stay identical to the test
+    # job's).
+    runs-on: macos-15
+    needs: changes
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
+    timeout-minutes: 25
+    env:
+      IOS_STAFF_ROOT: hummingbird/iosApp
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Plain pinned download, deliberately uncached: measured 2026-07-27
+      # (run 30284124065) — the release-asset download is ~1 s on healthy
+      # runners while an actions/cache restore cost 41 s on a degraded one.
+      # Step cost tracks VM health, not network; the checksum pins integrity.
+      - name: Install pinned XcodeGen
+        env:
+          XCODEGEN_VERSION: 2.46.0
+          XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
+        run: |
+          curl --fail --show-error --silent --location \
+            --output "$RUNNER_TEMP/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+          echo "${XCODEGEN_SHA256}  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/xcodegen/bin/xcodegen" --version
+
+      - name: Verify generated Xcode project
+        run: |
+          bash scripts/ci/verify-hummingbird-staff-xcode-project.sh "$IOS_STAFF_ROOT"
+          xcodebuild -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" -list
+
+      - name: Decode shared DTO fixtures with Swift
+        run: |
+          swiftc \
+            "$IOS_STAFF_ROOT/Hummingbird/DesignSystem/CapacityStatus.swift" \
+            "$IOS_STAFF_ROOT/Hummingbird/Networking/ISO8601DateFormatter+Flexible.swift" \
+            "$IOS_STAFF_ROOT/Hummingbird/Networking/Models.swift" \
+            "$IOS_STAFF_ROOT/Hummingbird/Features/Flow/FlowModels.swift" \
+            "$IOS_STAFF_ROOT/scripts/decode-shared-fixtures.swift" \
+            -o "$RUNNER_TEMP/hummingbird-fixture-decoder"
+          "$RUNNER_TEMP/hummingbird-fixture-decoder" "$GITHUB_WORKSPACE"
+
+      # ARCHS=arm64: the Release artifact is plist/strings-verified and
+      # uploaded, never executed on x86_64 — the fat x86_64 slice only
+      # doubled the compile (the verify script is arch-agnostic).
+      - name: Build Release for iPhone Simulator
+        run: |
+          xcodebuild \
+            -project "$IOS_STAFF_ROOT/Hummingbird.xcodeproj" \
+            -scheme Hummingbird \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-staff-ios-release" \
+            -showBuildTimingSummary \
+            ARCHS=arm64 \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build
+
+      - name: Verify staff Release app transport boundary
+        run: |
+          release_app="$RUNNER_TEMP/hummingbird-staff-ios-release/Build/Products/Release-iphonesimulator/Hummingbird.app"
+          bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" staff
+
+      - name: Upload iOS staff release artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hummingbird-staff-ios-release
+          path: ${{ runner.temp }}/hummingbird-staff-ios-release/Build/Products/Release-iphonesimulator/Hummingbird.app
           if-no-files-found: warn
           retention-days: 14
 
@@ -1352,25 +1422,12 @@ jobs:
           echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
           xcrun simctl boot "$simulator_udid" 2>/dev/null || true
 
-      - name: Install pinned XcodeGen
-        env:
-          XCODEGEN_VERSION: 2.46.0
-          XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
-        run: |
-          curl --fail --show-error --silent --location \
-            --output "$RUNNER_TEMP/xcodegen.zip" \
-            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
-          echo "${XCODEGEN_SHA256}  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check
-          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
-          "$RUNNER_TEMP/xcodegen/bin/xcodegen" --version
-
-      - name: Verify generated Xcode project and patient source boundary
-        run: |
-          bash scripts/ci/verify-hummingbird-patient-xcode-project.sh "$IOS_PATIENT_ROOT"
-          bash scripts/ci/verify-hummingbird-patient-boundary.sh source "$IOS_PATIENT_ROOT"
-          xcodebuild -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" -list
-
+      # HummingbirdPatient.xcodeproj is COMMITTED, so this job builds it
+      # directly — no XcodeGen needed here. The project-drift verify, the
+      # patient source boundary, and the Release transport/boundary chain
+      # run in the parallel REQUIRED sibling 'Hummingbird patient (iOS
+      # release)' — split, not skipped: every §3.2.7 control still executes
+      # on every change set (iOS build-side tranche, 2026-07-27).
       # build-for-testing writes app + test bundles into the derivedDataPath
       # the test steps read, so XCTest/XCUITest run test-without-building
       # instead of recompiling from scratch.
@@ -1383,8 +1440,10 @@ jobs:
             -sdk iphonesimulator \
             -destination "generic/platform=iOS Simulator" \
             -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-tests" \
+            -showBuildTimingSummary \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
             build-for-testing
 
       - name: Wait for simulator boot to complete
@@ -1425,27 +1484,6 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             test-without-building
 
-      # The Release build gates the deploy path, not test feedback, so it
-      # runs after the tests to surface test failures sooner.
-      - name: Build Release for iPhone Simulator
-        run: |
-          xcodebuild \
-            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
-            -scheme HummingbirdPatient \
-            -configuration Release \
-            -sdk iphonesimulator \
-            -destination "generic/platform=iOS Simulator" \
-            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-release" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            build
-
-      - name: Verify patient Release app boundary
-        run: |
-          release_app="$RUNNER_TEMP/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/HummingbirdPatient.app"
-          bash scripts/ci/verify-hummingbird-patient-boundary.sh artifact "$release_app"
-          bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" patient
-
       - name: Shut down test simulator
         if: always() && steps.simulator.outputs.udid != ''
         run: xcrun simctl shutdown "${{ steps.simulator.outputs.udid }}" 2>/dev/null || true
@@ -1458,6 +1496,84 @@ jobs:
           path: |
             ${{ runner.temp }}/HummingbirdPatientUnitTests.xcresult
             ${{ runner.temp }}/HummingbirdPatientUITests.xcresult
-            ${{ runner.temp }}/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/HummingbirdPatient.app
+          if-no-files-found: warn
+          retention-days: 14
+
+  hummingbird-patient-ios-release:
+    name: Hummingbird patient (iOS release)
+    # iOS build-side tranche (2026-07-27): project-drift verify, patient
+    # source boundary, and the Release transport/boundary chain are
+    # independent of the Debug/test chain and run in parallel here, cutting
+    # the required test job's wall. This context is REQUIRED (added to
+    # branch protection in the same change window): the Release boundary
+    # checks (HBPPatientAPIEnabled=false, empty base URL, no ATS
+    # exceptions, production hostname binding) are a security gate and must
+    # keep gating merges. All §3.2.7 controls still execute on every change
+    # set — split, never skipped.
+    runs-on: macos-15
+    needs: changes
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
+    timeout-minutes: 25
+    env:
+      IOS_PATIENT_ROOT: hummingbird/iosPatientApp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Plain pinned download, deliberately uncached: measured 2026-07-27
+      # (run 30284124065) — the release-asset download is ~1 s on healthy
+      # runners while an actions/cache restore cost 41 s on a degraded one.
+      # Step cost tracks VM health, not network; the checksum pins integrity.
+      - name: Install pinned XcodeGen
+        env:
+          XCODEGEN_VERSION: 2.46.0
+          XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
+        run: |
+          curl --fail --show-error --silent --location \
+            --output "$RUNNER_TEMP/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+          echo "${XCODEGEN_SHA256}  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/xcodegen/bin/xcodegen" --version
+
+      - name: Verify generated Xcode project and patient source boundary
+        run: |
+          bash scripts/ci/verify-hummingbird-patient-xcode-project.sh "$IOS_PATIENT_ROOT"
+          bash scripts/ci/verify-hummingbird-patient-boundary.sh source "$IOS_PATIENT_ROOT"
+          xcodebuild -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" -list
+
+      # ARCHS=arm64: the Release artifact is plist/strings-verified and
+      # uploaded, never executed on x86_64 — the fat x86_64 slice only
+      # doubled the compile (both verify scripts are arch-agnostic).
+      - name: Build Release for iPhone Simulator
+        run: |
+          xcodebuild \
+            -project "$IOS_PATIENT_ROOT/HummingbirdPatient.xcodeproj" \
+            -scheme HummingbirdPatient \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/hummingbird-patient-ios-release" \
+            -showBuildTimingSummary \
+            ARCHS=arm64 \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            build
+
+      - name: Verify patient Release app boundary
+        run: |
+          release_app="$RUNNER_TEMP/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/HummingbirdPatient.app"
+          bash scripts/ci/verify-hummingbird-patient-boundary.sh artifact "$release_app"
+          bash scripts/ci/verify-hummingbird-ios-release-transport.sh "$release_app" patient
+
+      - name: Upload iOS patient release artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hummingbird-patient-ios-release
+          path: ${{ runner.temp }}/hummingbird-patient-ios-release/Build/Products/Release-iphonesimulator/HummingbirdPatient.app
           if-no-files-found: warn
           retention-days: 14

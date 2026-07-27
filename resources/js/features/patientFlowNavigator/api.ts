@@ -1,4 +1,14 @@
 import axios from 'axios';
+import {
+  caseConformanceSchema,
+  exceptionNoteResultSchema,
+  sceneConformanceSchema,
+} from './adherenceSchemas';
+import type {
+  CaseConformance,
+  ExceptionNoteResult,
+  SceneConformance,
+} from './adherenceSchemas';
 import type {
   PatientFlowAmbient,
   OccupancyEddyContext,
@@ -367,4 +377,99 @@ export function createPatientFlowEventSource(
   const suffix = params.toString() ? `?${params.toString()}` : '';
 
   return new EventSource(`/api/patient-flow/stream/adt${suffix}`);
+}
+
+// ---------------------------------------------------------------------------
+// Phase C adherence reads (plan §7.2). All three endpoints sit behind
+// ARENA_ENABLED ∧ FLOW4D_CONFORMANCE_ENABLED ∧ the flow lens — callers only
+// run when page.props.arena.conformance_enabled is true, and every result is
+// typed unavailability on failure (the wall never crashes on a gate).
+// ---------------------------------------------------------------------------
+
+export type AdherenceFetchResult<T> =
+  | { kind: 'ok'; data: T }
+  | { kind: 'forbidden' }
+  | { kind: 'error'; message: string };
+
+/** Cached per-case verdicts for ONE patient (drawer panel). */
+export async function fetchCaseConformance(options: {
+  patientContextRef: string;
+  persona?: string;
+}): Promise<AdherenceFetchResult<CaseConformance>> {
+  try {
+    const response = await axios.get('/api/arena/conformance/case', {
+      params: {
+        scope: `patient:${options.patientContextRef}`,
+        ...(options.persona ? { persona: options.persona } : {}),
+      },
+    });
+    const parsed = caseConformanceSchema.safeParse(response.data);
+    if (!parsed.success) return { kind: 'error', message: 'Conformance payload failed validation' };
+    return { kind: 'ok', data: parsed.data };
+  } catch (caught) {
+    return adherenceFailure(caught);
+  }
+}
+
+/** Bulk deviant-patient flags for the glyph layer + census scope. */
+export async function fetchSceneConformance(options: {
+  persona?: string;
+  from?: string;
+  to?: string;
+} = {}): Promise<AdherenceFetchResult<SceneConformance>> {
+  try {
+    const response = await axios.get('/api/arena/conformance/scene', {
+      params: {
+        ...(options.persona ? { persona: options.persona } : {}),
+        ...(options.from ? { from: options.from } : {}),
+        ...(options.to ? { to: options.to } : {}),
+      },
+    });
+    const parsed = sceneConformanceSchema.safeParse(response.data);
+    if (!parsed.success) return { kind: 'error', message: 'Scene conformance payload failed validation' };
+    return { kind: 'ok', data: parsed.data };
+  } catch (caught) {
+    return adherenceFailure(caught);
+  }
+}
+
+/** Draft an exception note on the Eddy plane — lands PENDING, human-approved. */
+export async function postExceptionNote(options: {
+  patientContextRef: string;
+  pathway: string;
+  note: string;
+  deviations?: string[];
+  persona?: string;
+}): Promise<AdherenceFetchResult<ExceptionNoteResult>> {
+  try {
+    const response = await axios.post(
+      '/api/arena/conformance/exception-note',
+      {
+        pathway: options.pathway,
+        note: options.note,
+        ...(options.deviations?.length ? { deviations: options.deviations } : {}),
+      },
+      {
+        params: {
+          scope: `patient:${options.patientContextRef}`,
+          ...(options.persona ? { persona: options.persona } : {}),
+        },
+      },
+    );
+    const parsed = exceptionNoteResultSchema.safeParse(response.data);
+    if (!parsed.success) return { kind: 'error', message: 'Exception-note response failed validation' };
+    return { kind: 'ok', data: parsed.data };
+  } catch (caught) {
+    return adherenceFailure(caught);
+  }
+}
+
+function adherenceFailure<T>(caught: unknown): AdherenceFetchResult<T> {
+  if (axios.isAxiosError(caught) && caught.response?.status === 403) {
+    return { kind: 'forbidden' };
+  }
+  return {
+    kind: 'error',
+    message: caught instanceof Error ? caught.message : 'Adherence data unavailable',
+  };
 }

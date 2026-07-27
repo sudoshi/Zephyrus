@@ -239,51 +239,74 @@ class ArenaService
      */
     public function caseOidsForPatient(string $patientRef): array
     {
-        $oids = [];
+        return $this->caseOidsForPatients([$patientRef])[$patientRef] ?? [];
+    }
 
-        if (($hash = EmissionMap::hashRef($patientRef)) !== null) {
-            $oids[] = 'patient-'.$hash;
+    /**
+     * Bulk variant of caseOidsForPatient for the scene-flags read (plan §8 C3):
+     * one whereIn per source table instead of three queries per patient, so a
+     * full-house census (hundreds of patients) stays a three-query join.
+     *
+     * @param  list<string>  $patientRefs
+     * @return array<string, list<string>> patientRef → candidate case oids
+     */
+    public function caseOidsForPatients(array $patientRefs): array
+    {
+        $patientRefs = array_values(array_unique(array_filter($patientRefs, 'is_string')));
+        if ($patientRefs === []) {
+            return [];
+        }
+
+        $oids = [];
+        foreach ($patientRefs as $ref) {
+            $oids[$ref] = [];
+            if (($hash = EmissionMap::hashRef($ref)) !== null) {
+                $oids[$ref][] = 'patient-'.$hash;
+            }
         }
 
         if (Schema::hasTable('flow_core.flow_events')) {
-            $encounterRefs = DB::table('flow_core.flow_events')
-                ->where('patient_ref', $patientRef)
+            $rows = DB::table('flow_core.flow_events')
+                ->whereIn('patient_ref', $patientRefs)
                 ->whereNotNull('encounter_ref')
                 ->distinct()
-                ->pluck('encounter_ref');
+                ->get(['patient_ref', 'encounter_ref']);
 
-            foreach ($encounterRefs as $ref) {
-                if (($hash = EmissionMap::hashRef((string) $ref)) !== null) {
-                    $oids[] = 'enc-'.$hash;
+            foreach ($rows as $row) {
+                if (($hash = EmissionMap::hashRef((string) $row->encounter_ref)) !== null) {
+                    $oids[(string) $row->patient_ref][] = 'enc-'.$hash;
                 }
             }
         }
 
         if (Schema::hasTable('prod.encounters')) {
-            $encounterIds = DB::table('prod.encounters')
-                ->where('patient_ref', $patientRef)
+            $rows = DB::table('prod.encounters')
+                ->whereIn('patient_ref', $patientRefs)
                 ->where('is_deleted', false)
-                ->pluck('encounter_id');
+                ->get(['patient_ref', 'encounter_id']);
 
-            foreach ($encounterIds as $id) {
-                if (($hash = EmissionMap::hashRef((string) $id)) !== null) {
-                    $oids[] = 'enc-'.$hash;
+            foreach ($rows as $row) {
+                if (($hash = EmissionMap::hashRef((string) $row->encounter_id)) !== null) {
+                    $oids[(string) $row->patient_ref][] = 'enc-'.$hash;
                 }
             }
         }
 
         if (Schema::hasTable('prod.or_cases')) {
-            $caseIds = DB::table('prod.or_cases')
-                ->where('patient_id', $patientRef)
+            $rows = DB::table('prod.or_cases')
+                ->whereIn('patient_id', $patientRefs)
                 ->where('is_deleted', false)
-                ->pluck('case_id');
+                ->get(['patient_id', 'case_id']);
 
-            foreach ($caseIds as $caseId) {
-                $oids[] = 'orcase-'.$caseId;
+            foreach ($rows as $row) {
+                $oids[(string) $row->patient_id][] = 'orcase-'.$row->case_id;
             }
         }
 
-        return array_values(array_unique($oids));
+        return array_map(
+            static fn (array $refs): array => array_values(array_unique($refs)),
+            $oids,
+        );
     }
 
     /** A stable fingerprint of the filter pipeline for cache keying (order-sensitive). */

@@ -47,6 +47,8 @@ export interface PageProps {
   };
   arena?: {
     ai_enabled: boolean;
+    /** ARENA_ENABLED ∧ FLOW4D_CONFORMANCE_ENABLED, pre-composed server-side. */
+    conformance_enabled?: boolean;
   };
   features?: {
     care_pathways_demo?: boolean;
