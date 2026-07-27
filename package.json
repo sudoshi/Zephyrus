@@ -90,6 +90,7 @@
         "reactflow": "^11.11.4",
         "tailwind-merge": "^3.0.1",
         "three": "^0.185.0",
+        "troika-three-text": "^0.52.5",
         "zod": "^4.4.3",
         "zustand": "^5.0.11"
     }

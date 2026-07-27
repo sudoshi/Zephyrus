@@ -171,6 +171,58 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Window presets (TN-6): the census-toggle radio-chip idiom, sized for the
+   chronobar head. Historical sources disable rather than mislead. */
+.patient-flow-chronobar-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  height: 24px;
+  margin-top: 4px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 5px;
+  overflow: hidden;
+  background: #202522;
+  font-size: 11px;
+}
+
+.patient-flow-chronobar-presets label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  cursor: pointer;
+  user-select: none;
+  color: #b9b2a6;
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-flow-chronobar-presets label.active {
+  background: rgba(224, 163, 63, 0.16);
+  color: #ffd795;
+}
+
+.patient-flow-chronobar-presets label:has(input:disabled) {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.patient-flow-chronobar-presets input[type='radio'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.patient-flow-chronobar-presets label:has(input:focus-visible) {
+  outline: 2px solid #e0a33f;
+  outline-offset: -2px;
+}
+
 /* Scented scrubber (plan B5, TN-1): a quiet event-density row above the
    track — intensity is opacity on one neutral ink, never a status color. */
 .patient-flow-chronobar-density {
@@ -490,6 +542,52 @@
 
 /* Census scope segmented control (B-2) — a filter, deliberately styled unlike
    the layer switches so the two "barrier" concepts can't be confused. */
+/* E6 task mode — the one control that reshapes the rest (WN-6). Same radio-
+   chip idiom as the census toggle; sits at the top of the control column. */
+.patient-flow-task-mode {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  height: 30px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #202522;
+  font-size: 11px;
+}
+
+.patient-flow-task-mode label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  cursor: pointer;
+  user-select: none;
+  color: #b9b2a6;
+}
+
+.patient-flow-task-mode label.active {
+  background: rgba(224, 163, 63, 0.16);
+  color: #ffd795;
+}
+
+.patient-flow-task-mode input[type='radio'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.patient-flow-task-mode label:has(input:focus-visible) {
+  outline: 2px solid #e0a33f;
+  outline-offset: -2px;
+}
+
 .patient-flow-census-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1200,6 +1298,308 @@
 /* --- Action list (F-8): non-pointer selection of delayed locations + barriers,
    below the feed. Same scoped overlay treatment as the other panels. --------- */
 
+/* E3 structure traversal — a collapsed disclosure at the bottom-left that
+   expands upward into a keyboard-walkable floor→unit→bed tree. Quiet chrome;
+   never a status color (structure is not an alarm). */
+.patient-flow-structure-nav {
+  position: absolute;
+  z-index: 3;
+  left: 200px;
+  bottom: 16px;
+  width: min(280px, calc(100vw - 216px));
+  display: flex;
+  flex-direction: column;
+}
+
+/* E1 minimap — the bottom-left floor plate; the structure nav sits to its
+   right. Both are desk affordances (hidden on wall/kiosk by the orchestrator). */
+.patient-flow-minimap {
+  position: absolute;
+  z-index: 3;
+  left: 16px;
+  bottom: 16px;
+  width: 176px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  background: rgba(27, 31, 29, 0.94);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.patient-flow-minimap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #ddd6c7;
+  font-size: 11px;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.patient-flow-minimap-header:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: -2px;
+}
+
+.patient-flow-minimap-body {
+  padding: 0 4px 6px;
+}
+
+.patient-flow-minimap svg {
+  display: block;
+  width: 168px;
+  height: 168px;
+  cursor: crosshair;
+  background: rgba(18, 21, 20, 0.6);
+  border-radius: 4px;
+}
+
+.patient-flow-minimap-dot { fill: #6b6456; }
+
+/* Delay pips — triangle (shape first), amber watch / coral delayed. */
+.patient-flow-minimap-delay.status-watch { fill: #e0a33f; }
+.patient-flow-minimap-delay.status-delayed { fill: #f06755; }
+
+/* Deviation pip — a square (bracket echo), amber-capped per OQ-1. */
+.patient-flow-minimap-deviation {
+  fill: none;
+  stroke: #eaa640;
+  stroke-width: 1.4;
+}
+
+.patient-flow-minimap-look {
+  stroke: rgba(201, 162, 39, 0.5);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.patient-flow-minimap-camera circle {
+  fill: none;
+  stroke: #c9a227;
+  stroke-width: 1.4;
+}
+
+.patient-flow-minimap-camera line {
+  stroke: #c9a227;
+  stroke-width: 1;
+}
+
+.patient-flow-minimap-selection {
+  fill: none;
+  stroke: #ffd795;
+  stroke-width: 2;
+}
+
+.patient-flow-minimap-fit {
+  width: 100%;
+  margin-top: 6px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 5px;
+  background: rgba(27, 31, 29, 0.92);
+  color: #ddd6c7;
+  font-size: 11px;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.patient-flow-minimap-fit:hover {
+  background: rgba(224, 163, 63, 0.14);
+  color: #ffd795;
+}
+
+/* E4 small multiples — the hourly analysis strip, anchored above the minimap
+   in the bottom-left stack. Density is opacity on ONE neutral ink (aggregate
+   flow, never a status color). */
+.patient-flow-small-multiples {
+  position: absolute;
+  z-index: 3;
+  left: 16px;
+  bottom: 224px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.patient-flow-sm-toggle {
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  background: rgba(27, 31, 29, 0.92);
+  color: #ddd6c7;
+  font-size: 11px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+
+.patient-flow-sm-toggle:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 2px;
+}
+
+.patient-flow-sm-body {
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  background: rgba(27, 31, 29, 0.94);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+}
+
+.patient-flow-sm-strip {
+  display: flex;
+  gap: 8px;
+}
+
+.patient-flow-sm-plate {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.patient-flow-sm-plate svg {
+  display: block;
+  border-radius: 3px;
+}
+
+.patient-flow-sm-bg { fill: rgba(18, 21, 20, 0.7); }
+.patient-flow-sm-cell { fill: #8fb8cc; }
+
+.patient-flow-sm-plate figcaption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 3px;
+  color: #b9b2a6;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-flow-sm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  color: #b9b2a6;
+  font-size: 10px;
+}
+
+.patient-flow-sm-actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.patient-flow-sm-footer button {
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 5px;
+  background: rgba(27, 31, 29, 0.92);
+  color: #ddd6c7;
+  font-size: 10px;
+  padding: 3px 7px;
+  cursor: pointer;
+}
+
+.patient-flow-sm-footer button:hover {
+  background: rgba(224, 163, 63, 0.14);
+  color: #ffd795;
+}
+
+.patient-flow-sm-floor.active {
+  border-color: #e0a33f;
+  background: #3a2f1f;
+  color: #ffd795;
+}
+
+@media (max-width: 900px) {
+  .patient-flow-minimap,
+  .patient-flow-small-multiples { display: none; }
+  .patient-flow-structure-nav { left: 16px; }
+}
+
+.patient-flow-structure-toggle {
+  align-self: flex-start;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  background: rgba(27, 31, 29, 0.92);
+  color: #ddd6c7;
+  font-size: 11px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+
+.patient-flow-structure-toggle:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: 2px;
+}
+
+.patient-flow-structure-tree {
+  order: -1;
+  margin: 0 0 6px;
+  padding: 6px;
+  list-style: none;
+  max-height: min(46vh, 440px);
+  overflow: auto;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  background: rgba(27, 31, 29, 0.94);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+}
+
+.patient-flow-structure-tree li {
+  margin: 0;
+}
+
+.patient-flow-structure-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #ddd6c7;
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 4px 6px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.patient-flow-structure-row.kind-floor {
+  color: #f3efe5;
+  font-weight: 500;
+}
+
+.patient-flow-structure-row:hover,
+.patient-flow-structure-row:focus-visible {
+  background: rgba(224, 163, 63, 0.14);
+  color: #ffd795;
+  outline: none;
+}
+
+.patient-flow-structure-caret {
+  width: 10px;
+  flex: 0 0 auto;
+  color: #b9b2a6;
+}
+
+.patient-flow-structure-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patient-flow-structure-count {
+  flex: 0 0 auto;
+  color: #b9b2a6;
+  font-variant-numeric: tabular-nums;
+}
+
 .patient-flow-action-list {
   position: absolute;
   z-index: 3;
@@ -1274,6 +1674,43 @@
 }
 
 /* --- Saved views (N-7) ---------------------------------------------------- */
+
+/* E2 canonical views — a 4-way segmented control matching the view-chip ink;
+   quiet chrome, no status color (a framing choice is not an alarm). */
+.patient-flow-canonical-views {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 8px;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #202522;
+}
+
+.patient-flow-canonical-views button {
+  border: 0;
+  border-left: 1px solid rgba(239, 234, 220, 0.14);
+  background: transparent;
+  color: #ddd6c7;
+  font-size: 11px;
+  line-height: 1;
+  padding: 6px 4px;
+  cursor: pointer;
+}
+
+.patient-flow-canonical-views button:first-child {
+  border-left: 0;
+}
+
+.patient-flow-canonical-views button:hover {
+  background: rgba(224, 163, 63, 0.14);
+  color: #ffd795;
+}
+
+.patient-flow-canonical-views button:focus-visible {
+  outline: 2px solid #e0a33f;
+  outline-offset: -2px;
+}
 
 .patient-flow-views {
   display: grid;

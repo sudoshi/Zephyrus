@@ -42,6 +42,8 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
     onToggleLive: vi.fn(),
     onResetCamera: vi.fn(),
     onFocusPatients: vi.fn(),
+    onCanonicalView: vi.fn(),
+    onToggleOrtho: vi.fn(),
     onFocusCensusScope: vi.fn(),
     onAskEddy: vi.fn(),
     onSpeedChange: vi.fn(),
@@ -53,6 +55,9 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
     onSelectSearchResult: vi.fn(),
     onSaveView: vi.fn(),
     onApplyView: vi.fn(),
+    onCopyViewLink: vi.fn(),
+    onCopySavedViewLink: vi.fn(),
+    onTaskModeChange: vi.fn(),
     onTourPrev: vi.fn(),
     onTourNext: vi.fn(),
     onTourAutoToggle: vi.fn(),
@@ -73,11 +78,13 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
       categories={[]}
       layers={{ base: true, tokens: true, trails: true, heat: true, ghosts: true, barriers: true, rounds: true, pathway: false }}
       layerControls={layerControls}
+      taskMode="investigate"
       censusScope="all"
       showDeviationScope={false}
       metrics={{ active: 12, events: 40, occupiedLocations: 9 }}
       occupancy={occupancy}
       eddyEnabled={false}
+      orthoActive={false}
       searchMatches={null}
       searchResults={[]}
       savedViews={[false, false, false]}
@@ -237,6 +244,84 @@ describe('NavigatorToolbar saved views (N-7)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Save current view to slot 3' }));
     expect(handlers.onSaveView).toHaveBeenCalledWith(2);
+  });
+});
+
+describe('NavigatorToolbar task modes (E6)', () => {
+  it('offers Monitor / Investigate / Rounds and routes the change', () => {
+    const handlers = renderToolbar({ taskMode: 'monitor' });
+
+    const group = screen.getByRole('radiogroup', { name: 'Task mode' });
+    expect(group).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: 'Investigate' }));
+    expect(handlers.onTaskModeChange).toHaveBeenCalledWith('investigate');
+  });
+
+  it('Monitor hides the investigation kit — Find, Speed, and saved views', () => {
+    renderToolbar({ taskMode: 'monitor' });
+    expect(screen.queryByLabelText('Find')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Speed')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View 1' })).not.toBeInTheDocument();
+    // Core monitoring controls remain.
+    expect(screen.getByLabelText('Floor')).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'Census scope' })).toBeInTheDocument();
+  });
+
+  it('Investigate reveals the investigation kit', () => {
+    renderToolbar({ taskMode: 'investigate' });
+    expect(screen.getByLabelText('Find')).toBeInTheDocument();
+    expect(screen.getByLabelText('Speed')).toBeInTheDocument();
+  });
+
+  it('Rounds hides the occupancy rollup so the walk is the focus', () => {
+    renderToolbar({ taskMode: 'rounds' });
+    expect(screen.queryByLabelText('Occupancy timer rollup')).not.toBeInTheDocument();
+  });
+});
+
+describe('NavigatorToolbar canonical views (E2)', () => {
+  it('offers Top / House / Floor / Bed, each routing to the framing', () => {
+    const handlers = renderToolbar();
+
+    const group = screen.getByRole('group', { name: 'Canonical views' });
+    expect(group).toBeInTheDocument();
+
+    for (const [label, view] of [['Top', 'top'], ['House', 'house'], ['Floor', 'floor'], ['Bed', 'bed']] as const) {
+      fireEvent.click(screen.getByRole('button', { name: label }));
+      expect(handlers.onCanonicalView).toHaveBeenCalledWith(view);
+    }
+  });
+});
+
+describe('NavigatorToolbar ortho toggle (E3)', () => {
+  it('exposes the plan-view toggle as a pressable, reflecting active state', () => {
+    const handlers = renderToolbar({ orthoActive: false });
+    const toggle = screen.getByRole('button', { name: 'Top-down plan view' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(toggle);
+    expect(handlers.onToggleOrtho).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks the toggle pressed while plan view is active', () => {
+    renderToolbar({ orthoActive: true });
+    expect(screen.getByRole('button', { name: 'Top-down plan view' })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+describe('NavigatorToolbar view links (E5)', () => {
+  it('copies the current view from the always-available toolbar action', () => {
+    const handlers = renderToolbar();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy view link' }));
+    expect(handlers.onCopyViewLink).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers copy-as-link only on filled saved-view slots', () => {
+    const handlers = renderToolbar({ savedViews: [true, false, false] });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy view 1 as a link' }));
+    expect(handlers.onCopySavedViewLink).toHaveBeenCalledWith(0);
+    expect(screen.queryByRole('button', { name: 'Copy view 2 as a link' })).not.toBeInTheDocument();
   });
 });
 

@@ -8,6 +8,50 @@ import { parseTime } from './stateProjection';
 export const LIVE_WINDOW_HALF_MS = 24 * 60 * 60 * 1000;
 const MINIMUM_HISTORICAL_WINDOW_MS = 2 * 60 * 60 * 1000;
 
+/**
+ * Chronobar window presets (TN-6): the 48h review/projection window is the
+ * default; 24h/6h narrow it symmetrically around now so recent activity is
+ * not compressed into a sliver; `shift` anchors to the current 07:00/19:00
+ * shift block (local clock, matching the chronobar's shift detents).
+ */
+export type WindowPreset = '48h' | '24h' | '6h' | 'shift';
+
+export const WINDOW_PRESET_LABELS: Record<WindowPreset, string> = {
+  '48h': '48 h',
+  '24h': '24 h',
+  '6h': '6 h',
+  shift: 'Shift',
+};
+
+const PRESET_HALF_MS: Record<Exclude<WindowPreset, 'shift'>, number> = {
+  '48h': LIVE_WINDOW_HALF_MS,
+  '24h': 12 * 60 * 60 * 1000,
+  '6h': 3 * 60 * 60 * 1000,
+};
+
+/** Start of the shift block containing `nowMs` (07:00–19:00 / 19:00–07:00 local). */
+function shiftStart(nowMs: number): number {
+  const cursor = new Date(nowMs);
+  cursor.setMinutes(0, 0, 0);
+  // Walk back at most 12 hours to the latest 07:00/19:00 boundary at or
+  // before now — the same boundaries the chronobar renders as detents.
+  for (let step = 0; step <= 12; step += 1) {
+    if (cursor.getHours() === 7 || cursor.getHours() === 19) return cursor.getTime();
+    cursor.setHours(cursor.getHours() - 1);
+  }
+  return cursor.getTime();
+}
+
+/** The live window for a preset. Historical sources keep their data-extent window instead. */
+export function windowForPreset(preset: WindowPreset, nowMs: number): { start: number; end: number } {
+  if (preset === 'shift') {
+    const start = shiftStart(nowMs);
+    return { start, end: start + 12 * 60 * 60 * 1000 };
+  }
+  const half = PRESET_HALF_MS[preset];
+  return { start: nowMs - half, end: nowMs + half };
+}
+
 export interface ReplayTimeline {
   windowStart: number;
   windowEnd: number;

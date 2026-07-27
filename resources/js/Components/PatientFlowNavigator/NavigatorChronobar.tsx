@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import type { ForecastAggregates } from '@/features/patientFlowNavigator/projections';
 import type { PatientFlowFreshness } from '@/features/patientFlowNavigator/types';
+import { WINDOW_PRESET_LABELS } from '@/features/patientFlowNavigator/replayTimeline';
+import type { WindowPreset } from '@/features/patientFlowNavigator/replayTimeline';
 import { formatDurationSeconds } from '@/lib/duration';
 
 interface NavigatorChronobarProps {
@@ -25,7 +27,12 @@ interface NavigatorChronobarProps {
   /** True while the stored-replay stream is connected (N-8: never "live"). */
   replaying?: boolean;
   onScrub: (timeMs: number) => void;
+  /** TN-6 window presets — the control renders only when a handler is wired. */
+  windowPreset?: WindowPreset;
+  onWindowPresetChange?: (preset: WindowPreset) => void;
 }
+
+const WINDOW_PRESET_ORDER: WindowPreset[] = ['48h', '24h', '6h', 'shift'];
 
 /** ±step affordance (SC 2.5.7 single-pointer alternative to drag-scrub). */
 const STEP_MS = 15 * 60 * 1_000;
@@ -86,6 +93,8 @@ export default function NavigatorChronobar({
   patientTicks = [],
   replaying = false,
   onScrub,
+  windowPreset = '48h',
+  onWindowPresetChange,
 }: NavigatorChronobarProps) {
   const span = Math.max(1, windowEnd - windowStart);
   const pct = (ms: number): number => Math.min(100, Math.max(0, ((ms - windowStart) / span) * 100));
@@ -143,6 +152,32 @@ export default function NavigatorChronobar({
           </button>
         </div>
       </div>
+
+      {/* TN-6: window presets — historical sources keep their extent window,
+          so the control disables rather than lying about the span. */}
+      {onWindowPresetChange && (
+        <div
+          className="patient-flow-chronobar-presets"
+          role="radiogroup"
+          aria-label="Chronobar window span"
+        >
+          {WINDOW_PRESET_ORDER.map((preset) => (
+            <label key={preset} className={windowPreset === preset ? 'active' : ''}>
+              <input
+                type="radio"
+                name="flow-window-preset"
+                checked={windowPreset === preset}
+                disabled={historical}
+                title={preset === 'shift'
+                  ? 'Window the current 07:00–19:00 shift block'
+                  : `Window ${WINDOW_PRESET_LABELS[preset]} around now`}
+                onChange={() => onWindowPresetChange(preset)}
+              />
+              {WINDOW_PRESET_LABELS[preset]}
+            </label>
+          ))}
+        </div>
+      )}
 
       {densityBuckets.length > 0 && (
         <div aria-hidden="true" className="patient-flow-chronobar-density">

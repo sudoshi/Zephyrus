@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bookmark, Bot, Home, Pause, Play, Radio, ScanSearch } from 'lucide-react';
+import { Bookmark, Bot, Grid3x3, Home, Link2, Pause, Play, Radio, ScanSearch } from 'lucide-react';
 import type {
   OccupancySummary,
   PatientFlowAmbient,
@@ -27,6 +27,21 @@ export interface NavigatorMetrics {
   occupiedLocations: number;
 }
 
+/**
+ * Task mode (E6, WN-6): progressive disclosure of the ballooned control
+ * surface. Monitor is the resting at-a-glance set; Investigate adds the
+ * replay/search/bookmark kit; Rounds foregrounds the walk and hides the
+ * census-analysis rollup. Default Monitor = the old layout minus the
+ * investigation-only controls.
+ */
+export type NavigatorTaskMode = 'monitor' | 'investigate' | 'rounds';
+
+const TASK_MODES: Array<{ mode: NavigatorTaskMode; label: string; title: string }> = [
+  { mode: 'monitor', label: 'Monitor', title: 'At-a-glance: status, layers, census — the resting wall' },
+  { mode: 'investigate', label: 'Investigate', title: 'Adds replay speed, find, and saved views' },
+  { mode: 'rounds', label: 'Rounds', title: 'Foregrounds the rounds walk; hides the census rollup' },
+];
+
 export interface LayerControl {
   key: keyof PatientLayerState;
   label: string;
@@ -49,6 +64,9 @@ interface NavigatorToolbarProps {
   categories: string[];
   layers: PatientLayerState;
   layerControls: LayerControl[];
+  /** E6 task mode — progressive disclosure of the control surface (WN-6). */
+  taskMode: NavigatorTaskMode;
+  onTaskModeChange: (mode: NavigatorTaskMode) => void;
   /** Census scope (B-1 family + §7.2 C3): which occupancy disks render. */
   censusScope: 'all' | 'delayed' | 'deviations';
   /** Phase C: the third radio only exists when the adherence surface is on. */
@@ -60,6 +78,11 @@ interface NavigatorToolbarProps {
   onToggleLive: () => void;
   onResetCamera: () => void;
   onFocusPatients: () => void;
+  /** E2 canonical views — Top / House / Floor / Bed, each a van Wijk arc. */
+  onCanonicalView: (view: 'top' | 'house' | 'floor' | 'bed') => void;
+  /** E3: whether the top-down orthographic plan view is active. */
+  orthoActive: boolean;
+  onToggleOrtho: () => void;
   /** Explicit camera flight to the narrowed census set (B-4). */
   onFocusCensusScope: () => void;
   onAskEddy: () => void;
@@ -80,6 +103,10 @@ interface NavigatorToolbarProps {
   savedViews: boolean[];
   onSaveView: (slot: number) => void;
   onApplyView: (slot: number) => void;
+  /** E5: copy the exact current view (camera/floor/layers/time/selection) as a URL. */
+  onCopyViewLink: () => void;
+  /** E5: copy a saved-view bookmark as a URL. */
+  onCopySavedViewLink: (slot: number) => void;
   /** Virtual Rounds run HUD + tour controls (R-5/R-6a); null → no run. */
   roundsHud: RoundsHudModel | null;
   tourAuto: boolean;
@@ -102,6 +129,8 @@ export default function NavigatorToolbar({
   categories,
   layers,
   layerControls,
+  taskMode,
+  onTaskModeChange,
   censusScope,
   showDeviationScope,
   metrics,
@@ -111,6 +140,9 @@ export default function NavigatorToolbar({
   onToggleLive,
   onResetCamera,
   onFocusPatients,
+  onCanonicalView,
+  orthoActive,
+  onToggleOrtho,
   onFocusCensusScope,
   onAskEddy,
   onSpeedChange,
@@ -125,12 +157,17 @@ export default function NavigatorToolbar({
   savedViews,
   onSaveView,
   onApplyView,
+  onCopyViewLink,
+  onCopySavedViewLink,
   roundsHud,
   tourAuto,
   onTourPrev,
   onTourNext,
   onTourAutoToggle,
 }: NavigatorToolbarProps) {
+  // E6 progressive disclosure: which control groups this mode reveals.
+  const investigate = taskMode === 'investigate';
+  const rounds = taskMode === 'rounds';
   return (
     <aside className="patient-flow-toolbar" aria-label="Navigator controls">
       <div className="patient-flow-brand">
@@ -139,6 +176,21 @@ export default function NavigatorToolbar({
           {summary ? `${summary.patients} pts / ${summary.normalized_events} events` : 'Loading'}
           {lensTitle ? ` · ${lensTitle}` : ''}
         </span>
+      </div>
+
+      {/* E6 task mode — the one control that reshapes the rest (WN-6). */}
+      <div className="patient-flow-task-mode" role="radiogroup" aria-label="Task mode">
+        {TASK_MODES.map((entry) => (
+          <label key={entry.mode} className={taskMode === entry.mode ? 'active' : ''} title={entry.title}>
+            <input
+              type="radio"
+              name="flow-task-mode"
+              checked={taskMode === entry.mode}
+              onChange={() => onTaskModeChange(entry.mode)}
+            />
+            {entry.label}
+          </label>
+        ))}
       </div>
 
       {summary?.source && (
@@ -224,6 +276,25 @@ export default function NavigatorToolbar({
         >
           <ScanSearch />
         </button>
+        <button
+          className={`patient-flow-icon-button ${orthoActive ? 'active' : ''}`}
+          type="button"
+          title="Top-down plan view (O) — orthographic, no perspective"
+          aria-label="Top-down plan view"
+          aria-pressed={orthoActive}
+          onClick={onToggleOrtho}
+        >
+          <Grid3x3 />
+        </button>
+        <button
+          className="patient-flow-icon-button"
+          type="button"
+          title="Copy a link to this exact view (camera, floor, layers, time, selection)"
+          aria-label="Copy view link"
+          onClick={onCopyViewLink}
+        >
+          <Link2 />
+        </button>
         {eddyEnabled && (
           <button
             className="patient-flow-icon-button"
@@ -237,8 +308,18 @@ export default function NavigatorToolbar({
         )}
       </div>
 
+      {/* E2 canonical views — the four framings ("where am I / how do I get
+          back") as one segmented control; each flies the van Wijk arc. */}
+      <div className="patient-flow-canonical-views" role="group" aria-label="Canonical views">
+        <button type="button" title="Top-down plan view of the current floor" onClick={() => onCanonicalView('top')}>Top</button>
+        <button type="button" title="House overview (default iso view)" onClick={() => onCanonicalView('house')}>House</button>
+        <button type="button" title="Frame the current floor" onClick={() => onCanonicalView('floor')}>Floor</button>
+        <button type="button" title="Frame the current selection" onClick={() => onCanonicalView('bed')}>Bed</button>
+      </div>
+
       {/* N-7: three persona-keyed camera bookmarks — restore on the left,
-          save-current on the right of each chip. */}
+          save-current on the right of each chip. Investigation kit (E6). */}
+      {investigate && (
       <div className="patient-flow-views" aria-label="Saved views">
         {savedViews.map((hasView, slot) => (
           <div className="patient-flow-view-chip" key={`view-slot-${slot}`}>
@@ -258,9 +339,20 @@ export default function NavigatorToolbar({
             >
               <Bookmark aria-hidden="true" />
             </button>
+            {hasView && (
+              <button
+                type="button"
+                aria-label={`Copy view ${slot + 1} as a link`}
+                title={`Copy view ${slot + 1} as a shareable link`}
+                onClick={() => onCopySavedViewLink(slot)}
+              >
+                <Link2 aria-hidden="true" />
+              </button>
+            )}
           </div>
         ))}
       </div>
+      )}
 
       <div className="patient-flow-control-grid">
         <label htmlFor="flow-floor">Floor</label>
@@ -299,33 +391,39 @@ export default function NavigatorToolbar({
           ))}
         </select>
 
-        <label htmlFor="flow-speed">Speed</label>
-        <select id="flow-speed" value={speed} onChange={(event) => onSpeedChange(Number(event.target.value))}>
-          <option value={15}>{formatDurationMinutes(15)} / sec</option>
-          <option value={60}>{formatDurationMinutes(60)} / sec</option>
-          <option value={240}>{formatDurationMinutes(240)} / sec</option>
-          <option value={720}>{formatDurationMinutes(720)} / sec</option>
-        </select>
+        {/* Speed + Find are the investigation kit (E6) — hidden while just
+            monitoring, so the resting control column stays quiet. */}
+        {investigate && (
+          <>
+            <label htmlFor="flow-speed">Speed</label>
+            <select id="flow-speed" value={speed} onChange={(event) => onSpeedChange(Number(event.target.value))}>
+              <option value={15}>{formatDurationMinutes(15)} / sec</option>
+              <option value={60}>{formatDurationMinutes(60)} / sec</option>
+              <option value={240}>{formatDurationMinutes(240)} / sec</option>
+              <option value={720}>{formatDurationMinutes(720)} / sec</option>
+            </select>
 
-        <label htmlFor="flow-search">Find</label>
-        <input
-          id="flow-search"
-          type="search"
-          placeholder="PT, bed, service"
-          value={filters.search}
-          aria-describedby={searchMatches !== null ? 'flow-search-count' : undefined}
-          onChange={(event) => onFiltersChange({ search: event.target.value })}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              onSearchSubmit();
-            } else if (event.key === 'Escape') {
-              onFiltersChange({ search: '' });
-            }
-          }}
-        />
+            <label htmlFor="flow-search">Find</label>
+            <input
+              id="flow-search"
+              type="search"
+              placeholder="PT, bed, service"
+              value={filters.search}
+              aria-describedby={searchMatches !== null ? 'flow-search-count' : undefined}
+              onChange={(event) => onFiltersChange({ search: event.target.value })}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  onSearchSubmit();
+                } else if (event.key === 'Escape') {
+                  onFiltersChange({ search: '' });
+                }
+              }}
+            />
+          </>
+        )}
 
-        {searchMatches !== null && (
+        {investigate && searchMatches !== null && (
           <small id="flow-search-count" className="patient-flow-search-count" role="status">
             {searchMatches === 0
               ? '0 matches — check spelling or floor filter'
@@ -334,7 +432,7 @@ export default function NavigatorToolbar({
         )}
 
         {/* H1.2: selectable matches — selection without a pointer or canvas. */}
-        {searchResults.length > 0 && (
+        {investigate && searchResults.length > 0 && (
           <ul className="patient-flow-search-results" aria-label="Search matches">
             {searchResults.map((result) => (
               <li key={result.patientId}>
@@ -449,6 +547,9 @@ export default function NavigatorToolbar({
         <div><span>{ambient?.summary.eventCount ?? summary?.ambient_signals ?? 0}</span><small>Ambient</small></div>
       </div>
 
+      {/* The census-analysis rollup steps back in Rounds mode — the walk is
+          the focus there, not demand/capacity (E6). */}
+      {!rounds && (
       <section className="patient-flow-occupancy-rollup" aria-label="Occupancy timer rollup">
         <div className="patient-flow-rollup-grid">
           <div><span>{occupancy.delayed}</span><small>Delayed</small></div>
@@ -492,6 +593,7 @@ export default function NavigatorToolbar({
           </ol>
         )}
       </section>
+      )}
     </aside>
   );
 }
