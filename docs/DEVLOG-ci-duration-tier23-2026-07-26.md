@@ -3,6 +3,7 @@
 **Scope:** Tiers 2–3 (S1–S6, D1–D4) of `docs/superpowers/plans/2026-07-24-ci-duration-optimization-plan.md`, plus the infrastructure bugs the work surfaced. Continues `DEVLOG-ci-duration-tier1-2026-07-24.md`.
 **Shipped:** 16 merged PRs (#66–#83, #85) across two concurrent sessions over ~36 hours, coordinated through a shared claims file.
 **Headline:** PR merge-gating wall ~25–27 m → **~10 m**; merge→deployable ~25 m → **~10 s**; docs PRs ~19 m → **~2 m**; backend shards 7–25 m coin-flip → **3.9–6.1 m deterministic**.
+**Continued by:** `DEVLOG-ci-duration-closeout-2026-07-26.md` — the final tranche (#84, #87, #89, #90, #91) and program completion; it supersedes the "Remaining" section below.
 
 ## What landed
 
@@ -48,6 +49,8 @@
 | macOS queue tail | up to +35 m | 4 s |
 
 ## Remaining (all sequenced, none urgent)
+
+*Superseded 2026-07-26: the first three bullets shipped as PRs #84 (+ regen #90 + consolidation #91), #87, and #89 — see `DEVLOG-ci-duration-closeout-2026-07-26.md`. Only the staff-iOS build-side bullet survives.*
 
 - **plan-§D2** (request-scoped laboratory aggregate) — PR #84 open (concurrent session). After it lands: manifest regen, then optionally the D3 consolidation per the constraints above.
 - **Query re-profile tranche** — `RadiologyDemoGeneratorTest`'s mega-test (36,893 queries, the last erratic weight) + general per-row ORM chattiness (~11k statements per scenario replace).
