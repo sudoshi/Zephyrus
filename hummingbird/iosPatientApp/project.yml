@@ -35,11 +35,15 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        # Live patient API. PatientAPIBoundary.validatedBaseURL rejects anything
-        # but https://zephyrus.acumenus.net (port nil or 443) in Release, so this
-        # value is the only one a shipped build will accept.
-        HBPPatientAPIEnabled: true
-        HBPPatientAPIBaseURL: "https://zephyrus.acumenus.net"
+        # DO NOT bake an endpoint into a shipped build. A distributed Release
+        # artifact must stay default-off with an empty base URL:
+        # scripts/ci/verify-hummingbird-ios-release-transport.sh asserts
+        # HBPPatientAPIEnabled == false AND an empty HBPPatientAPIBaseURL, and
+        # fails CI otherwise. Enabling is a runtime concern — PatientAppConfiguration
+        # lets HBP_PATIENT_API_ENABLED / HBP_PATIENT_API_BASE_URL from the process
+        # environment override these, which is how a dev scheme points at a host.
+        HBPPatientAPIEnabled: false
+        HBPPatientAPIBaseURL: ""
 
   HummingbirdPatientTests:
     type: bundle.unit-test

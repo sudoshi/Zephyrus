@@ -21,9 +21,9 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>HBPPatientAPIBaseURL</key>
-	<string>https://zephyrus.acumenus.net</string>
+	<string></string>
 	<key>HBPPatientAPIEnabled</key>
-	<true/>
+	<false/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UILaunchScreen</key>
