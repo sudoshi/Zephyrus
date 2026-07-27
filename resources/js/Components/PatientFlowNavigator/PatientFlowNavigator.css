@@ -17,6 +17,7 @@
 
 .patient-flow-toolbar,
 .patient-flow-inspector,
+.patient-flow-journey,
 .patient-flow-feed,
 .patient-flow-statusbar {
   position: absolute;
@@ -1387,6 +1388,148 @@
 
 .patient-flow-error-retry:hover {
   border-color: rgba(239, 234, 220, 0.55);
+}
+
+/* Patient Journey Drawer (plan §7.1, PJ-1) — the inspector's slot, promoted
+   to a story. Same overlay family; every value below already exists in this
+   file (the F-9-sanctioned scoped palette). */
+.patient-flow-journey {
+  right: 16px;
+  bottom: 48px;
+  width: min(390px, calc(100vw - 32px));
+  max-height: min(560px, calc(100% - 140px));
+  overflow: auto;
+  padding: 14px;
+  font-size: 12px;
+  color: #f3efe5;
+}
+
+.patient-flow-journey-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-flow-journey-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.patient-flow-journey-head strong {
+  display: block;
+  font-size: 15px;
+}
+
+.patient-flow-journey-loc,
+.patient-flow-journey-los {
+  display: block;
+  color: #ddd6c7;
+  margin-top: 2px;
+}
+
+.patient-flow-journey-close {
+  min-width: 24px;
+  min-height: 24px;
+  border: 1px solid rgba(239, 234, 220, 0.22);
+  border-radius: 5px;
+  background: rgba(27, 31, 29, 0.94);
+  color: #f3efe5;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.patient-flow-journey-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.patient-flow-journey-align,
+.patient-flow-journey-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.patient-flow-journey-align button,
+.patient-flow-journey-actions button {
+  min-height: 24px;
+  border: 1px solid rgba(239, 234, 220, 0.22);
+  border-radius: 5px;
+  background: rgba(27, 31, 29, 0.94);
+  color: #ddd6c7;
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.patient-flow-journey-align button.active,
+.patient-flow-journey-actions button.active {
+  color: #f3efe5;
+  border-color: rgba(239, 234, 220, 0.55);
+}
+
+.patient-flow-journey-section {
+  margin: 0 0 10px;
+}
+
+.patient-flow-journey-section h3 {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #ddd6c7;
+}
+
+.patient-flow-journey-section ul,
+.patient-flow-journey-segments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.patient-flow-journey-section li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.patient-flow-journey-segments li {
+  display: block;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 5px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+}
+
+.patient-flow-journey-segments li.open {
+  border-color: rgba(239, 234, 220, 0.55);
+}
+
+.patient-flow-journey-segment-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.patient-flow-journey-segment-sub {
+  color: #ddd6c7;
+  margin-top: 2px;
+}
+
+.patient-flow-journey-note {
+  margin: 0 0 8px;
+  color: #ddd6c7;
+}
+
+.patient-flow-journey-foot {
+  margin-top: 6px;
+  color: #ddd6c7;
 }
 
 /* F-6 pt 2 — the atomic-rebootstrap notice: quiet, informational, never an
