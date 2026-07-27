@@ -368,6 +368,62 @@ jobs:
   # ---------------------------------------------------------------------------
   # Frontend — TypeScript, Vitest, Vite build
   # ---------------------------------------------------------------------------
+  frontend-build:
+    name: Frontend build (Vite)
+    # Browser-chain decouple (2026-07-27): the vite production build is the
+    # only frontend output Browser needs, but it used to ride behind tsc +
+    # Vitest inside the frontend job — ~2m33s of test time Browser never
+    # consumed. Building it in its own thin job lets Browser start ~2.5 m
+    # earlier while plan S6's one-build-per-run economics hold. This is a
+    # REQUIRED context: skipped check runs satisfy branch protection, so if
+    # this job were unrequired, a broken vite build would fail only here,
+    # Browser/DAST would skip via needs-failure (skipped = satisfied), and
+    # the PR would merge broken.
+    runs-on: ubuntu-latest
+    needs: changes
+    # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
+    if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
+    timeout-minutes: 10
+    env:
+      RELEASE_EVIDENCE_DIR: artifacts/release-evidence/frontend-build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Vite production build
+        run: bash scripts/capture-release-evidence.sh frontend-build npx vite build
+
+      # Plan S6: browser + DAST download this build and skip their own
+      # vite runs — one production build per CI run.
+      - name: Upload production build for browser/DAST reuse
+        uses: actions/upload-artifact@v4
+        with:
+          name: vite-production-build
+          path: public/build
+          if-no-files-found: error
+          # Long enough that a failed-job rerun a day or two later can still
+          # download it; the durable build record lives in release evidence.
+          retention-days: 3
+
+      - name: Upload frontend build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build-release-evidence
+          path: artifacts/release-evidence/frontend-build
+          if-no-files-found: error
+          retention-days: 30
+
   frontend:
     name: Frontend (Vitest / Vite)
     runs-on: ubuntu-latest
@@ -399,20 +455,9 @@ jobs:
       - name: Run Vitest
         run: bash scripts/capture-release-evidence.sh frontend-vitest npx vitest run ${{ github.event_name == 'push' && '--coverage' || '' }}
 
-      - name: Vite production build
-        run: bash scripts/capture-release-evidence.sh frontend-build npx vite build
-
-      # Plan S6: browser + DAST download this build and skip their own
-      # vite runs — one production build per CI run.
-      - name: Upload production build for browser/DAST reuse
-        uses: actions/upload-artifact@v4
-        with:
-          name: vite-production-build
-          path: public/build
-          if-no-files-found: error
-          # Long enough that a failed-job rerun a day or two later can still
-          # download it; the durable build record lives in release evidence.
-          retention-days: 3
+      # The vite production build moved to the frontend-build job
+      # (browser-chain decouple, 2026-07-27) so Browser starts without
+      # waiting on tsc + Vitest.
 
       - name: UI canon check
         run: bash scripts/capture-release-evidence.sh frontend-ui-canon bash scripts/check-ui-canon.sh
@@ -526,9 +571,10 @@ jobs:
   browser:
     name: Browser (Playwright / Chromium)
     runs-on: ubuntu-latest
-    # frontend is needed for the shared vite build (plan S6); the implicit
-    # success() in `if` keeps this job skipped whenever frontend skips.
-    needs: [changes, frontend]
+    # frontend-build supplies the shared vite build (plan S6, decoupled
+    # 2026-07-27 so this job no longer waits on tsc + Vitest); the implicit
+    # success() in `if` keeps this job skipped whenever the build skips.
+    needs: [changes, frontend-build]
     # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
     if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 20
@@ -640,9 +686,11 @@ jobs:
   dast:
     name: DAST (OWASP ZAP baseline)
     runs-on: ubuntu-latest
-    # frontend is needed for the shared vite build (plan S6); the implicit
-    # success() in `if` keeps this job skipped whenever frontend skips.
-    needs: [changes, frontend]
+    # frontend-build supplies the shared vite build (plan S6; the needs edge
+    # must follow the artifact producer — depending on the frontend test job
+    # would race the upload); the implicit success() in `if` keeps this job
+    # skipped whenever the build skips.
+    needs: [changes, frontend-build]
     # Plan S4/S4b: skip on verdict reuse or a provably docs-only change set.
     if: needs.changes.outputs.reuse != 'true' && needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 25
