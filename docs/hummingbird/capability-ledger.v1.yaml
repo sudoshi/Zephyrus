@@ -5,7 +5,7 @@ sources:
   web_routes: routes/web.php
   api_routes: routes/api.php
   staff_contract: docs/hummingbird/api-contract/hummingbird-bff.v1.yaml
-  patient_contract: docs/hummingbird/api-contract/hummingbird-patient.v1.yaml
+  patient_contract: docs/hummingbird/api-contract/nightingale.v1.yaml
   role_catalog: docs/hummingbird/role-catalog.v1.json
 architecture_decisions:
   native_contracts: docs/hummingbird/ADR-2026-07-19-generated-native-contracts.md

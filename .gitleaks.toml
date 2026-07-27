@@ -83,3 +83,24 @@ paths = [
 # Length-bounded rather than open-ended: drgcp-<slug>-<hex12> has a known
 # shape, so the tighter bound keeps this exception from widening silently.
 regexes = ['''^drgcp-[a-z0-9-]{26,65}$''']
+
+[[allowlists]]
+# Nightingale patient-journey devlog: the generic API-key rule captures the
+# English phrase "notification/delivery" out of a prose sentence, because the
+# word "API" appears inside its keyword window:
+#
+#   "... concrete identifiers or API paths, notification/delivery
+#    overstatement, offline PHI/queue/stale-current behavior ..."
+#
+# There is no credential here — the captured value is two ordinary words and a
+# slash. Scoped to the exact devlog and that exact phrase; the two SHA-256
+# evidence digests recorded elsewhere in the same file, and every other value
+# in it, remain scanned.
+#
+# The history scan walks all refs, so this fires from any branch for as long as
+# codex/nightingale-patient-product exists. The allowlist therefore has to live
+# on main rather than only on the branch that introduced the file.
+description = "Nightingale devlog prose false positive (notification/delivery)"
+condition = "AND"
+paths = ['''^docs/devlog/DEVLOG-nightingale-patient-product-2026-07-26\.md$''']
+regexes = ['''^notification/delivery$''']

@@ -52,8 +52,8 @@ paths:
         idempotency_key: unsupported
         retry: only_after_definitive_transport_failure
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_ENROLLMENT_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_ENROLLMENT_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -102,8 +102,8 @@ paths:
         idempotency_key: unsupported
         retry: only_after_definitive_transport_failure
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_TOKEN_EXCHANGE_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_TOKEN_EXCHANGE_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -154,8 +154,8 @@ paths:
         idempotency_key: unsupported
         retry: never_replay_a_consumed_refresh_credential
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_TOKEN_EXCHANGE_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_TOKEN_EXCHANGE_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -200,8 +200,8 @@ paths:
         idempotency_key: unsupported
         retry: permitted_with_same_credential_until_revoked
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_TOKEN_EXCHANGE_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_TOKEN_EXCHANGE_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -246,8 +246,8 @@ paths:
         idempotency_key: not_applicable
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_PROFILE_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_PROFILE_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -292,8 +292,8 @@ paths:
         idempotency_key: unsupported
         retry: permitted_with_same_body
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_PROFILE_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_PROFILE_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -347,8 +347,8 @@ paths:
         idempotency_key: unsupported
         retry: permitted_with_same_device_handle_and_body
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_NOTIFICATION_DEVICES_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_NOTIFICATION_DEVICES_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -399,8 +399,8 @@ paths:
         idempotency_key: not_required_for_resource_delete
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_NOTIFICATION_DEVICES_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_NOTIFICATION_DEVICES_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -447,8 +447,8 @@ paths:
         idempotency_key: not_applicable
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_SESSION_MANAGEMENT_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_SESSION_MANAGEMENT_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -496,8 +496,8 @@ paths:
         idempotency_key: not_required_for_resource_delete
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_SESSION_MANAGEMENT_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_SESSION_MANAGEMENT_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -544,8 +544,8 @@ paths:
         idempotency_key: not_applicable
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_ENCOUNTERS_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_ENCOUNTERS_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -593,8 +593,8 @@ paths:
         idempotency_key: not_applicable
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_TODAY_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_TODAY_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -644,8 +644,8 @@ paths:
         idempotency_key: not_applicable
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_PATHWAY_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_PATHWAY_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -695,8 +695,8 @@ paths:
         idempotency_key: not_applicable
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_PATHWAY_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_PATHWAY_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -746,8 +746,8 @@ paths:
         idempotency_key: not_applicable
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_PATHWAY_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_PATHWAY_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -797,8 +797,8 @@ paths:
         idempotency_key: not_applicable
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_ROUNDS_SUMMARY_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_ROUNDS_SUMMARY_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -848,8 +848,8 @@ paths:
         idempotency_key: not_applicable
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_CARE_TEAM_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_CARE_TEAM_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: draft_not_approved
@@ -899,8 +899,8 @@ paths:
         idempotency_key: not_applicable
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_MESSAGING_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: approved_local_policy_also_required
@@ -950,8 +950,8 @@ paths:
         idempotency_key: not_applicable
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_MESSAGING_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: approved_local_policy_also_required
@@ -997,20 +997,20 @@ paths:
         idempotency_key: required_uuid_header
         retry: same_key_or_client_message_uuid_with_exact_encounter_bound_payload
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_MESSAGING_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: approved_local_policy_also_required
         mutation_readiness: current_message_encryption_key_and_staff_handoff_consumer
         care_preference_association:
           topic_code: care_preference
-          feature_flag: HUMMINGBIRD_PATIENT_CARE_PREFERENCES_ENABLED
+          feature_flag: NIGHTINGALE_CARE_PREFERENCES_ENABLED
           default: disabled
           semantics: patient_authored_nonclinical_preference_not_a_care_plan_order_consent_or_assessment
         patient_goal_association:
           topic_code: patient_goal
-          feature_flag: HUMMINGBIRD_PATIENT_GOALS_ENABLED
+          feature_flag: NIGHTINGALE_GOALS_ENABLED
           default: disabled
           semantics: patient_authored_nonclinical_personal_goal_not_a_clinical_goal_care_plan_order_consent_or_assessment
       x-zephyrus-error-behavior:
@@ -1077,9 +1077,9 @@ paths:
         idempotency_key: required_uuid_header
         retry: same_key_or_client_message_uuid_with_exact_released_education_bound_payload
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_TEACH_BACK_ENABLED
-        prerequisite_feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_TEACH_BACK_ENABLED
+        prerequisite_feature_flag: NIGHTINGALE_MESSAGING_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: approved_local_messaging_policy_also_required
@@ -1143,8 +1143,8 @@ paths:
         idempotency_key: not_applicable
         retry: permitted
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_MESSAGING_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: approved_local_policy_also_required
@@ -1195,8 +1195,8 @@ paths:
         idempotency_key: required_uuid_header
         retry: same_key_or_client_message_uuid_with_exact_thread_bound_payload
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_MESSAGING_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: approved_local_policy_also_required
@@ -1261,8 +1261,8 @@ paths:
         idempotency_key: required_uuid_header
         retry: same_key_or_client_message_uuid_with_exact_action_source_thread_bound_payload
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_MESSAGING_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: approved_local_policy_also_required
@@ -1328,8 +1328,8 @@ paths:
         idempotency_key: required_uuid_header
         retry: same_key_and_exact_payload_only
       x-zephyrus-release-policy:
-        product_flag: HUMMINGBIRD_PATIENT_ENABLED
-        feature_flag: HUMMINGBIRD_PATIENT_MESSAGING_ENABLED
+        product_flag: NIGHTINGALE_ENABLED
+        feature_flag: NIGHTINGALE_MESSAGING_ENABLED
         default: disabled
         disabled_status: 404
         governance_status: approved_local_policy_also_required
