@@ -1,0 +1,1913 @@
+{
+    "schema_version": 1,
+    "classification_id": "nightingale-journey-preference-presentation-release-source-classification.v1",
+    "reviewed_source_commit": "45ddf907c0f15e378b37a1b0726724e346cb29fd",
+    "reviewed_at": "2026-07-27",
+    "status": "evidence_only_not_approved_for_implementation",
+    "scope": [
+        "journey_projection_content",
+        "account_preferences",
+        "accessibility_presentation",
+        "synthetic_debug",
+        "release_packaging_identity",
+        "governance_audit_persistence",
+        "source_reconciliation_release",
+        "test_fixture_evidence"
+    ],
+    "product_universe": {
+        "definition": "Tracked legacy Hummingbird Patient native roots plus patient contract/backend/model/service/test/migration/command sources, excluding unrelated patient_flow migrations.",
+        "source_count": 256,
+        "inventory_digest": "a307e1957df7ef78eb61a9a9123f3902fd8929ebb3aaeb4dce48f2c88fb4a881",
+        "previously_classified_unique_count": 122,
+        "final_slice_count": 134,
+        "final_slice_inventory_digest": "4301de88a9071214001c2a58aa8fbc624bb49f24bb566428c8a1ef98aa44c13d",
+        "prior_manifests": [
+            "docs/nightingale/migration/candidates/v0/source-classification.json",
+            "docs/nightingale/migration/candidates/v0/communication-notification-source-classification.json"
+        ],
+        "excluded_path_rules": [
+            "database/migrations/*patient_flow*.php",
+            "staff/general mobile, web, and operational sources outside explicit prior communication evidence",
+            "generated build outputs and untracked emulator/tool caches"
+        ]
+    },
+    "global_constraints": {
+        "implementation_permitted": false,
+        "runtime_adoption_permitted": false,
+        "route_registration_permitted": false,
+        "client_networking_permitted": false,
+        "legacy_identifier_reuse_permitted": false,
+        "legacy_asset_reuse_permitted": false,
+        "legacy_activation_reuse_permitted": false,
+        "synthetic_runtime_permitted": false,
+        "synthetic_release_content_permitted": false,
+        "reference_provisioning_permitted": false,
+        "patient_preference_persistence_permitted": false,
+        "patient_authored_mutation_permitted": false,
+        "pathway_source_adapter_permitted": false,
+        "pathway_draft_generation_permitted": false,
+        "pathway_release_permitted": false,
+        "migration_execution_permitted": false,
+        "production_data_used": false,
+        "production_query_permitted": false,
+        "production_replay_permitted": false,
+        "patient_or_principal_created": false,
+        "deployment_permitted": false
+    },
+    "required_findings": {
+        "product_source_universe_count": 256,
+        "previously_classified_unique_count": 122,
+        "final_slice_source_count": 134,
+        "all_product_sources_classified": true,
+        "all_product_sources_approved_for_migration": false,
+        "server_and_native_preference_surfaces_match": false,
+        "native_locale_and_timezone_controls_present": false,
+        "patient_delivery_preferences_match_available_channels": false,
+        "android_reduced_motion_has_rendering_control_branch": false,
+        "ios_reduced_motion_controls_transition_or_background_motion": true,
+        "synthetic_reference_content_is_compile_excluded_from_release": true,
+        "reference_provisioning_is_approved_for_nightingale_or_production": false,
+        "legacy_release_configuration_is_nightingale_owned": false,
+        "patient_journeys_expose_empty_or_uncertain_released_content_patterns": true,
+        "legacy_first_record_encounter_selection_is_patient_safe": false,
+        "ios_journey_context_is_field_level_per_projection": false,
+        "android_composite_path_context_covers_every_displayed_projection": false,
+        "legacy_native_apps_expose_messages_as_top_level_navigation": true,
+        "nightingale_charter_approves_top_level_messages_navigation": false,
+        "independent_clinical_and_release_manager_controls_exist": true,
+        "two_person_release_control_covers_every_projection_kind": false,
+        "pathway_release_is_approved_for_nightingale": false,
+        "legacy_brand_assets_or_identifiers_are_reusable_in_nightingale": false
+    },
+    "classifications": {
+        "reusable_safety_primitive": "A control objective may be independently reimplemented after approval; no legacy schema, code, identifier, copy, asset, or activation transfers.",
+        "reusable_product_behavior": "A patient need or behavior is a held design input only; its contract, content, state, ownership, authorization, and implementation remain unapproved.",
+        "test_fixture_only": "The source may inform synthetic tests, negative cases, or provenance only and can never become runtime, production, patient, or release content.",
+        "rejected_legacy_behavior": "The legacy product identity, activation, packaging, asset, provisioning, or behavior must not migrate into Nightingale."
+    },
+    "dispositions": {
+        "principle_only": "Retain only the control objective and evidence. Reimplement it independently under Nightingale ownership after the applicable architecture and review gates; do not copy or activate the legacy source.",
+        "held": "Retain as candidate product behavior only. No Nightingale contract, route, client, copy, state, data access, or runtime behavior is authorized until the documented blockers and named approvals are closed.",
+        "test_only": "Use only as synthetic test-dimension or provenance evidence. It cannot authorize runtime behavior, release content, production data, a patient record, an endpoint, a provider, or deployment.",
+        "reject": "Do not migrate this legacy identity, packaging, activation, asset, provisioning, or runtime behavior into Nightingale. A new product-owned design and separate approval are required."
+    },
+    "decisions": {
+        "pathway_draft_command_held": {
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "rationale": "The command demonstrates an explicit draft-only pathway workflow and machine-readable preview, but its Hummingbird configuration, source binding, content contract, and operational ownership are not Nightingale decisions. Retain the workflow as evidence and do not copy, register, or execute it.",
+            "categories": [
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ]
+        },
+        "reference_provisioning_rejected": {
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "rationale": "These command-accessible Hummingbird reference provisioners can create or bind synthetic operational encounters, principals, grants, enrollment challenges, secrets, policies, cursors, and draft projections. Their safeguards are useful audit evidence, but Nightingale must not inherit their identities, ownership markers, write paths, or production-runtime execution model.",
+            "categories": [
+                "synthetic_debug",
+                "release_packaging_identity",
+                "governance_audit_persistence"
+            ]
+        },
+        "account_preference_contract_held": {
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "rationale": "The request validates account presentation and delivery choices, but its seven-field server surface is not matched by either native preference editor and includes delivery channels without an implemented patient delivery capability. Nightingale needs separate presentation, locale, consent, and communication-preference ownership before adopting any field.",
+            "categories": [
+                "account_preferences",
+                "accessibility_presentation"
+            ]
+        },
+        "append_only_audit_safety_principle": {
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "rationale": "Append-only mutation resistance, external UUID assignment, content-free audit facts, source cursors, immutable status history, and explicit projection failure records are portable safety principles. The Hummingbird table names, model schemas, identifiers, and release semantics remain legacy-specific and are not approved Nightingale implementation.",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ]
+        },
+        "patient_authored_input_behavior_held": {
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "rationale": "The services preserve patient-authored preferences and personal goals as immutable, content-free associations to encrypted accountable messages and explicitly avoid clinical care-plan mutation. Nightingale may reuse that separation only after its messaging contract, idempotency, routing, language, review outcome, and patient-visible status are independently approved.",
+            "categories": [
+                "journey_projection_content",
+                "governance_audit_persistence"
+            ]
+        },
+        "projection_release_safety_principle": {
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "rationale": "Version-pinned drafts, immutable history, source reconciliation, independent clinical approval, a distinct catalog release manager, transactional release, and content-free actor digests are strong safety patterns. They do not prove that any pathway definition, source adapter, content, policy, reviewer, or release is approved for Nightingale.",
+            "categories": [
+                "journey_projection_content",
+                "source_reconciliation_release",
+                "governance_audit_persistence"
+            ]
+        },
+        "pathway_source_contract_held": {
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "rationale": "The source snapshot and status-observation value objects establish explicit source identity, observation time, version, and status rather than inferring a patient pathway from raw operational rows. Their vocabulary and adapter ownership remain unapproved, so Nightingale holds the behavior until a governed source contract and freshness policy exist.",
+            "categories": [
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ]
+        },
+        "testing_only_projection_fixture": {
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "rationale": "The deterministic projection provisioner refuses non-testing environments and creates synthetic released content for automated verification. It is useful only as a source of test dimensions and must not become Nightingale runtime code, release content, a production fixture, or a shortcut around clinical/content approval.",
+            "categories": [
+                "test_fixture_evidence",
+                "synthetic_debug",
+                "journey_projection_content"
+            ]
+        },
+        "append_only_projection_schema_principle": {
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "rationale": "The migrations provide useful evidence for append-only patient-authored facts, pathway history, review/release separation, released-projection outbox creation, and database-level validation. Nightingale adopts no table, trigger, enum, policy, migration path, or production schema change from this classification.",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release",
+                "journey_projection_content"
+            ]
+        },
+        "asset_provenance_evidence": {
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "rationale": "The legacy asset record is retained as non-runnable provenance and verification evidence. Its Hummingbird sources, derived files, visual ownership, and product identity do not transfer to Nightingale, whose separately supplied nightingale artwork and provenance remain authoritative.",
+            "categories": [
+                "test_fixture_evidence",
+                "release_packaging_identity"
+            ]
+        },
+        "generated_artifact_hygiene_principle": {
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "rationale": "Excluding generated Xcode products, derived data, archives, and per-user state from version control is a portable repository-safety principle. The legacy root and exact ignore file do not migrate; Nightingale retains its own independently governed build-output exclusions.",
+            "categories": [
+                "release_packaging_identity"
+            ]
+        },
+        "legacy_packaging_identity_rejected": {
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "rationale": "These Xcode, Gradle, manifest, wrapper, signing, build, package, bundle, version, and pilot-release files are bound to the legacy Hummingbird Patient product. Nightingale already has independent targets and must not copy legacy identifiers, build activation, version values, signing assumptions, or release configuration.",
+            "categories": [
+                "release_packaging_identity"
+            ]
+        },
+        "test_fixture_evidence": {
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "rationale": "The source is an automated test or UI/instrumentation fixture. It may inform Nightingale test dimensions, negative cases, accessibility assertions, and platform verification, but its Hummingbird identifiers, fixtures, assertions, launch controls, and expected product behavior are not production implementation or approval evidence.",
+            "categories": [
+                "test_fixture_evidence"
+            ]
+        },
+        "debug_synthetic_fixture": {
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "rationale": "The source is compiled only into the Android debug source set and supplies emulator navigation or a clearly marked synthetic reference patient. Nightingale may design independent synthetic tests, but must not copy these extras, identifiers, payloads, wording, or any route from a debug scenario into a release artifact.",
+            "categories": [
+                "test_fixture_evidence",
+                "synthetic_debug",
+                "journey_projection_content"
+            ]
+        },
+        "native_journey_behavior_held": {
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "rationale": "The native source contains useful patient-centered journey, navigation, session, empty-state, provenance, freshness, urgent-help, or account behavior. It remains tied to Hummingbird models, copy, identifiers, activation, and contract assumptions; Nightingale must reissue it only after field-level contracts and named reviews.",
+            "categories": [
+                "journey_projection_content",
+                "accessibility_presentation"
+            ]
+        },
+        "native_privacy_configuration_principle": {
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "rationale": "Screen-capture protection, backup/transfer exclusion, cleartext-network denial, privacy-cover behavior, and platform-safe manifest configuration are portable defense principles. Nightingale must retain its independent package, threat model, test evidence, and release configuration rather than reuse these Hummingbird files.",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity",
+                "governance_audit_persistence"
+            ]
+        },
+        "legacy_brand_assets_rejected": {
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "rationale": "The images, app icon, launcher resources, colors, strings, and themes carry Hummingbird product identity or legacy scenic artwork. They are not Nightingale assets and cannot be copied or shipped in the independent patient product; only the separately governed Nightingale artwork and design system may be used.",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ]
+        },
+        "native_presentation_safety_principle": {
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "rationale": "Respecting a stronger system text-size setting, high-contrast presentation, reduced-transparency behavior, decorative-image semantics, privacy covers, and bounded motion are useful accessibility/privacy principles. Nightingale must independently implement and test them; the Android reduced-motion account choice currently has no rendering-control branch.",
+            "categories": [
+                "accessibility_presentation",
+                "account_preferences"
+            ]
+        },
+        "release_synthetic_exclusion_principle": {
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "rationale": "The Android release source set replaces launch hooks and synthetic content with inert stubs, providing strong evidence for compile-time exclusion. Nightingale should preserve the property with its own namespace, binary scans, and tests, never by copying the Hummingbird hook names or payload contract.",
+            "categories": [
+                "synthetic_debug",
+                "release_packaging_identity"
+            ]
+        },
+        "legacy_runtime_activation_rejected": {
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "rationale": "The iOS configuration can select a live Hummingbird API through plist or process-environment values and validates the legacy production host. Nightingale rejects this activation mechanism, host ownership, keys, and endpoint boundary; any future client activation must be Nightingale-owned, signed-release governed, and independently reviewed.",
+            "categories": [
+                "release_packaging_identity"
+            ]
+        }
+    },
+    "sources": [
+        {
+            "path": "app/Console/Commands/HummingbirdDraftPatientPathwayHistoryCommand.php",
+            "sha256": "2722dfd3f465588dd85fe7250a120708e84c9794a4e4596cd1c85daea3f343de",
+            "surface": "legacy_backend_command",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "pathway_draft_command_held"
+        },
+        {
+            "path": "app/Console/Commands/HummingbirdDraftReferencePatientProjectionsCommand.php",
+            "sha256": "f23285ed79c5363183cad44c5dbed9fdde596ca5c6d9ce3bf8a7cda2b30e5aca",
+            "surface": "legacy_backend_command",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "synthetic_debug"
+            ],
+            "decision_id": "reference_provisioning_rejected"
+        },
+        {
+            "path": "app/Console/Commands/HummingbirdProvisionReferencePatientIdentityCommand.php",
+            "sha256": "3231005077cb48353cd0ae7bc48b7d57b054aa0c7174fdfaefbda8106bca54f5",
+            "surface": "legacy_backend_command",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "synthetic_debug"
+            ],
+            "decision_id": "reference_provisioning_rejected"
+        },
+        {
+            "path": "app/Console/Commands/HummingbirdSeedReferencePatientCommand.php",
+            "sha256": "a11f6e146fd23c95b5df5b8f04c940642ce1ff0ea297062cb9e7eefddc55f50c",
+            "surface": "legacy_backend_command",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "synthetic_debug"
+            ],
+            "decision_id": "reference_provisioning_rejected"
+        },
+        {
+            "path": "app/Http/Requests/Patient/UpdatePreferencesRequest.php",
+            "sha256": "3e5393e52096e28d97a6423eca20449127a30c03b677ddd1aa9a8daaefc65830",
+            "surface": "legacy_backend_request",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "accessibility_presentation",
+                "account_preferences"
+            ],
+            "decision_id": "account_preference_contract_held"
+        },
+        {
+            "path": "app/Models/Patient/Concerns/AssignsExternalUuid.php",
+            "sha256": "58faf172a142fbb43184483499798dc92225663644a5661ae7fa4604146d4f45",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Models/Patient/Concerns/IsAppendOnly.php",
+            "sha256": "54d439af7e7866aea7afbf655c97fac1cf149f193118fe9d13e4e616a98d598f",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Models/Patient/PatientAccessAuditEvent.php",
+            "sha256": "2b1145254cfdc8cf9fa6f4d766d9cf2b64d60fc3450a17a74d3727e5cf2ab00d",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Models/Patient/PatientAuthoredGoal.php",
+            "sha256": "14228339e0b7d237905a2fe0ffe2936c8cf8a11c45763fa4769ba58bd60d483b",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content"
+            ],
+            "decision_id": "patient_authored_input_behavior_held"
+        },
+        {
+            "path": "app/Models/Patient/PatientCarePreference.php",
+            "sha256": "195bf19d9e90656b6f8224c6ec59d544ccb91a64d6d832429cf435d50995f4e6",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content"
+            ],
+            "decision_id": "patient_authored_input_behavior_held"
+        },
+        {
+            "path": "app/Models/Patient/PatientContentAction.php",
+            "sha256": "6d4e8d61504732a354483d6b659313495d53646f0d12213cabe09e30e7acf87c",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Models/Patient/PatientPathwayInstance.php",
+            "sha256": "50d97b6d03a24c7f757efcc38075b18d004487cd15f570edf3d005eb7cf4afea",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Models/Patient/PatientPathwayMilestoneInstance.php",
+            "sha256": "5d9617d0b6532bfcff4520a2878ac450a28bd9c57c45006b3b469b8bdc2bb1f9",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Models/Patient/PatientPathwayMilestoneStatusEvent.php",
+            "sha256": "b70b6276b2f16caa04376290222b174b202f0188384fd957c60a77896f708546",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Models/Patient/PatientPathwayProjectionReleaseExecution.php",
+            "sha256": "b56d60248253e54c80b1ab3e94f42f3c1563f52b2e061b9d0b0b9c86c85fdd0d",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Models/Patient/PatientPathwayProjectionReview.php",
+            "sha256": "e221c2d530e4e21ccc2175648be538c874ba3aacdd449a13998cd178ce493d8b",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Models/Patient/PatientPathwayStageInstance.php",
+            "sha256": "bd293f47a9cf7f911299b5658bbdfa8d2db7f6d3e04b9f2bc7c6f21788d7ebd2",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Models/Patient/PatientPathwayStageStatusEvent.php",
+            "sha256": "e581b0706b6970666987534f63ea04c408eef91b762e54529a948c0a081bb55b",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Models/Patient/PatientProjectionCursor.php",
+            "sha256": "d3cc1516fe99ca10ed2f756d5abcf30b0e6bb071fa05b963b38994220b465c1d",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Models/Patient/PatientProjectionFailure.php",
+            "sha256": "78cf944aacfecc0cfe64b59242cbbc9c70eba3bd55fd6e6394bae9b8997a28d4",
+            "surface": "legacy_backend_model",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Services/Patient/Demo/HummingbirdPatientReferenceIdentityProvisioner.php",
+            "sha256": "6a2927a9e5f59c177668cb16c9c81bba6c64b97b6d99e69d405bbcfd87ae1eb3",
+            "surface": "legacy_backend_service",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "synthetic_debug"
+            ],
+            "decision_id": "reference_provisioning_rejected"
+        },
+        {
+            "path": "app/Services/Patient/Demo/HummingbirdPatientReferenceProjectionDraftProvisioner.php",
+            "sha256": "7ec1971fff4007ca5457a76419d37136f80be51582794bb27e1b559e2a142abf",
+            "surface": "legacy_backend_service",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "synthetic_debug"
+            ],
+            "decision_id": "reference_provisioning_rejected"
+        },
+        {
+            "path": "app/Services/Patient/Demo/PatientEnrollmentMaterialGenerator.php",
+            "sha256": "a41fd36b887b5548e570551d615f52f3732415de7084d81af49a68962badb94d",
+            "surface": "legacy_backend_service",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "synthetic_debug"
+            ],
+            "decision_id": "reference_provisioning_rejected"
+        },
+        {
+            "path": "app/Services/Patient/Goals/PatientAuthoredGoalService.php",
+            "sha256": "504eeddaac0270447adc9cd9a4f5d17310ab78458b8066bd7cedaeeaea7f9c87",
+            "surface": "legacy_backend_service",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content"
+            ],
+            "decision_id": "patient_authored_input_behavior_held"
+        },
+        {
+            "path": "app/Services/Patient/Pathway/PatientPathwayInstanceService.php",
+            "sha256": "8a79e6de936ac2d33f2ae499369c6bb57db70a9f6f544129fe10de90a4181d28",
+            "surface": "legacy_backend_service",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "projection_release_safety_principle"
+        },
+        {
+            "path": "app/Services/Patient/Pathway/PatientPathwaySourceReconciliationService.php",
+            "sha256": "3f7bfbfefcfb8aede209df6f559b93a79f90a6d361f064308c98530a204b67fc",
+            "surface": "legacy_backend_service",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "projection_release_safety_principle"
+        },
+        {
+            "path": "app/Services/Patient/Pathway/Source/PatientPathwaySourceSnapshot.php",
+            "sha256": "ffb4eb4f65436f0cad56722a22893cca024a0b81efc334c9135eeedb96118661",
+            "surface": "legacy_backend_service",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "pathway_source_contract_held"
+        },
+        {
+            "path": "app/Services/Patient/Pathway/Source/PatientPathwaySourceStatusObservation.php",
+            "sha256": "c3e21b45df4d405fda9d3286249967b4c7e42073391180e93039327bcd04f6cb",
+            "surface": "legacy_backend_service",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "pathway_source_contract_held"
+        },
+        {
+            "path": "app/Services/Patient/PatientAccessAuditRecorder.php",
+            "sha256": "ce6bf3ba97d46912da9a8780f3a672d4740cffd6441db2db4ce301e8334fd768",
+            "surface": "legacy_backend_service",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Services/Patient/PatientHmac.php",
+            "sha256": "e1ac437e8c2ba7251583c5bf6dea86f0c7a2d2ebab5fcdf497d2f6c8e733626e",
+            "surface": "legacy_backend_service",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_audit_safety_principle"
+        },
+        {
+            "path": "app/Services/Patient/Preferences/PatientCarePreferenceService.php",
+            "sha256": "1b8c85e8b47f9bf09c6a3889e35cf18823981d978b47bb5fca9bbc756c71887f",
+            "surface": "legacy_backend_service",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content"
+            ],
+            "decision_id": "patient_authored_input_behavior_held"
+        },
+        {
+            "path": "app/Services/Patient/Projection/PatientPathwayHistoryDraftService.php",
+            "sha256": "692584f77a23b3abe82388b8272cdf74dbc63dc3fd0aca7123ce55cc3126e915",
+            "surface": "legacy_backend_service",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "projection_release_safety_principle"
+        },
+        {
+            "path": "app/Services/Patient/Projection/PatientPathwayProjectionReviewReleaseService.php",
+            "sha256": "a7c005e4a159149299860def527956c02784e1a08b30d15973204315043884b7",
+            "surface": "legacy_backend_service",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "projection_release_safety_principle"
+        },
+        {
+            "path": "app/Services/Patient/Projection/SyntheticPatientProjectionProvisioner.php",
+            "sha256": "033dfcf5c06e28cb834b1d748ec72f7f555d13f17d546d521454ef71a5edd550",
+            "surface": "legacy_backend_service",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "journey_projection_content",
+                "synthetic_debug",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "testing_only_projection_fixture"
+        },
+        {
+            "path": "database/migrations/2026_07_20_000500_extend_patient_projection_kinds_for_pathway_events.php",
+            "sha256": "2cd91e09cfb954f059ee2a6bfdddbe1fc7090183f6cce45bb4d79433dc81ed4c",
+            "surface": "legacy_database",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_projection_schema_principle"
+        },
+        {
+            "path": "database/migrations/2026_07_21_000600_extend_patient_projection_kinds_for_rounds_summary.php",
+            "sha256": "c7283854ce77bc7025d473283f7a713d83516b6a4a669ae577f69e5a1b3837bb",
+            "surface": "legacy_database",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_projection_schema_principle"
+        },
+        {
+            "path": "database/migrations/2026_07_21_000700_create_patient_round_question_promotions.php",
+            "sha256": "9a2834841c3915c9cb670eb8bd87c234089b8887aface6d9bf740e7c46c17406",
+            "surface": "legacy_database",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_projection_schema_principle"
+        },
+        {
+            "path": "database/migrations/2026_07_21_000800_create_patient_round_question_promotion_outcomes.php",
+            "sha256": "cefd3ce2c45674235e93a68d7fbe729fc2f8c3ce9a99af868c66ae7b022b828b",
+            "surface": "legacy_database",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_projection_schema_principle"
+        },
+        {
+            "path": "database/migrations/2026_07_22_001200_create_patient_education_clarification_requests.php",
+            "sha256": "03f6687f91b9f4070348e4ca691f33308c38350541e4130f1d286a0dfffc55ee",
+            "surface": "legacy_database",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_projection_schema_principle"
+        },
+        {
+            "path": "database/migrations/2026_07_22_001300_create_patient_care_preferences.php",
+            "sha256": "88f20542caa3c83bb9e8d658dd947abc12e9c9ae5c392019b6b80458466dfeef",
+            "surface": "legacy_database",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_projection_schema_principle"
+        },
+        {
+            "path": "database/migrations/2026_07_22_001400_create_patient_pathway_instance_history.php",
+            "sha256": "55ee479ac91c48c8a40ad20f6b50ee38fd1dc27f4b67b11ed6af0c29bb86497c",
+            "surface": "legacy_database",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_projection_schema_principle"
+        },
+        {
+            "path": "database/migrations/2026_07_22_001500_enqueue_released_patient_projection_outbox.php",
+            "sha256": "6bc0c7f235582f1a0d26db810876167cfc8b68d68412cf9cb728717fccecd1c1",
+            "surface": "legacy_database",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_projection_schema_principle"
+        },
+        {
+            "path": "database/migrations/2026_07_22_001600_create_patient_authored_goals.php",
+            "sha256": "9d229ffcee4d79c0978c05528a77cbc4dc8cadd1000dfcef2b137ff1de2c47c7",
+            "surface": "legacy_database",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_projection_schema_principle"
+        },
+        {
+            "path": "database/migrations/2026_07_22_001700_create_patient_pathway_projection_review_release.php",
+            "sha256": "f3c3ccbac7ca7fd341f87f7da6bf322633ae64692cce57fd9d5ae3fcbc30b972",
+            "surface": "legacy_database",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_projection_schema_principle"
+        },
+        {
+            "path": "database/migrations/2026_07_22_001900_reconcile_patient_projection_database_guards.php",
+            "sha256": "fba120b76b034e10bfc1ae9295a910c72aa2449060f00bd0d0edd84859210765",
+            "surface": "legacy_database",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "source_reconciliation_release"
+            ],
+            "decision_id": "append_only_projection_schema_principle"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/ASSET_PROVENANCE.md",
+            "sha256": "9e7e7c43540343c60127e9df6995616fff36185a64fcbc54640f664aeeb129c7",
+            "surface": "legacy_android_evidence",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "release_packaging_identity",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "asset_provenance_evidence"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/build.gradle.kts",
+            "sha256": "95cf08272810438c9ce78bae4424ca60a9cfb8e5b0b3852466a076c476598072",
+            "surface": "legacy_android_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/proguard-rules.pro",
+            "sha256": "0c24a7210c5d2eff1ce1b3a292ab770497a73e6206cb5254f65567132eef6656",
+            "surface": "legacy_android_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientAuthenticationSmokeTest.kt",
+            "sha256": "cfca5bb98b7c9528b8d85e2c2f2e44c4eb6cf1da8265ac200cd0219f04169229",
+            "surface": "legacy_android_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientSecureStorageInstrumentedTest.kt",
+            "sha256": "aca1ca0a01c0d81a453d08392f3b6fe13f00338c23d24d2a3aafc7d87564cd80",
+            "surface": "legacy_android_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/androidTest/java/net/acumenus/hummingbird/patient/PatientSessionManagementInstrumentedTest.kt",
+            "sha256": "224fb3b4b9776104327f96421c926f455cc17d035e40183186875786a818c543",
+            "surface": "legacy_android_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/debug/java/net/acumenus/hummingbird/patient/PatientLaunchHooks.kt",
+            "sha256": "d9d2ac9746f2f573b6abd7924e2c2564cfad77dd10417b56166f4ff162097546",
+            "surface": "legacy_android_debug_source",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "journey_projection_content",
+                "synthetic_debug",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "debug_synthetic_fixture"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/debug/java/net/acumenus/hummingbird/patient/SyntheticReferencePatientScenario.kt",
+            "sha256": "c6b8d8d3018c4c476555c7d01603fdc681e7ed4d11e9d8244e5b0de877446741",
+            "surface": "legacy_android_debug_source",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "journey_projection_content",
+                "synthetic_debug",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "debug_synthetic_fixture"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/MainActivity.kt",
+            "sha256": "dcd9b7dd11f0db0078e9044ff2ef99f00adedc344f3408301362c7061b5fc884",
+            "surface": "legacy_android_source",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "accessibility_presentation",
+                "journey_projection_content"
+            ],
+            "decision_id": "native_journey_behavior_held"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/PatientLaunchState.kt",
+            "sha256": "a64803162032d9add6c538310d23f6cee67194e5c4129a7e4d5031648e98db16",
+            "surface": "legacy_android_source",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "accessibility_presentation",
+                "journey_projection_content"
+            ],
+            "decision_id": "native_journey_behavior_held"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/PatientPrivacyPolicy.kt",
+            "sha256": "2d77e58a3601bb1b73d8340aba0e36c36433d2a98bdd2f3a4563f8051006790b",
+            "surface": "legacy_android_source",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "accessibility_presentation",
+                "governance_audit_persistence",
+                "release_packaging_identity"
+            ],
+            "decision_id": "native_privacy_configuration_principle"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/HummingbirdPatientTheme.kt",
+            "sha256": "d73b9832ca33cd8d1a98c7a7d6447a89648f307141bc222ca7cc4d999f97d805",
+            "surface": "legacy_android_source",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientApp.kt",
+            "sha256": "a12e7e36c267a4013e40b31e5242924548df45c273d40989b83458530d72f3bb",
+            "surface": "legacy_android_source",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "accessibility_presentation",
+                "journey_projection_content"
+            ],
+            "decision_id": "native_journey_behavior_held"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientPreferencesScreen.kt",
+            "sha256": "1c884c0b166332bfb5c00c0ce9ae5228c3d57656b947c4324caa21b456cea8cc",
+            "surface": "legacy_android_source",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "accessibility_presentation",
+                "journey_projection_content"
+            ],
+            "decision_id": "native_journey_behavior_held"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientPresentationAccessibility.kt",
+            "sha256": "e7c2b724599b1d26332579a7d6a853e4c970691f21f3ef1d9ebca324a1720992",
+            "surface": "legacy_android_source",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "accessibility_presentation",
+                "account_preferences"
+            ],
+            "decision_id": "native_presentation_safety_principle"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientScenicBackground.kt",
+            "sha256": "55e406bf0144d722f8ecb6d645d7c692a6e41a95fa35f880798ee205544a0e34",
+            "surface": "legacy_android_source",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "accessibility_presentation",
+                "account_preferences"
+            ],
+            "decision_id": "native_presentation_safety_principle"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientSessionManagementScreen.kt",
+            "sha256": "1f1f6da3814bd9070f8488790f8ab9f117c710a482629cc826a9d7d4e779a185",
+            "surface": "legacy_android_source",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "accessibility_presentation",
+                "journey_projection_content"
+            ],
+            "decision_id": "native_journey_behavior_held"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/res/drawable-nodpi/patient_hummingbird_airy_flight.jpg",
+            "sha256": "a400063289b0ec8b62a7059c3e1e10618da545fe50871b2f3ddb35935e958117",
+            "surface": "legacy_android_resource",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/res/drawable-nodpi/patient_hummingbird_calm_green.jpg",
+            "sha256": "d5dc322481721ac5a29a6fe34c777bf727385dcd9d3d5aad1674182b5ccbec2d",
+            "surface": "legacy_android_resource",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/res/drawable-nodpi/patient_hummingbird_care_connection.jpg",
+            "sha256": "b70ba3d0626f27bd29311a3e70a8e306768fd3c316cfae2554765b89603dcfbd",
+            "surface": "legacy_android_resource",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/res/drawable-nodpi/patient_hummingbird_warm_motion.jpg",
+            "sha256": "b3f127a8fbd2754d69adc12432fc01f22a9096ee8850b8fdab10e769e5105fb8",
+            "surface": "legacy_android_resource",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/res/drawable/ic_launcher_foreground.xml",
+            "sha256": "b9b7708f35ce3e0521d89b286297787e6bf489797c55f9f0c5b4d954a715e2b6",
+            "surface": "legacy_android_resource",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/res/mipmap-anydpi/ic_launcher.xml",
+            "sha256": "32967b72dfeb5ea135f45d40ebd9a662308b0848311671dfb8b1179f531d4ac9",
+            "surface": "legacy_android_resource",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/res/mipmap-anydpi/ic_launcher_round.xml",
+            "sha256": "32967b72dfeb5ea135f45d40ebd9a662308b0848311671dfb8b1179f531d4ac9",
+            "surface": "legacy_android_resource",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/res/values-v27/themes.xml",
+            "sha256": "0127bae96a6b336f0b74c3fdef9a55cb16f4734c10cbd98ab0a65152ed4c652f",
+            "surface": "legacy_android_resource",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/res/values/colors.xml",
+            "sha256": "b1607d62847949a6d19c79af3f211f84b23d551a284704ed7f8a0769b06f0cd6",
+            "surface": "legacy_android_resource",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/res/values/strings.xml",
+            "sha256": "b1d7d59056988d2e8fd9d21cea4bad34372802a4b94d5410398c5d1d88308f42",
+            "surface": "legacy_android_resource",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/res/values/themes.xml",
+            "sha256": "07c20fa8e9727a16f68cfe4fb5dbf6f9ee2e14978d3b0c3eba50c9838881056a",
+            "surface": "legacy_android_resource",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/res/xml/data_extraction_rules.xml",
+            "sha256": "8b55ff5489071bb19a4e89967b604a16c0e4d1e87a2df3c73c64417314a59f22",
+            "surface": "legacy_android_resource",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "accessibility_presentation",
+                "governance_audit_persistence",
+                "release_packaging_identity"
+            ],
+            "decision_id": "native_privacy_configuration_principle"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/res/xml/network_security_config.xml",
+            "sha256": "dbc726438a7e99c69fdfc39146cd51ef8300dacb236843bbce3ecd2a1712a80f",
+            "surface": "legacy_android_resource",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "accessibility_presentation",
+                "governance_audit_persistence",
+                "release_packaging_identity"
+            ],
+            "decision_id": "native_privacy_configuration_principle"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/release/java/net/acumenus/hummingbird/patient/PatientLaunchHooks.kt",
+            "sha256": "ac8caec30b2f2b1a7b4ea4bc8cb50af6ca9666e9212a6c68180ef223ae3e50cc",
+            "surface": "legacy_android_release_source",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "release_packaging_identity",
+                "synthetic_debug"
+            ],
+            "decision_id": "release_synthetic_exclusion_principle"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/release/java/net/acumenus/hummingbird/patient/SyntheticReferencePatientScenario.kt",
+            "sha256": "92ecf57529dde3c5e538d492cd9e2a8920116d44c00034e0254ea15a23234936",
+            "surface": "legacy_android_release_source",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "release_packaging_identity",
+                "synthetic_debug"
+            ],
+            "decision_id": "release_synthetic_exclusion_principle"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/PatientPrivacyPolicyTest.kt",
+            "sha256": "56bd5ed8f45be5e8bb7cc674398b4f8fe170d963a894b94a96da810cf8fd1763",
+            "surface": "legacy_android_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/data/PatientSecureStoragePolicyTest.kt",
+            "sha256": "0cd5c6c5e8128d090858e8d4dab86abc9197187746c57e65c171e420ac19624a",
+            "surface": "legacy_android_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/data/PatientSessionManagementDecoderTest.kt",
+            "sha256": "bc6021dbf52dcd566128da2fd28a593cdb45f1c6b3f9b12f0f7552f2c30e6dcd",
+            "surface": "legacy_android_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/data/PatientStateVocabularyTest.kt",
+            "sha256": "2860937fd260f9b420cf1d2c5691bd41db34dc118907ffb8d519965a36b816c0",
+            "surface": "legacy_android_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "journey_projection_content",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/ui/PatientPresentationAccessibilityTest.kt",
+            "sha256": "90708582a569d04fddfcc6ce4e9ab09d748b5d1e5964666c13512dc3176acbc6",
+            "surface": "legacy_android_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "accessibility_presentation",
+                "account_preferences",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/ui/PatientVisualAssetPolicyTest.kt",
+            "sha256": "450fda81e232a322a12defef02b65866429c72529bbe577d9aa62b31e2c7a9c3",
+            "surface": "legacy_android_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/testDebug/java/net/acumenus/hummingbird/patient/PatientLaunchHooksTest.kt",
+            "sha256": "044e744ad9571f3070c6173af8287787bb928e1604f41054bebd8594f58aaf34",
+            "surface": "legacy_android_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "synthetic_debug",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/testDebug/java/net/acumenus/hummingbird/patient/SyntheticReferencePatientScenarioTest.kt",
+            "sha256": "b45fdc24f23af70bfa03148535c938f7ff54a5220142a539391b430871e10410",
+            "surface": "legacy_android_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "synthetic_debug",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/testRelease/java/net/acumenus/hummingbird/patient/PatientLaunchHooksReleaseTest.kt",
+            "sha256": "548d1b67f1ea8a09d4a3ee180d4fee246a89c2eafb08169b31396dc2df836ae1",
+            "surface": "legacy_android_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "synthetic_debug",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/build.gradle.kts",
+            "sha256": "a2c1a3dc7e80664eeede26bfe0b554c1afbbfe81b9b5dfbc33e6aa3fcee3ee1e",
+            "surface": "legacy_android_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/gradle.properties",
+            "sha256": "9d5b21faa6040ab2b6ccfe991f8132c7b11851d6ca4e55a7a6f58f71a04c44ee",
+            "surface": "legacy_android_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/gradle/wrapper/gradle-wrapper.jar",
+            "sha256": "497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7",
+            "surface": "legacy_android_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/gradle/wrapper/gradle-wrapper.properties",
+            "sha256": "ad8aae83783da405b1acb1d39069787f8de5fd64ae5dbf1480f8ced80956c433",
+            "surface": "legacy_android_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/gradlew",
+            "sha256": "a5a5c199ba02189ae8c46a334223371a20599d9c298ef65e7540ede4a3f72d59",
+            "surface": "legacy_android_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/gradlew.bat",
+            "sha256": "59328c7a17f673b1a63040bfb380a0c749e5d6df3406f7f18641060314cd9aa1",
+            "surface": "legacy_android_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "hummingbird/androidPatientApp/settings.gradle.kts",
+            "sha256": "6704f6599b085bf9f5856113606e0dc90d1791c33eb549243bf6c8f0b22154b2",
+            "surface": "legacy_android_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/.gitignore",
+            "sha256": "a1261f533e260aed632664278122db5047ba7ab942023a2f4cbcbb510608e65f",
+            "surface": "legacy_ios_packaging",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "generated_artifact_hygiene_principle"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient.xcodeproj/project.pbxproj",
+            "sha256": "66ea4fa9cd21fe2a983875df59c7ed7037f44dbde95e07e721acc4321a7a5fbc",
+            "surface": "legacy_ios_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
+            "sha256": "7f3b00b5c3fdb45242d7b87e1e5c4e25d1fa8129a16c94295ecc4e8ea2235c5f",
+            "surface": "legacy_ios_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient.xcodeproj/xcshareddata/xcschemes/HummingbirdPatient.xcscheme",
+            "sha256": "47231cc1d46e3c93451fedbbd52ab0bde09cf3e949fbe4180c3eabf087f9d8ab",
+            "surface": "legacy_ios_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/App/HummingbirdPatientApp.swift",
+            "sha256": "8b9cc69d7a5fd78405ac0951d65d8d15673d3c6b548d926607626102679e538b",
+            "surface": "legacy_ios_source",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "accessibility_presentation",
+                "journey_projection_content"
+            ],
+            "decision_id": "native_journey_behavior_held"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/App/PatientAppConfiguration.swift",
+            "sha256": "e36f60e49f7260606af177d89a0c52a58f947a2ee8abe104994b990638957c64",
+            "surface": "legacy_ios_source",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_runtime_activation_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/App/PatientRootView.swift",
+            "sha256": "a2a8a51af7378a70d9724c4471a2b5d5dd17fa2a658fea085e644ab9b734c0c4",
+            "surface": "legacy_ios_source",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "accessibility_presentation",
+                "journey_projection_content"
+            ],
+            "decision_id": "native_journey_behavior_held"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/AppIcon.appiconset/Contents.json",
+            "sha256": "87b9bc128c3684b599a2054929029b11607709101b666bbfc09b3f96c97cbbb5",
+            "surface": "legacy_ios_asset",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
+            "sha256": "870057ce4e265f4899fccaf1585e915aed04a6afa9920bdb7140250bba820cf6",
+            "surface": "legacy_ios_asset",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/Contents.json",
+            "sha256": "0fd49ba3c3585c709678e0046a821c3c60685ec7063720d30d3a3448be3a208b",
+            "surface": "legacy_ios_asset",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/PatientAiryFlight.imageset/Contents.json",
+            "sha256": "d8ca9313109a826550e715222f159e6323b4d6d612ac09f55f6312eddf51a7d8",
+            "surface": "legacy_ios_asset",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/PatientAiryFlight.imageset/hummingbird-06.jpg",
+            "sha256": "65b640f035d8527d879f5b354e36eabb78ec3c9ca5c915356e05912a4aadc008",
+            "surface": "legacy_ios_asset",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/PatientCalmGreen.imageset/Contents.json",
+            "sha256": "7542e76834b5d5072f1a5021e74bae913752b441e836afe5fa4b7ef13a1f20b5",
+            "surface": "legacy_ios_asset",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/PatientCalmGreen.imageset/hummingbird-01.jpg",
+            "sha256": "9230a368fd2c0cab308280425b35b645b2a505871277a8136ec1c199cd53d6dc",
+            "surface": "legacy_ios_asset",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/PatientCareConnection.imageset/Contents.json",
+            "sha256": "6272f92fb2cc5346c7a949692f0452367bfbae1499bf008ff0b1f332e949e91f",
+            "surface": "legacy_ios_asset",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/PatientCareConnection.imageset/hummingbird-07.jpg",
+            "sha256": "b545c010ed87c9ee4150c616b6031f2e66b329bc0e339fbe4ac735d6f4236988",
+            "surface": "legacy_ios_asset",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/PatientWarmMotion.imageset/Contents.json",
+            "sha256": "6a0a0c19d4c46d8e7969aa0e2513401cdad1ca0ef141b54b23743dcab7b57f91",
+            "surface": "legacy_ios_asset",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Assets.xcassets/PatientWarmMotion.imageset/hummingbird-12.jpg",
+            "sha256": "38e37231c4a14e3223823bbee531590aadd982bc7994c6538b02d291670b729d",
+            "surface": "legacy_ios_asset",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "accessibility_presentation",
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_brand_assets_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientComponents.swift",
+            "sha256": "6eb232a2d02903f4c02a823dc3fb2537f756fe5b0c971813920e4544eb520d86",
+            "surface": "legacy_ios_source",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "accessibility_presentation",
+                "account_preferences"
+            ],
+            "decision_id": "native_presentation_safety_principle"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientPhotoBackground.swift",
+            "sha256": "a4dafccaa89c202261f306d8c746d3af0fd4477a45d2ad832ed063a792f4c515",
+            "surface": "legacy_ios_source",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "accessibility_presentation",
+                "account_preferences"
+            ],
+            "decision_id": "native_presentation_safety_principle"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/DesignSystem/PatientPresentationPreferences.swift",
+            "sha256": "8f94ec1de27c991e6cd52808d60fb361d96570596196b9cb3b15951a84f89a9f",
+            "surface": "legacy_ios_source",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "accessibility_presentation",
+                "account_preferences"
+            ],
+            "decision_id": "native_presentation_safety_principle"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Features/Account/PatientPreferencesView.swift",
+            "sha256": "3e001e47c8b7d12120ba6217d2b84ef4ccc3877ff3cbbdc2b8b4b102f678d185",
+            "surface": "legacy_ios_source",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "accessibility_presentation",
+                "journey_projection_content"
+            ],
+            "decision_id": "native_journey_behavior_held"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Features/Account/PatientSessionManagementView.swift",
+            "sha256": "af8c9135fb45fac2ce6433419144fb463b0e966396b0dba16455ef460036575e",
+            "surface": "legacy_ios_source",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "accessibility_presentation",
+                "journey_projection_content"
+            ],
+            "decision_id": "native_journey_behavior_held"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Features/CareTeam/PatientCareTeamView.swift",
+            "sha256": "c7dd9828210960b3e2ec70ed2d916d92f2a66f08be920676e7f4318732f04694",
+            "surface": "legacy_ios_source",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "accessibility_presentation",
+                "journey_projection_content"
+            ],
+            "decision_id": "native_journey_behavior_held"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Features/Shell/PatientTabShellView.swift",
+            "sha256": "d2fb058bbabc2184962a48cb948b70848b96c07d2eebbf0140ee9820fd3653e3",
+            "surface": "legacy_ios_source",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "accessibility_presentation",
+                "journey_projection_content"
+            ],
+            "decision_id": "native_journey_behavior_held"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Features/Today/PatientTodayView.swift",
+            "sha256": "63f2003a80cc316f4f47d76cc0a1e56b2d3c77875004be78c27d252d0fcae663",
+            "surface": "legacy_ios_source",
+            "classification": "reusable_product_behavior",
+            "disposition": "held",
+            "categories": [
+                "accessibility_presentation",
+                "journey_projection_content"
+            ],
+            "decision_id": "native_journey_behavior_held"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Info.plist",
+            "sha256": "ef085850aa7cf6ef7d462e94ac06f9bda4999ff80aa098205ad6f896c5099c16",
+            "surface": "legacy_ios_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Privacy/PatientPrivacyCoverView.swift",
+            "sha256": "bb16dcf8c61a281429f4b4936539ecd455c70453cdd80f3520b25f831ec3cad4",
+            "surface": "legacy_ios_source",
+            "classification": "reusable_safety_primitive",
+            "disposition": "principle_only",
+            "categories": [
+                "accessibility_presentation",
+                "account_preferences"
+            ],
+            "decision_id": "native_presentation_safety_principle"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatientTests/PatientPresentationPreferencesTests.swift",
+            "sha256": "7c0048897a8262273a22e7576b774f98537fb000233ec49b99c042ccc9f5cf76",
+            "surface": "legacy_ios_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "accessibility_presentation",
+                "account_preferences",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatientTests/PatientStateVocabularyTests.swift",
+            "sha256": "cf781feea9a3fe4f3befaaddd58253747abb17d70a6d4fc60d0df52c00938069",
+            "surface": "legacy_ios_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "journey_projection_content",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatientUITests/PatientSessionManagementUITests.swift",
+            "sha256": "27e955f9aae983bfc082e53e98a3b99194755faec4f8c625a09c859f09e87429",
+            "surface": "legacy_ios_ui_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "hummingbird/iosPatientApp/project.yml",
+            "sha256": "9e10eeac89e49bf9ae4dd8aabdaf30e2fcddb20fc827bda006e35e1d9c7321ba",
+            "surface": "legacy_ios_packaging",
+            "classification": "rejected_legacy_behavior",
+            "disposition": "reject",
+            "categories": [
+                "release_packaging_identity"
+            ],
+            "decision_id": "legacy_packaging_identity_rejected"
+        },
+        {
+            "path": "tests/Feature/Patient/HummingbirdPatientReferenceIdentityProvisionerTest.php",
+            "sha256": "8826f2e9c3d2270fbcbcd2aeb7b6d30584da1264b26741525a7371f6f6831d03",
+            "surface": "legacy_backend_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "synthetic_debug",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "tests/Feature/Patient/HummingbirdPatientReferenceProjectionDraftProvisionerTest.php",
+            "sha256": "5a541cc157d8619865864b15e939981083fe408381739fdc7da821bfcd1ce9bf",
+            "surface": "legacy_backend_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "synthetic_debug",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "tests/Feature/Patient/PatientAuthoredGoalApiTest.php",
+            "sha256": "f9422521a2a4f432a18ad75dddba503e967ac27c05e88350a63bc084d1b978f4",
+            "surface": "legacy_backend_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "governance_audit_persistence",
+                "release_packaging_identity",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "tests/Feature/Patient/PatientCarePreferenceApiTest.php",
+            "sha256": "cb1363bc46a219fa20d2f3dac11adaaf9970d413e85d2eda1004847f4d9bb888",
+            "surface": "legacy_backend_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "accessibility_presentation",
+                "account_preferences",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "tests/Feature/Patient/PatientPathwayHistoryDraftCommandTest.php",
+            "sha256": "3aee3c88ef221f62dce85699a1cfe4dff11b8455a4aff78c2925064ef496a98e",
+            "surface": "legacy_backend_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "journey_projection_content",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "tests/Feature/Patient/PatientPathwayInstanceHistoryTest.php",
+            "sha256": "465f9c0884329eb8171aac66feb3da5d360112d3d41acfc6ef132e8fc7c9f35e",
+            "surface": "legacy_backend_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "journey_projection_content",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "tests/Feature/Patient/PatientPathwayProjectionReviewReleaseTest.php",
+            "sha256": "d81c747f9fb56c420ea7fe0a7adffc2afeb6766711ca5ac385bb94892179ad29",
+            "surface": "legacy_backend_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "governance_audit_persistence",
+                "journey_projection_content",
+                "release_packaging_identity",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "tests/Feature/Patient/PatientPathwaySourceReconciliationTest.php",
+            "sha256": "4adb4908d28f2e27d4255cc9c208f5231773d641d1d5438b0fdbede9c7a4d8a0",
+            "surface": "legacy_backend_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "journey_projection_content",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        },
+        {
+            "path": "tests/Unit/Patient/PatientProjectionStateVocabularyTest.php",
+            "sha256": "67fa6e822ccf0dd40c3128d8368e9dcb4e88ce5e7b7b3c63cbcc76f8413df77b",
+            "surface": "legacy_backend_test",
+            "classification": "test_fixture_only",
+            "disposition": "test_only",
+            "categories": [
+                "journey_projection_content",
+                "test_fixture_evidence"
+            ],
+            "decision_id": "test_fixture_evidence"
+        }
+    ]
+}

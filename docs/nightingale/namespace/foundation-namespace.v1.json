@@ -1,0 +1,164 @@
+{
+    "schema_version": 1,
+    "contract_id": "nightingale-foundation-namespace.v1",
+    "status": "offline_foundation_only",
+    "generated_at": "2026-07-27",
+    "product": {
+        "name": "Nightingale",
+        "reverse_dns_prefix": "net.acumenus.nightingale",
+        "ios_bundle_id": "net.acumenus.nightingale",
+        "android_application_id": "net.acumenus.nightingale"
+    },
+    "namespace_rules": {
+        "accessibility_identifier_prefix": "nightingale-",
+        "test_hook_prefix": "NIGHTINGALE_",
+        "storage_identifier_prefix": "net.acumenus.nightingale.",
+        "telemetry_event_prefix": "net.acumenus.nightingale.telemetry.v1.",
+        "diagnostic_channel_prefix": "net.acumenus.nightingale.diagnostics.v1."
+    },
+    "inventories": {
+        "accessibility_identifiers": [
+            "nightingale-safe-shell",
+            "nightingale-product-heading",
+            "nightingale-foundation-mission",
+            "nightingale-privacy-status-heading",
+            "nightingale-display-comfort-heading",
+            "nightingale-reduce-motion-toggle",
+            "nightingale-motion-status",
+            "nightingale-hide-imagery-toggle",
+            "nightingale-imagery-status",
+            "nightingale-privacy-cover"
+        ],
+        "test_hooks": [
+            "NIGHTINGALE_SHOW_PRIVACY_COVER",
+            "NIGHTINGALE_TEST_ACCESSIBILITY_TEXT_SIZE",
+            "NIGHTINGALE_TEST_LAYOUT_DIRECTION",
+            "NIGHTINGALE_TEST_RESET_PRESENTATION_PREFERENCES"
+        ],
+        "storage_identifiers": [
+            {
+                "platform": "ios",
+                "kind": "keychain_service",
+                "value": "net.acumenus.nightingale.protected-state.v1"
+            },
+            {
+                "platform": "ios",
+                "kind": "keychain_account",
+                "value": "net.acumenus.nightingale.protected-state.v1.future-session-binding"
+            },
+            {
+                "platform": "ios",
+                "kind": "preference_key",
+                "value": "net.acumenus.nightingale.presentation.v1.reduce-motion"
+            },
+            {
+                "platform": "ios",
+                "kind": "preference_key",
+                "value": "net.acumenus.nightingale.presentation.v1.hide-decorative-imagery"
+            },
+            {
+                "platform": "android",
+                "kind": "preference_file",
+                "value": "net.acumenus.nightingale.presentation.v1"
+            },
+            {
+                "platform": "android",
+                "kind": "preference_key",
+                "value": "net.acumenus.nightingale.presentation.v1.reduce-motion"
+            },
+            {
+                "platform": "android",
+                "kind": "preference_key",
+                "value": "net.acumenus.nightingale.presentation.v1.hide-decorative-imagery"
+            },
+            {
+                "platform": "android",
+                "kind": "keystore_alias",
+                "value": "net.acumenus.nightingale.protected-state-key.v1"
+            },
+            {
+                "platform": "android",
+                "kind": "preference_file",
+                "value": "net.acumenus.nightingale.protected-state-ciphertext.v1"
+            },
+            {
+                "platform": "android",
+                "kind": "preference_key",
+                "value": "net.acumenus.nightingale.protected-state.v1.future-session-binding"
+            }
+        ],
+        "telemetry_event_names": [],
+        "diagnostic_channel_names": []
+    },
+    "constraints": {
+        "legacy_hummingbird_namespace_permitted": false,
+        "legacy_patient_product_copy_permitted": false,
+        "unnamespaced_storage_identifier_permitted": false,
+        "release_test_hooks_permitted": false,
+        "telemetry_implemented": false,
+        "diagnostics_implemented": false,
+        "runtime_logging_permitted": false
+    },
+    "sources": [
+        {
+            "path": "nightingale/iosApp/project.yml",
+            "sha256": "9eaa4650ee985b80661d32d206ec71d2d2a1b44d87e430d48343d22f35f7cb85",
+            "responsibility": "iOS application, unit-test, and UI-test bundle identities"
+        },
+        {
+            "path": "nightingale/iosApp/Nightingale/Info.plist",
+            "sha256": "87200056bdba510176b77bcc3254b71f2b079a5736891f3d4dadcee9f1056881",
+            "responsibility": "iOS patient-visible product identity"
+        },
+        {
+            "path": "nightingale/iosApp/Nightingale/Localizable.xcstrings",
+            "sha256": "352bdb164b710ffbb8257dd9529a94337dc08e834e4dc24eff08845a8cc442ea",
+            "responsibility": "iOS product-owned patient copy catalog"
+        },
+        {
+            "path": "nightingale/iosApp/Nightingale/NightingaleApp.swift",
+            "sha256": "8a150ba7f752e096684cf417befa51d4e09cbf252db404d7d1564f9acf2bc6ed",
+            "responsibility": "iOS Debug hooks and accessibility identifiers"
+        },
+        {
+            "path": "nightingale/iosApp/Nightingale/NightingaleVisualFoundation.swift",
+            "sha256": "0018b4743eb01a57d431293460e640c1c6d3eac9e8fdc2d92996ddfc82cf3288",
+            "responsibility": "iOS privacy-cover accessibility identifier"
+        },
+        {
+            "path": "nightingale/iosApp/Nightingale/NightingalePresentationPreferences.swift",
+            "sha256": "794a6e39431a458cc271447083a3d8326897d8964a91c4823feff85e3a9aa1dd",
+            "responsibility": "iOS presentation storage keys and Debug reset hook"
+        },
+        {
+            "path": "nightingale/iosApp/Nightingale/NightingaleProtectedState.swift",
+            "sha256": "5a6df00950917842d40d8b198f71c92070a2adc2471cd95cb74dcd7d3fe7ca1c",
+            "responsibility": "iOS protected-state service and account keys"
+        },
+        {
+            "path": "nightingale/androidApp/app/build.gradle.kts",
+            "sha256": "d3a333b3f397b71fbd37647fcf8878f85e75a4e2fa09f9b109448fac86707ab6",
+            "responsibility": "Android application and test package identities"
+        },
+        {
+            "path": "nightingale/androidApp/app/src/main/res/values/strings.xml",
+            "sha256": "73e153be31040b56583075acfce8c79a0947d55f5ff8b35275677568375f28f1",
+            "responsibility": "Android product-owned patient copy catalog"
+        },
+        {
+            "path": "nightingale/androidApp/app/src/main/java/net/acumenus/nightingale/NightingaleVisualFoundation.kt",
+            "sha256": "b2f37c6f76dbad695bb2834c0c8c9adf4f0028ef5ad2b94138719082adcf2b46",
+            "responsibility": "Android patient-shell semantics and test-tag identifiers"
+        },
+        {
+            "path": "nightingale/androidApp/app/src/main/java/net/acumenus/nightingale/NightingalePresentationPreferences.kt",
+            "sha256": "338bbb7177df79b73a8a3168ce2803ee3474e78a4f42900f1e208ac8938993a1",
+            "responsibility": "Android presentation storage file and keys"
+        },
+        {
+            "path": "nightingale/androidApp/app/src/main/java/net/acumenus/nightingale/NightingaleProtectedState.kt",
+            "sha256": "ca3528dfd55bb4d9681f06916b9f44b7cb1fe1cde51771d42eb6c2a61811dbed",
+            "responsibility": "Android protected-state aliases, file, key, and authenticated context"
+        }
+    ]
+}

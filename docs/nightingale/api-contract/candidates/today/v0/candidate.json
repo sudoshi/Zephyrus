@@ -1,0 +1,379 @@
+{
+  "artifact_kind": "nightingale-nonrunnable-api-candidate",
+  "candidate_id": "nightingale.today-projection.v0-candidate",
+  "status": "held-no-operation",
+  "purpose": "Describe one patient-safe Today projection using field-level governance without adding an API operation, route, provider, client, source query, patient, or activation.",
+  "operation": {
+    "method": "GET",
+    "route_namespace": "/api/nightingale/v1",
+    "path": "/inpatient-contexts/{encounter_handle}/today",
+    "operation_id": "getNightingaleTodayProjection",
+    "openapi_inclusion": false,
+    "route_registration_permitted": false,
+    "client_generation_permitted": false,
+    "network_client_permitted": false,
+    "legacy_alias_permitted": false
+  },
+  "activation": {
+    "product": false,
+    "operation": false,
+    "identity": false,
+    "inpatient_source": false,
+    "projection_source": false,
+    "clinical_content_release": false,
+    "localization": false,
+    "disclosure": false,
+    "native_clients": false,
+    "nonproduction_integration": false,
+    "production": false
+  },
+  "request": {
+    "path_parameter": "encounter_handle",
+    "encounter_handle_pattern": "^ntg_enc_[a-z2-7]{50}$",
+    "query_parameters": [],
+    "request_body_permitted": false,
+    "source_identifier_input_permitted": false,
+    "legacy_identifier_input_permitted": false,
+    "durable_client_storage_permitted": false
+  },
+  "audience": {
+    "permitted_relationships": [
+      "self"
+    ],
+    "representative_access": "held",
+    "sensitive_encounter_access": "held"
+  },
+  "response_contract": {
+    "envelope_fields": [
+      "data",
+      "meta",
+      "links"
+    ],
+    "data_fields": [
+      "kind",
+      "content_revision",
+      "sections",
+      "revision_notice"
+    ],
+    "kind": "today",
+    "content_revision_pattern": "^ntg_tdyrev_[a-z2-7]{50}$",
+    "schedule_item_handle_pattern": "^ntg_tdyitem_[a-z2-7]{50}$",
+    "section_names": [
+      "headline",
+      "summary",
+      "schedule",
+      "next_steps",
+      "care_location",
+      "discharge_outlook",
+      "questions",
+      "notices"
+    ],
+    "mandatory_released_sections": [
+      "headline",
+      "summary"
+    ],
+    "optional_section_states": [
+      "released",
+      "released-empty",
+      "not-available"
+    ],
+    "governed_value_fields": [
+      "value",
+      "context"
+    ],
+    "field_context_fields": [
+      "release",
+      "freshness",
+      "uncertainty",
+      "language",
+      "correction",
+      "offline"
+    ],
+    "root_aggregate_provenance_permitted": false,
+    "root_aggregate_freshness_permitted": false,
+    "root_aggregate_uncertainty_permitted": false,
+    "patient_visible_value_without_field_context_permitted": false,
+    "released_empty_means_no_care_planned": false,
+    "not_available_means_no_care_planned": false,
+    "durable_client_cache_permitted": false,
+    "cache_control": "private, no-store, max-age=0"
+  },
+  "field_context": {
+    "release_fields": [
+      "state",
+      "released_at",
+      "content_policy_version"
+    ],
+    "release_states": [
+      "released"
+    ],
+    "freshness_fields": [
+      "status",
+      "observed_at",
+      "patient_notice"
+    ],
+    "freshness_states": [
+      "current",
+      "approved-stale"
+    ],
+    "approved_stale_requires_patient_notice": true,
+    "uncertainty_fields": [
+      "level",
+      "explanation",
+      "can_change"
+    ],
+    "uncertainty_levels": [
+      "low",
+      "medium",
+      "high",
+      "unknown"
+    ],
+    "language_fields": [
+      "locale",
+      "release_state",
+      "plain_language_review"
+    ],
+    "language_release_states": [
+      "approved-source-language",
+      "approved-translation"
+    ],
+    "plain_language_review_states": [
+      "approved"
+    ],
+    "correction_fields": [
+      "state",
+      "patient_notice"
+    ],
+    "correction_states": [
+      "original",
+      "corrected"
+    ],
+    "corrected_requires_patient_notice": true,
+    "offline_fields": [
+      "availability",
+      "durable_storage_permitted"
+    ],
+    "offline_availability": [
+      "online-only"
+    ],
+    "offline_durable_storage_permitted": false
+  },
+  "content_rules": {
+    "schedule_statuses": [
+      "requested",
+      "planned",
+      "confirmed",
+      "in-progress",
+      "completed",
+      "delayed",
+      "canceled"
+    ],
+    "timing_confidence": [
+      "confirmed",
+      "estimated",
+      "unknown"
+    ],
+    "care_location_statuses": [
+      "current",
+      "updating",
+      "unknown"
+    ],
+    "correction_notice_kinds": [
+      "correction"
+    ],
+    "exact_time_or_eta_claim_permitted": false,
+    "raw_source_text_permitted": false,
+    "staff_only_text_permitted": false,
+    "internal_identifier_permitted": false,
+    "field_level_locale_required": true,
+    "field_level_release_required": true,
+    "field_level_freshness_required": true,
+    "field_level_uncertainty_required": true,
+    "field_level_correction_required": true,
+    "field_level_offline_rule_required": true
+  },
+  "authorization_gates": [
+    "approved-operation-in-active-contract",
+    "product-operation-facility-cohort-default-off-gates",
+    "approved-nightingale-realm-principal-session-and-assurance",
+    "verified-unmerged-self-identity-link",
+    "opaque-context-handle-owned-by-principal",
+    "authoritative-current-inpatient-context",
+    "operation-specific-server-side-today-capability",
+    "effective-governed-release-policy",
+    "effective-patient-language-release",
+    "field-level-freshness-and-uncertainty-decision",
+    "field-level-localization-and-correction-decision",
+    "authorization-and-context-recheck-before-serialization",
+    "durable-request-and-field-disclosure-audit",
+    "atomic-no-store-patient-safe-response"
+  ],
+  "failure_codes": {
+    "not_found": 404,
+    "authentication_required": 401,
+    "access_unavailable": 403,
+    "account_state_requires_review": 409,
+    "rate_limited": 429,
+    "temporarily_unavailable": 503
+  },
+  "audit": {
+    "request_event": "nightingale.today.evaluated",
+    "disclosure_event": "nightingale.today.fields_disclosed",
+    "success_requires_durable_request_audit": true,
+    "success_requires_durable_field_disclosure_audit": true,
+    "raw_patient_value_recording_permitted": false,
+    "raw_handle_recording_permitted": false,
+    "source_identifier_recording_permitted": false,
+    "staff_actor_recording_permitted": false,
+    "free_text_recording_permitted": false
+  },
+  "evidence": {
+    "product_universe_source_count": 256,
+    "product_universe_inventory_digest": "a307e1957df7ef78eb61a9a9123f3902fd8929ebb3aaeb4dce48f2c88fb4a881",
+    "classification_ids": [
+      "nightingale-source-classification.v1",
+      "nightingale-journey-preference-presentation-release-source-classification.v1"
+    ],
+    "direct_sources": [
+      {
+        "path": "docs/hummingbird/api-contract/hummingbird-patient.v1.yaml",
+        "sha256": "fb6220b4ef8eb106223624a9785256fdc1603995f281f430a79897905cb45a1b"
+      },
+      {
+        "path": "app/Http/Controllers/Api/Patient/EncounterProjectionController.php",
+        "sha256": "8d55765655a35ea87d809c5bf964a4e8b25ecb6a25081788d05319bbbfbacaf0"
+      },
+      {
+        "path": "app/Services/Patient/Projection/PatientProjectionDisclosureService.php",
+        "sha256": "9d5b5dfea90985f022b190baee18eb2826cf395b67c936576e50ef25fa418049"
+      },
+      {
+        "path": "app/Services/Patient/Projection/PatientProjectionContentGuard.php",
+        "sha256": "55c1ef8f34750f4831eb98dd519824ba61344e2fe56a94c6c855c2db90772d9a"
+      },
+      {
+        "path": "app/Policies/Patient/PatientEncounterProjectionPolicy.php",
+        "sha256": "582267c8e7aff6d8e68574319907654fcf3111fb93834221cfffc48943362209"
+      },
+      {
+        "path": "app/Models/Patient/PatientEncounterProjection.php",
+        "sha256": "b2675fea1fa6d2a3362ce54bb732858da221604f1f388b766d8fea1f6f449eb0"
+      },
+      {
+        "path": "database/migrations/2026_07_19_000200_create_patient_experience_projection_kernel.php",
+        "sha256": "20c55f5d563bfd3342ec4e833d71dd32b4f04c49fe1c455a96b05a03aae257ef"
+      },
+      {
+        "path": "tests/Feature/Patient/PatientProjectionApiTest.php",
+        "sha256": "3775071196794e2856f05e35eeac86f7dd6ea1b074dd08549318416d171a9e2e"
+      },
+      {
+        "path": "hummingbird/iosPatientApp/HummingbirdPatient/Networking/PatientAPIModels.swift",
+        "sha256": "93c3250b7292c9abe17e3bb932e39c489332c8becc321663b4b8365a1e468759"
+      },
+      {
+        "path": "hummingbird/iosPatientApp/HummingbirdPatient/Features/Today/PatientTodayView.swift",
+        "sha256": "63f2003a80cc316f4f47d76cc0a1e56b2d3c77875004be78c27d252d0fcae663"
+      },
+      {
+        "path": "hummingbird/iosPatientApp/HummingbirdPatient/App/PatientAppViewModel.swift",
+        "sha256": "74918da1c9af1a263b4535dec933c4c6acf4384bb7afa195997a26e5e1c37694"
+      },
+      {
+        "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/data/PatientApiModels.kt",
+        "sha256": "a1932c3dc2f037f4006c72e083d57bc6219f63de42f348c7909737707d25e115"
+      },
+      {
+        "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/data/PatientSessionCoordinator.kt",
+        "sha256": "10bfbe8782746390ea71242d1c95ff5f09809b61be40533f91cba1e9acfaada2"
+      },
+      {
+        "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientExperienceScreen.kt",
+        "sha256": "7b2345a9735451514aec54fe52bf04d28964935c902bb1b13676e76e8065911d"
+      }
+    ]
+  },
+  "required_fixture_case_ids": [
+    "current_full",
+    "current_minimal",
+    "schedule_released_empty",
+    "optional_sections_not_available",
+    "approved_stale_with_notice",
+    "corrected_replacement",
+    "approved_translation",
+    "approved_source_language",
+    "delayed_schedule_high_uncertainty",
+    "discharge_outlook_unknown_timing",
+    "care_location_updating",
+    "distinct_field_contexts",
+    "product_disabled",
+    "operation_disabled",
+    "facility_disabled",
+    "cohort_ineligible",
+    "authentication_missing",
+    "wrong_identity_realm",
+    "principal_inactive",
+    "session_missing",
+    "session_expired",
+    "session_revoked",
+    "identity_link_missing",
+    "identity_link_revoked",
+    "wrong_principal_handle",
+    "unknown_handle",
+    "malformed_handle",
+    "representative_relationship_held",
+    "sensitive_encounter_held",
+    "current_context_closed",
+    "current_context_changed",
+    "handle_mapping_inconsistent",
+    "source_unavailable",
+    "database_unavailable",
+    "today_capability_denied",
+    "no_released_projection",
+    "draft_projection",
+    "future_release",
+    "retracted_projection",
+    "correction_without_replacement",
+    "conflicting_active_releases",
+    "policy_version_mismatch",
+    "clinical_approval_missing",
+    "patient_language_approval_missing",
+    "translation_approval_missing",
+    "locale_mismatch",
+    "freshness_decision_missing",
+    "unapproved_stale_content",
+    "unknown_freshness",
+    "mandatory_headline_missing",
+    "mandatory_summary_missing",
+    "ungoverned_field",
+    "aggregate_context_only",
+    "internal_identifier_present",
+    "staff_only_content_present",
+    "invalid_schedule_status",
+    "invalid_timing_confidence",
+    "invalid_item_handle",
+    "duplicate_item_handle",
+    "invalid_section_state",
+    "released_empty_with_items",
+    "not_available_with_content",
+    "inconsistent_timestamps",
+    "correction_actor_exposed",
+    "request_audit_unavailable",
+    "disclosure_audit_unavailable",
+    "response_serialization_failure",
+    "rate_limited"
+  ],
+  "approval_gates": [
+    "named-product-contract-backend-identity-source-clinical-content-language-privacy-security-accessibility-support-operations-and-release-owners",
+    "approved-identity-session-recovery-and-self-link-design",
+    "approved-current-inpatient-source-cohort-lifecycle-freshness-and-linkage-design",
+    "approved-field-source-release-freshness-uncertainty-correction-translation-and-offline-matrix",
+    "approved-patient-state-and-timing-vocabulary",
+    "approved-operation-specific-authorization-and-nondisclosure-tests",
+    "approved-content-generation-review-release-correction-and-retraction-workflow",
+    "canonical-backend-ios-android-fixture-parity",
+    "threat-model-and-privacy-security-review",
+    "patient-advisor-accessibility-language-and-support-review",
+    "default-off-nonproduction-integration-and-rollback"
+  ]
+}

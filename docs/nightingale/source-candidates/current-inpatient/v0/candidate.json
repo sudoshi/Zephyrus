@@ -1,0 +1,136 @@
+{
+    "artifact_kind": "nightingale-nonrunnable-inpatient-source-candidate",
+    "candidate_id": "nightingale.current-inpatient-source.v0-candidate",
+    "status": "held-no-adapter-no-query",
+    "purpose": "Define fail-closed current-inpatient source states without selecting, binding, or querying a production source.",
+    "runtime": {
+        "route": null,
+        "operation_id": null,
+        "source_adapter": null,
+        "query_contract": null,
+        "database_connection": null,
+        "service_binding_permitted": false,
+        "query_implementation_permitted": false,
+        "production_query_permitted": false
+    },
+    "activation": {
+        "inpatient_source": false,
+        "facility_scope": false,
+        "unit_scope": false,
+        "patient_class_scope": false,
+        "nonproduction_integration": false,
+        "production": false
+    },
+    "source_states": {
+        "unavailable": {
+            "meaning": "The source, policy, linkage, clock, audit, or required evidence cannot support a reliable determination.",
+            "permits_governed_evaluation": false,
+            "authorizes_patient_access": false
+        },
+        "inconsistent": {
+            "meaning": "Available source facts contradict one another or cannot be reduced to exactly one coherent lifecycle.",
+            "permits_governed_evaluation": false,
+            "authorizes_patient_access": false
+        },
+        "confirmed_closed": {
+            "meaning": "A governed source evaluation confirms a coherent encounter lifecycle that is no longer current.",
+            "permits_governed_evaluation": false,
+            "authorizes_patient_access": false
+        },
+        "confirmed_current": {
+            "meaning": "A governed source evaluation confirms exactly one current inpatient context at the evaluation instant.",
+            "permits_governed_evaluation": true,
+            "authorizes_patient_access": false
+        }
+    },
+    "freshness_policy": {
+        "policy_version": null,
+        "evaluation_clock": null,
+        "maximum_source_age_seconds": null,
+        "thresholds_approved": false,
+        "hard_coded_thresholds_permitted": false
+    },
+    "positive_state_prerequisites": [
+        "approved-product-source-and-scope-policy-version",
+        "approved-source-adapter-and-query-contract",
+        "source-availability-and-evaluation-clock-confirmed",
+        "verified-self-principal-linkage-resolved-without-source-id-disclosure",
+        "facility-unit-and-patient-class-within-approved-scope",
+        "exactly-one-coherent-current-encounter-lifecycle",
+        "required-admission-status-transfer-discharge-and-version-facts-complete",
+        "source-freshness-satisfied-under-approved-versioned-policy",
+        "no-merge-correction-retraction-or-transfer-transition-unresolved",
+        "source-record-stable-through-evaluation-handoff",
+        "durable-source-evaluation-audit-committed",
+        "identity-grant-purpose-cardinality-and-authorization-still-required"
+    ],
+    "closed_state_prerequisites": [
+        "all-source-integrity-prerequisites-that-apply-to-a-closed-lifecycle",
+        "exactly-one-coherent-closed-encounter-lifecycle",
+        "discharge-finality-confirmed-by-approved-source-policy",
+        "no-conflicting-active-or-pending-transfer-record",
+        "durable-source-evaluation-audit-committed"
+    ],
+    "identifier_policy": {
+        "source_identifiers_in_candidate_or_fixtures": "prohibited",
+        "source_identifiers_in_patient_response": "prohibited",
+        "opaque_nightingale_handle_generation": "outside-this-candidate",
+        "cross_product_identifier_reuse": "prohibited"
+    },
+    "required_fixture_case_ids": [
+        "confirmed_current_all_prerequisites",
+        "confirmed_closed_all_prerequisites",
+        "product_disabled",
+        "source_capability_disabled",
+        "source_adapter_unconfigured",
+        "source_dependency_unavailable",
+        "source_timeout",
+        "database_unavailable",
+        "source_response_malformed",
+        "source_policy_unconfigured",
+        "freshness_policy_unapproved",
+        "source_observed_at_missing",
+        "source_observed_at_stale",
+        "clock_untrusted",
+        "no_inpatient_record",
+        "patient_link_missing",
+        "patient_link_unverified",
+        "facility_out_of_scope",
+        "unit_out_of_scope",
+        "patient_class_out_of_scope",
+        "cohort_policy_unavailable",
+        "required_field_missing",
+        "source_audit_unavailable",
+        "multiple_current_records",
+        "duplicate_source_link",
+        "ambiguous_patient_match",
+        "status_missing",
+        "status_unknown",
+        "record_soft_deleted",
+        "active_with_discharge_time",
+        "admitted_at_missing",
+        "admitted_at_future",
+        "discharged_at_missing",
+        "discharged_at_future",
+        "discharged_before_admitted",
+        "lifecycle_inconsistent",
+        "source_version_missing",
+        "source_changed_during_evaluation",
+        "transfer_unresolved",
+        "merge_or_correction_pending",
+        "record_retracted",
+        "policy_version_mismatch"
+    ],
+    "approval_gates": [
+        "named-source-clinical-operations-identity-privacy-security-data-governance-support-and-release-owners",
+        "authoritative-source-and-query-contract",
+        "facility-unit-patient-class-and-cohort-policy",
+        "admission-transfer-discharge-and-closure-semantics",
+        "freshness-clock-time-zone-and-downtime-policy",
+        "patient-linkage-merge-correction-and-retraction-policy",
+        "source-identifier-containment-and-opaque-handle-design",
+        "authorization-nondisclosure-audit-and-race-tests",
+        "synthetic-and-approved-deidentified-nonproduction-validation",
+        "default-off-integration-observability-rollback-and-support-plan"
+    ]
+}
