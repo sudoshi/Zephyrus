@@ -29,6 +29,7 @@
 		8135A1E47CF58AB0FEB32D1A /* PatientAppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 764087BB4E66392A85797E77 /* PatientAppConfiguration.swift */; };
 		81AACF28FF4989E7459EB3FE /* PatientSessionManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6597C355339E2D5760A484A /* PatientSessionManagementView.swift */; };
 		8790C3B0D56740E1ECEF5866 /* PatientExperienceSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DC759A73C63CC90C5707CB0 /* PatientExperienceSnapshot.swift */; };
+		90DD1BB90C690A312A290C76 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D287F4E17776E0F061E9690D /* PrivacyInfo.xcprivacy */; };
 		948F9FC2EA1808798A0EFB5F /* PatientPrivacyCoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83456BBF2CF3FFF67C81D643 /* PatientPrivacyCoverView.swift */; };
 		9B7C198CFD490486E3BA740E /* PatientAppViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0313EDFD4E8035F16E7B71 /* PatientAppViewModelTests.swift */; };
 		A74A4098CFA71961F948F9D8 /* PatientStateVocabulary.swift in Sources */ = {isa = PBXBuildFile; fileRef = D110AA2B08DBF0EEB5EFE8F0 /* PatientStateVocabulary.swift */; };
@@ -90,6 +91,7 @@
 		BA0313EDFD4E8035F16E7B71 /* PatientAppViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientAppViewModelTests.swift; sourceTree = "<group>"; };
 		BB67148B1508DD6DDCDE508F /* PatientAppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientAppViewModel.swift; sourceTree = "<group>"; };
 		D110AA2B08DBF0EEB5EFE8F0 /* PatientStateVocabulary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientStateVocabulary.swift; sourceTree = "<group>"; };
+		D287F4E17776E0F061E9690D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		E01F26F8BF8FF512B4AEB068 /* PatientReferenceJourneyUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientReferenceJourneyUITests.swift; sourceTree = "<group>"; };
 		ECEFE3457B5E9BBE36553777 /* NightingaleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NightingaleApp.swift; sourceTree = "<group>"; };
 		F9A3FD5B0E1CBFB5C648E2B7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -111,6 +113,7 @@
 			children = (
 				A0C491B942A7327EBF7C7BF6 /* Assets.xcassets */,
 				F9A3FD5B0E1CBFB5C648E2B7 /* Info.plist */,
+				D287F4E17776E0F061E9690D /* PrivacyInfo.xcprivacy */,
 				ED9B50770CB3BE4E1FCABFD6 /* App */,
 				114E4F2825EDCE2BA1789609 /* DesignSystem */,
 				98D2C6FEBD164C3F1B3E3F84 /* Features */,
@@ -378,6 +381,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D408334DD3F44A5E21ADEC66 /* Assets.xcassets in Resources */,
+				90DD1BB90C690A312A290C76 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
