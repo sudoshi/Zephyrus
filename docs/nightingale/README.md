@@ -34,6 +34,12 @@ and Android; the images are decorative, suppressible, hidden from accessibility 
 and packaged behind strong scrims and content surfaces. Source lineage and exact derivative
 hashes are retained, while external distribution remains blocked until durable rights or
 attribution evidence and named human review are recorded.
+The offline foundation also now packages an exact iOS privacy manifest and an explicit
+Android network-security policy. Native and Release-artifact checks prove no tracking or
+collected-data declaration in the current offline iOS bundle, app-local `UserDefaults`
+reason `CA92.1`, no Android network permission, cleartext denial, system-only trust, and
+backup exclusion. This is candidate engineering evidence, not a store declaration,
+privacy approval, or statement about a future connected product.
 
 Current product-identity records:
 
@@ -55,6 +61,7 @@ Current product-identity records:
 - [Foundation dependency inventory decision and evidence](./FOUNDATION-DEPENDENCY-INVENTORY-2026-07-26.md)
 - [Generated foundation dependency inventory](./supply-chain/foundation-dependency-inventory.v0.json)
 - [Background asset governance and native integration](./BACKGROUND-ASSET-GOVERNANCE-AND-NATIVE-INTEGRATION-2026-07-26.md)
+- [Foundation privacy and release-control evidence](./FOUNDATION-PRIVACY-RELEASE-CONTROLS-2026-07-26.md)
 - [Governed background manifest](../../nightingale/backgrounds/backgrounds.v1.json)
 - [Background catalog runtime and distribution rules](../../nightingale/backgrounds/README.md)
 - [Empty/default-off contract foundation](./api-contract/nightingale-foundation.v0.json)

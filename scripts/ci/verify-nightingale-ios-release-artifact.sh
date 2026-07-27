@@ -92,6 +92,38 @@ frameworks = app_bundle / "Frameworks"
 if frameworks.exists() and any(frameworks.iterdir()):
     fail("Release bundle contains an unapproved embedded framework or dylib")
 
+privacy_manifests = sorted(
+    item.relative_to(app_bundle).as_posix()
+    for item in app_bundle.rglob("*.xcprivacy")
+    if item.is_file()
+)
+if privacy_manifests != ["PrivacyInfo.xcprivacy"]:
+    fail(
+        "privacy-manifest inventory changed: "
+        f"expected ['PrivacyInfo.xcprivacy'], found {privacy_manifests}"
+    )
+try:
+    with (app_bundle / "PrivacyInfo.xcprivacy").open("rb") as stream:
+        privacy_manifest = plistlib.load(stream)
+except (OSError, plistlib.InvalidFileException) as error:
+    fail(f"cannot read PrivacyInfo.xcprivacy: {error}")
+expected_privacy_manifest = {
+    "NSPrivacyAccessedAPITypes": [
+        {
+            "NSPrivacyAccessedAPIType":
+                "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"],
+        }
+    ],
+    "NSPrivacyCollectedDataTypes": [],
+    "NSPrivacyTracking": False,
+}
+if privacy_manifest != expected_privacy_manifest:
+    fail(
+        "PrivacyInfo.xcprivacy changed from the exact offline foundation "
+        f"declaration: {privacy_manifest!r}"
+    )
+
 expected_background_hashes = {
     "nightingale_background_01.jpg":
         "4a741d9d3add77eac8aad8071bf3c9945bbd2ce4aa0d93b0daa79efe166b30b4",
@@ -174,7 +206,7 @@ for dependency in dependencies:
 print(
     "Nightingale iOS Release artifact verified: exact identity/version/"
     "orientations, no network/deep-link/test hook, no embedded extension/"
-    "framework/provisioning profile, system-only linked dependencies, and "
-    "seven exact governed background JPEGs."
+    "framework/provisioning profile, system-only linked dependencies, exact "
+    "offline privacy manifest, and seven exact governed background JPEGs."
 )
 PY

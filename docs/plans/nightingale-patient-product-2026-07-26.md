@@ -375,14 +375,20 @@ authorization, idempotency, audit, and patient-visible outcome evidence.
       reduced-transparency suppression, no motion loop, no accessibility announcement, and
       exact derivative hashes are mechanically and natively tested.
 - [x] Establish the draft foundation threat and clinical-hazard model: version current and
-      future trust boundaries, 25 implemented-control claims with their limits, 22
+      future trust boundaries, 26 implemented-control claims with their limits, 22
       security/privacy threats, 22 clinical hazards, 18 abuse cases, 20 activation gates,
       verification/incident requirements, platform asymmetries, and 17 open risks; bind it
-      mechanically to the unchanged default-off foundation with eight negative self-tests.
+      mechanically to the unchanged default-off foundation with ten negative self-tests.
       This is engineering governance, not a safety case, compliance claim, residual-risk
       acceptance, penetration test, tabletop, or named approval.
-- [ ] Carry forward the existing automated privacy controls only as candidate evidence;
-      rerun them under Nightingale app IDs and assets.
+- [x] Carry forward the existing automated privacy controls only as candidate evidence and
+      rerun them under Nightingale app IDs and assets: package and exactly verify an iOS
+      offline privacy manifest, declare only app-local `UserDefaults` reason `CA92.1`,
+      explicitly deny Android cleartext and user-added/debug trust while retaining no
+      network permission and no backup/transfer, reject runtime networking/logging/tracking/
+      clipboard primitives, and inspect installed and Release artifacts on both platforms.
+      Store declarations, future connected-product data flows, privacy approval, signed
+      distribution, and penetration testing remain open.
 - [ ] Meet WCAG 2.2 AA plus iOS/Android guidance for screen-reader navigation, focus order,
       headings, labels/actions, live-region restraint, target size, system text, high contrast,
       motion, landscape where supported, language expansion, captions/transcripts, and images
@@ -511,11 +517,31 @@ part of application development work.
         exact Release packaging, and validate on iOS Simulator plus Android API 35.
         Distribution rights/attribution, physical-device review, patient-advisor review,
         and exact-SHA publication evidence remain separate gates.
+18. [x] Complete the bounded offline privacy/release-control carry-forward under Nightingale
+        identity. Package and parse the exact iOS privacy manifest, require only app-local
+        `UserDefaults` reason `CA92.1`, declare no current-foundation tracking or collected
+        data, add Android cleartext denial with system-only trust and no debug override,
+        prove no Android network permission or backup, reject networking/logging/tracking/
+        clipboard primitives, and inspect the installed apps and Release artifacts. This
+        remains candidate engineering evidence; any live identity, data, telemetry,
+        networking, store declaration, signed distribution, or privacy approval is held.
+19. [x] Reconcile the separately requested production sample-patient objective through an
+        explicitly authorized, read-only, transaction-scoped existence and safety audit.
+        Production already contains exactly one active, provisioner-owned synthetic
+        reference encounter and one command-owned pending/inactive identity foundation, so
+        no duplicate patient or second identity was created. The two legacy enrollment
+        challenges are time-expired despite retaining `issued` state. This legacy
+        Hummingbird reference foundation is not a Nightingale patient, credential, session,
+        activation, source approval, or permission to reuse the rejected provisioner.
 
 ## 10. Explicit holds
 
 - No production database access for patient creation, fixture insertion, identity enrollment,
   data correction, or feature activation belongs to this stream.
+- A separately authorized production read-only audit may establish existence and safety
+  facts, but it does not admit production data into Nightingale scope or authorize a
+  mutation. The 2026-07-26 audit performed no write and deliberately did not duplicate the
+  pre-existing synthetic reference foundation.
 - No credential pasted into chat, shell history, source, documentation, fixture, or test is a
   permitted secret source.
 - No Nightingale patient is created, no patient feature is enabled, no migration is run, and

@@ -1562,3 +1562,108 @@ deployment authorization.
   grant, identity link, session, clinical projection, message, notification, migration,
   deployment, pilot, or release state was created, read, or changed.
 - Commit, push, and exact-SHA CI ratification remain required for this background/CI slice.
+
+## Offline privacy/release controls and production reference reconciliation
+
+### Privacy declarations and fail-closed enforcement
+
+- Added one exact iOS `PrivacyInfo.xcprivacy` to the Nightingale application bundle. It
+  declares tracking false, an empty collected-data array for the current offline
+  foundation, no tracking domains, and one required-reason API category:
+  app-local `UserDefaults` under reason `CA92.1`. It does not make a claim about an
+  unapproved future connected product or substitute for App Store Connect declarations.
+- Added an Android Network Security Configuration with cleartext denied, only system
+  certificate authorities trusted, and no debug override. The manifest independently
+  declares `usesCleartextTraffic="false"`, retains no `INTERNET` permission, retains
+  backup/transfer exclusion, and references the exact policy resource.
+- Extended the native product-boundary verifier, Gradle boundary task, iOS XCTest,
+  Android instrumentation, and both Release artifact verifiers. They now fail closed on
+  privacy-manifest drift, Android transport-policy drift, network permission, unapproved
+  network-client primitives, logging/analytics/crash primitives, tracking primitives, and
+  clipboard/pasteboard access.
+- Added
+  [foundation privacy and release-control evidence](../nightingale/FOUNDATION-PRIVACY-RELEASE-CONTROLS-2026-07-26.md)
+  and linked it from the Nightingale index. Updated the draft threat/hazard model to 26
+  implemented-control claims and ten negative self-tests. This remains engineering
+  evidence only; privacy/security approval, future data flows, store declarations,
+  signed distribution, penetration testing, and live access remain open.
+
+### Accepted iOS simulator and Release evidence
+
+- Regenerated the Xcode project and confirmed no drift. A normally signed Debug
+  build-for-testing passed on the iPhone 16e simulator running iOS 26.3.1 under Xcode
+  26.3.
+- The complete accepted XCTest run passed 10/10 unit tests and 4/4 XCUITest journeys with
+  no failure or skip. This includes parsing the privacy manifest from the built
+  application bundle rather than trusting only the repository source.
+- The unsigned Release build and exact bundle verifier passed. The Release executable
+  SHA-256 is
+  `0edc91abecf0a5952db48c0a3a74e39da63d2a19b7a63bbb2d8cf222350ee521`;
+  the packaged privacy-manifest SHA-256 is
+  `b20184a87e6392f293d241c8888b0bab1774d7cce2586165e87f8e070948a32a`.
+- Visually inspected the active shell and inactive privacy cover at 1170×2532. The active
+  image SHA-256 is
+  `34e123006715badf38832a4cd05f40b14951043a55a7881865d8eec215c39600`;
+  the cover image SHA-256 is
+  `f7852c9065b5d3c19847168ed978a8b360b015e1f053f5e5e5d9e6392b54be0b`.
+  The supplied decorative background remained subordinate to readable cards, and the
+  inactive cover withheld the underlying content.
+
+### Accepted Android emulator and Release evidence
+
+- Debug and Release unit suites each passed 8/8. `lintDebug`, `lintRelease`, Debug
+  assembly, unsigned Release assembly, the Gradle product-boundary task, and the exact
+  Release APK verifier passed.
+- The API 35 emulator instrumentation suite passed 8/8 with no failure or skip. The
+  installed-package test proves the Nightingale package ID, denied `INTERNET` permission,
+  platform cleartext policy false, and absent backup flag.
+- The first instrumentation compilation failed because the new platform-policy test used
+  the incorrect `android.net.NetworkSecurityPolicy` import. That attempt is not accepted
+  evidence. The import was corrected to `android.security.NetworkSecurityPolicy`, and the
+  complete 8/8 suite then passed.
+- The Debug APK SHA-256 is
+  `576788a39e6e7122bb5994c6bdfb60b6f755e6d47d9f5e750c30f8c9aae7e778`;
+  the Release APK SHA-256 is
+  `d009d9fc72cc5cb626216e3793eebff67612a53100a6f4dae26b0c1084b9b950`.
+- `FLAG_SECURE` produced an all-black 1080×2400 shell capture with SHA-256
+  `c35bacdb98b522206335afa5b9baffd2e4e3352a40749bb747e469cd403af514`.
+  The decoded image contained zero nonblack pixels and only fully opaque alpha. The
+  inspected accessibility hierarchy SHA-256 is
+  `a84d25001b2d46ac2d21ed16946c2f632d76742d3f3ca9d22a8f1dae682aaa1c`;
+  required patient-safe tokens were present, while Hummingbird identity, background
+  filenames, patient UUIDs, and encounter UUIDs were absent.
+- The compiled manifest and resource inventory plus the installed platform-policy test
+  prove the transport policy. A diagnostic attempt to address the compiled XML by its
+  source filename through `aapt2 dump xmltree` did not locate that compressed resource
+  path and is not treated as evidence.
+
+### Authorized production reference-patient audit
+
+- Used the separately granted production authorization only for a transaction-scoped
+  `BEGIN READ ONLY` audit over TLS. No credential, patient name, contact field, source
+  identifier, bearer material, enrollment hash, or token was printed, persisted, or added
+  to repository artifacts.
+- The exact synthetic reference key already resolves to one active, nondeleted,
+  nondischarged encounter owned by the existing operational reference provisioner.
+  Therefore the requested sample-patient outcome already exists and a duplicate encounter
+  was neither needed nor safe.
+- The existing command-owned identity foundation contains exactly one safe
+  pending/inactive principal, one verified/nonrevoked identity link, and one
+  pending-or-active/nonrevoked encounter grant. It also contains two enrollment challenges
+  that retain `issued` status but are both expired by time; zero are currently unexpired.
+- Performed no production mutation, migration, provisioning command, correction,
+  enrollment refresh, activation, deployment, or patient disclosure. The audited records
+  are legacy Hummingbird reference fixtures, not a Nightingale identity/source decision.
+  The Nightingale migration classification rejects that provisioner as deployed product
+  behavior, so this audit does not authorize reuse, reissuance of enrollment material, or
+  patient activation.
+
+### Current boundary
+
+- The completed checklist entries cover only the bounded offline privacy carry-forward and
+  the read-only reconciliation of an already-existing synthetic production reference.
+- Identity/provider selection, real patient linkage, current-inpatient source binding,
+  field-level content release, connected API contracts, messaging, notifications,
+  accessibility conformance, independent clinical/privacy/security review, distribution,
+  pilot, and production release all remain open and default denied.
+- Scoped commit, push, and exact-SHA CI ratification remain required for this slice.

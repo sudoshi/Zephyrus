@@ -85,6 +85,27 @@ tasks.register("verifyNightingaleProductBoundary") {
         check(manifest.contains("android:dataExtractionRules=\"@xml/data_extraction_rules\"")) {
             "Nightingale device-transfer and cloud-backup exclusions are required."
         }
+        check(manifest.contains("android:usesCleartextTraffic=\"false\"")) {
+            "Nightingale cleartext traffic must remain disabled."
+        }
+        check(manifest.contains("android:networkSecurityConfig=\"@xml/network_security_config\"")) {
+            "Nightingale must retain an explicit network-security configuration."
+        }
+
+        val networkSecurityConfig =
+            layout.projectDirectory
+                .file("src/main/res/xml/network_security_config.xml")
+                .asFile
+                .readText()
+        check(networkSecurityConfig.contains("cleartextTrafficPermitted=\"false\"")) {
+            "Nightingale network security must deny cleartext traffic."
+        }
+        check(networkSecurityConfig.contains("<certificates src=\"system\"")) {
+            "Nightingale network security must not trust user-added certificate authorities."
+        }
+        check(!networkSecurityConfig.contains("<debug-overrides")) {
+            "Nightingale foundation must not include a debug trust override."
+        }
 
         val expectedBackgroundNames =
             (1..7).map { sequence ->

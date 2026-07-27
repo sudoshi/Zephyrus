@@ -112,6 +112,8 @@ for expected in (
     "=false",
     "android:fullBackupContent",
     "android:dataExtractionRules",
+    "android:networkSecurityConfig",
+    "android:usesCleartextTraffic",
     'android:name(0x01010003)="net.acumenus.nightingale.MainActivity"',
     'android:name(0x01010003)="androidx.profileinstaller.ProfileInstallReceiver"',
     'android:permission(0x01010006)="android.permission.DUMP"',
@@ -121,6 +123,8 @@ for expected in (
 
 if "android:debuggable" in manifest or "android:testOnly" in manifest:
     fail("Release manifest contains a Debug/test-only application flag")
+if not re.search(r"android:usesCleartextTraffic[^\n]*=false", manifest):
+    fail("Release manifest does not explicitly deny cleartext traffic")
 if (
     "android.intent.action.VIEW" in manifest
     or "android.intent.category.BROWSABLE" in manifest
@@ -132,6 +136,8 @@ if len(re.findall(r"android:exported[^=]*=true", manifest)) != 2:
     fail("Release manifest exported-component count changed")
 
 resources = command(aapt2, "dump", "resources", str(release_apk))
+if "xml/network_security_config" not in resources:
+    fail("compiled resources are missing xml/network_security_config")
 for sequence in range(1, 8):
     resource_name = f"drawable/nightingale_background_{sequence:02d}"
     if resource_name not in resources:
@@ -223,8 +229,8 @@ for token in forbidden_binary_tokens:
 
 print(
     "Nightingale Android Release artifact verified: exact identity, one "
-    "package-local permission, no network/deep link/test hook, unsigned CI "
-    "state, two DEX files, four expected AndroidX native libraries, and seven "
-    "exact governed background JPEGs."
+    "package-local permission, no network/deep link/test hook, explicit "
+    "cleartext denial, unsigned CI state, two DEX files, four expected "
+    "AndroidX native libraries, and seven exact governed background JPEGs."
 )
 PY

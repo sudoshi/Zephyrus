@@ -44,9 +44,17 @@ const paths = {
         repoRoot,
         "nightingale/iosApp/Nightingale/NightingaleApp.swift",
     ),
+    iosPrivacyManifest: path.join(
+        repoRoot,
+        "nightingale/iosApp/Nightingale/PrivacyInfo.xcprivacy",
+    ),
     androidApp: path.join(
         repoRoot,
         "nightingale/androidApp/app/src/main/java/net/acumenus/nightingale/MainActivity.kt",
+    ),
+    androidNetworkSecurity: path.join(
+        repoRoot,
+        "nightingale/androidApp/app/src/main/res/xml/network_security_config.xml",
     ),
 };
 
@@ -66,7 +74,7 @@ function sequential(prefix, count, width = 2) {
 const expectedIds = {
     AST: sequential("AST", 18),
     TB: sequential("TB", 14),
-    CTRL: sequential("CTRL", 25, 3),
+    CTRL: sequential("CTRL", 26, 3),
     THR: [
         "THR-S-001",
         "THR-S-002",
@@ -129,8 +137,16 @@ function inspect(evidence) {
     const assert = (condition, message) => {
         if (!condition) violations.push(message);
     };
-    const { model, config, contract, androidManifest, iosApp, androidApp } =
-        evidence;
+    const {
+        model,
+        config,
+        contract,
+        androidManifest,
+        iosApp,
+        iosPrivacyManifest,
+        androidApp,
+        androidNetworkSecurity,
+    } = evidence;
     const normalizedModel = model.replace(/\s+/g, " ");
 
     for (const heading of [
@@ -253,6 +269,31 @@ function inspect(evidence) {
         "Android foundation gained network permission",
     );
     assert(
+        androidManifest.includes('android:usesCleartextTraffic="false"') &&
+            androidManifest.includes(
+                'android:networkSecurityConfig="@xml/network_security_config"',
+            ) &&
+            androidNetworkSecurity.includes(
+                'cleartextTrafficPermitted="false"',
+            ) &&
+            androidNetworkSecurity.includes('<certificates src="system"') &&
+            !androidNetworkSecurity.includes("<debug-overrides"),
+        "Android transport defense-in-depth changed",
+    );
+    assert(
+        iosPrivacyManifest.includes("<key>NSPrivacyTracking</key>") &&
+            iosPrivacyManifest.includes("<false/>") &&
+            iosPrivacyManifest.includes(
+                "<key>NSPrivacyCollectedDataTypes</key>",
+            ) &&
+            iosPrivacyManifest.includes(
+                "NSPrivacyAccessedAPICategoryUserDefaults",
+            ) &&
+            iosPrivacyManifest.includes("<string>CA92.1</string>") &&
+            !iosPrivacyManifest.includes("NSPrivacyTrackingDomains"),
+        "iOS privacy-manifest foundation changed",
+    );
+    assert(
         iosApp.includes("static let livePatientAccessEnabled = false") &&
             iosApp.includes("static let staffEndpointsPermitted = false"),
         "iOS product boundary is no longer default-off",
@@ -334,6 +375,25 @@ function runNegativeSelfTests(evidence) {
             },
         },
         {
+            name: "Android cleartext activation",
+            expected: "Android transport defense-in-depth changed",
+            mutate(candidate) {
+                candidate.androidNetworkSecurity =
+                    candidate.androidNetworkSecurity.replace(
+                        'cleartextTrafficPermitted="false"',
+                        'cleartextTrafficPermitted="true"',
+                    );
+            },
+        },
+        {
+            name: "iOS tracking declaration activation",
+            expected: "iOS privacy-manifest foundation changed",
+            mutate(candidate) {
+                candidate.iosPrivacyManifest =
+                    candidate.iosPrivacyManifest.replace("<false/>", "<true/>");
+            },
+        },
+        {
             name: "iOS live-access activation",
             expected: "iOS product boundary is no longer default-off",
             mutate(candidate) {
@@ -377,7 +437,12 @@ const evidence = {
     contract,
     androidManifest: fs.readFileSync(paths.androidManifest, "utf8"),
     iosApp: fs.readFileSync(paths.iosApp, "utf8"),
+    iosPrivacyManifest: fs.readFileSync(paths.iosPrivacyManifest, "utf8"),
     androidApp: fs.readFileSync(paths.androidApp, "utf8"),
+    androidNetworkSecurity: fs.readFileSync(
+        paths.androidNetworkSecurity,
+        "utf8",
+    ),
 };
 
 const violations = inspect(evidence);

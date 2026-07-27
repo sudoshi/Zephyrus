@@ -2,8 +2,11 @@ package net.acumenus.nightingale
 
 import android.content.Context
 import android.content.pm.ActivityInfo
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.ParcelFileDescriptor
+import android.security.NetworkSecurityPolicy
 import android.util.Base64
 import android.view.WindowManager
 import androidx.compose.ui.test.assertIsDisplayed
@@ -49,6 +52,24 @@ class NightingaleLaunchInstrumentedTest {
                 activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE != 0,
             )
         }
+    }
+
+    @Test
+    fun installedFoundationDeniesNetworkPermissionCleartextAndBackup() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val packageManager = context.packageManager
+        val applicationInfo = packageManager.getApplicationInfo(context.packageName, 0)
+
+        assertEquals("net.acumenus.nightingale", context.packageName)
+        assertEquals(
+            PackageManager.PERMISSION_DENIED,
+            packageManager.checkPermission(
+                "android.permission.INTERNET",
+                context.packageName,
+            ),
+        )
+        assertFalse(NetworkSecurityPolicy.getInstance().isCleartextTrafficPermitted)
+        assertEquals(0, applicationInfo.flags and ApplicationInfo.FLAG_ALLOW_BACKUP)
     }
 
     @Test

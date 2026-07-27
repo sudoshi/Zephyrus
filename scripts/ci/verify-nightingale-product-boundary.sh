@@ -7,8 +7,10 @@ ios_source="$repo_root/nightingale/iosApp/Nightingale"
 android_source="$repo_root/nightingale/androidApp/app/src/main"
 ios_project="$repo_root/nightingale/iosApp/project.yml"
 ios_info="$ios_source/Info.plist"
+ios_privacy_manifest="$ios_source/PrivacyInfo.xcprivacy"
 android_project="$repo_root/nightingale/androidApp/app/build.gradle.kts"
 android_manifest="$android_source/AndroidManifest.xml"
+android_network_security="$android_source/res/xml/network_security_config.xml"
 ios_presentation="$ios_source/NightingalePresentationPreferences.swift"
 android_presentation="$android_source/java/net/acumenus/nightingale/NightingalePresentationPreferences.kt"
 ios_visual="$ios_source/NightingaleVisualFoundation.swift"
@@ -30,8 +32,10 @@ for required_path in \
     "$android_source" \
     "$ios_project" \
     "$ios_info" \
+    "$ios_privacy_manifest" \
     "$android_project" \
     "$android_manifest" \
+    "$android_network_security" \
     "$ios_presentation" \
     "$android_presentation" \
     "$ios_visual" \
@@ -134,8 +138,69 @@ grep -Eq 'android:dataExtractionRules="@xml/data_extraction_rules"' "$android_ma
     exit 1
 }
 
+grep -Eq 'android:usesCleartextTraffic="false"' "$android_manifest" || {
+    echo "The Nightingale foundation must explicitly disable Android cleartext traffic." >&2
+    exit 1
+}
+
+grep -Eq 'android:networkSecurityConfig="@xml/network_security_config"' "$android_manifest" || {
+    echo "The Nightingale foundation must retain its network-security configuration." >&2
+    exit 1
+}
+
+grep -Eq 'cleartextTrafficPermitted="false"' "$android_network_security" || {
+    echo "The Nightingale Android network-security configuration must deny cleartext." >&2
+    exit 1
+}
+
+grep -Eq '<certificates src="system"' "$android_network_security" || {
+    echo "The Nightingale Android network-security configuration must trust system authorities only." >&2
+    exit 1
+}
+
+if grep -nF -- "<debug-overrides" "$android_network_security"; then
+    echo "The Nightingale Android foundation must not include a debug trust override." >&2
+    exit 1
+fi
+
+python3 - "$ios_privacy_manifest" <<'PY'
+import plistlib
+import sys
+from pathlib import Path
+
+try:
+    manifest = plistlib.loads(Path(sys.argv[1]).read_bytes())
+except (OSError, plistlib.InvalidFileException) as error:
+    raise SystemExit(
+        f"The Nightingale iOS privacy manifest is not a valid property list: {error}"
+    )
+expected = {
+    "NSPrivacyAccessedAPITypes": [
+        {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"],
+        }
+    ],
+    "NSPrivacyCollectedDataTypes": [],
+    "NSPrivacyTracking": False,
+}
+if manifest != expected:
+    raise SystemExit(
+        "The Nightingale iOS privacy manifest changed from the exact "
+        "offline foundation declaration."
+    )
+PY
+
 if grep -RInE 'URLSession|NSURLSession|OkHttpClient|java\.net\.' "$ios_source" "$android_source"; then
     echo "The Nightingale foundation must not contain a network client." >&2
+    exit 1
+fi
+
+if grep -RInE \
+    '(^|[^A-Za-z])(os_log|Logger|print|NSLog|UIPasteboard|FirebaseAnalytics|Crashlytics|ClipboardManager|Log\.[vdiew])([^A-Za-z]|$)' \
+    "$ios_source" "$android_source"
+then
+    echo "The Nightingale offline foundation must not log, track, or copy patient-facing runtime state." >&2
     exit 1
 fi
 

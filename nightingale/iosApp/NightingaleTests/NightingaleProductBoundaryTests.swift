@@ -10,6 +10,39 @@ final class NightingaleProductBoundaryTests: XCTestCase {
         XCTAssertFalse(NightingaleProductBoundary.staffEndpointsPermitted)
     }
 
+    func testPrivacyManifestDeclaresExactFoundationPosture() throws {
+        let manifestURL = try XCTUnwrap(
+            Bundle.main.url(forResource: "PrivacyInfo", withExtension: "xcprivacy")
+        )
+        let manifestData = try Data(contentsOf: manifestURL)
+        let rawManifest = try PropertyListSerialization.propertyList(
+            from: manifestData,
+            options: [],
+            format: nil
+        )
+        let manifest = try XCTUnwrap(rawManifest as? [String: Any])
+
+        XCTAssertEqual(manifest["NSPrivacyTracking"] as? Bool, false)
+        XCTAssertNil(manifest["NSPrivacyTrackingDomains"])
+        XCTAssertTrue(
+            try XCTUnwrap(manifest["NSPrivacyCollectedDataTypes"] as? [Any]).isEmpty
+        )
+
+        let accessedTypes = try XCTUnwrap(
+            manifest["NSPrivacyAccessedAPITypes"] as? [[String: Any]]
+        )
+        XCTAssertEqual(accessedTypes.count, 1)
+        let userDefaults = try XCTUnwrap(accessedTypes.first)
+        XCTAssertEqual(
+            userDefaults["NSPrivacyAccessedAPIType"] as? String,
+            "NSPrivacyAccessedAPICategoryUserDefaults"
+        )
+        XCTAssertEqual(
+            userDefaults["NSPrivacyAccessedAPITypeReasons"] as? [String],
+            ["CA92.1"]
+        )
+    }
+
     func testProtectedStateNamespaceIsNightingaleOnlyAndCredentialAgnostic() {
         XCTAssertEqual(
             NightingaleProtectedStateNamespace.keychainService,
