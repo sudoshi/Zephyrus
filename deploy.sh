@@ -518,18 +518,59 @@ if [[ "$RELEASE_COMMIT" != "$REMOTE_COMMIT" ]]; then
 fi
 
 echo "Syncing to production..."
-sudo rsync -av --exclude 'node_modules' \
-            --exclude '.git' \
-            --exclude '.env' \
-            --exclude 'storage/logs/*' \
-            --exclude 'storage/framework/cache/*' \
-            --exclude '.github' \
-            --exclude 'tests' \
-            --exclude 'deploy.sh' \
-            --exclude 'arena/.venv' \
-            --exclude '__pycache__' \
-            --exclude '.pytest_cache' \
-            "$RELEASE_ROOT/" /var/www/Zephyrus/
+# --delete makes the destination match the release snapshot. Without it every
+# file ever removed from the repository stayed on the host indefinitely: a
+# config/hummingbird-patient.php deleted in a rename was still being loaded by
+# Laravel afterwards, and a public/direct-login.php remained web-servable long
+# after it left git.
+#
+# The excludes below are load-bearing, not cosmetic. rsync does not delete an
+# excluded path, so each entry protects runtime state that must survive a
+# release: the environment file and its rollback backups, uploaded and
+# generated storage, the framework session store (deleting it signs every user
+# out mid-deploy), the compiled-config cache, the public/storage symlink into
+# storage/app, and the sample-pages submodule, which a commit archive omits.
+# Measured on 2026-07-27: dropping these protections would have deleted 3,371
+# files under storage/app and 319 live sessions.
+RSYNC_EXCLUDES=(
+    --exclude 'node_modules'
+    --exclude '.git'
+    --exclude '.github'
+    --exclude 'tests'
+    --exclude 'deploy.sh'
+    --exclude 'arena/.venv'
+    --exclude '__pycache__'
+    --exclude '.pytest_cache'
+    # Protected runtime state: never synced, and never deleted. These match
+    # directory *contents* rather than the directories themselves, so the
+    # tracked storage skeleton and its .gitignore files still deploy to a host
+    # that does not have them yet.
+    --exclude '.env*'
+    --exclude 'storage/app/**'
+    --exclude 'storage/framework/**'
+    --exclude 'storage/logs/**'
+    --exclude 'bootstrap/cache/**'
+    --exclude 'public/storage'
+    --exclude 'sample-pages/'
+)
+
+# Publish what --delete is about to remove before removing it, so a release
+# that unexpectedly prunes the host is visible in the deploy log rather than
+# discovered later.
+DELETION_PREVIEW="$(sudo rsync -avn --delete "${RSYNC_EXCLUDES[@]}" \
+    "$RELEASE_ROOT/" /var/www/Zephyrus/ 2>/dev/null | grep '^deleting ' || true)"
+DELETION_COUNT="$(printf '%s' "$DELETION_PREVIEW" | grep -c . || true)"
+if [[ "$DELETION_COUNT" -gt 0 ]]; then
+    echo "🧹 Removing $DELETION_COUNT stale path(s) absent from the release snapshot:"
+    printf '%s\n' "$DELETION_PREVIEW" | sed 's/^deleting /   - /' | head -20
+    if [[ "$DELETION_COUNT" -gt 20 ]]; then
+        echo "   … and $((DELETION_COUNT - 20)) more"
+    fi
+else
+    echo "🧹 No stale paths to remove."
+fi
+
+sudo rsync -av --delete "${RSYNC_EXCLUDES[@]}" "$RELEASE_ROOT/" /var/www/Zephyrus/
 
 # Vite's ignored hot marker is intentionally absent from immutable release
 # snapshots, but rsync does not delete destination-only runtime files. Remove
