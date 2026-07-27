@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.HummingbirdPatient" parent="Theme.HummingbirdPatient.Base">
+    <style name="Theme.Nightingale" parent="Theme.Nightingale.Base">
         <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>

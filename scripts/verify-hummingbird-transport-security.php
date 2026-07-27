@@ -184,7 +184,7 @@ try {
         'hummingbird/iosPatientApp/HummingbirdPatient/Networking/PatientAPIClient.swift'
     );
     $patientAndroidConfig = $read(
-        'hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/data/PatientApiClient.kt'
+        'hummingbird/androidPatientApp/app/src/main/java/net/acumenus/nightingale/data/PatientApiClient.kt'
     );
     $staffAndroidAPI = $read(
         'hummingbird/androidApp/app/src/main/java/net/acumenus/hummingbird/data/ApiClient.kt'
