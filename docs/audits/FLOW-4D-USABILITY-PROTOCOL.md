@@ -63,6 +63,20 @@ Start on the Rounds board: "Take this patient's stop into the 3D view, walk to t
 "Get me floor N, framed. Where are you now?" (camera readout should be usable as the answer).
 **Pass: floor rail or dropdown in ≤2 actions; participant can state floor/unit from the readout.**
 
+### T8 — Patient journey (Phase B claim; v1.1 addition, clinical personas only)
+"Find patient X and tell me their story: where have they been in the last 12 hours,
+and what are they waiting on right now?" Expected path: Find → select → journey
+drawer (segments + dwell) → Next block; scene trace + dwell markers as corroboration.
+**Pass: states the prior location(s), the current wait with an approximate duration,
+and the next step — unaided; keyboard-only variant for ≥1 participant (select from
+match list → drawer is plain HTML → F frames the trace).**
+
+### T9 — Journey deep link (Phase B claim; v1.1 addition)
+Hand the participant a `?patient=` link (as if sent by a colleague): "open this and
+tell me what your colleague wanted you to see."
+**Pass: lands selected + journey open + framed without any navigation help.**
+*(A per-patient adherence SAGAT probe joins as T10 when the Phase C surface ships.)*
+
 ## 4. Situation-awareness probes (SAGAT-lite)
 
 Three display freezes (moderator blanks the screen), placed after T2, T5, and T6:
