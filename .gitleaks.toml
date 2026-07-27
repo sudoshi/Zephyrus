@@ -83,3 +83,14 @@ paths = [
 # Length-bounded rather than open-ended: drgcp-<slug>-<hex12> has a known
 # shape, so the tighter bound keeps this exception from widening silently.
 regexes = ['''^drgcp-[a-z0-9-]{26,65}$''']
+
+[[allowlists]]
+# Historical Nightingale devlog prose used the adjacent words "API paths,
+# notification", which the generic-api-key rule parsed as a key/value pair and
+# captured the ordinary phrase "notification/delivery". The current prose avoids that
+# construction. Keep the history exception AND-scoped to the exact document
+# and exact captured word so no credential-shaped value is exempted.
+description = "Nightingale devlog API-path prose false positive"
+condition = "AND"
+paths = ['''^docs/devlog/DEVLOG-nightingale-patient-product-2026-07-26\.md$''']
+regexes = ['''^notification/delivery$''']

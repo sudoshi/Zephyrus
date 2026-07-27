@@ -1914,7 +1914,7 @@ deployment authorization.
 - Added an independent verifier that rejects an executable path or activation, any of 19
   runtime/production permissions becoming true, family/case drift, a runnable or
   non-synthetic fixture, missing release/no-store/approval controls, representative or
-  sensitive disclosure, concrete identifiers or API paths, notification/delivery
+  sensitive disclosure, concrete identifiers, endpoint exposure, delivery-state
   overstatement, offline PHI/queue/stale-current behavior, accessibility information/action
   loss, weakened identity/outage/retraction behavior, source drift, or fixture drift.
 - The verifier reproduces both artifacts from the deterministic builder, passes the
@@ -1940,3 +1940,21 @@ deployment authorization.
   production, migration, deployment, and pilot permissions remain false.
 - Exact-SHA CI ratification remains required after this scoped candidate slice is
   committed and pushed.
+
+### Exact-SHA security preflight correction
+
+- Exact-SHA CI run `30288424956` passed the Nightingale contract-foundation job,
+  including the new catalog and all 23 negative self-tests, but the history secret scan
+  rejected one line of this devlog before the overall run could qualify as release
+  evidence.
+- The retained redacted scanner report identifies rule `generic-api-key`, this document,
+  line 1917, and commit `e72abafaaba728ebb8d7aedde154c3086d6a09b9`. Inspection of the
+  source and redacted evidence confirmed that adjacent ordinary prose was parsed as a
+  key/value construction and that the captured value was the non-secret prose fragment
+  `notification/delivery`; no credential, token, endpoint, patient datum, or production
+  value was present.
+- Rephrased the live document to remove the ambiguous construction and added an
+  AND-scoped history exception for only this exact document and captured word. No path
+  wildcard, rule disablement, credential-shaped regex, or production-secret exception was
+  introduced. The failed run remains failed evidence; a new exact-SHA history and
+  working-tree scan is required.
