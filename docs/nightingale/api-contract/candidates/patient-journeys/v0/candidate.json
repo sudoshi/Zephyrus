@@ -1,0 +1,281 @@
+{
+    "schema_version": 1,
+    "candidate_id": "nightingale.patient-journey-reference.v0-candidate",
+    "policy_version": "nightingale-patient-journey-reference.v0-candidate",
+    "reviewed_source_commit": "a825db89ec1efaf4b2c55a26e04d41161445b001",
+    "reviewed_at": "2026-07-27",
+    "status": "synthetic_reference_only_not_approved_for_implementation",
+    "purpose": "Define deterministic patient-journey safety and non-disclosure expectations before any Nightingale journey contract or runtime exists.",
+    "executable_boundary": {
+        "foundation_contract_path_count": 0,
+        "candidate_operation_count": 0,
+        "runtime_binding_count": 0,
+        "native_client_operation_count": 0,
+        "route_namespace_reserved_only": "/api/nightingale/v1"
+    },
+    "global_constraints": {
+        "implementation_permitted": false,
+        "executable_contract_path_permitted": false,
+        "route_registration_permitted": false,
+        "controller_or_provider_binding_permitted": false,
+        "client_generation_permitted": false,
+        "native_networking_permitted": false,
+        "identity_provider_selection_permitted": false,
+        "source_adapter_selection_permitted": false,
+        "database_query_permitted": false,
+        "production_data_use_permitted": false,
+        "production_mutation_permitted": false,
+        "patient_or_representative_creation_permitted": false,
+        "clinical_content_release_permitted": false,
+        "communication_mutation_permitted": false,
+        "notification_delivery_permitted": false,
+        "offline_phi_storage_permitted": false,
+        "migration_execution_permitted": false,
+        "deployment_permitted": false,
+        "pilot_activation_permitted": false
+    },
+    "approval_gates": [
+        "named-product-and-contract-owner",
+        "approved-self-identity-session-and-recovery-design",
+        "approved-current-inpatient-source-and-lifecycle-design",
+        "approved-operation-specific-authorization-and-nondisclosure-matrix",
+        "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+        "approved-clinical-content-and-patient-language",
+        "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+        "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+        "approved-accessibility-language-interpreter-and-accommodation-design",
+        "approved-privacy-security-threat-and-clinical-hazard-controls",
+        "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+        "canonical-backend-ios-android-fixture-parity",
+        "default-off-nonproduction-integration-approval"
+    ],
+    "required_surfaces": [
+        "today",
+        "my-path",
+        "care-team",
+        "communication"
+    ],
+    "disclosure_modes": [
+        "released-empty-or-not-available",
+        "correction-replacement-or-not-available",
+        "released-fields-only",
+        "released-correction",
+        "generic-withhold",
+        "communication-state-only",
+        "correction-replacement",
+        "accessibility-equivalent",
+        "not-available",
+        "approved-stale-or-not-available"
+    ],
+    "family_count": 15,
+    "case_count": 27,
+    "families": [
+        {
+            "family_id": "admission",
+            "required_case_ids": [
+                "adult_admission_context_established"
+            ]
+        },
+        {
+            "family_id": "unit-transfer",
+            "required_case_ids": [
+                "unit_transfer_old_location_withdrawn"
+            ]
+        },
+        {
+            "family_id": "procedure",
+            "required_case_ids": [
+                "procedure_plan_released_without_outcome_inference"
+            ]
+        },
+        {
+            "family_id": "ancillary-test-and-result",
+            "required_case_ids": [
+                "ancillary_test_delay_released",
+                "ancillary_result_not_released",
+                "ancillary_result_separately_released"
+            ]
+        },
+        {
+            "family_id": "pre-round-question",
+            "required_case_ids": [
+                "pre_round_question_server_accepted",
+                "pre_round_response_separately_released"
+            ]
+        },
+        {
+            "family_id": "shift-handoff",
+            "required_case_ids": [
+                "shift_handoff_preserves_thread_accountability"
+            ]
+        },
+        {
+            "family_id": "discharge-estimate",
+            "required_case_ids": [
+                "discharge_estimate_corrected"
+            ]
+        },
+        {
+            "family_id": "discharge-with-open-thread",
+            "required_case_ids": [
+                "discharge_closes_open_thread"
+            ]
+        },
+        {
+            "family_id": "identity-correction",
+            "required_case_ids": [
+                "identity_correction_revokes_old_context"
+            ]
+        },
+        {
+            "family_id": "representative-lifecycle",
+            "required_case_ids": [
+                "representative_invited_without_access",
+                "representative_scoped_candidate",
+                "representative_scope_expired",
+                "representative_scope_revoked"
+            ]
+        },
+        {
+            "family_id": "language-and-interpreter",
+            "required_case_ids": [
+                "limited_english_interpreter_support"
+            ]
+        },
+        {
+            "family_id": "accommodations",
+            "required_case_ids": [
+                "visual_accommodation_equivalence",
+                "hearing_accommodation_equivalence",
+                "motor_accommodation_equivalence",
+                "cognitive_accommodation_equivalence",
+                "low_literacy_teach_back_equivalence"
+            ]
+        },
+        {
+            "family_id": "sensitive-data",
+            "required_case_ids": [
+                "sensitive_data_fails_closed"
+            ]
+        },
+        {
+            "family_id": "source-outage-and-staleness",
+            "required_case_ids": [
+                "source_outage_sections_not_available",
+                "stale_projection_policy_evaluated_per_field"
+            ]
+        },
+        {
+            "family_id": "content-retraction-and-correction",
+            "required_case_ids": [
+                "incorrect_content_retracted",
+                "incorrect_content_corrected_replacement"
+            ]
+        }
+    ],
+    "required_case_ids": [
+        "adult_admission_context_established",
+        "unit_transfer_old_location_withdrawn",
+        "procedure_plan_released_without_outcome_inference",
+        "ancillary_test_delay_released",
+        "ancillary_result_not_released",
+        "ancillary_result_separately_released",
+        "pre_round_question_server_accepted",
+        "pre_round_response_separately_released",
+        "shift_handoff_preserves_thread_accountability",
+        "discharge_estimate_corrected",
+        "discharge_closes_open_thread",
+        "identity_correction_revokes_old_context",
+        "representative_invited_without_access",
+        "representative_scoped_candidate",
+        "representative_scope_expired",
+        "representative_scope_revoked",
+        "limited_english_interpreter_support",
+        "visual_accommodation_equivalence",
+        "hearing_accommodation_equivalence",
+        "motor_accommodation_equivalence",
+        "cognitive_accommodation_equivalence",
+        "low_literacy_teach_back_equivalence",
+        "sensitive_data_fails_closed",
+        "source_outage_sections_not_available",
+        "stale_projection_policy_evaluated_per_field",
+        "incorrect_content_retracted",
+        "incorrect_content_corrected_replacement"
+    ],
+    "required_findings": {
+        "generated_artifacts_match_builder": true,
+        "every_fixture_is_synthetic_and_contains_no_phi": true,
+        "every_case_is_held_and_non_runnable": true,
+        "every_case_requires_all_global_approval_gates": true,
+        "every_disclosed_value_requires_separate_release": true,
+        "every_response_is_atomic_and_no_store": true,
+        "unavailable_and_released_empty_are_distinct": true,
+        "source_fact_does_not_equal_patient_release": true,
+        "server_acceptance_does_not_equal_staff_delivery_or_review": true,
+        "notification_delivery_is_not_available": true,
+        "representative_access_remains_held": true,
+        "sensitive_service_requests_fail_closed_without_existence_disclosure": true,
+        "identity_correction_revokes_old_handles_and_requires_reproof": true,
+        "source_outage_never_presents_last_known_value_as_current": true,
+        "stale_display_requires_field_specific_approval_and_notice": true,
+        "correction_replaces_and_retraction_withholds": true,
+        "accessibility_changes_never_remove_information_or_actions": true,
+        "no_offline_phi_or_queued_mutation_is_permitted": true,
+        "production_data_was_not_used": true
+    },
+    "evidence": {
+        "source_count": 12,
+        "source_inventory_digest": "aed369c71dd22596ed09c908746e529617c3a62e1c92cfea5cb595895245ffea",
+        "sources": [
+            {
+                "path": "docs/nightingale/api-contract/nightingale-foundation.v0.json",
+                "sha256": "df7d74e6cde652bc2e8e25d74ec9c0238eeb00fb9e50403b25d32fc46bf425dd"
+            },
+            {
+                "path": "docs/nightingale/api-contract/candidates/encounter-access/v0/candidate.json",
+                "sha256": "6d3b587d80b5139e7ae64db1fb3f7a273f4991efd06ed13da0e2f7959ea2983b"
+            },
+            {
+                "path": "docs/nightingale/api-contract/candidates/encounter-access/v0/fixtures.json",
+                "sha256": "968373aba829b10259d8c40a107f11646a98ebd2f5d484ec695e3e424f7af157"
+            },
+            {
+                "path": "docs/nightingale/api-contract/candidates/today/v0/candidate.json",
+                "sha256": "4f272e90fd306f878a1bcad45c8a46ff1c7aa2e743f3dfc99e53089fa1bef012"
+            },
+            {
+                "path": "docs/nightingale/api-contract/candidates/today/v0/fixtures.json",
+                "sha256": "9efdc028ec9a6cf547881d73b6e65c69d633daf63b09ec594d1a9b52f6b9d72e"
+            },
+            {
+                "path": "docs/nightingale/identity/candidates/v0/candidate.json",
+                "sha256": "8729d9cd7e3cc742678ef61768570349ab8c0fe9610bacd66c13ad5318dc5daa"
+            },
+            {
+                "path": "docs/nightingale/identity/candidates/v0/fixtures.json",
+                "sha256": "8fb4fdb5789b2a35225ff3a7fa02a26d3c33e155baa859ed8a6f21b319d456e7"
+            },
+            {
+                "path": "docs/nightingale/source-candidates/current-inpatient/v0/candidate.json",
+                "sha256": "214a18cfdff6661ba6da3c29dbde74ba4299999087c219da38004cd291c3cf67"
+            },
+            {
+                "path": "docs/nightingale/source-candidates/current-inpatient/v0/fixtures.json",
+                "sha256": "61acdc5b273090023eb7c077df0bf737bb20bef658d001fb4b6ef1a279cb7240"
+            },
+            {
+                "path": "docs/nightingale/migration/candidates/v0/communication-notification-source-classification.json",
+                "sha256": "a3a3beb667f7007ccd9dd8abbb15acf0beb9248adc48cd0a704912baafbedf6e"
+            },
+            {
+                "path": "docs/nightingale/migration/candidates/v0/journey-preference-presentation-release-source-classification.json",
+                "sha256": "b24612869036dd1ee208dd1629a35e58bb106433c59f51c5bf31b3856485ff0f"
+            },
+            {
+                "path": "docs/hummingbird/ZEPHYRUS-HUMMINGBIRD-FUNCTIONAL-PARITY-AND-PATIENT-EXPERIENCE-PLAN-2026-07-19.md",
+                "sha256": "5b3f15dbc944e9890070cf3eae3fca31b0a4e68b84d0174e09497e55d3276246"
+            }
+        ],
+        "fixtures_sha256": "525c6f9264a14687b906485fcd105dd689c41e207785355ebf4f31a38f569de9"
+    }
+}

@@ -345,10 +345,14 @@ or legacy patient namespace; iOS and Android migration suites pass equivalent sa
 - [ ] Implement and validate released Today, My Path, Care Team, education/teach-back,
       discharge preparation, and capability-scoped communication only from approved projection
       contracts.
-- [ ] Add reference scenarios for admission, transfer, procedure, delayed test/result,
-      pre-rounds question, handoff, changed discharge estimate, discharge mid-thread, identity
-      correction, representative limits, language/interpreter, accommodations, sensitive-data
-      denial, source outage/staleness, and content retraction.
+- [x] Add a held, non-runnable reference catalog for admission, transfer, procedure,
+      delayed test/result, pre-rounds question, handoff, changed discharge estimate,
+      discharge mid-thread, identity correction, representative limits, language/interpreter,
+      accommodations, sensitive-data denial, source outage/staleness, and content
+      retraction/correction. The machine-verified catalog contains all 15 required families,
+      27 synthetic cases, 12 exact evidence-source checksums, and 23 adversarial mutations;
+      it adds no operation and keeps every runtime, representative, clinical release,
+      communication, notification, database, production, and deployment permission false.
 - [ ] Prove generic non-disclosure for unknown, revoked, expired, cross-principal,
       wrong-encounter, and omitted-resource requests.
 - [ ] Keep clinical approval, content release, feature activation, pilot enrollment, and

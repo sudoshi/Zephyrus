@@ -15,7 +15,12 @@ The bounded 256-source Hummingbird Patient predecessor universe is fully classif
 three checksum-pinned ledgers; this is migration evidence, not implementation approval. A
 held Today candidate now defines field-level release, freshness, uncertainty, language,
 correction, and offline semantics across 68 synthetic outcomes while the executable
-contract remains empty. Nightingale now also has two device-local display-comfort controls:
+contract remains empty. A held cross-surface reference catalog now covers 15 patient-journey
+families through 27 synthetic cases, including transfer, procedure, test/result release,
+communication handoff, discharge, identity correction, representative lifecycle, language/
+interpreter support, accommodations, sensitive denial, source outage/staleness, and content
+retraction/correction. The catalog has no operation or runtime permission and is not
+clinical approval. Nightingale now also has two device-local display-comfort controls:
 reduced motion and decorative-imagery suppression. They are presentation-only, remain
 separate from care-account preferences, and do not authorize patient access. The current
 offline shell now also has a bounded maximum-text, landscape, semantic-order, target-size,
@@ -57,6 +62,7 @@ Current product-identity records:
 - [Patient-state vocabulary classification](./PATIENT-STATE-VOCABULARY-CLASSIFICATION-2026-07-26.md)
 - [Encounter-access held-candidate decision](./ENCOUNTER-ACCESS-CANDIDATE-DECISION-2026-07-26.md)
 - [Today projection held-candidate decision](./TODAY-PROJECTION-CANDIDATE-DECISION-2026-07-26.md)
+- [Patient-journey reference-scenario held-candidate decision](./PATIENT-JOURNEY-REFERENCE-SCENARIO-CANDIDATE-DECISION-2026-07-27.md)
 - [Route, compatibility, identity, and inpatient-source ADR](./ROUTE-COMPATIBILITY-IDENTITY-SOURCE-ADR-2026-07-26.md)
 - [Identity, session, recovery, and inpatient-source held-candidate decision](./IDENTITY-SESSION-RECOVERY-AND-SOURCE-CANDIDATE-DECISION-2026-07-26.md)
 - [Identity-input, enrollment/recovery, first-read, and error source classification](./IDENTITY-INPUT-FIRST-READ-ERROR-SOURCE-CLASSIFICATION-2026-07-26.md)
@@ -76,6 +82,7 @@ Current product-identity records:
 - [Identity candidate and fixtures](./identity/candidates/v0/candidate.json)
 - [Current-inpatient source candidate and fixtures](./source-candidates/current-inpatient/v0/candidate.json)
 - [Today projection candidate and fixtures](./api-contract/candidates/today/v0/candidate.json)
+- [Patient-journey reference candidate and fixtures](./api-contract/candidates/patient-journeys/v0/candidate.json)
 - [65-file checksum-pinned source ledger](./migration/candidates/v0/source-classification.json)
 - [130-file communication/notification checksum ledger](./migration/candidates/v0/communication-notification-source-classification.json)
 - [134-file journey/preference/presentation/release checksum ledger](./migration/candidates/v0/journey-preference-presentation-release-source-classification.json)
@@ -93,6 +100,9 @@ Current product-identity records:
   `source-candidates/`, and `migration/candidates/` are non-runnable decision/fixture
   evidence. They do not add a path, bind a provider or source adapter, permit client
   generation or a source query, or authorize implementation.
+- The patient-journey reference catalog is a synthetic cross-surface acceptance model. Its
+  15 families and 27 cases do not approve clinical content, representative access,
+  communication, notification, production data, or a live journey operation.
 - The three migration ledgers now mechanically cover all 256 tracked sources in the bounded
   legacy Hummingbird Patient product universe. Complete classification means every source
   has an evidence disposition; it does not mean any source is approved to migrate.

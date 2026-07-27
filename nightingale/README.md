@@ -24,6 +24,12 @@ experience when imagery is hidden. See
 The assets are foundation-only until release rights/attribution and named human review are
 recorded.
 
+A machine-verified
+[patient-journey reference catalog](../docs/nightingale/PATIENT-JOURNEY-REFERENCE-SCENARIO-CANDIDATE-DECISION-2026-07-27.md)
+defines 15 cross-surface journey families through 27 synthetic cases. It is held,
+non-runnable governance evidence: it adds no route, client, patient data, clinical content,
+communication capability, notification provider, or production permission.
+
 ## Non-negotiable product boundary
 
 Nightingale must never import Hummingbird staff modules, share a staff application identifier, use a staff endpoint, or expose a copied staff workflow to a patient. The legacy Hummingbird Patient applications remain read-only migration evidence; new patient work belongs here.

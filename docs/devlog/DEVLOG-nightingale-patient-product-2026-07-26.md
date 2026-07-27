@@ -1873,3 +1873,70 @@ deployment authorization.
   disclosure, live identity/source binding, networking, message, notification, or
   activation occurred in this reacceptance slice. Exact-SHA CI remains required after the
   scoped evidence commit is published.
+
+## 2026-07-27 — Cross-surface patient-journey reference scenarios
+
+### Reconciliation and bounded decision
+
+- Reconciled the master plan's required patient scenarios against the held encounter,
+  identity/session/recovery, current-inpatient-source, Today, communication/notification,
+  and complete migration-classification evidence. This was a repository-only review; no
+  production database, deployed service, patient, representative, clinician, message,
+  source response, or runtime configuration was accessed.
+- Added a held, non-runnable candidate covering exactly 15 families through 27 synthetic
+  no-PHI cases: admission; transfer; procedure; test delay and result release; pre-round
+  question and released response; shift handoff; changed discharge estimate; discharge
+  with an open thread; identity correction; representative invitation/scope/expiry/
+  revocation; language and interpreter support; visual/hearing/motor/cognitive/low-literacy
+  accommodations; sensitive-data denial; source outage/staleness; and content retraction/
+  correction.
+- The catalog makes cross-surface transition expectations explicit without approving
+  patient functionality. Source events do not become patient releases; server acceptance
+  does not become staff delivery/read/review; representative and sensitive-resource cases
+  remain fully withheld; outages do not become empty care plans; stale display is
+  field-policy-specific; and retraction/correction propagates atomically.
+- Every case requires the same 13 global approval gates plus a scenario-specific approval.
+  Every response remains separate-release-gated, atomic, no-store, content-free-audited,
+  inaccessible to offline PHI or queued mutation, and bound to kill-switch/release-
+  withdrawal/cache-handle-draft purge requirements.
+
+### Reproducible artifacts and enforcement
+
+- Added deterministic builder
+  `scripts/ci/build-nightingale-patient-journey-reference-candidate.mjs`, which emits the
+  candidate and fixtures under
+  `docs/nightingale/api-contract/candidates/patient-journeys/v0/`.
+- Bound the candidate to 12 exact source artifacts at reviewed commit
+  `a825db89ec1efaf4b2c55a26e04d41161445b001`. The source inventory digest is
+  `aed369c71dd22596ed09c908746e529617c3a62e1c92cfea5cb595895245ffea`;
+  the canonical fixture digest is
+  `525c6f9264a14687b906485fcd105dd689c41e207785355ebf4f31a38f569de9`.
+- Added an independent verifier that rejects an executable path or activation, any of 19
+  runtime/production permissions becoming true, family/case drift, a runnable or
+  non-synthetic fixture, missing release/no-store/approval controls, representative or
+  sensitive disclosure, concrete identifiers or API paths, notification/delivery
+  overstatement, offline PHI/queue/stale-current behavior, accessibility information/action
+  loss, weakened identity/outage/retraction behavior, source drift, or fixture drift.
+- The verifier reproduces both artifacts from the deterministic builder, passes the
+  canonical record, and rejects all 23 adversarial mutations. It is
+  now part of the existing Nightingale contract-foundation CI job.
+- The initial verifier run correctly rejected an over-broad assumption that every value
+  under `x-nightingale-activation` is Boolean; the foundation also contains the exact
+  string `default: disabled` and an approval-list array. The accepted verifier explicitly
+  checks the nine activation Booleans plus the disabled default.
+- The next run rejected the admission case because it had only the global approval set.
+  The accepted fixture now also requires an explicit admission-context and first-release
+  policy. Neither failed preflight is accepted as passing evidence.
+
+### Checklist and remaining boundary
+
+- Checked only the existing Stream D reference-scenario item. The broad implementation
+  item for Today, My Path, Care Team, education/teach-back, discharge, and communication
+  remains unchecked, as do generic unknown/revoked/cross-principal proof, all named
+  approvals, production-like integration, pilot, distribution, and deployment.
+- The executable Nightingale contract still contains zero paths. All route, controller,
+  provider, client, native networking, identity-provider, source-adapter, database query,
+  clinical release, communication mutation, notification, representative creation,
+  production, migration, deployment, and pilot permissions remain false.
+- Exact-SHA CI ratification remains required after this scoped candidate slice is
+  committed and pushed.

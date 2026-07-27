@@ -15,6 +15,8 @@ this document.
 [current-inpatient source candidate](./source-candidates/current-inpatient/v0/candidate.json),
 their
 [decision record](./IDENTITY-SESSION-RECOVERY-AND-SOURCE-CANDIDATE-DECISION-2026-07-26.md),
+the held
+[patient-journey reference catalog](./PATIENT-JOURNEY-REFERENCE-SCENARIO-CANDIDATE-DECISION-2026-07-27.md),
 and the
 [complete 256-source migration classification](./JOURNEY-PREFERENCE-PRESENTATION-RELEASE-SOURCE-CLASSIFICATION-2026-07-26.md)
 
@@ -354,6 +356,11 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
       uncertainty/language/correction/offline context, bounded correction/retraction and
       generic non-disclosure behavior, 68 synthetic cases, 14 direct-source checksums, and
       24 adversarial verifier mutations, with the executable contract still at zero paths.
+- [x] Held, non-runnable cross-surface patient-journey reference catalog: 15 required
+      admission-through-retraction families, 27 synthetic cases, 12 exact evidence-source
+      checksums, and 23 adversarial mutations. It keeps every operation, representative,
+      clinical release, communication, notification, offline PHI, source, database,
+      production, and deployment permission false.
 - [ ] Approved Nightingale identity, representative, enrollment, recovery, and session
       contract.
 - [ ] Approved authoritative current-inpatient source, lifecycle, cohort, linkage,
@@ -370,9 +377,10 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
 
 Until these gates are met, `paths` remains empty.
 
-The encounter-access, Today, identity/source, and three source-classification ledgers are
-pre-contract evidence for these gates, not proof that an approval gate is complete. The
-route/compatibility ADR, default-deny prerequisite ports, 174 combined prerequisite/
-encounter/Today cases, complete 256-source inventory, and detailed native/backend deltas
-exist, but no owner is named, identity provider/source adapter is approved, clinical field
-matrix is released, or backend/native operation parity implementation exists.
+The encounter-access, Today, patient-journey reference, identity/source, and three
+source-classification ledgers are pre-contract evidence for these gates, not proof that an
+approval gate is complete. The route/compatibility ADR, default-deny prerequisite ports,
+the previously recorded 174 prerequisite/encounter/Today cases, 27 additional cross-surface
+journey cases, complete 256-source inventory, and detailed native/backend deltas exist, but
+no owner is named, identity provider/source adapter is approved, clinical field matrix is
+released, or backend/native operation parity implementation exists.
