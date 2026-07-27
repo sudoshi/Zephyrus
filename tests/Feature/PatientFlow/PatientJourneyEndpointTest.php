@@ -3,6 +3,7 @@
 namespace Tests\Feature\PatientFlow;
 
 use App\Models\BedRequest;
+use App\Models\Encounter;
 use App\Models\PatientFlow\FlowEvent;
 use App\Models\User;
 use App\Services\Mobile\MobilePatientContextService;
@@ -118,6 +119,51 @@ class PatientJourneyEndpointTest extends TestCase
         // body — every surviving reference is the opaque ptok context ref.
         $this->assertStringNotContainsString($patientRef, $response->getContent());
         $this->assertStringContainsString($contextRef, $response->getContent());
+    }
+
+    public function test_pathway_progress_is_absent_while_the_care_pathway_flags_are_dark(): void
+    {
+        // FLOW-4D Phase D ships dark: with the serving gate and the demo flag
+        // both off, the journey response must omit the pathway_progress key
+        // entirely (byte-identical inertness).
+        config(['care-pathways.assignment_enabled' => false, 'care-pathways.demo.enabled' => false]);
+
+        $patientRef = $this->seedJourneyEvents();
+        $contextRef = app(MobilePatientContextService::class)->contextRefFor($patientRef);
+
+        $response = $this->actingAs($this->admin())
+            ->getJson("/api/patient-flow/journey?persona=house_supervisor&scope=patient:{$contextRef}")
+            ->assertOk();
+
+        $this->assertArrayNotHasKey('pathway_progress', $response->json());
+    }
+
+    public function test_demo_overlay_attaches_a_synthetic_pathway_for_the_designated_patient(): void
+    {
+        // FLOW-4D Phase D5: the demo flag (independent of every serving gate)
+        // shows one designated patient a synthetic, clearly-labeled pathway.
+        config(['care-pathways.demo.enabled' => true, 'care-pathways.assignment_enabled' => false]);
+
+        $patientRef = $this->seedJourneyEvents();
+        Encounter::create([
+            'patient_ref' => $patientRef,
+            'admitted_at' => CarbonImmutable::now()->subDays(2),
+            'status' => 'active',
+            'is_deleted' => false,
+        ]);
+        $contextRef = app(MobilePatientContextService::class)->contextRefFor($patientRef);
+
+        $response = $this->actingAs($this->admin())
+            ->getJson("/api/patient-flow/journey?persona=house_supervisor&scope=patient:{$contextRef}")
+            ->assertOk()
+            ->assertJsonPath('pathway_progress.demo', true)
+            ->assertJsonPath('pathway_progress.clinical_use', false)
+            ->assertJsonPath('pathway_progress.notice', 'Demo — not clinical guidance')
+            ->assertJsonPath('pathway_progress.source', 'synthetic_demo');
+
+        $this->assertNotEmpty($response->json('pathway_progress.milestones'));
+        // The synthetic pathway carries no real patient identity.
+        $this->assertStringNotContainsString($patientRef, $response->getContent());
     }
 
     public function test_journey_requires_a_patient_scope(): void

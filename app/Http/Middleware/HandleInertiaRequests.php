@@ -98,6 +98,16 @@ class HandleInertiaRequests extends Middleware
                 'conformance_enabled' => (bool) config('services.arena.enabled')
                     && (bool) config('services.flow4d.conformance'),
             ],
+            // FLOW-4D governed-pathway progress surface (plan §8 Phase D). Pre-
+            // composed with the care-pathways serving gate so the drawer holds
+            // ONE boolean and can never render a patient's real assigned-pathway
+            // progress while the read service would return nothing. The DRG
+            // catalog serving path stays dark (plan G-9); the synthetic demo
+            // overlay is separate and rides features.care_pathways_demo.
+            'flow4d' => [
+                'pathway_progress_enabled' => (bool) config('services.flow4d.pathway_progress')
+                    && (bool) config('care-pathways.assignment_enabled'),
+            ],
             // Feature flags the frontend reads to gate nav + surfaces. Virtual
             // Rounds ships disabled; the nav item stays hidden (never a dead
             // link) until VIRTUAL_ROUNDS_ENABLED is on — matching the server

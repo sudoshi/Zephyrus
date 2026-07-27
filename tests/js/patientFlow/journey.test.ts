@@ -74,6 +74,30 @@ describe('patientJourneySchema', () => {
     });
     expect(parsed.success).toBe(true);
   });
+
+  it('accepts the Phase D pathway_progress block and tolerates its absence', () => {
+    // Absent → still valid (dark by default).
+    expect(journeyFixture().pathway_progress ?? null).toBeNull();
+
+    const parsed = patientJourneySchema.safeParse({
+      ...journeyFixture(),
+      pathway_progress: {
+        state: 'ok',
+        demo: true,
+        clinical_use: false,
+        notice: 'Demo — not clinical guidance',
+        pathway: { key: 'demo-heart-failure', label: 'Heart Failure', version_uuid: null, semantic_version: 'demo.1', digest: 'b'.repeat(64) },
+        milestones: [
+          { stable_key: 'hf_arrival', title: 'Admitted and assessed', phase: 'arrival', sequence: 0, status: 'completed', observed_at: null, expected: { day_offset_min: 0, day_offset_max: 0, display: null } },
+        ],
+        summary: { completed: 1, current: 0, planned: 0, delayed: 0, canceled: 0, total: 1, current_stable_key: null, elements_met_label: '1 of 1 milestones complete' },
+        source: 'synthetic_demo',
+        as_of: '2026-07-27T12:00:00Z',
+      },
+    });
+    expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data.pathway_progress?.demo).toBe(true);
+  });
 });
 
 describe('alignAnchorMs / alignedTimeLabel', () => {

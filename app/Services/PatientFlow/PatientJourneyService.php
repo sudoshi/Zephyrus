@@ -8,6 +8,8 @@ use App\Models\EdVisit;
 use App\Models\Encounter;
 use App\Models\Evs\EvsRequest;
 use App\Models\Transport\TransportRequest;
+use App\Services\CarePathways\FlowPathwayDemoService;
+use App\Services\CarePathways\PathwayInstanceReadService;
 use App\Services\Flow\FlowLensService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -49,6 +51,8 @@ class PatientJourneyService
         private readonly FlowEventRepository $events,
         private readonly FlowLensService $lens,
         private readonly FlowEpochService $epoch,
+        private readonly PathwayInstanceReadService $pathwayReader,
+        private readonly FlowPathwayDemoService $pathwayDemo,
     ) {}
 
     /**
@@ -96,7 +100,7 @@ class PatientJourneyService
             ->orderByDesc('evs_request_id')
             ->get();
 
-        return [
+        $payload = [
             'patient' => [
                 'patient_context_ref' => $contextRef,
                 // Mirrors FlowLensService::redactRow()'s display derivation —
@@ -126,6 +130,61 @@ class PatientJourneyService
             'as_of' => $now->toJSON(),
             'generated_at' => $now->toJSON(),
         ];
+
+        // FLOW-4D Phase D: assigned governed-pathway progress. The key is added
+        // ONLY when the serving gate produces a real assignment or the demo
+        // overlay applies — so the response is byte-identical (inert) while both
+        // are dark. Serving stays behind care-pathways.assignment_enabled (G-9);
+        // the demo is a synthetic, clearly-labeled overlay for one patient.
+        $pathwayProgress = $this->pathwayProgress($encounter, $now);
+        if ($pathwayProgress !== null) {
+            $payload['pathway_progress'] = $pathwayProgress;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Assigned-pathway progress for the drawer: the real (dark) serving read
+     * first, then the synthetic demo overlay for one designated patient. Null
+     * when neither applies — the journey response then omits the key entirely.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function pathwayProgress(?Encounter $encounter, CarbonImmutable $now): ?array
+    {
+        $real = $this->pathwayReader->progressForEncounterId($encounter?->getKey());
+        if ($real !== null) {
+            return $real;
+        }
+
+        if (! $this->pathwayDemo->enabled() || $encounter === null || ! $this->isDesignatedDemoEncounter($encounter)) {
+            return null;
+        }
+
+        $admittedAt = $encounter->admitted_at ? CarbonImmutable::parse((string) $encounter->admitted_at) : null;
+        $losDays = $admittedAt !== null ? intdiv(max(0, $admittedAt->diffInMinutes($now, false)), 1440) : 0;
+
+        return $this->pathwayDemo->syntheticProgress($losDays, $now);
+    }
+
+    /**
+     * The demo attaches to exactly one patient — the longest-stay active
+     * inpatient (earliest admit) — so the synthetic pathway shows meaningful
+     * progress and never appears on every patient. Only consulted when the demo
+     * flag is on.
+     */
+    private function isDesignatedDemoEncounter(Encounter $encounter): bool
+    {
+        $designatedId = Encounter::query()
+            ->where('status', 'active')
+            ->where('is_deleted', false)
+            ->whereNotNull('admitted_at')
+            ->orderBy('admitted_at')
+            ->orderBy('encounter_id')
+            ->value('encounter_id');
+
+        return $designatedId !== null && (int) $designatedId === (int) $encounter->getKey();
     }
 
     private function activeEncounter(string $patientRef): ?Encounter

@@ -341,6 +341,11 @@ export default function PatientFlowNavigator({
   // the lens leg composes here. Flag off → this file renders byte-identical.
   const conformanceEnabled = Boolean(page.props.arena?.conformance_enabled) && patientDotsVisible;
   const arenaAiEnabled = Boolean(page.props.arena?.ai_enabled);
+  // Phase D (§8 D5): governed-pathway progress. Real serving is pre-composed
+  // server-side (FLOW4D_PATHWAY_PROGRESS_ENABLED ∧ assignment gate); the demo
+  // overlay rides the demo flag. Both require a patient-dots lens.
+  const pathwayProgressServing = Boolean(page.props.flow4d?.pathway_progress_enabled) && patientDotsVisible;
+  const carePathwaysDemo = Boolean(page.props.features?.care_pathways_demo) && patientDotsVisible;
   const openEddyWithPrefill = useEddyStore((state) => state.openWithPrefill);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -460,6 +465,16 @@ export default function PatientFlowNavigator({
   // Phase C: the open journey's cached adherence verdicts (null = surface off
   // for this page/persona — the drawer renders byte-identical to Phase B).
   const [adherence, setAdherence] = useState<DrawerAdherence | null>(null);
+  // Phase D (§8 D5): the open journey's pathway progress, if present. The
+  // backend only emits the block for real serving (dark) or the designated demo
+  // patient; the belt-and-suspenders flag gate here mirrors that so a stale
+  // payload can never render past a just-flipped flag.
+  const pathwayProgress = useMemo(() => {
+    const block = journeyData?.pathway_progress ?? null;
+    if (!block) return null;
+    if (block.demo) return carePathwaysDemo ? block : null;
+    return pathwayProgressServing ? block : null;
+  }, [journeyData, carePathwaysDemo, pathwayProgressServing]);
   const journeyPatientRef = useRef<string | null>(null);
   const journeyFollowRef = useRef(false);
   useEffect(() => {
@@ -2321,6 +2336,7 @@ export default function PatientFlowNavigator({
           onCopyLink={copyJourneyLink}
           copiedLink={journeyLinkCopied}
           adherence={adherence}
+          pathwayProgress={pathwayProgress}
           onExceptionNote={conformanceEnabled ? draftExceptionNote : undefined}
           onExplainDeviation={conformanceEnabled && arenaAiEnabled && eddyEnabled ? explainDeviation : undefined}
         />
