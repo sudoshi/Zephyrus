@@ -10,7 +10,9 @@ use App\Services\Flow\ForwardProjectionService;
 use App\Services\PatientFlow\AmbientSignalService;
 use App\Services\PatientFlow\FacilitySpaceLocationResolver;
 use App\Services\PatientFlow\FhirBundleFactory;
+use App\Services\PatientFlow\FlowEpochService;
 use App\Services\PatientFlow\PatientFlowEventAccessService;
+use App\Services\PatientFlow\PatientJourneyService;
 use App\Services\PatientFlow\PatientFlowOccupancyContextService;
 use App\Services\PatientFlow\PatientFlowOccupancyHistoryService;
 use App\Services\PatientFlow\PatientFlowScenarioRegistry;
@@ -34,6 +36,8 @@ class PatientFlowController extends Controller
         private readonly PatientFlowOccupancyContextService $occupancyContext,
         private readonly PatientFlowOccupancyHistoryService $occupancyHistory,
         private readonly PatientFlowScenarioRegistry $scenarios,
+        private readonly PatientJourneyService $journeys,
+        private readonly FlowEpochService $epoch,
     ) {}
 
     public function summary(): JsonResponse
@@ -79,8 +83,61 @@ class PatientFlowController extends Controller
                 'event_count' => $eventCount,
             ],
             'suggested_initial_time' => $lastEventAt,
+            'epoch' => $this->epoch->current(),
             'generated_at' => $generatedAt->toJSON(),
         ]);
+    }
+
+    /**
+     * Dataset epoch for long-lived clients — Codex HFE audit F-6 (part 2).
+     * A wall client polls this cheaply and atomically rebootstraps when the
+     * epoch changes underneath it (6h demo refresh). Aggregate + patient-free.
+     */
+    public function epoch(): JsonResponse
+    {
+        return response()->json([
+            'epoch' => $this->epoch->current(),
+            'generated_at' => now()->toJSON(),
+        ]);
+    }
+
+    /**
+     * One patient's ordered journey — the Patient Journey Drawer spine
+     * (FLOW-4D plan §7.1, finding PJ-1). Requires `scope=patient:{ptok_…}`:
+     * EnforceFlowLens's patientScope() has already run the A2P authorization
+     * and disclosure audit before this method executes, and the resolved
+     * scope carries the patient_ref the service builds from.
+     */
+    public function journey(Request $request): JsonResponse
+    {
+        $context = $this->eventAccess->context($request);
+
+        if (($context['scope']['type'] ?? null) !== 'patient') {
+            return $this->patientJson([
+                'error' => [
+                    'code' => 'journey_requires_patient_scope',
+                    'message' => 'The journey endpoint requires scope=patient:{ptok_…}.',
+                ],
+            ], 422);
+        }
+
+        $from = $this->journeyBound($request->query('from'));
+        $to = $this->journeyBound($request->query('to'));
+
+        return $this->patientJson($this->journeys->build($context, $from, $to));
+    }
+
+    private function journeyBound(mixed $value): ?CarbonImmutable
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return CarbonImmutable::parse($value);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function locations(): JsonResponse

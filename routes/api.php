@@ -221,6 +221,9 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
     Route::get('/summary', [PatientFlowController::class, 'summary']);
     Route::get('/locations', [PatientFlowController::class, 'locations']);
     Route::get('/ambient', [PatientFlowController::class, 'ambient']);
+    // Dataset epoch for atomic client rebootstrap across the 6h demo refresh
+    // (Codex HFE audit F-6 pt 2). Aggregate + patient-free like /summary.
+    Route::get('/epoch', [PatientFlowController::class, 'epoch']);
     // Open operational barriers overlay — aggregate + patient-free, so it rides
     // with the other aggregate reads (un-blinds the navigator's 48h spine).
     Route::get('/barriers', [PatientFlowController::class, 'barriers']);
@@ -236,6 +239,10 @@ Route::middleware(['web', 'auth', 'throttle:60,1'])->prefix('patient-flow')->gro
         Route::get('/tracks', [PatientFlowController::class, 'tracks']);
         Route::get('/state', [PatientFlowController::class, 'state']);
         Route::get('/fhir/bundle', [PatientFlowController::class, 'fhirBundle']);
+        // One patient's ordered journey (FLOW-4D plan §8 Phase A1). Requires
+        // scope=patient:{ptok_…} — patientScope() runs the A2P authorization
+        // + disclosure audit inside the middleware's scope resolution.
+        Route::get('/journey', [PatientFlowController::class, 'journey']);
         Route::get('/stream/adt', PatientFlowStreamController::class);
     });
 
