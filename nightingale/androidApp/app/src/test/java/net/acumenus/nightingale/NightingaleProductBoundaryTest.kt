@@ -105,12 +105,16 @@ class NightingaleProductBoundaryTest {
 
     @Test
     fun presentationPreferenceNamespaceIsNightingaleOnlyAndAccountAgnostic() {
-        val combined = (
-            NightingalePresentationPreferenceNamespace.PREFERENCES_FILE
-                + NightingalePresentationPreferenceNamespace.allKeys.joinToString("|")
-            ).lowercase()
+        val identifiers = listOf(
+            NightingalePresentationPreferenceNamespace.PREFERENCES_FILE,
+            *NightingalePresentationPreferenceNamespace.allKeys.toTypedArray(),
+        )
+        val combined = identifiers.joinToString("|").lowercase()
 
         assertTrue(combined.contains("nightingale"))
+        assertTrue(
+            identifiers.all { it.startsWith("net.acumenus.nightingale.") },
+        )
         assertFalse(combined.contains("hummingbird"))
         assertFalse(combined.contains("patient"))
         assertFalse(combined.contains("account"))
@@ -127,13 +131,17 @@ class NightingaleProductBoundaryTest {
 
     @Test
     fun protectedStateNamespaceIsNightingaleOnlyAndCredentialAgnostic() {
-        val combined = listOf(
+        val identifiers = listOf(
             NightingaleProtectedStateNamespace.KEYSTORE_ALIAS,
             NightingaleProtectedStateNamespace.PREFERENCES_FILE,
             NightingaleProtectedStateNamespace.FUTURE_SESSION_BINDING,
-        ).joinToString("|").lowercase()
+        )
+        val combined = identifiers.joinToString("|").lowercase()
 
         assertTrue(combined.contains("nightingale"))
+        assertTrue(
+            identifiers.all { it.startsWith("net.acumenus.nightingale.") },
+        )
         assertFalse(combined.contains("hummingbird"))
         assertFalse(combined.contains("access_token"))
         assertFalse(combined.contains("refresh_token"))

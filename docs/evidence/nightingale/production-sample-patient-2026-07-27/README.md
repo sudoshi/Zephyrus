@@ -124,18 +124,19 @@ All other values were independently set for Nightingale. The transaction require
 
 The committed principal has:
 
-| Field                               | Value                                          |
-| ----------------------------------- | ---------------------------------------------- |
-| `principal_type`                    | `patient`                                      |
-| `display_name`                      | `Nightingale Reference Patient`                |
-| `status` / `is_active`              | `pending` / false                              |
-| `email` / `phone_e164` / `password` | null / null / null                             |
-| `preferences.synthetic`             | true                                           |
-| `preferences.product`               | `nightingale`                                  |
-| `preferences.provisioning.owner`    | `nightingale-reference-patient-provisioner-v1` |
-| `preferences.provisioning.mode`     | `operator-authorized-production-sample-clone`  |
-| source-template label               | `hummingbird_patient`                          |
-| locale / timezone                   | `en-US` / `America/New_York`                   |
+| Field                                              | Value                                                   |
+| -------------------------------------------------- | ------------------------------------------------------- |
+| `principal_type`                                   | `patient`                                               |
+| `display_name`                                     | `Nightingale Reference Patient`                         |
+| `status` / `is_active`                             | `pending` / false                                       |
+| `email` / `phone_e164` / `password`                | null / null / null                                      |
+| `preferences.synthetic`                            | true                                                    |
+| `preferences.product`                              | `nightingale`                                           |
+| `preferences.provisioning.owner`                   | `nightingale-reference-patient-provisioner-v1`          |
+| `preferences.provisioning.mode`                    | `operator-authorized-production-sample-clone`           |
+| `preferences.provisioning.source_template_product` | `hummingbird_patient`                                   |
+| `preferences.provisioning.source_template_owner`   | `hummingbird-patient-reference-identity-provisioner-v1` |
+| locale / timezone                                  | `en-US` / `America/New_York`                            |
 
 No source identifier, encrypted subject, keyed digest, encounter foreign key, grant, or
 credential was added to the principal.
@@ -160,6 +161,30 @@ A fresh read-only connection verified this exact result:
 
 This proves bounded creation and source preservation. It does not prove that a Nightingale
 identity, source, authorization, projection, or native client is ready.
+
+### 6.1 Direction-confirmation reconciliation
+
+After the operator reiterated that Nightingale must have a sample patient derived from the
+deprecated Hummingbird Patient sample, a new production connection reran the reconciliation
+inside a repeatable-read, read-only transaction. It found:
+
+| Reconfirmed invariant                                                             | Count/result                                            |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Transaction read-only                                                             | `on`                                                    |
+| Exact Nightingale encounter                                                       | 1                                                       |
+| Nightingale encounter satisfying every recorded owner/state constraint            | 1                                                       |
+| Exact Nightingale principal                                                       | 1                                                       |
+| Principal type/name/state/contact/password/product/synthetic safeguards           | satisfied                                               |
+| `preferences.provisioning.source_template_product`                                | `hummingbird_patient`                                   |
+| `preferences.provisioning.source_template_owner`                                  | `hummingbird-patient-reference-identity-provisioner-v1` |
+| Nightingale identity links/grants/challenges/sessions/audits/notification devices | 0 / 0 / 0 / 0 / 0 / 0                                   |
+| Original Hummingbird encounter/principal/identity-link/access-grant cardinalities | 1 / 1 / 1 / 1                                           |
+
+The first form of this confirmation query tested a nonexistent generic
+`preferences.provisioning.source_template` path and therefore returned zero for its
+combined principal predicate. A metadata-only follow-up established the two exact
+source-template keys above; all safety and lineage values were present. No write was
+needed or attempted.
 
 ## 7. Operational boundary and follow-up
 

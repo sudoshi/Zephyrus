@@ -366,6 +366,15 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
       unknown, revoked, expired, cross-principal, wrong-encounter, omitted-resource, and
       failed-precondition cases; and an independently repeated 40-row truth table with one
       non-authorizing continue row and 39 withholds.
+- [x] Route-free activation-separation foundation: five distinct clinical-approval,
+      patient-content-release, feature-activation, pilot-enrollment, and source-connector
+      state types; code-owned negative defaults; five additional false executable-contract
+      fields; and an independently repeated 32-row truth table with 31 holds and one
+      non-authorizing continue row.
+- [x] Exact current native namespace foundation: deterministic 12-source manifest, ten
+      shared accessibility identifiers, four Debug hooks, ten fully qualified persistent
+      identifiers, zero telemetry events, zero diagnostic channels, no legacy product
+      namespace, and eight negative verifier mutations.
 - [ ] Approved Nightingale identity, representative, enrollment, recovery, and session
       contract.
 - [ ] Approved authoritative current-inpatient source, lifecycle, cohort, linkage,
@@ -386,7 +395,8 @@ The encounter-access, Today, patient-journey reference, identity/source, and thr
 source-classification ledgers are pre-contract evidence for these gates, not proof that an
 approval gate is complete. The route/compatibility ADR, default-deny prerequisite ports,
 the previously recorded 174 identity/source/encounter/Today cases, 40 route-free generic
-non-disclosure permutations, 27 additional cross-surface journey cases, complete 256-source
-inventory, and detailed native/backend deltas exist, but
+non-disclosure permutations, 32 separately gated activation permutations, 27 additional
+cross-surface journey cases, exact current native namespace, complete 256-source inventory,
+and detailed native/backend deltas exist, but
 no owner is named, identity provider/source adapter is approved, clinical field matrix is
 released, or backend/native operation parity implementation exists.

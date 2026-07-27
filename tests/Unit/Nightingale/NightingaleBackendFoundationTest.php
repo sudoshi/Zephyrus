@@ -2,6 +2,13 @@
 
 namespace Tests\Unit\Nightingale;
 
+use App\Nightingale\Activation\NightingaleActivationDisposition;
+use App\Nightingale\Activation\NightingaleActivationGate;
+use App\Nightingale\Activation\NightingaleClinicalApprovalState;
+use App\Nightingale\Activation\NightingaleContentReleaseState;
+use App\Nightingale\Activation\NightingaleFeatureActivationState;
+use App\Nightingale\Activation\NightingalePilotEnrollmentState;
+use App\Nightingale\Activation\NightingaleSourceConnectorState;
 use App\Nightingale\Disclosure\NightingaleDisclosureDisposition;
 use App\Nightingale\Disclosure\NightingaleEncounterBindingState;
 use App\Nightingale\Disclosure\NightingaleGenericNonDisclosureGate;
@@ -20,6 +27,81 @@ use PHPUnit\Framework\TestCase;
 
 class NightingaleBackendFoundationTest extends TestCase
 {
+    public function test_activation_foundation_defaults_are_separate_and_fail_closed(): void
+    {
+        $config = require dirname(__DIR__, 3).'/config/nightingale.php';
+        $activation = $config['activation'];
+
+        $this->assertSame([
+            'clinical_approval_state',
+            'clinical_approval_record',
+            'content_release_state',
+            'content_release_id',
+            'feature_activation_state',
+            'pilot_enrollment_state',
+            'source_connector_state',
+        ], array_keys($activation));
+        $this->assertNull($activation['clinical_approval_record']);
+        $this->assertNull($activation['content_release_id']);
+        $this->assertSame(
+            NightingaleActivationDisposition::Hold,
+            (new NightingaleActivationGate)->evaluate(
+                NightingaleClinicalApprovalState::from($activation['clinical_approval_state']),
+                NightingaleContentReleaseState::from($activation['content_release_state']),
+                NightingaleFeatureActivationState::from($activation['feature_activation_state']),
+                NightingalePilotEnrollmentState::from($activation['pilot_enrollment_state']),
+                NightingaleSourceConnectorState::from($activation['source_connector_state']),
+            ),
+        );
+    }
+
+    public function test_only_all_five_independent_activation_prerequisites_continue(): void
+    {
+        $gate = new NightingaleActivationGate;
+        $continueCount = 0;
+        $holdCount = 0;
+
+        foreach (NightingaleClinicalApprovalState::cases() as $clinicalApproval) {
+            foreach (NightingaleContentReleaseState::cases() as $contentRelease) {
+                foreach (NightingaleFeatureActivationState::cases() as $featureActivation) {
+                    foreach (NightingalePilotEnrollmentState::cases() as $pilotEnrollment) {
+                        foreach (NightingaleSourceConnectorState::cases() as $sourceConnector) {
+                            $result = $gate->evaluate(
+                                $clinicalApproval,
+                                $contentRelease,
+                                $featureActivation,
+                                $pilotEnrollment,
+                                $sourceConnector,
+                            );
+                            $shouldContinue = $clinicalApproval
+                                === NightingaleClinicalApprovalState::Recorded
+                                && $contentRelease === NightingaleContentReleaseState::Released
+                                && $featureActivation === NightingaleFeatureActivationState::Enabled
+                                && $pilotEnrollment === NightingalePilotEnrollmentState::Enrolled
+                                && $sourceConnector === NightingaleSourceConnectorState::Deployed;
+
+                            if ($shouldContinue) {
+                                $continueCount++;
+                                $this->assertSame(
+                                    NightingaleActivationDisposition::ContinueToOperationSpecificReleaseEvaluation,
+                                    $result,
+                                );
+
+                                continue;
+                            }
+
+                            $holdCount++;
+                            $this->assertSame(NightingaleActivationDisposition::Hold, $result);
+                        }
+                    }
+                }
+            }
+        }
+
+        $this->assertSame(1, $continueCount);
+        $this->assertSame(31, $holdCount);
+    }
+
     public function test_unconfigured_boundaries_fail_closed_without_a_query(): void
     {
         $identity = new UnconfiguredNightingaleIdentityBoundary;

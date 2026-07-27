@@ -36,6 +36,14 @@ now proves that unknown, revoked, expired, cross-principal, wrong-encounter,
 omitted-resource, and failed-precondition states share one exact public failure tuple. It
 has no caller and does not authorize a patient route or disclosure.
 
+A
+[namespace and activation-separation foundation](../docs/nightingale/NAMESPACE-AND-ACTIVATION-SEPARATION-FOUNDATION-2026-07-27.md)
+now pins every current native identifier to Nightingale and keeps clinical approval,
+patient-content release, feature activation, pilot enrollment, and source deployment as
+five separately typed, default-negative gates. It adds no live feature: 31 of 32 state
+combinations hold, and the sole all-positive combination remains subject to every
+operation-specific identity, authorization, release, audit, and disclosure control.
+
 ## Non-negotiable product boundary
 
 Nightingale must never import Hummingbird staff modules, share a staff application identifier, use a staff endpoint, or expose a copied staff workflow to a patient. The legacy Hummingbird Patient applications remain read-only migration evidence; new patient work belongs here.

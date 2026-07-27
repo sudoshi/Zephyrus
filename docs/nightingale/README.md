@@ -25,7 +25,15 @@ relationship/context/resource state combinations—including all required unknow
 expired, cross-principal, wrong-encounter, and omitted-resource cases—to one exact 404
 tuple; the sole positive combination may only proceed to later governed projection
 evaluation. The gate is unreachable from an application request and adds no route, query,
-content, or authorization. Nightingale now also has two device-local display-comfort controls:
+content, or authorization. A separate route-free activation foundation now types clinical
+approval, patient-content release, feature activation, pilot enrollment, and
+source-connector deployment as five independent conjunctive gates. Thirty-one of 32
+combinations hold; the sole all-positive row may only continue to a future
+operation-specific release evaluation. All five executable-contract flags remain false,
+and the gate has no caller. The current native namespace is also generated and
+machine-verified across ten accessibility IDs, four Debug hooks, ten fully qualified
+storage identifiers, zero telemetry events, and zero diagnostic channels, with no legacy
+Hummingbird patient identity in runtime sources. Nightingale now also has two device-local display-comfort controls:
 reduced motion and decorative-imagery suppression. They are presentation-only, remain
 separate from care-account preferences, and do not authorize patient access. The current
 offline shell now also has a bounded maximum-text, landscape, semantic-order, target-size,
@@ -76,6 +84,8 @@ Current product-identity records:
 - [Today projection held-candidate decision](./TODAY-PROJECTION-CANDIDATE-DECISION-2026-07-26.md)
 - [Patient-journey reference-scenario held-candidate decision](./PATIENT-JOURNEY-REFERENCE-SCENARIO-CANDIDATE-DECISION-2026-07-27.md)
 - [Generic non-disclosure route-free foundation](./GENERIC-NON-DISCLOSURE-FOUNDATION-2026-07-27.md)
+- [Namespace and activation-separation foundation](./NAMESPACE-AND-ACTIVATION-SEPARATION-FOUNDATION-2026-07-27.md)
+- [Generated foundation namespace manifest](./namespace/foundation-namespace.v1.json)
 - [Route, compatibility, identity, and inpatient-source ADR](./ROUTE-COMPATIBILITY-IDENTITY-SOURCE-ADR-2026-07-26.md)
 - [Identity, session, recovery, and inpatient-source held-candidate decision](./IDENTITY-SESSION-RECOVERY-AND-SOURCE-CANDIDATE-DECISION-2026-07-26.md)
 - [Identity-input, enrollment/recovery, first-read, and error source classification](./IDENTITY-INPUT-FIRST-READ-ERROR-SOURCE-CLASSIFICATION-2026-07-26.md)

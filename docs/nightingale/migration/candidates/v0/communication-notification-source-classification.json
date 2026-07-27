@@ -3,6 +3,21 @@
     "classification_id": "nightingale-communication-notification-source-classification.v1",
     "reviewed_source_commit": "b6ea087747d7ea88c8a076f06f4c91a2636ea029",
     "reviewed_at": "2026-07-27",
+    "source_revalidation": {
+        "revalidated_commit": "a979e78630c214f6f77d96ce702227da6c03a9b6",
+        "revalidated_at": "2026-07-27",
+        "changed_sources": [
+            {
+                "path": "routes/api.php",
+                "previous_sha256": "052d9afd466b2646385986297e9ce3ec6a886d299b35c76067f5a0f21d7fa082",
+                "current_sha256": "a357886ae0975b63d978b975e53518a97d3f6e907820255a0f1c9e1b76a986ad",
+                "additions": 15,
+                "deletions": 5,
+                "classification_impact": "none",
+                "rationale": "The upstream delta adds a staff-only, independently gated Flow 4D conformance scene read and governed exception-note proposal beside the existing staff Arena conformance read. It adds no Nightingale route, patient communication operation, notification provider, patient-native transport, delivery-state claim, or implementation permission, so routes/api.php remains rejected migration evidence."
+            }
+        ]
+    },
     "status": "evidence_only_not_approved_for_implementation",
     "scope": [
         "patient_communication_contract",
@@ -1468,7 +1483,7 @@
         },
         {
             "path": "routes/api.php",
-            "sha256": "052d9afd466b2646385986297e9ce3ec6a886d299b35c76067f5a0f21d7fa082",
+            "sha256": "a357886ae0975b63d978b975e53518a97d3f6e907820255a0f1c9e1b76a986ad",
             "surface": "legacy_backend",
             "categories": [
                 "patient_communication_contract",

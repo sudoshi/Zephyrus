@@ -24,6 +24,7 @@ background_manifest="$repo_root/nightingale/backgrounds/backgrounds.v1.json"
 background_assets="$repo_root/nightingale/backgrounds/optimized/drawable-nodpi"
 background_verifier="$repo_root/scripts/ci/verify-nightingale-background-assets.mjs"
 copy_verifier="$repo_root/scripts/ci/verify-nightingale-foundation-copy.mjs"
+namespace_verifier="$repo_root/scripts/ci/verify-nightingale-namespace-foundation.mjs"
 ios_background_catalog="$ios_source/NightingaleBackgroundCatalog.swift"
 ios_background_link="$repo_root/nightingale/iosApp/NightingaleBackgrounds"
 android_background_catalog="$android_source/java/net/acumenus/nightingale/NightingaleBackgroundCatalog.kt"
@@ -57,6 +58,7 @@ for required_path in \
     "$background_assets" \
     "$background_verifier" \
     "$copy_verifier" \
+    "$namespace_verifier" \
     "$ios_background_catalog" \
     "$ios_background_link" \
     "$android_background_catalog" \
@@ -162,6 +164,7 @@ command -v node >/dev/null 2>&1 || {
 
 node "$background_verifier" "$repo_root" --self-test
 node "$copy_verifier" "$repo_root" --self-test
+node "$namespace_verifier" "$repo_root" --self-test
 
 [[ -L "$ios_background_link" ]] || {
     echo "The Nightingale iOS background resource boundary must remain a relative symlink." >&2
@@ -317,7 +320,9 @@ grep -Fq -- 'net.acumenus.nightingale.presentation.v1' "$android_presentation" |
     exit 1
 }
 
-for preference_name in "reduce-motion" "hide-decorative-imagery"
+for preference_name in \
+    "net.acumenus.nightingale.presentation.v1.reduce-motion" \
+    "net.acumenus.nightingale.presentation.v1.hide-decorative-imagery"
 do
     grep -Fq -- "\"$preference_name\"" "$android_presentation" || {
         echo "The Nightingale Android presentation preference is missing: $preference_name" >&2

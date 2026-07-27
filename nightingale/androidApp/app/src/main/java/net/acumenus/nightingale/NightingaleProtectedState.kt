@@ -14,7 +14,8 @@ internal object NightingaleProtectedStateNamespace {
     const val KEYSTORE_ALIAS = "net.acumenus.nightingale.protected-state-key.v1"
     const val PREFERENCES_FILE =
         "net.acumenus.nightingale.protected-state-ciphertext.v1"
-    const val FUTURE_SESSION_BINDING = "future-session-binding-v1"
+    const val FUTURE_SESSION_BINDING =
+        "net.acumenus.nightingale.protected-state.v1.future-session-binding"
     const val ENVELOPE_VERSION: Byte = 1
 
     val authenticatedContext: ByteArray

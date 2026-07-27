@@ -3,6 +3,13 @@
 
 declare(strict_types=1);
 
+use App\Nightingale\Activation\NightingaleActivationDisposition;
+use App\Nightingale\Activation\NightingaleActivationGate;
+use App\Nightingale\Activation\NightingaleClinicalApprovalState;
+use App\Nightingale\Activation\NightingaleContentReleaseState;
+use App\Nightingale\Activation\NightingaleFeatureActivationState;
+use App\Nightingale\Activation\NightingalePilotEnrollmentState;
+use App\Nightingale\Activation\NightingaleSourceConnectorState;
 use App\Nightingale\Disclosure\NightingaleDisclosureDisposition;
 use App\Nightingale\Disclosure\NightingaleEncounterBindingState;
 use App\Nightingale\Disclosure\NightingaleGenericNonDisclosureGate;
@@ -46,6 +53,13 @@ if ($repositoryRoot === null) {
 }
 
 $requiredPhpFiles = [
+    'app/Nightingale/Activation/NightingaleClinicalApprovalState.php',
+    'app/Nightingale/Activation/NightingaleContentReleaseState.php',
+    'app/Nightingale/Activation/NightingaleFeatureActivationState.php',
+    'app/Nightingale/Activation/NightingalePilotEnrollmentState.php',
+    'app/Nightingale/Activation/NightingaleSourceConnectorState.php',
+    'app/Nightingale/Activation/NightingaleActivationDisposition.php',
+    'app/Nightingale/Activation/NightingaleActivationGate.php',
     'app/Nightingale/Identity/NightingaleIdentityState.php',
     'app/Nightingale/Identity/NightingaleIdentityBoundary.php',
     'app/Nightingale/Identity/UnconfiguredNightingaleIdentityBoundary.php',
@@ -109,6 +123,7 @@ $inspect = static function (array $subject, string $raw, array $foundationDocume
             'network_clients_permitted',
             'identity',
             'inpatient_context',
+            'activation',
             'patient_disclosure_enabled',
             'patient_mutation_enabled',
             'production_enabled',
@@ -132,6 +147,18 @@ $inspect = static function (array $subject, string $raw, array $foundationDocume
             'production_query_permitted',
         ]),
         'inpatient-context configuration fields changed',
+    );
+    $assert(
+        $sameKeys($subject['activation'] ?? [], [
+            'clinical_approval_state',
+            'clinical_approval_record',
+            'content_release_state',
+            'content_release_id',
+            'feature_activation_state',
+            'pilot_enrollment_state',
+            'source_connector_state',
+        ]),
+        'activation configuration fields changed',
     );
     $assert(($subject['status'] ?? null) === 'foundation', 'status must remain foundation');
     $assert(($subject['route_namespace'] ?? null) === '/api/nightingale/v1', 'route namespace changed');
@@ -165,6 +192,25 @@ $inspect = static function (array $subject, string $raw, array $foundationDocume
         ($subject['inpatient_context']['production_query_permitted'] ?? null) === false,
         'production source query was permitted',
     );
+    foreach ([
+        'clinical_approval_state' => 'absent',
+        'content_release_state' => 'unreleased',
+        'feature_activation_state' => 'disabled',
+        'pilot_enrollment_state' => 'not_enrolled',
+        'source_connector_state' => 'undeployed',
+    ] as $field => $expected) {
+        $assert(
+            ($subject['activation'][$field] ?? null) === $expected,
+            "{$field} must remain {$expected}",
+        );
+    }
+    foreach (['clinical_approval_record', 'content_release_id'] as $field) {
+        $assert(
+            array_key_exists($field, $subject['activation'] ?? [])
+                && $subject['activation'][$field] === null,
+            "{$field} must remain null",
+        );
+    }
     foreach (['patient_disclosure_enabled', 'patient_mutation_enabled', 'production_enabled'] as $field) {
         $assert(($subject[$field] ?? null) === false, "{$field} must remain false");
     }
@@ -184,6 +230,15 @@ $inspect = static function (array $subject, string $raw, array $foundationDocume
     );
     $assert(($contract['route_namespace_reserved'] ?? null) === true, 'foundation namespace is not reserved');
     $assert(($activation['routes_registered'] ?? null) === false, 'foundation registered routes');
+    foreach ([
+        'clinical_approval_recorded',
+        'patient_content_released',
+        'feature_activated',
+        'pilot_enrollment_confirmed',
+        'source_connector_deployed',
+    ] as $field) {
+        $assert(($activation[$field] ?? null) === false, "foundation {$field} must remain false");
+    }
     $assert(($foundationDocument['paths'] ?? null) === [], 'foundation paths must remain empty');
     $assert(($operation['path'] ?? null) === $subject['inpatient_context']['candidate_path'], 'candidate path mismatch');
     $assert(
@@ -358,6 +413,104 @@ if ($continueCount !== 1 || $withholdCount !== 39) {
     $fail("disclosure truth-table cardinality changed: {$continueCount} continue, {$withholdCount} withhold");
 }
 
+$expectedActivationVocabularies = [
+    'clinical approval' => [
+        array_map(
+            static fn (NightingaleClinicalApprovalState $case): string => $case->value,
+            NightingaleClinicalApprovalState::cases(),
+        ),
+        ['absent', 'recorded'],
+    ],
+    'content release' => [
+        array_map(
+            static fn (NightingaleContentReleaseState $case): string => $case->value,
+            NightingaleContentReleaseState::cases(),
+        ),
+        ['unreleased', 'released'],
+    ],
+    'feature activation' => [
+        array_map(
+            static fn (NightingaleFeatureActivationState $case): string => $case->value,
+            NightingaleFeatureActivationState::cases(),
+        ),
+        ['disabled', 'enabled'],
+    ],
+    'pilot enrollment' => [
+        array_map(
+            static fn (NightingalePilotEnrollmentState $case): string => $case->value,
+            NightingalePilotEnrollmentState::cases(),
+        ),
+        ['not_enrolled', 'enrolled'],
+    ],
+    'source connector' => [
+        array_map(
+            static fn (NightingaleSourceConnectorState $case): string => $case->value,
+            NightingaleSourceConnectorState::cases(),
+        ),
+        ['undeployed', 'deployed'],
+    ],
+    'activation disposition' => [
+        array_map(
+            static fn (NightingaleActivationDisposition $case): string => $case->value,
+            NightingaleActivationDisposition::cases(),
+        ),
+        ['hold', 'continue_to_operation_specific_release_evaluation'],
+    ],
+];
+foreach ($expectedActivationVocabularies as $name => [$actual, $expected]) {
+    if ($actual !== $expected) {
+        $fail("{$name} activation vocabulary changed");
+    }
+}
+
+$activationGate = new NightingaleActivationGate;
+$activationContinueCount = 0;
+$activationHoldCount = 0;
+foreach (NightingaleClinicalApprovalState::cases() as $clinicalApproval) {
+    foreach (NightingaleContentReleaseState::cases() as $contentRelease) {
+        foreach (NightingaleFeatureActivationState::cases() as $featureActivation) {
+            foreach (NightingalePilotEnrollmentState::cases() as $pilotEnrollment) {
+                foreach (NightingaleSourceConnectorState::cases() as $sourceConnector) {
+                    $result = $activationGate->evaluate(
+                        $clinicalApproval,
+                        $contentRelease,
+                        $featureActivation,
+                        $pilotEnrollment,
+                        $sourceConnector,
+                    );
+                    $shouldContinue = $clinicalApproval === NightingaleClinicalApprovalState::Recorded
+                        && $contentRelease === NightingaleContentReleaseState::Released
+                        && $featureActivation === NightingaleFeatureActivationState::Enabled
+                        && $pilotEnrollment === NightingalePilotEnrollmentState::Enrolled
+                        && $sourceConnector === NightingaleSourceConnectorState::Deployed;
+
+                    if ($shouldContinue) {
+                        $activationContinueCount++;
+                        if ($result
+                            !== NightingaleActivationDisposition::ContinueToOperationSpecificReleaseEvaluation
+                        ) {
+                            $fail('fully positive activation state did not continue to operation-specific evaluation');
+                        }
+
+                        continue;
+                    }
+
+                    $activationHoldCount++;
+                    if ($result !== NightingaleActivationDisposition::Hold) {
+                        $fail('incomplete activation state did not hold');
+                    }
+                }
+            }
+        }
+    }
+}
+if ($activationContinueCount !== 1 || $activationHoldCount !== 31) {
+    $fail(
+        "activation truth-table cardinality changed: {$activationContinueCount} continue, "
+        ."{$activationHoldCount} hold",
+    );
+}
+
 $routeProvider = file_get_contents("{$repositoryRoot}/app/Providers/RouteServiceProvider.php");
 if (preg_match('/Route::[^;]*(?:nightingale|Nightingale)/s', $routeProvider) === 1) {
     $fail('RouteServiceProvider contains a Nightingale route registration');
@@ -375,6 +528,7 @@ $runtimeTokens = [
     'NightingaleIdentityBoundary',
     'NightingaleInpatientContextSource',
     'NightingaleGenericNonDisclosureGate',
+    'NightingaleActivationGate',
 ];
 foreach ($runtimeRegistrationRoots as $root) {
     $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(
@@ -418,6 +572,36 @@ if ($selfTest) {
             'expected' => 'production source query was permitted',
             'mutate' => static function (array &$copy): void {
                 $copy['inpatient_context']['production_query_permitted'] = true;
+            },
+        ],
+        'clinical approval activation' => [
+            'expected' => 'clinical_approval_state must remain absent',
+            'mutate' => static function (array &$copy): void {
+                $copy['activation']['clinical_approval_state'] = 'recorded';
+            },
+        ],
+        'content release activation' => [
+            'expected' => 'content_release_state must remain unreleased',
+            'mutate' => static function (array &$copy): void {
+                $copy['activation']['content_release_state'] = 'released';
+            },
+        ],
+        'feature activation' => [
+            'expected' => 'feature_activation_state must remain disabled',
+            'mutate' => static function (array &$copy): void {
+                $copy['activation']['feature_activation_state'] = 'enabled';
+            },
+        ],
+        'pilot enrollment activation' => [
+            'expected' => 'pilot_enrollment_state must remain not_enrolled',
+            'mutate' => static function (array &$copy): void {
+                $copy['activation']['pilot_enrollment_state'] = 'enrolled';
+            },
+        ],
+        'source connector activation' => [
+            'expected' => 'source_connector_state must remain undeployed',
+            'mutate' => static function (array &$copy): void {
+                $copy['activation']['source_connector_state'] = 'deployed';
             },
         ],
         'route drift' => [

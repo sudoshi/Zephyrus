@@ -3,7 +3,8 @@ import Security
 
 enum NightingaleProtectedStateNamespace {
     static let keychainService = "net.acumenus.nightingale.protected-state.v1"
-    static let futureSessionBindingAccount = "future-session-binding-v1"
+    static let futureSessionBindingAccount =
+        "net.acumenus.nightingale.protected-state.v1.future-session-binding"
 }
 
 enum NightingaleProtectedStateError: Error, Equatable {

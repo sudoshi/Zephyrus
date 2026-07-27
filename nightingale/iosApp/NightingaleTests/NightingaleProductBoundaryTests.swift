@@ -102,7 +102,17 @@ final class NightingaleProductBoundaryTests: XCTestCase {
         )
         XCTAssertEqual(
             NightingaleProtectedStateNamespace.futureSessionBindingAccount,
-            "future-session-binding-v1"
+            "net.acumenus.nightingale.protected-state.v1.future-session-binding"
+        )
+        XCTAssertTrue(
+            NightingaleProtectedStateNamespace.keychainService.hasPrefix(
+                "net.acumenus.nightingale."
+            )
+        )
+        XCTAssertTrue(
+            NightingaleProtectedStateNamespace.futureSessionBindingAccount.hasPrefix(
+                "net.acumenus.nightingale."
+            )
         )
 
         let combined =
@@ -392,6 +402,11 @@ final class NightingaleProductBoundaryTests: XCTestCase {
             .joined(separator: "|")
             .lowercased()
         XCTAssertTrue(combinedKeys.contains("nightingale"))
+        XCTAssertTrue(
+            NightingalePresentationPreferenceNamespace.allKeys.allSatisfy {
+                $0.hasPrefix("net.acumenus.nightingale.")
+            }
+        )
         XCTAssertFalse(combinedKeys.contains("hummingbird"))
         XCTAssertFalse(combinedKeys.contains("patient"))
         XCTAssertFalse(combinedKeys.contains("account"))

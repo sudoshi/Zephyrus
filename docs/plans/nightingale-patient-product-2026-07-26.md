@@ -325,10 +325,16 @@ human visual review records correct brand, crop, contrast, and no unwanted trans
       presentation subset, device-local reduced-motion and decorative-imagery preferences,
       volatile-input foundations, and an empty contract governance boundary are complete.
       Patient API runtime behavior and all vocabulary code/copy remain held.
-- [ ] Reissue all product strings, accessibility IDs, test hooks, storage keys, telemetry
+- [x] Reissue all product strings, accessibility IDs, test hooks, storage keys, telemetry
       event names, and diagnostics under the Nightingale namespace.
-      Current foundation storage keys, test hooks, and diagnostics are Nightingale-only;
-      no telemetry namespace exists yet.
+      The deterministic namespace manifest now binds 12 exact sources and inventories ten
+      shared accessibility IDs, four iOS Debug hooks, ten fully qualified persistent
+      identifiers, zero telemetry events, and zero diagnostic channels. Its independent
+      verifier reproduces the manifest byte-for-byte, rejects eight mutations, rejects
+      legacy patient tokens and unregistered logging/analytics primitives, and is enforced
+      by contract and native CI. This closes only the identifiers implemented by the
+      current offline foundation; every future string, event, channel, or identifier must
+      extend the governed inventory.
 - [x] Require a compile-time scan proving Nightingale has no `hummingbird.patient` package,
       bundle, endpoint, storage, or user-facing string except explicit migration provenance.
 - [ ] Preserve the reference app untouched until the Nightingale migration evidence is
@@ -363,8 +369,13 @@ or legacy patient namespace; iOS and Android migration suites pass equivalent sa
       non-disclosable combinations in its exhaustive 40-row truth table; the sole positive
       row only continues to later governed projection evaluation. There is still no route,
       query, patient content, or authorization.
-- [ ] Keep clinical approval, content release, feature activation, pilot enrollment, and
-      source-connector deployment separate and default-off.
+- [x] Keep clinical approval, content release, feature activation, pilot enrollment, and
+      source-connector deployment separate and default-off. Five distinct state types,
+      code-owned negative configuration, five false executable-contract facts, runtime
+      non-registration scans, and an exhaustive 32-row truth table now enforce the
+      separation. Thirty-one incomplete combinations hold; the all-positive combination
+      only continues to later operation-specific release evaluation and does not authorize
+      identity, disclosure, production, or pilot use.
 
 **Exit evidence:** every displayed field has an approved source/release/provenance/freshness/
 uncertainty/correction/translation/offline rule, and every mutation has deterministic

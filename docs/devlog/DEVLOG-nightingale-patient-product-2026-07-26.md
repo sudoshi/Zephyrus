@@ -2040,9 +2040,10 @@ deployment authorization.
   collision, unit availability, lock-timeout, statement-timeout, constraint, and
   pre-commit row checks were enforced.
 - The second serializable transaction selected exactly one safe Hummingbird template
-  principal, generated a fresh UUIDv7, and created exactly one `Nightingale Reference
-Patient` principal. It is synthetic, product-tagged `nightingale`, pending, inactive,
-  and has no email, phone, password, verification timestamp, or authentication history.
+  principal, generated a fresh UUIDv7, and created exactly one principal with display name
+  `Nightingale Reference Patient`. It is synthetic, product-tagged `nightingale`, pending,
+  inactive, and has no email, phone, password, verification timestamp, or authentication
+  history.
 - A fresh read-only reconciliation proved one exact operational row and one exact
   principal, with zero Nightingale identity links, encounter grants, enrollment
   challenges, sessions, access-audit events, and notification devices. It also reproved
@@ -2060,3 +2061,108 @@ Patient` principal. It is synthetic, product-tagged `nightingale`, pending, inac
 - The complete secret-free preflight, transaction, reconciliation, residual-risk, and
   follow-up record is
   `docs/evidence/nightingale/production-sample-patient-2026-07-27/README.md`.
+
+### Direction-confirmation reconciliation
+
+- After the operator reiterated that Nightingale must use the deprecated Hummingbird
+  Patient sample, reran the production proof in a repeatable-read, read-only transaction.
+  It reconfirmed the exact one/one Nightingale encounter/principal result; zero
+  Nightingale identity links, grants, challenges, sessions, audit events, and notification
+  devices; and the unchanged one/one/one/one Hummingbird
+  encounter/principal/identity-link/grant result.
+- Corrected the evidence vocabulary to name the exact lineage keys:
+  `preferences.provisioning.source_template_product=hummingbird_patient` and
+  `preferences.provisioning.source_template_owner=hummingbird-patient-reference-identity-provisioner-v1`.
+  A first metadata predicate used a nonexistent generic `source_template` path; the
+  follow-up isolated that query mistake and proved the stored sample itself was correct.
+- No duplicate sample, identity binding, encounter grant, content projection, route,
+  activation, migration, deployment, or other production write was required or performed.
+
+## 2026-07-27 — Current-main reconciliation at `a979e786`
+
+### Upstream merge and fail-closed evidence refresh
+
+- Fetched and merged `origin/main` at
+  `a979e78630c214f6f77d96ce702227da6c03a9b6` without conflicts. The upstream slice
+  contains the Flow 4D per-patient conformance surface and iOS CI build-chain
+  improvements; it does not add a Nightingale route or native patient capability.
+- The Nightingale contract chain correctly stopped at the 130-file
+  communication/notification ledger because `routes/api.php` had changed. The five
+  preceding contract, encounter, Today, journey, and identity/source verifiers all
+  passed before that fail-closed stop.
+- Reviewed the exact 15-addition/five-deletion route delta. It gates the existing staff
+  Arena conformance read and adds a staff-only scene read plus a governed Eddy
+  exception-note proposal. These are staff operations behind Arena, Flow 4D, and
+  scoped-patient controls; they add no Nightingale patient communication, notification,
+  client transport, delivery-state claim, or migration permission.
+- Extended the generated ledger with an exact source-revalidation record containing the
+  upstream commit, previous/current SHA-256 values, line counts, unchanged
+  classification impact, and bounded rationale. The verifier now rejects commit, date,
+  source, digest, line-count, impact, and rationale drift and includes a negative
+  mutation that attempts to promote the impact to `approved`.
+- This reconciliation changes no Nightingale checklist item, product behavior, route,
+  source adapter, identity binding, content release, production record, native client,
+  or activation state.
+
+## 2026-07-27 — Namespace closure and activation-state separation
+
+### Implementation
+
+- Added a deterministic Nightingale namespace manifest covering 12 exact native source
+  files, ten shared accessibility IDs, four iOS Debug hooks, ten fully qualified
+  persistent identifiers, zero telemetry events, and zero diagnostic channels.
+- Fully qualified the Android presentation keys and both platforms' future-session-binding
+  identifiers under `net.acumenus.nightingale`. Strengthened native tests and the
+  product-boundary scanner so short or legacy identifiers fail closed.
+- Added an independent manifest verifier that reproduces builder output byte-for-byte,
+  validates source SHA-256 values, rejects legacy Hummingbird Patient tokens and
+  unregistered logging/analytics primitives, and exercises eight negative mutations.
+  Contract CI and both native product-boundary jobs invoke it.
+- Added separate PHP state types for institutional clinical approval, patient-content
+  release, product feature activation, pilot enrollment, and source-connector deployment.
+  All five default to negative states in code-owned configuration without environment
+  hooks.
+- Added a route-free conjunctive gate. The independent verifier and PHPUnit enumerate all
+  32 combinations: 31 return `hold`; only the all-positive row returns
+  `continue_to_operation_specific_release_evaluation`. That continuation is explicitly not
+  identity, disclosure, production, clinical release, or pilot authorization.
+- Extended the empty executable contract and all dependent evidence verifiers with five
+  separate false activation facts. Regenerated the held patient-journey candidate after
+  its exact contract-source checksum changed. No route, provider binding, source query,
+  patient content, message, notification, telemetry, diagnostic channel, migration, or
+  deployment was added.
+
+### Backend and contract acceptance
+
+- The focused backend suite passed 23 tests and 149 assertions.
+- The complete Nightingale contract chain passed, including the empty contract, encounter
+  candidate, Today candidate, 15-family/27-case patient-journey catalog, 64-case
+  identity/source decisions, 65-source identity ledger, 130-source communication ledger,
+  134-source journey ledger, threat/hazard model, dependency inventory, namespace
+  manifest, backend verifier, and native product boundary.
+- The namespace manifest reproduced exactly and all eight negative mutations failed as
+  required. The activation proof retained exactly one limited continuation and 31 holds.
+
+### Native acceptance
+
+- Rebuilt from isolated `/tmp` roots. Android passed eight Debug and eight Release unit
+  tests, Debug/Release lint, Debug/Release assembly, and the unsigned Release APK boundary
+  verifier with zero test failures, errors, or skips.
+- Ran a fresh iOS build-for-testing and the iPhone 16e simulator on iOS 26.3.1. The
+  xcresult summaries recorded 11/11 unit tests and 6/6 UI journeys, with zero failures or
+  skips. The unsigned Release application and exact binary boundary verifier also passed.
+- The shared `hb` Android AVD was already occupied by a separate Claude process. Preserved
+  that process and instead cold-booted a wiped, isolated `nightingale-codex` Android
+  15/API 35 AVD on port 5556. All 10/10 installed journeys passed with zero failures,
+  errors, or skips. Shut down only the isolated AVD and the Nightingale iPhone simulator;
+  the pre-existing Android emulator remained untouched.
+
+### Checklist result and residual boundary
+
+- Checked the bounded Stream C namespace-reissue item and Stream D
+  approval/release/activation/enrollment/connector-separation item. The master checklist
+  now records 41 of 54 items complete, or 75.93%.
+- The remaining 13 items continue to require live operation contracts and implementations,
+  approved identity/source/content/reviewer decisions, signed-distribution evidence,
+  human validation, integration exercises, or pilot authorization. The sample patient
+  remains pending/inactive and unreachable.

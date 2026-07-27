@@ -7,8 +7,10 @@ import androidx.compose.runtime.setValue
 
 internal object NightingalePresentationPreferenceNamespace {
     const val PREFERENCES_FILE = "net.acumenus.nightingale.presentation.v1"
-    const val REDUCE_MOTION = "reduce-motion"
-    const val HIDE_DECORATIVE_IMAGERY = "hide-decorative-imagery"
+    const val REDUCE_MOTION =
+        "net.acumenus.nightingale.presentation.v1.reduce-motion"
+    const val HIDE_DECORATIVE_IMAGERY =
+        "net.acumenus.nightingale.presentation.v1.hide-decorative-imagery"
 
     val allKeys = setOf(REDUCE_MOTION, HIDE_DECORATIVE_IMAGERY)
 }

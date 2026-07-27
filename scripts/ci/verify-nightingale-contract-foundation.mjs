@@ -119,6 +119,11 @@ function inspect(document, raw) {
                 "identity_enabled",
                 "inpatient_source_enabled",
                 "production_source_query_permitted",
+                "clinical_approval_recorded",
+                "patient_content_released",
+                "feature_activated",
+                "pilot_enrollment_confirmed",
+                "source_connector_deployed",
                 "patient_disclosure_enabled",
                 "patient_mutation_enabled",
                 "production_enabled",
@@ -137,6 +142,11 @@ function inspect(document, raw) {
         "identity_enabled",
         "inpatient_source_enabled",
         "production_source_query_permitted",
+        "clinical_approval_recorded",
+        "patient_content_released",
+        "feature_activated",
+        "pilot_enrollment_confirmed",
+        "source_connector_deployed",
         "patient_disclosure_enabled",
         "patient_mutation_enabled",
         "production_enabled",
@@ -145,7 +155,7 @@ function inspect(document, raw) {
     }
     assert(
         Array.isArray(activation?.required_before_first_operation) &&
-            activation.required_before_first_operation.length >= 6,
+            activation.required_before_first_operation.length >= 11,
         "pre-operation gates are incomplete",
     );
 

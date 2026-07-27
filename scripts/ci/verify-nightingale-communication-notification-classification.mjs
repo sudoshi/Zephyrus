@@ -36,6 +36,22 @@ const expectedClassificationId =
 const expectedStatus = "evidence_only_not_approved_for_implementation";
 const expectedSourceCount = 130;
 const expectedDecisionCount = 17;
+const expectedSourceRevalidation = {
+    revalidated_commit: "a979e78630c214f6f77d96ce702227da6c03a9b6",
+    revalidated_at: "2026-07-27",
+    changed_sources: [
+        {
+            path: "routes/api.php",
+            previous_sha256:
+                "052d9afd466b2646385986297e9ce3ec6a886d299b35c76067f5a0f21d7fa082",
+            current_sha256:
+                "a357886ae0975b63d978b975e53518a97d3f6e907820255a0f1c9e1b76a986ad",
+            additions: 15,
+            deletions: 5,
+            classification_impact: "none",
+        },
+    ],
+};
 
 const expectedScope = [
     "patient_communication_contract",
@@ -193,6 +209,79 @@ function inspect(document, { verifyFiles = true } = {}) {
         document.reviewed_at === "2026-07-27",
         "review date changed without a new classification version",
     );
+    const sourceRevalidation = document.source_revalidation;
+    assert(
+        isRecord(sourceRevalidation),
+        "source_revalidation must be an object",
+    );
+    if (isRecord(sourceRevalidation)) {
+        assert(
+            sameMembers(Object.keys(sourceRevalidation), [
+                "revalidated_commit",
+                "revalidated_at",
+                "changed_sources",
+            ]),
+            "source_revalidation field inventory changed",
+        );
+        assert(
+            sourceRevalidation.revalidated_commit ===
+                expectedSourceRevalidation.revalidated_commit,
+            "source revalidation commit changed",
+        );
+        assert(
+            sourceRevalidation.revalidated_at ===
+                expectedSourceRevalidation.revalidated_at,
+            "source revalidation date changed",
+        );
+        assert(
+            Array.isArray(sourceRevalidation.changed_sources) &&
+                sourceRevalidation.changed_sources.length === 1,
+            "source revalidation must retain exactly one changed source",
+        );
+        const changedSource = sourceRevalidation.changed_sources?.[0];
+        const expectedChangedSource =
+            expectedSourceRevalidation.changed_sources[0];
+        assert(
+            isRecord(changedSource),
+            "source revalidation changed source must be an object",
+        );
+        if (isRecord(changedSource)) {
+            assert(
+                sameMembers(Object.keys(changedSource), [
+                    "path",
+                    "previous_sha256",
+                    "current_sha256",
+                    "additions",
+                    "deletions",
+                    "classification_impact",
+                    "rationale",
+                ]),
+                "source revalidation changed-source field inventory changed",
+            );
+            for (const key of [
+                "path",
+                "previous_sha256",
+                "current_sha256",
+                "additions",
+                "deletions",
+                "classification_impact",
+            ]) {
+                assert(
+                    changedSource[key] === expectedChangedSource[key],
+                    `source revalidation ${key} changed`,
+                );
+            }
+            assert(
+                typeof changedSource.rationale === "string" &&
+                    changedSource.rationale.trim().length >= 250 &&
+                    changedSource.rationale.includes("staff-only") &&
+                    changedSource.rationale.includes(
+                        "adds no Nightingale route",
+                    ),
+                "source revalidation rationale must retain the bounded route analysis",
+            );
+        }
+    }
     assert(
         sameMembers(document.scope, expectedScope),
         "classification scope changed",
@@ -425,6 +514,11 @@ function assertFoundationStillDormant() {
         "identity_enabled",
         "inpatient_source_enabled",
         "production_source_query_permitted",
+        "clinical_approval_recorded",
+        "patient_content_released",
+        "feature_activated",
+        "pilot_enrollment_confirmed",
+        "source_connector_deployed",
         "patient_disclosure_enabled",
         "patient_mutation_enabled",
         "production_enabled",
@@ -514,6 +608,13 @@ if (selfTest) {
                 candidate.required_findings.staff_close_reason_breaks_patient_thread_decode = true;
             },
             "staff_close_reason_breaks_patient_thread_decode must remain false",
+        ],
+        [
+            (candidate) => {
+                candidate.source_revalidation.changed_sources[0].classification_impact =
+                    "approved";
+            },
+            "source revalidation classification_impact changed",
         ],
         [
             (candidate) => {

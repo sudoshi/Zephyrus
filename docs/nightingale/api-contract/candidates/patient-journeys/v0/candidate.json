@@ -225,11 +225,11 @@
     },
     "evidence": {
         "source_count": 12,
-        "source_inventory_digest": "aed369c71dd22596ed09c908746e529617c3a62e1c92cfea5cb595895245ffea",
+        "source_inventory_digest": "c380eda3c774a9c8a0aaae63f1ab368aa2ed90acc3c6f7130bdd663f4f97546c",
         "sources": [
             {
                 "path": "docs/nightingale/api-contract/nightingale-foundation.v0.json",
-                "sha256": "df7d74e6cde652bc2e8e25d74ec9c0238eeb00fb9e50403b25d32fc46bf425dd"
+                "sha256": "6765da41f884cec3cb6596e2484a47297878940731b306a1b5ecf664cf7c0580"
             },
             {
                 "path": "docs/nightingale/api-contract/candidates/encounter-access/v0/candidate.json",
@@ -265,7 +265,7 @@
             },
             {
                 "path": "docs/nightingale/migration/candidates/v0/communication-notification-source-classification.json",
-                "sha256": "a3a3beb667f7007ccd9dd8abbb15acf0beb9248adc48cd0a704912baafbedf6e"
+                "sha256": "82ae05cbe7c24167ba5a7f26b16ea0b79d74d11d2041a63a474c729dfc5b1bf8"
             },
             {
                 "path": "docs/nightingale/migration/candidates/v0/journey-preference-presentation-release-source-classification.json",

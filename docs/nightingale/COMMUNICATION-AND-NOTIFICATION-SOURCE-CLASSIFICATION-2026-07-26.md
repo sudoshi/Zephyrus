@@ -6,6 +6,7 @@ implementation, runtime adoption, patient disclosure, mutation, notification del
 production data use, or release
 **Reviewed source commit:** `b6ea087747d7ea88c8a076f06f4c91a2636ea029`
 **Last source revalidation:** 2026-07-27
+**Last source revalidation commit:** `a979e78630c214f6f77d96ce702227da6c03a9b6`
 **Machine-readable ledger:**
 [`migration/candidates/v0/communication-notification-source-classification.json`](./migration/candidates/v0/communication-notification-source-classification.json)
 **Verifier:**
@@ -102,6 +103,24 @@ state. The broad `routes/api.php` evidence source therefore remains classified u
 `routes_rejected`; no implementation permission, finding, disposition, or activation gate
 changes. This is a source revalidation of the same v1 classification, not a new functional
 approval.
+
+The feature stream was reconciled again with `origin/main` at
+`a979e78630c214f6f77d96ce702227da6c03a9b6`. The exact 130-path inventory remained
+unchanged, and `routes/api.php` was again the only classified source whose bytes changed:
+its SHA-256 moved from
+`052d9afd466b2646385986297e9ce3ec6a886d299b35c76067f5a0f21d7fa082` to
+`a357886ae0975b63d978b975e53518a97d3f6e907820255a0f1c9e1b76a986ad`.
+
+The 15-addition/five-deletion delta places the existing staff Arena conformance read
+behind a separate Flow 4D conformance gate and adds a staff-only scene read plus a
+governed exception-note proposal. Every operation remains inside the staff Arena route
+group and its scoped patient-flow authorization. The delta does not add a Nightingale
+route, patient communication operation, notification provider, patient-native transport,
+delivery-state claim, or migration permission. `routes/api.php` therefore remains
+`routes_rejected`, every activation constraint remains false, and no finding or
+disposition changes. The machine-readable ledger now records this second bounded
+revalidation explicitly instead of allowing a current byte digest to float away from its
+review record.
 
 ### 2.4 Dispositions
 

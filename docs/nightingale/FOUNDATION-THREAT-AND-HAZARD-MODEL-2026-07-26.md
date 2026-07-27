@@ -441,30 +441,35 @@ hazard is **keep the capability disabled**.
 
 Passing one gate never implies another. In particular: authenticated is not authorized;
 authorized is not current inpatient; current inpatient is not content release; content
-release is not messaging permission; deployment is not pilot approval.
+release is not messaging permission; deployment is not pilot approval. The bounded
+route-free activation foundation now gives five of these separations distinct types:
+institutional clinical approval, patient-content release, feature activation, pilot
+enrollment, and source-connector deployment. Its exhaustive 32-row proof holds 31
+incomplete combinations; the all-positive row still proceeds only to operation-specific
+release evaluation and does not satisfy the other gates in this table.
 
 ## 14. Verification program
 
-| Verification ID | Required verification                                                                                | Threats/hazards covered               | Status                         |
-| --------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------------------------ |
-| VER-001         | Contract zero-path/default-off and negative mutation self-tests                                      | THR-CFG-001, THR-E-003                | Implemented                    |
-| VER-002         | Backend unavailable/inconsistent truth tables and unbound-route proof                                | HZ-002, HZ-019                        | Implemented foundation only    |
-| VER-003         | Native product/namespace/no-network/release-hook scans                                               | THR-I-004, THR-E-003                  | Implemented foundation only    |
-| VER-004         | Protected-state read/write/corrupt/delete synthetic canaries                                         | THR-T-001, HZ-021                     | Implemented foundation only    |
-| VER-005         | Accessibility contrast/order/reflow/target/landscape/text-expansion/RTL automation                   | HZ-014                                | Implemented current shell only |
-| VER-006         | Identity proofing, enrollment, replay, enumeration, session, step-up, recovery abuse suite           | THR-S-001/003, THR-D-001, THR-OPS-001 | Not implemented                |
-| VER-007         | Representative grant/revoke/sensitive-content/cross-patient suite                                    | THR-S-002, HZ-013                     | Not implemented                |
-| VER-008         | IDOR/resource ownership/scope/purpose/effective-window matrix                                        | THR-E-001/002                         | Not implemented                |
-| VER-009         | Source reconciliation, overlap, merge, transfer, close, freshness, outage, race suite                | HZ-002/003/012/019                    | Candidate fixtures only        |
-| VER-010         | Field release/language/freshness/correction/retraction/offline atomic-decoder suite                  | HZ-003–007/017/018                    | Today candidate fixtures only  |
-| VER-011         | Messaging route/delivery/idempotency/concurrency/urgent/downtime end-to-end suite                    | HZ-008–012                            | Not implemented                |
-| VER-012         | Push payload/token/lock-screen/delay/duplicate/revoke suite                                          | THR-I-004, HZ-015                     | Not implemented                |
-| VER-013         | Logging/analytics/crash/support PHI canary and access/retention audit                                | THR-I-002/003/006                     | Not implemented                |
-| VER-014         | Signed iOS/Android artifact MASVS assessment and penetration test                                    | THR-T-003, THR-SC-001                 | Not implemented                |
-| VER-015         | Human patient comprehension, language, interpreter, VoiceOver/TalkBack, motor review                 | HZ-006/007/014/020                    | Not implemented                |
-| VER-016         | Tabletop for wrong patient, stale content, message outage, push leak, lost device, source compromise | HZ-001–022                            | Not implemented                |
-| VER-017         | Kill-switch, correction/retraction, rollback, cache purge, recovery-time exercise                    | HZ-004/017/022                        | Not implemented                |
-| VER-018         | Deidentified bounded non-production pilot rehearsal and teardown                                     | Cross-cutting                         | Prohibited until approval      |
+| Verification ID | Required verification                                                                                                 | Threats/hazards covered               | Status                         |
+| --------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------------------------ |
+| VER-001         | Contract zero-path/default-off, five-gate activation separation, 32-row truth table, and negative mutation self-tests | THR-CFG-001, THR-E-003                | Implemented foundation only    |
+| VER-002         | Backend unavailable/inconsistent truth tables and unbound-route proof                                                 | HZ-002, HZ-019                        | Implemented foundation only    |
+| VER-003         | Native product/namespace/no-network/release-hook scans                                                                | THR-I-004, THR-E-003                  | Implemented foundation only    |
+| VER-004         | Protected-state read/write/corrupt/delete synthetic canaries                                                          | THR-T-001, HZ-021                     | Implemented foundation only    |
+| VER-005         | Accessibility contrast/order/reflow/target/landscape/text-expansion/RTL automation                                    | HZ-014                                | Implemented current shell only |
+| VER-006         | Identity proofing, enrollment, replay, enumeration, session, step-up, recovery abuse suite                            | THR-S-001/003, THR-D-001, THR-OPS-001 | Not implemented                |
+| VER-007         | Representative grant/revoke/sensitive-content/cross-patient suite                                                     | THR-S-002, HZ-013                     | Not implemented                |
+| VER-008         | IDOR/resource ownership/scope/purpose/effective-window matrix                                                         | THR-E-001/002                         | Not implemented                |
+| VER-009         | Source reconciliation, overlap, merge, transfer, close, freshness, outage, race suite                                 | HZ-002/003/012/019                    | Candidate fixtures only        |
+| VER-010         | Field release/language/freshness/correction/retraction/offline atomic-decoder suite                                   | HZ-003–007/017/018                    | Today candidate fixtures only  |
+| VER-011         | Messaging route/delivery/idempotency/concurrency/urgent/downtime end-to-end suite                                     | HZ-008–012                            | Not implemented                |
+| VER-012         | Push payload/token/lock-screen/delay/duplicate/revoke suite                                                           | THR-I-004, HZ-015                     | Not implemented                |
+| VER-013         | Logging/analytics/crash/support PHI canary and access/retention audit                                                 | THR-I-002/003/006                     | Not implemented                |
+| VER-014         | Signed iOS/Android artifact MASVS assessment and penetration test                                                     | THR-T-003, THR-SC-001                 | Not implemented                |
+| VER-015         | Human patient comprehension, language, interpreter, VoiceOver/TalkBack, motor review                                  | HZ-006/007/014/020                    | Not implemented                |
+| VER-016         | Tabletop for wrong patient, stale content, message outage, push leak, lost device, source compromise                  | HZ-001–022                            | Not implemented                |
+| VER-017         | Kill-switch, correction/retraction, rollback, cache purge, recovery-time exercise                                     | HZ-004/017/022                        | Not implemented                |
+| VER-018         | Deidentified bounded non-production pilot rehearsal and teardown                                                      | Cross-cutting                         | Prohibited until approval      |
 
 ## 15. Detection, incident response, and recovery requirements
 
