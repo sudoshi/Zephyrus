@@ -14,7 +14,9 @@ import {
   ROUND_PINNED_COLOR,
   ROUND_STOP_COLORS,
   TIMER_PIP_COLORS,
+  dwellNodeScale,
   patientHue,
+  traceGradientRgb,
 } from '@/features/patientFlowNavigator/sceneVocabulary';
 import type { RoundRouteSegment, RoundStopCell } from '@/features/virtualRounds/roundsScene';
 import type {
@@ -157,6 +159,15 @@ export class NavigatorScene {
   private delayedCueMaterial: THREE.SpriteMaterial | null = null;
 
   private focusedRoundStopUuid: string | null = null;
+
+  // B3 trace mode (plan §7.1, PJ-2): the selected patient's story in-scene.
+  private tracePatientId: string | null = null;
+
+  private followPatientId: string | null = null;
+
+  private readonly followDelta = new THREE.Vector3();
+
+  private traceLineMaterial: THREE.LineBasicMaterial | null = null;
 
   private heatSingleMaterial: THREE.MeshStandardMaterial;
 
@@ -599,6 +610,7 @@ export class NavigatorScene {
 
   /** Cheap per-frame path: token creation/positioning only. */
   updateTokens(states: PatientVisibleState[], layerVisible: boolean, redactIdentity: boolean): void {
+    const trace = this.tracePatientId;
     const visible = new Set<string>();
     for (const state of states) {
       let token = this.tokenByPatient.get(state.patientId);
@@ -610,6 +622,15 @@ export class NavigatorScene {
       token.position.set(state.position.x, state.position.y, state.position.z);
       token.scale.setScalar(state.event.event_category === 'movement' ? 1 : 0.82);
       token.visible = layerVisible;
+      // Trace mode dims every OTHER token so the story reads (materials are
+      // per-patient cached, so this touches exactly one patient each).
+      const material = token.material as THREE.MeshStandardMaterial;
+      const dimmed = trace !== null && state.patientId !== trace;
+      const targetOpacity = dimmed ? 0.22 : 1;
+      if (material.transparent !== dimmed || material.opacity !== targetOpacity) {
+        material.transparent = dimmed;
+        material.opacity = targetOpacity;
+      }
       // Shared builder (H1.2): mesh userData and the search/feed selection
       // path must present identical inspector payloads.
       token.userData = patientTokenInspectorData(state, redactIdentity);
@@ -619,9 +640,27 @@ export class NavigatorScene {
     for (const [patientId, token] of this.tokenByPatient.entries()) {
       if (!visible.has(patientId)) token.visible = false;
     }
+
+    // Follow mode (B3): glide the orbit pivot (and camera, preserving the
+    // operator's framing) toward the followed token. Pre-allocated vector —
+    // zero per-frame allocation. Operator camera input clears follow at the
+    // orchestrator level (the 'start' listener), so this never fights a hand.
+    if (this.followPatientId) {
+      const followed = this.tokenByPatient.get(this.followPatientId);
+      if (followed?.visible) {
+        this.followDelta.subVectors(followed.position, this.orbit.target);
+        if (this.followDelta.lengthSq() > 0.01) {
+          this.followDelta.multiplyScalar(0.18);
+          this.orbit.target.add(this.followDelta);
+          this.camera.position.add(this.followDelta);
+        }
+      }
+    }
   }
 
-  /** Bucketed rebuild: trail polylines up to timeMs for the active patients. */
+  /** Bucketed rebuild: trail polylines up to timeMs for the active patients.
+   * In trace mode (B3) only the traced patient renders — a time-gradient
+   * line (dim slate → identity hue) with dwell markers where they stayed. */
   rebuildTrails(
     tracks: Map<string, PatientFlowEvent[]>,
     locations: PatientFlowLocations,
@@ -632,23 +671,109 @@ export class NavigatorScene {
     this.clearGroup(this.trailLayer);
     if (!layerVisible) return;
 
+    const trace = this.tracePatientId;
     const activePatients = new Set(states.map((state) => state.patientId));
     for (const [patientId, track] of tracks.entries()) {
-      if (!activePatients.has(patientId)) continue;
+      if (trace !== null) {
+        if (patientId !== trace) continue;
+      } else if (!activePatients.has(patientId)) {
+        continue;
+      }
+
       const points: THREE.Vector3[] = [];
+      const arrivals: number[] = [];
       for (const event of track) {
-        if (parseTime(event.occurred_at) > timeMs) break;
+        const eventMs = parseTime(event.occurred_at);
+        if (eventMs > timeMs) break;
         const position = positionFor(locations, event.to_location);
         if (!position) continue;
         const vector = new THREE.Vector3(position.x, position.y, position.z);
-        if (!points.length || !points[points.length - 1].equals(vector)) points.push(vector);
+        if (!points.length || !points[points.length - 1].equals(vector)) {
+          points.push(vector);
+          arrivals.push(eventMs);
+        }
       }
       if (points.length < 2) continue;
+
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      if (trace !== null) {
+        const colors = new Float32Array(points.length * 3);
+        for (let index = 0; index < points.length; index += 1) {
+          const t = points.length === 1 ? 1 : index / (points.length - 1);
+          const [r, g, b] = traceGradientRgb(t, patientId);
+          colors[index * 3] = r;
+          colors[index * 3 + 1] = g;
+          colors[index * 3 + 2] = b;
+        }
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        const line = new THREE.Line(geometry, this.traceLineMaterialLazy());
+        line.userData = { kind: 'patient-trail', patient_id: patientId };
+        this.trailLayer.add(line);
+
+        // Dwell markers: arrival→next-arrival span at one spot (the open
+        // segment runs to the scrubbed time). Shared token geometry (guarded
+        // in clearGroup) + the patient's own cached identity material.
+        for (let index = 0; index < points.length; index += 1) {
+          const dwellMs = (index < points.length - 1 ? arrivals[index + 1] : timeMs) - arrivals[index];
+          const scale = dwellNodeScale(dwellMs / 60_000);
+          if (scale <= 0) continue;
+          const node = new THREE.Mesh(this.tokenGeometry, this.materialForPatient(patientId));
+          node.position.copy(points[index]);
+          node.position.y += 0.6;
+          node.scale.setScalar(scale * 0.5);
+          node.userData = { kind: 'trace-dwell', patient_id: patientId };
+          this.trailLayer.add(node);
+        }
+        continue;
+      }
+
       const line = new THREE.Line(geometry, this.trailMaterialForPatient(patientId));
       line.userData = { kind: 'patient-trail', patient_id: patientId };
       this.trailLayer.add(line);
     }
+  }
+
+  /** Trace mode on/off (B3). Caller owns triggering the bucketed rebuild. */
+  setTraceMode(patientId: string | null): void {
+    this.tracePatientId = patientId;
+  }
+
+  /** Camera follows this token during replay; null stops following. */
+  setFollowPatient(patientId: string | null): void {
+    this.followPatientId = patientId;
+  }
+
+  /** Frame the traced patient's whole story (trail + dwell + token). */
+  focusTrace(): boolean {
+    if (!this.tracePatientId) return this.focusSelection();
+
+    const points: Array<{ x: number; y: number; z: number }> = [];
+    for (const child of this.trailLayer.children) {
+      if (child.userData?.kind === 'trace-dwell') {
+        points.push({ x: child.position.x, y: child.position.y, z: child.position.z });
+        continue;
+      }
+      if ((child as THREE.Line).isLine && child.userData?.patient_id === this.tracePatientId) {
+        const positionAttr = (child as THREE.Line).geometry.getAttribute('position');
+        for (let index = 0; index < positionAttr.count; index += 1) {
+          points.push({ x: positionAttr.getX(index), y: positionAttr.getY(index), z: positionAttr.getZ(index) });
+        }
+      }
+    }
+    const token = this.tokenByPatient.get(this.tracePatientId);
+    if (token?.visible) {
+      points.push({ x: token.position.x, y: token.position.y, z: token.position.z });
+    }
+    if (!points.length) return this.focusSelection();
+    this.focusOn(points);
+    return true;
+  }
+
+  private traceLineMaterialLazy(): THREE.LineBasicMaterial {
+    if (!this.traceLineMaterial) {
+      this.traceLineMaterial = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.95 });
+    }
+    return this.traceLineMaterial;
   }
 
   /** Bucketed rebuild: overhead occupancy disks with stay/timer state. */
@@ -1154,6 +1279,7 @@ export class NavigatorScene {
     this.clearSelection();
     this.hoverChip.remove();
     this.baseCategoryMaterials.forEach((material) => material.dispose());
+    this.traceLineMaterial?.dispose();
     this.baseObjects.forEach((object) => this.disposeObject(object));
     this.clearGroup(this.patientLayer);
     this.clearGroup(this.trailLayer);

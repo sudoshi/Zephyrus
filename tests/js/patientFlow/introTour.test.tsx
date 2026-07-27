@@ -51,9 +51,9 @@ describe('introTour helpers', () => {
   it('includes the rounds stop only when a run is loaded', () => {
     const withoutRounds = introStops(false);
     const withRounds = introStops(true);
-    expect(withoutRounds).toHaveLength(4);
+    expect(withoutRounds).toHaveLength(5);
     expect(withoutRounds.some((stop) => stop.id === 'rounds')).toBe(false);
-    expect(withRounds).toHaveLength(5);
+    expect(withRounds).toHaveLength(6);
     expect(withRounds[withRounds.length - 1].id).toBe('rounds');
   });
 
@@ -75,7 +75,7 @@ describe('NavigatorIntro', () => {
     );
     expect(screen.getByRole('dialog', { name: 'Navigator introduction' })).toBeTruthy();
     expect(screen.getByText('Census scope')).toBeTruthy();
-    expect(screen.getByText('1 of 4')).toBeTruthy();
+    expect(screen.getByText('1 of 5')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
   });
 
@@ -120,9 +120,9 @@ describe('NavigatorIntro', () => {
 
   it('clamps when the stop list shrinks (rounds run unloads mid-intro)', () => {
     render(
-      <NavigatorIntro stops={stops} index={4} onIndexChange={vi.fn()} onDismiss={vi.fn()} />,
+      <NavigatorIntro stops={stops} index={5} onIndexChange={vi.fn()} onDismiss={vi.fn()} />,
     );
     expect(screen.getByText('Floors & shortcuts')).toBeTruthy();
-    expect(screen.getByText('4 of 4')).toBeTruthy();
+    expect(screen.getByText('5 of 5')).toBeTruthy();
   });
 });

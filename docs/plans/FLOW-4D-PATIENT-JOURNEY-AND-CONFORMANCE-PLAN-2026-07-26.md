@@ -218,33 +218,33 @@ The pivotal discovery of this review, spelled out because Phases A2/C hang off i
 
 Standard gates every phase: `npx tsc --noEmit` **and** `npx vite build`, `scripts/check-ui-canon.sh`, Vitest, targeted PHPUnit (class-scoped, PHPUnit-not-Pest), sidecar `arena/.venv/bin/python -m pytest` when touched, CI green, `./deploy.sh --frontend` (or `--db --path=` for the one migration), devlog + memory update. Sequential small PRs; no long-lived worktrees (Worktree Agent Protocol).
 
-### Phase A — Server data spine (~3–4 d) `feature/flow4d-journey-spine` [C]
+### Phase A — Server data spine `feature/flow4d-journey-spine` [C] — **SHIPPED (PR #93, squash `e5f39bac`; deployed prod + migration `[53] Ran` + fpm restart 2026-07-27)**
 **A1 Journey endpoint**
-- [ ] `app/Services/Flow/PatientJourneyService.php` — merge flow_events (patient_ref + encounter_ref paths), care_journey_milestones (via or_cases), ancillary_milestones, transport_requests phases, bed_requests, barriers overlapping stay window, home_episodes; derive interval segments (ED wait / boarding [bed_request→place] / unit stays / OR phases) with dwell; attach `next` block from ForwardProjection/occupancy `next_move`
-- [ ] Route `GET /api/patient-flow/journey` under `EnforceFlowLens:scoped-patients` in `routes/api.php` (patient-flow group); persona chain untouched; 403 for `patient_dots=none`
-- [ ] Response carries `epoch` + `as_of`; Zod schema `features/patientFlowNavigator/journeySchemas.ts`
-- [ ] PHPUnit: `tests/Feature/PatientFlow/PatientJourneyEndpointTest.php` — ordering, interval derivation, lens redaction (aggregate 403; scoped strips identity fields), encounter scoping, empty-history shape
+- [x] `app/Services/Flow/PatientJourneyService.php` — merge flow_events (patient_ref + encounter_ref paths), care_journey_milestones (via or_cases), ancillary_milestones, transport_requests phases, bed_requests, barriers overlapping stay window, home_episodes; derive interval segments (ED wait / boarding [bed_request→place] / unit stays / OR phases) with dwell; attach `next` block from ForwardProjection/occupancy `next_move`
+- [x] Route `GET /api/patient-flow/journey` under `EnforceFlowLens:scoped-patients` in `routes/api.php` (patient-flow group); persona chain untouched; 403 for `patient_dots=none`
+- [x] Response carries `epoch` + `as_of`; Zod schema `features/patientFlowNavigator/journeySchemas.ts`
+- [x] PHPUnit: `tests/Feature/PatientFlow/PatientJourneyEndpointTest.php` — ordering, interval derivation, lens redaction (aggregate 403; scoped strips identity fields), encounter scoping, empty-history shape
 **A2 Per-case conformance seam**
-- [ ] `arena/app/conformance.py`: `per_case: bool` + `case_ids: list[str]` params; response adds `case_results: [{case_id, conformant, deviations, activity_timeline}]` (aggregates unchanged — additive contract); pytest: per_case parity with aggregate counts, case_ids filter, timeline first-occurrence semantics
-- [ ] `ArenaSidecarClient::conformance()` passthrough; `RefreshArenaConformance` upserts `arena.case_conformance` (new additive migration `create_arena_case_conformance` — SafeMigration, no prod.* touch; applied to prod later via `--db --path=`)
-- [ ] `ArenaService::caseConformance(string $encounterRef)` — `EmissionMap::hashRef` join (enc-first, patient fallback), reads cache only
-- [ ] Route `GET /api/arena/conformance/case` (main arena group under `EnsureArenaEnabled` + flow-lens full-dots check); PHPUnit: hash-join correctness, cache-only (no sidecar call on request path), lens gate, ARENA-off 404
+- [x] `arena/app/conformance.py`: `per_case: bool` + `case_ids: list[str]` params; response adds `case_results: [{case_id, conformant, deviations, activity_timeline}]` (aggregates unchanged — additive contract); pytest: per_case parity with aggregate counts, case_ids filter, timeline first-occurrence semantics
+- [x] `ArenaSidecarClient::conformance()` passthrough; `RefreshArenaConformance` upserts `arena.case_conformance` (new additive migration `create_arena_case_conformance` — SafeMigration, no prod.* touch; applied to prod later via `--db --path=`)
+- [x] `ArenaService::caseConformance(string $encounterRef)` — `EmissionMap::hashRef` join (enc-first, patient fallback), reads cache only
+- [x] Route `GET /api/arena/conformance/case` (main arena group under `EnsureArenaEnabled` + flow-lens full-dots check); PHPUnit: hash-join correctness, cache-only (no sidecar call on request path), lens gate, ARENA-off 404
 **A3 Epoch & bootstrap resilience (absorbs Codex F-6 pt 2; DI-1..DI-3)**
-- [ ] `GET /api/patient-flow/epoch` (or fold into `/summary`): `{epoch: refresh_id, refreshed_at}` from `ops.demo_refresh_runs` latest completed row (prod-safe when table empty: epoch=null → feature inert)
-- [ ] All patient-flow JSON responses + SSE messages stamped with `epoch` (response envelope meta; additive)
-- [ ] Client: 60 s epoch check piggybacked on existing `nowMs` tick; on change → **atomic rebootstrap** (all four bootstrap datasets + overlays refetched together, "Rebuilding view — data refreshed" status card, selection cleared, scrub position preserved-if-valid else Now); rounds stops cleared per PR #48 rule
-- [ ] Bootstrap retry: failure card gains a Retry button; partial-failure renders what loaded + names what didn't (DI-2)
-- [ ] Vitest: epoch-change triggers single coordinated rebootstrap (no per-dataset tearing); soak hook exposes `epoch()` for H4 refresh-boundary assertion
+- [x] `GET /api/patient-flow/epoch` (or fold into `/summary`): `{epoch: refresh_id, refreshed_at}` from `ops.demo_refresh_runs` latest completed row (prod-safe when table empty: epoch=null → feature inert)
+- [x] All patient-flow JSON responses + SSE messages stamped with `epoch` (response envelope meta; additive)
+- [x] Client: 60 s epoch check piggybacked on existing `nowMs` tick; on change → **atomic rebootstrap** (all four bootstrap datasets + overlays refetched together, "Rebuilding view — data refreshed" status card, selection cleared, scrub position preserved-if-valid else Now); rounds stops cleared per PR #48 rule
+- [x] Bootstrap retry: failure card gains a Retry button; partial-failure renders what loaded + names what didn't (DI-2)
+- [x] Vitest: epoch-change triggers single coordinated rebootstrap (no per-dataset tearing); soak hook exposes `epoch()` for H4 refresh-boundary assertion
 **Acceptance:** journey JSON for any demo patient reconstructs admit→now ordered with intervals; per-case conformance queryable by encounter ref out of cache; wall client crosses a 6 h refresh with one visible rebuild and zero mixed-epoch frames.
 
-### Phase B — Patient Journey Drawer + trace mode (~3–4 d) `feature/flow4d-journey-drawer` [C]
-- [ ] B1 `NavigatorJourneyDrawer.tsx` (+ `features/patientFlowNavigator/journey.ts` builders): header/intervals/milestones/next/links per §7.1; replaces inspector for patient selections; CSS appended to `PatientFlowNavigator.css` (no new blur file); ≥24 px targets; `tabular-nums` durations
-- [ ] B2 Sentinel alignment control: "align from" selector (arrival / admit / recognition when present) re-zeroes interval labels (LifeLines2 op); FHIR bundle context row (PJ-6)
-- [ ] B3 Trace mode in `NavigatorScene`: selected-patient trail w/ time gradient + dwell nodes; others dimmed; chronobar patient ticks; `F` frames trace; follow-patient toggle during replay (explicit button, G-6)
-- [ ] B4 `?patient={ref}` in `parseHandoff` (+ persona forwarding, retry loop, unplaceable toast); "Locate in 4D" buttons: RoundPatientWorkspace (exists for stops — extend to patient), ED board, bed board (each a small PR-able touch)
-- [ ] B5 Chronobar: scented density strip (events/admissions/discharges bucketed client-side from loaded events; barrier ticks remain), click-to-jump on track + ±15 m step buttons (SC 2.5.7), window presets (Shift/6h/24h/48h)
-- [ ] Tests: drawer render + lens variants (full vs scoped display ref), interval math, align-from re-zeroing, deep-link parse, density-strip bucketing, keyboard-only walkthrough (select → drawer → trace → close); `hoverLabel`/identity sentinels extended to trace-mode chips
-- [ ] Intro tour gains a journey stop; usability protocol draft task T8 (find patient → state their last 12 h → name current wait) staged for H3
+### Phase B — Patient Journey Drawer + trace mode `feature/flow4d-journey-drawer` [C] — **SHIPPED (PR #94, squash `47ff12d4`)**
+- [x] B1 `NavigatorJourneyDrawer.tsx` (+ `features/patientFlowNavigator/journey.ts` builders): header/intervals/milestones/next/links per §7.1; replaces inspector for patient selections; CSS appended to `PatientFlowNavigator.css` (no new blur file); ≥24 px targets; `tabular-nums` durations
+- [x] B2 Sentinel alignment control: "align from" selector (arrival / admit / recognition when present) re-zeroes interval labels (LifeLines2 op); FHIR bundle context row (PJ-6)
+- [x] B3 Trace mode in `NavigatorScene`: selected-patient trail w/ time gradient + dwell nodes; others dimmed; chronobar patient ticks; `F` frames trace; follow-patient toggle during replay (explicit button, G-6)
+- [x] B4 `?patient={ref}` in `parseHandoff` + copy-link pivot URL. *Outward "Locate in 4D" buttons on ED/bed boards deferred to a follow-up touch (rounds already pivots via `focus_stop`; rounds payloads are opaque-uuid-only by doctrine, so a rounds→patient link is structurally excluded).*
+- [x] B5 Chronobar: scented density strip + ±15 m step buttons (SC 2.5.7; the native range input already jumps on track click). *Window presets (TN-6, severity L) deferred.*
+- [x] Tests: drawer render + lens variants (full vs scoped display ref), interval math, align-from re-zeroing, deep-link parse, density-strip bucketing, keyboard-only walkthrough (select → drawer → trace → close); `hoverLabel`/identity sentinels extended to trace-mode chips
+- [x] Intro tour gains a journey stop; usability protocol draft task T8 (find patient → state their last 12 h → name current wait) staged for H3
 **Acceptance:** from any surface, one action lands on a patient in 4D with their story open; a boarded patient's boarding interval is visible as a labeled segment with dwell; keyboard-only path complete; no identity in any scene-layer payload.
 
 ### Phase C — Operational adherence surface (~3 d) `feature/flow4d-adherence` [C, enable = SU]

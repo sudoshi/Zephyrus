@@ -57,6 +57,12 @@ const BASE_STOPS: IntroStop[] = [
     anchor: '.patient-flow-legend',
   },
   {
+    id: 'journey',
+    title: 'Patient journey',
+    body: 'Select any patient to open their story: stay segments with time-in-place, ED and periop phases, and what happens next. The scene traces their path — bigger markers mean longer waits — and F frames the whole story.',
+    anchor: '.patient-flow-inspector',
+  },
+  {
     id: 'floors',
     title: 'Floors & shortcuts',
     body: 'Step floors here or with the arrow keys. Press ? any time for the full keyboard list — H frames the house, F flies to your selection, N returns to now.',
