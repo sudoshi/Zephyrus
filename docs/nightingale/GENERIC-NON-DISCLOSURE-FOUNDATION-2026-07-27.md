@@ -1,9 +1,12 @@
 # Nightingale generic non-disclosure foundation
 
-**Date:** 2026-07-27  
+**Date:** 2026-07-27
+
 **Status:** Implemented, route-free safety foundation; not an operation, authorization,
-clinical release, or production approval  
-**Applies to:** the future Nightingale patient API boundary only  
+clinical release, or production approval
+
+**Applies to:** the future Nightingale patient API boundary only
+
 **Does not apply to:** Hummingbird staff, the legacy Hummingbird Patient reference apps, or
 any existing Zephyrus route
 

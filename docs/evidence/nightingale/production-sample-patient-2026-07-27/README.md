@@ -1,12 +1,17 @@
 # Nightingale production sample-patient evidence
 
-**Date:** 2026-07-27  
-**Environment:** `pgsql.acumenus.net`, database `zephyrus`  
-**Operator role:** `smudoshi`  
+**Date:** 2026-07-27
+
+**Environment:** `pgsql.acumenus.net`, database `zephyrus`
+
+**Operator role:** `smudoshi`
+
 **Authorization:** explicit user direction to create a Nightingale sample patient from the
-deprecated Hummingbird Patient reference patient  
+deprecated Hummingbird Patient reference patient
+
 **Classification:** synthetic operational evidence; no real patient data or enrollment
-material  
+material
+
 **Product activation:** none
 
 No password, token, encrypted value, keyed digest, challenge hash, application key, patient
