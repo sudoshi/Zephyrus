@@ -1873,6 +1873,33 @@
   gap: 12px;
 }
 
+/* F1 — GPU context-lost card. Amber (a pause, not a breach — it self-heals),
+   scoped overlay palette per the F-9 exception. */
+.patient-flow-context-lost {
+  position: absolute;
+  z-index: 4;
+  inset: 88px auto auto 50%;
+  transform: translateX(-50%);
+  width: min(520px, calc(100vw - 32px));
+  border: 1px solid rgba(224, 163, 63, 0.55);
+  background: rgba(58, 47, 31, 0.94);
+  color: #ffe9c7;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.patient-flow-context-lost strong {
+  color: #ffd795;
+  font-size: 14px;
+}
+
+.patient-flow-context-lost span {
+  font-size: 12px;
+  color: #e6ddc9;
+}
+
 /* DI-2 — the dead-navigator retry affordance; palette reuses the card's own
    values (the overlay palette is the sanctioned F-9 exception). */
 .patient-flow-error-retry {

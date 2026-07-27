@@ -9,6 +9,8 @@ function stubHook(overrides: Partial<Flow4dSoakHook> = {}): Flow4dSoakHook {
     roundsRun: () => null,
     epoch: () => null,
     pathwayGlyphs: () => null,
+    contextEvents: () => null,
+    frameBudget: () => null,
     ...overrides,
   };
 }
@@ -24,12 +26,16 @@ describe('installSoakHook (H4.1)', () => {
       nowDeltaMs: () => 1_500,
       roundsRun: () => ({ uuid: 'run-uuid', status: 'active' }),
       pathwayGlyphs: () => 3,
+      contextEvents: () => ({ lost: 2, restored: 2, currentlyLost: false }),
+      frameBudget: () => ({ frameP95: 8.2, renderP95: 5.1, labelsP95: 0.4, controlsP95: 0.6, samples: 240 }),
     }));
 
     expect(window.__FLOW4D_SOAK__?.rendererInfo()).toEqual({ geometries: 12, textures: 4, calls: 60, triangles: 20_000 });
     expect(window.__FLOW4D_SOAK__?.nowDeltaMs()).toBe(1_500);
     expect(window.__FLOW4D_SOAK__?.roundsRun()).toEqual({ uuid: 'run-uuid', status: 'active' });
     expect(window.__FLOW4D_SOAK__?.pathwayGlyphs()).toBe(3);
+    expect(window.__FLOW4D_SOAK__?.contextEvents()).toEqual({ lost: 2, restored: 2, currentlyLost: false });
+    expect(window.__FLOW4D_SOAK__?.frameBudget()).toEqual({ frameP95: 8.2, renderP95: 5.1, labelsP95: 0.4, controlsP95: 0.6, samples: 240 });
     uninstall();
   });
 
