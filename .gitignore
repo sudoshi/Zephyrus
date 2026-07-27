@@ -87,5 +87,10 @@ __pycache__/
 # Local plan-document exports (user-authored docx/pdf, never deployed)
 /zephyrus_build/
 
-# App Store Connect credentials (Issuer/Key/Team IDs) — never commit
+# App Store Connect credentials (Issuer/Key/Team IDs) — never commit.
+# .appledeploy.example is the committed template and IS tracked.
 .appstorecredentials
+.appledeploy
+
+# Last-shipped TestFlight build numbers (local bookkeeping for ./testflight.sh)
+.build-testflight/
