@@ -73,12 +73,19 @@ class AncillarySpineMigrationTest extends TestCase
             'ancillary_orders_readiness_idx',
             'ancillary_orders_unit_worklist_idx',
             'ancillary_orders_open_idx',
-            'ancillary_orders_reconciliation_key_idx',
+            'ancillary_orders_reconciliation_lookup_idx',
             'ancillary_milestones_selection_idx',
             'ancillary_breaches_one_open_definition_idx',
         ] as $index) {
             $this->assertTrue($indexNames->contains($index), "Missing index {$index}");
         }
+
+        // Superseded by the provable-predicate lookup index; dropped in
+        // 2026_07_27_000100 after the [SU]-approved closeout.
+        $this->assertFalse(
+            $indexNames->contains('ancillary_orders_reconciliation_key_idx'),
+            'Superseded reconciliation index should be dropped'
+        );
 
         $foreignKeyTargets = collect(DB::select(<<<'SQL'
             SELECT DISTINCT target_ns.nspname || '.' || target_rel.relname AS referenced_table
