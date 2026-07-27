@@ -1,5 +1,5 @@
 import XCTest
-@testable import HummingbirdPatient
+@testable import Nightingale
 
 final class PatientAPIClientTests: XCTestCase {
     private var session: URLSession!

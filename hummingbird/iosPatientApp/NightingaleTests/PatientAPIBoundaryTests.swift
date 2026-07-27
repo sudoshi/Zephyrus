@@ -1,6 +1,6 @@
 import XCTest
 import UIKit
-@testable import HummingbirdPatient
+@testable import Nightingale
 
 final class PatientAPIBoundaryTests: XCTestCase {
     func testEveryEndpointStaysInsideThePatientV1Boundary() throws {

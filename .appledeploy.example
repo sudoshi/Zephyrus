@@ -41,8 +41,8 @@ NIGHTINGALE_NAME="Zephyrus-Nightingale"
 NIGHTINGALE_APP_ID=
 NIGHTINGALE_BUNDLE_ID=net.acumenus.nightingale
 NIGHTINGALE_DIR=hummingbird/iosPatientApp
-NIGHTINGALE_XCODEPROJ=HummingbirdPatient.xcodeproj
-NIGHTINGALE_SCHEME=HummingbirdPatient
+NIGHTINGALE_XCODEPROJ=Nightingale.xcodeproj
+NIGHTINGALE_SCHEME=Nightingale
 
 # ── Optional ───────────────────────────────────────────────────────────────────
 # Default beta tester group for `./testflight.sh distribute <app>` and

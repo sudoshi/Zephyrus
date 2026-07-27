@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct HummingbirdPatientApp: App {
+struct NightingaleApp: App {
     @StateObject private var viewModel: PatientAppViewModel
 
     init() {

@@ -1,5 +1,5 @@
 import XCTest
-@testable import HummingbirdPatient
+@testable import Nightingale
 
 @MainActor
 final class PatientAppViewModelTests: XCTestCase {
