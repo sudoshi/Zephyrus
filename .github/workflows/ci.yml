@@ -851,18 +851,11 @@ jobs:
           echo "udid=$simulator_udid" >> "$GITHUB_OUTPUT"
           xcrun simctl boot "$simulator_udid" 2>/dev/null || true
 
-      # The pinned XcodeGen binary is immutable per version: cache it instead
-      # of re-downloading the release zip every run. The checksum step below
-      # still guards every cache population (exact key, no restore-keys).
-      - name: Cache pinned XcodeGen
-        id: xcodegen-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.xcodegen/2.46.0
-          key: xcodegen-${{ runner.os }}-${{ runner.arch }}-2.46.0
-
+      # Plain pinned download, deliberately uncached: measured 2026-07-27
+      # (run 30284124065) — the release-asset download is ~1 s on healthy
+      # runners while an actions/cache restore cost 41 s on a degraded one.
+      # Step cost tracks VM health, not network; the checksum pins integrity.
       - name: Install pinned XcodeGen
-        if: steps.xcodegen-cache.outputs.cache-hit != 'true'
         env:
           XCODEGEN_VERSION: 2.46.0
           XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
@@ -871,13 +864,9 @@ jobs:
             --output "$RUNNER_TEMP/xcodegen.zip" \
             "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
           echo "${XCODEGEN_SHA256}  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check
-          mkdir -p "$HOME/.xcodegen/2.46.0"
-          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$HOME/.xcodegen/2.46.0"
-
-      - name: Add pinned XcodeGen to PATH
-        run: |
-          echo "$HOME/.xcodegen/2.46.0/xcodegen/bin" >> "$GITHUB_PATH"
-          "$HOME/.xcodegen/2.46.0/xcodegen/bin/xcodegen" --version
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/xcodegen/bin/xcodegen" --version
 
       # The staff .xcodeproj is intentionally gitignored: generate it here so
       # every later xcodebuild uses the committed project.yml specification.
@@ -985,15 +974,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache pinned XcodeGen
-        id: xcodegen-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.xcodegen/2.46.0
-          key: xcodegen-${{ runner.os }}-${{ runner.arch }}-2.46.0
-
+      # Plain pinned download, deliberately uncached: measured 2026-07-27
+      # (run 30284124065) — the release-asset download is ~1 s on healthy
+      # runners while an actions/cache restore cost 41 s on a degraded one.
+      # Step cost tracks VM health, not network; the checksum pins integrity.
       - name: Install pinned XcodeGen
-        if: steps.xcodegen-cache.outputs.cache-hit != 'true'
         env:
           XCODEGEN_VERSION: 2.46.0
           XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
@@ -1002,13 +987,9 @@ jobs:
             --output "$RUNNER_TEMP/xcodegen.zip" \
             "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
           echo "${XCODEGEN_SHA256}  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check
-          mkdir -p "$HOME/.xcodegen/2.46.0"
-          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$HOME/.xcodegen/2.46.0"
-
-      - name: Add pinned XcodeGen to PATH
-        run: |
-          echo "$HOME/.xcodegen/2.46.0/xcodegen/bin" >> "$GITHUB_PATH"
-          "$HOME/.xcodegen/2.46.0/xcodegen/bin/xcodegen" --version
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/xcodegen/bin/xcodegen" --version
 
       - name: Verify generated Xcode project
         run: |
@@ -1278,15 +1259,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache pinned XcodeGen
-        id: xcodegen-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.xcodegen/2.46.0
-          key: xcodegen-${{ runner.os }}-${{ runner.arch }}-2.46.0
-
+      # Plain pinned download, deliberately uncached: measured 2026-07-27
+      # (run 30284124065) — the release-asset download is ~1 s on healthy
+      # runners while an actions/cache restore cost 41 s on a degraded one.
+      # Step cost tracks VM health, not network; the checksum pins integrity.
       - name: Install pinned XcodeGen
-        if: steps.xcodegen-cache.outputs.cache-hit != 'true'
         env:
           XCODEGEN_VERSION: 2.46.0
           XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
@@ -1295,13 +1272,9 @@ jobs:
             --output "$RUNNER_TEMP/xcodegen.zip" \
             "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
           echo "${XCODEGEN_SHA256}  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 --check
-          mkdir -p "$HOME/.xcodegen/2.46.0"
-          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$HOME/.xcodegen/2.46.0"
-
-      - name: Add pinned XcodeGen to PATH
-        run: |
-          echo "$HOME/.xcodegen/2.46.0/xcodegen/bin" >> "$GITHUB_PATH"
-          "$HOME/.xcodegen/2.46.0/xcodegen/bin/xcodegen" --version
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/xcodegen/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/xcodegen/bin/xcodegen" --version
 
       - name: Verify generated Xcode project and patient source boundary
         run: |
