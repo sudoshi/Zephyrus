@@ -9,8 +9,9 @@ fi
 
 app_root="$1"
 project_name="Nightingale.xcodeproj"
+background_root="$app_root/../backgrounds"
 
-[[ -f "$app_root/project.yml" && -d "$app_root/Nightingale" ]] || {
+[[ -f "$app_root/project.yml" && -d "$app_root/Nightingale" && -d "$background_root" ]] || {
     echo "Incomplete Nightingale XcodeGen source at: $app_root" >&2
     exit 66
 }
@@ -31,6 +32,7 @@ verification_root="$(mktemp -d)"
 trap 'rm -rf "$verification_root"' EXIT
 
 cp -R "$app_root" "$verification_root/iosApp"
+cp -R "$background_root" "$verification_root/backgrounds"
 (
     cd "$verification_root/iosApp"
     xcodegen generate --spec project.yml --quiet

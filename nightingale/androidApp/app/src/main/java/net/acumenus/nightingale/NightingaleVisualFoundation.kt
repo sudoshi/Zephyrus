@@ -48,6 +48,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import java.time.LocalDate
 
 internal val NightingaleLightColorScheme = lightColorScheme(
     primary = Color(0xFF365F49),
@@ -77,6 +78,7 @@ internal fun NightingaleFoundationScreen(
     systemReduceMotion: Boolean,
     highContrast: Boolean,
     darkTheme: Boolean = isSystemInDarkTheme(),
+    backgroundEpochDay: Long = LocalDate.now().toEpochDay(),
 ) {
     MaterialTheme(colorScheme = nightingaleColorScheme(darkTheme)) {
         val policy = nightingaleSceneAccessibilityPolicy(
@@ -86,8 +88,14 @@ internal fun NightingaleFoundationScreen(
             systemReduceMotion = systemReduceMotion,
         )
 
+        val backgroundResourceId =
+            NightingaleBackgroundCatalog.resourceIdForEpochDay(backgroundEpochDay)
+
         Box(modifier = Modifier.fillMaxSize()) {
-            NightingaleScenicBackground(policy = policy) {
+            NightingaleScenicBackground(
+                policy = policy,
+                backgroundResourceId = backgroundResourceId,
+            ) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
@@ -99,27 +107,8 @@ internal fun NightingaleFoundationScreen(
                         .padding(horizontal = 28.dp, vertical = 56.dp),
                     verticalArrangement = Arrangement.Top,
                 ) {
-                    if (policy.showDecorativeImagery) {
-                        Image(
-                            painter = painterResource(R.mipmap.ic_launcher_foreground),
-                            contentDescription = null,
-                            modifier = Modifier.size(88.dp),
-                        )
-                    }
-                    Text(
-                        text = NightingaleProductBoundary.productName,
-                        modifier = Modifier
-                            .padding(top = 16.dp)
-                            .testTag("nightingale-product-heading")
-                            .semantics { heading() },
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = "A calm place to understand, prepare, and connect with your care team.",
-                        modifier = Modifier.padding(top = 12.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.titleMedium,
+                    NightingaleFoundationHeader(
+                        policy = policy,
                     )
                     NightingaleFoundationStatusCard(modifier = Modifier.padding(top = 24.dp))
                     NightingaleDisplayComfortCard(
@@ -131,7 +120,10 @@ internal fun NightingaleFoundationScreen(
             }
 
             if (privacyCovered) {
-                NightingalePrivacyCover(policy = policy)
+                NightingalePrivacyCover(
+                    policy = policy,
+                    backgroundResourceId = backgroundResourceId,
+                )
             }
         }
     }
@@ -140,6 +132,7 @@ internal fun NightingaleFoundationScreen(
 @Composable
 private fun NightingaleScenicBackground(
     policy: NightingaleSceneAccessibilityPolicy,
+    backgroundResourceId: Int,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val surface = MaterialTheme.colorScheme.surface
@@ -158,9 +151,9 @@ private fun NightingaleScenicBackground(
             .background(surface),
     ) {
         Image(
-            painter = painterResource(R.mipmap.ic_launcher_foreground),
+            painter = painterResource(backgroundResourceId),
             contentDescription = null,
-            contentScale = ContentScale.Fit,
+            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
                 .alpha(imageAlpha),
@@ -175,6 +168,44 @@ private fun NightingaleScenicBackground(
                 ),
             content = content,
         )
+    }
+}
+
+@Composable
+private fun NightingaleFoundationHeader(
+    policy: NightingaleSceneAccessibilityPolicy,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+        shape = RoundedCornerShape(22.dp),
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            if (policy.showDecorativeImagery) {
+                Image(
+                    painter = painterResource(R.mipmap.ic_launcher_foreground),
+                    contentDescription = null,
+                    modifier = Modifier.size(88.dp),
+                )
+            }
+            Text(
+                text = NightingaleProductBoundary.productName,
+                modifier = Modifier
+                    .padding(top = if (policy.showDecorativeImagery) 16.dp else 0.dp)
+                    .testTag("nightingale-product-heading")
+                    .semantics { heading() },
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "A calm place to understand, prepare, and connect with your care team.",
+                modifier = Modifier.padding(top = 12.dp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
     }
 }
 
@@ -270,7 +301,7 @@ private fun NightingaleDisplayComfortCard(
             )
             Text(
                 text = if (policy.showDecorativeImagery) {
-                    "The Nightingale artwork is shown softly behind the page."
+                    "A calming Nightingale background is shown softly behind the page."
                 } else {
                     "Decorative imagery is hidden. Essential text and controls remain available."
                 },
@@ -316,7 +347,10 @@ private fun NightingaleComfortToggle(
 }
 
 @Composable
-private fun NightingalePrivacyCover(policy: NightingaleSceneAccessibilityPolicy) {
+private fun NightingalePrivacyCover(
+    policy: NightingaleSceneAccessibilityPolicy,
+    backgroundResourceId: Int,
+) {
     Surface(
         modifier = Modifier
             .fillMaxSize()
@@ -327,25 +361,36 @@ private fun NightingalePrivacyCover(policy: NightingaleSceneAccessibilityPolicy)
             },
         color = MaterialTheme.colorScheme.surface,
     ) {
-        NightingaleScenicBackground(policy = policy) {
-            Column(
+        NightingaleScenicBackground(
+            policy = policy,
+            backgroundResourceId = backgroundResourceId,
+        ) {
+            Card(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .align(Alignment.Center)
+                    .padding(32.dp)
+                    .widthIn(max = 440.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                ),
+                shape = RoundedCornerShape(24.dp),
             ) {
-                Text(
-                    text = "Nightingale",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Your care information is covered while the app is not active.",
-                    modifier = Modifier.padding(top = 12.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+                Column(
+                    modifier = Modifier.padding(28.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Nightingale",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "Your care information is covered while the app is not active.",
+                        modifier = Modifier.padding(top = 12.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
             }
         }
     }

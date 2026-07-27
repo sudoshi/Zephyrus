@@ -39,6 +39,11 @@ final class NightingaleLaunchUITests: XCTestCase {
         XCTAssertTrue(hideImagery.waitForExistence(timeout: 5))
         XCTAssertEqual(reduceMotion.value as? String, "0")
         XCTAssertEqual(hideImagery.value as? String, "0")
+        XCTAssertTrue(
+            app.staticTexts[
+                "A calming Nightingale background is shown softly behind the page."
+            ].waitForExistence(timeout: 5)
+        )
 
         reduceMotion.tap()
         XCTAssertTrue(

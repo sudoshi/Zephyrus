@@ -66,17 +66,17 @@ The same audit found that:
 
 The current foundation is accepted only when all of the following are true:
 
-| Requirement    | iOS acceptance                                                                             | Android acceptance                                                          |
-| -------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| Text growth    | accessibility XXXL content exists and remains scroll-reachable                             | font scale `2.0` content exists and remains scroll-reachable                |
-| Landscape      | both Display comfort controls can be reached and operated                                  | both Display comfort rows can be reached and operated                       |
-| Semantic order | product heading → privacy heading → Display comfort heading → reduce motion → hide imagery | same ordered test-tag traversal                                             |
-| Target size    | each identified toggle has a frame height of at least 44 points                            | each complete labeled row has a height of at least 48 dp                    |
-| Appearance     | system light/dark resolution is explicit                                                   | `isSystemInDarkTheme()` selects an explicit light/dark scheme               |
-| Contrast       | patient accent/system-background pair is at least 4.5:1 in light and dark                  | every defined patient text/container pair is at least 4.5:1 in both schemes |
-| Images         | decorative imagery stays absent from accessibility meaning and can be hidden               | same                                                                        |
-| Privacy        | lifecycle cover remains operative                                                          | lifecycle cover and `FLAG_SECURE` remain operative                          |
-| State cleanup  | simulator settings are restored after evidence collection                                  | font scale/orientation/night mode are restored after evidence collection    |
+| Requirement    | iOS acceptance                                                                                                                 | Android acceptance                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Text growth    | accessibility XXXL content exists and remains scroll-reachable                                                                 | font scale `2.0` content exists and remains scroll-reachable                |
+| Landscape      | both Display comfort controls can be reached and operated                                                                      | both Display comfort rows can be reached and operated                       |
+| Semantic order | product heading → privacy heading → Display comfort heading → reduce motion → hide imagery                                     | same ordered test-tag traversal                                             |
+| Target size    | each identified toggle has a frame height of at least 44 points                                                                | each complete labeled row has a height of at least 48 dp                    |
+| Appearance     | system light/dark resolution is explicit                                                                                       | `isSystemInDarkTheme()` selects an explicit light/dark scheme               |
+| Contrast       | patient accent/system-background pair is at least 4.5:1 in light and dark                                                      | every defined patient text/container pair is at least 4.5:1 in both schemes |
+| Images         | exact seven-photo catalog stays absent from accessibility meaning, can be hidden, and uses the local Gregorian epoch-day index | same catalog, hashes, and index                                             |
+| Privacy        | lifecycle cover remains operative                                                                                              | lifecycle cover and `FLAG_SECURE` remain operative                          |
+| State cleanup  | simulator settings are restored after evidence collection                                                                      | font scale/orientation/night mode are restored after evidence collection    |
 
 The 4.5:1 ratio is used as the bounded normal-text gate. Passing these palette pairs is not
 a claim that every future component, state, overlay, image crop, disabled state, chart, or
@@ -171,6 +171,32 @@ Android now:
 Top alignment prevents tall large-text content from depending on centering behavior as it
 exceeds the viewport.
 
+### 4.6 Governed background catalog
+
+Both products package the exact same seven metadata-stripped derivatives from
+`nightingale/backgrounds/optimized/drawable-nodpi`. The selection is stable for each local
+Gregorian day and is identical across platforms:
+
+```text
+floorMod(local Gregorian epoch day since 1970-01-01, 7)
+```
+
+The photo fills the viewport behind a strong system-surface gradient. Patient-readable
+content remains on opaque or near-opaque cards, with full opacity under stronger supported
+contrast/transparency settings. The complete background layer is hidden from accessibility
+semantics and input. No filename, species, clinical state, pathway state, risk, or outcome
+is exposed.
+
+The patient “Hide decorative imagery” setting removes the photo and decorative product
+mark without removing text or controls. iOS also withholds the photo under Reduce
+Transparency or Increased Contrast; Android withholds it under the supported high-contrast
+signal. There is no carousel, parallax, timer-driven rotation, video, or automatic motion
+loop.
+
+Exact source/derivative lineage, hashes, dimensions, metadata restrictions, release-rights
+hold, and native packaging evidence are maintained in the
+[background asset governance record](./BACKGROUND-ASSET-GOVERNANCE-AND-NATIVE-INTEGRATION-2026-07-26.md).
+
 ## 5. Contrast proof
 
 ### 5.1 Method
@@ -253,12 +279,13 @@ Results:
 
 | Suite            | Tests | Failures | Skips |
 | ---------------- | ----- | -------- | ----- |
-| Nightingale unit | 8     | 0        | 0     |
+| Nightingale unit | 9     | 0        | 0     |
 | Nightingale UI   | 4     | 0        | 0     |
-| Total            | 12    | 0        | 0     |
+| Total            | 13    | 0        | 0     |
 
 The unit total includes the dynamic light/dark contrast test and the existing product,
-protected-state, volatile-input, presentation-policy, and preference-boundary tests.
+protected-state, volatile-input, presentation-policy, preference-boundary, exact resource
+catalog, and cross-platform daily-index tests.
 
 ### 6.2 Android
 
@@ -276,19 +303,19 @@ The new API 35 instrumentation journey:
 
 The final clean, no-build-cache run produced:
 
-| Suite/gate                   | Result                                |
-| ---------------------------- | ------------------------------------- |
-| JVM unit tests               | 7 passed                              |
-| API 35 instrumentation tests | 7 passed                              |
-| product-boundary task        | passed                                |
-| `lintDebug`                  | passed                                |
-| `lintVitalRelease`           | passed                                |
-| Debug assembly               | passed                                |
-| unsigned Release assembly    | passed                                |
-| Gradle actions               | 125 total; 124 executed; 1 up-to-date |
+| Suite/gate                    | Result                                        |
+| ----------------------------- | --------------------------------------------- |
+| Debug JVM unit tests          | 8 passed; 0 failed/skipped/errors             |
+| Release JVM unit tests        | 8 passed; 0 failed/skipped/errors             |
+| API 35 instrumentation tests  | 7 passed; 0 failed/skipped/errors             |
+| product-boundary task         | passed                                        |
+| `lintDebug` / `lintRelease`   | passed / passed                               |
+| Debug assembly                | passed                                        |
+| unsigned Release assembly     | passed                                        |
+| Release APK boundary/hash set | passed; exact seven governed background JPEGs |
 
-The unit total includes pure light/dark scheme selection and all eight text-pair contrast
-assertions.
+The unit total includes pure light/dark scheme selection, all eight text-pair contrast
+assertions, and exact background-catalog/daily-index coverage.
 
 ## 7. Emulator and visual evidence
 
@@ -318,6 +345,14 @@ The local Release screenshot SHA-256 is
 The screenshot is local diagnostic evidence, not a distribution screenshot or an
 independent patient review.
 
+An additional current foundation inspection at normal contrast exercised the real
+seven-photo catalog. The 1170×2532 screenshot showed a supplied photo behind a strong
+system-surface gradient, readable near-opaque cards, no text directly on raw photography,
+and the restrained Nightingale mark. Its SHA-256 is
+`07494f15eadc37916613fd502cc43a8ccaffc7ce2a31a1b1c9d9a51abe208272`.
+This remains local diagnostic evidence; it is not patient-advisor, accessibility, rights,
+marketing, store, or release approval.
+
 ### 7.2 Android hierarchy inspection
 
 The `hb` Android 15/API 35 AVD was booted without a saved-state dependency. A manual
@@ -341,11 +376,11 @@ review device remains open.
 
 | Artifact                         | SHA-256                                                            |
 | -------------------------------- | ------------------------------------------------------------------ |
-| iOS Debug simulator executable   | `92c57ad6fbbe680bdc77d8252c6a144d0b4b90f4a225acadc86159891b34fd1e` |
-| iOS Release simulator executable | `182ef77a6a020c4a26212482f09822901f94e3587433bbe490e5cb55be2c4827` |
+| iOS Debug simulator executable   | `4cd5c9bf61a0641115e8f48fd1ed271983a5c0cd137e89bbad6128a136f998db` |
+| iOS Release simulator executable | `ddf102782eec071371e2537f14ec8b41a4afcf2fef12b89d1d0a603cf5495c2b` |
 | iOS Release application manifest | `cc49573008857a7a658978b871553c922bf928577a80a7cece3750e804f6ef0c` |
-| Android Debug APK                | `4d866ec381399caabd1287fd204e0dc01d3794267aecd5900a69d87d0dd91164` |
-| Android unsigned Release APK     | `bd3d2994c84fa7de97d2770c257b70b8eb48f0fc59a081f486ecf6ebe03dd4e3` |
+| Android Debug APK                | `729a1263e19d9097a6588ccd4a4adde5bcb176892659aaf8a6d6f3c0d5adac36` |
+| Android unsigned Release APK     | `3210ca5b232938c459ccb7a01d84df3c8fd8290ff63ce131d503cc1820860e38` |
 
 The iOS manifest is the built Release `Nightingale.app/Info.plist`; it contains portrait,
 landscape-left, and landscape-right. These are local simulator/emulator artifacts. They
@@ -357,6 +392,11 @@ approval.
 `verify-nightingale-product-boundary.sh` now fails if any of these bounded safeguards is
 removed:
 
+- the governed seven-file background verifier fails or is bypassed;
+- iOS and Android stop packaging the exact shared derivative set;
+- the cross-platform local-Gregorian-epoch-day selection rule changes;
+- imagery becomes accessible, essential, state-bearing, autonomous motion, or direct text
+  background;
 - the iOS accent stops resolving by appearance;
 - the iOS 44-point row target disappears;
 - the iOS light/dark contrast test disappears;
@@ -424,6 +464,9 @@ The following bounded foundation subset is complete:
 - ordered foundation landmarks and controls;
 - 44-point iOS and 48 dp Android interaction targets;
 - full-row Android switch interaction;
+- exact shared seven-photo packaging and deterministic daily selection;
+- metadata/hash/dimension enforcement and Release artifact asset-set scans;
+- imagery-hidden, stronger-contrast/transparency, semantics, and no-motion boundaries;
 - iOS Increased Contrast Release inspection;
 - Android dark configuration plus secure semantic hierarchy inspection; and
 - exact local Debug/Release artifact binding.
@@ -444,6 +487,9 @@ The following are intentionally not closed:
 - disabled, destructive, urgent, warning, stale, correction, and retraction states because
   none is approved for rendering;
 - physical-device visual review;
+- durable license/permission/attribution evidence for all seven backgrounds;
+- patient-advisor review of image comfort, crop, cultural interpretation, and the
+  images-hidden experience;
 - iOS backup/restore behavior for local presentation choices;
 - every future screen and every future color/state pair;
 - distribution-signing and store-artifact evidence; and

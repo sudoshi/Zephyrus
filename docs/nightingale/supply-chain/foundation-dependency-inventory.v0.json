@@ -38,11 +38,11 @@
         "gradle_task": ":app:writeNightingaleReleaseDependencyResolution",
         "deterministic_timestamp_policy": "No generation timestamp is stored; source hashes define inventory identity.",
         "source_sha256": {
-            "nightingale/androidApp/app/build.gradle.kts": "994a2a05137c0846a9d0625e90ad0d1820100fb9e731c3e3ca01a8522d280a48",
+            "nightingale/androidApp/app/build.gradle.kts": "f07cf692160733f7433f88c16951baf819155f223406c281e516558062527a4b",
             "nightingale/androidApp/build.gradle.kts": "a2c1a3dc7e80664eeede26bfe0b554c1afbbfe81b9b5dfbc33e6aa3fcee3ee1e",
             "nightingale/androidApp/settings.gradle.kts": "6746ef09487ea290564b04c8836f9c3e074fd470160598a19fbf32efaf333b82",
             "nightingale/androidApp/gradle/wrapper/gradle-wrapper.properties": "ad8aae83783da405b1acb1d39069787f8de5fd64ae5dbf1480f8ced80956c433",
-            "nightingale/iosApp/project.yml": "4e74fe174f3518a92f79daf12449331d385e6e3abe65edd6c2b79365f9ad076f",
+            "nightingale/iosApp/project.yml": "9eaa4650ee985b80661d32d206ec71d2d2a1b44d87e430d48343d22f35f7cb85",
             "scripts/ci/generate-nightingale-foundation-dependency-inventory.mjs": "42cd775a3d50fa0ac533f71d80aaad631dbc5fa8c0dee8a5f13e21d6e138fed3"
         }
     },

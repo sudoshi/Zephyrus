@@ -37,13 +37,12 @@ internal fun nightingaleSceneAccessibilityPolicy(
         !preferences.hideDecorativeImageryRequested && !highContrast
     val imageAlpha = when {
         !showDecorativeImagery -> 0f
-        fontScale >= 1.3f -> 0.08f
-        else -> 0.16f
+        else -> 1f
     }
     val scrimAlphas = when {
-        highContrast -> listOf(1f, 1f, 1f)
-        fontScale >= 1.3f -> listOf(0.92f, 0.96f, 0.99f)
-        else -> listOf(0.72f, 0.86f, 0.96f)
+        !showDecorativeImagery -> listOf(1f, 1f, 1f)
+        fontScale >= 1.3f -> listOf(0.72f, 0.88f, 0.97f)
+        else -> listOf(0.46f, 0.70f, 0.88f)
     }
 
     return NightingaleSceneAccessibilityPolicy(

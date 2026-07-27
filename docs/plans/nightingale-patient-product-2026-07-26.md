@@ -148,14 +148,19 @@ output.
 
 Nightingale should feel calm, clear, and unhurried without hiding important information.
 The supplied nightingale mark belongs in the app icon, welcome identity, and restrained
-non-clinical empty/transition contexts. It must not decorate urgent instructions, obscure
-text, imply a clinical outcome, or substitute for status language.
+non-clinical empty/transition contexts. The seven images supplied under
+`nightingale/backgrounds` are the product-directed background collection. The mark and
+background collection must not decorate urgent instructions, obscure text, imply a
+clinical outcome, identify a species to the patient, or substitute for status language.
 
 1. Start with reading comfort: system-or-larger text, readable cards, explicit timing
    uncertainty, non-color status cues, images-off/high-contrast modes, and no essential
    information embedded in imagery.
-2. Use scenic imagery only behind opaque or high-contrast content surfaces with deterministic
-   crops, contrast checks, reduced-motion behavior, and an images-disabled fallback.
+2. Use the seven governed Nightingale backgrounds only behind opaque or governed
+   high-contrast surfaces. Both platforms use the exact same metadata-stripped derivatives
+   and select the same stable image for each local Gregorian day using
+   `floorMod(epochDay, 7)`. There is no carousel, parallax, autonomous animation, or
+   clinical/state-driven image selection.
 3. Use a simple three-domain navigation model only after patient-advisor validation:
    **Today**, **My Path**, and **Care Team**. Messaging is reached only from an allowed
    care-team or question flow, with a clear urgent-help escape route.
@@ -185,6 +190,11 @@ text, imply a clinical outcome, or substitute for status language.
       dependency edges, zero iOS third-party packages, and four Apple system-module
       imports, all bound to exact source hashes. This is not a standards-conformant SBOM,
       vulnerability/provenance assessment, license review, or supply-chain approval.
+- [x] Add dedicated Nightingale Android and iOS foundation CI jobs that verify source and
+      governance boundaries, dependency drift, Debug/Release tests and builds, native
+      simulator/emulator journeys, exact Release product identity, absence of networking
+      and Release test hooks, and the exact governed background set. Exact-SHA CI evidence
+      remains required for each published change.
 
 **Exit evidence:** both empty Nightingale targets build in Debug and Release, have no staff
 source imports or endpoints, expose only the Nightingale name, and have a generated
@@ -208,6 +218,26 @@ and open. No patient feature becomes enabled.
       shortcut, and generated-asset ownership; confirm no repository-owned store-listing
       package exists; and prove source-predecessor Hummingbird in-place replacement with a
       synthetic private-data canary on iOS and Android emulators.
+- [x] Admit the seven user-supplied files under `nightingale/backgrounds` into a
+      Nightingale-owned decorative-background catalog: retain source filename, SHA-256,
+      dimensions, and byte-count lineage; commit exactly seven no-upscale,
+      metadata-stripped progressive JPEG derivatives; and mechanically reject missing,
+      additional, malformed, metadata-bearing, resized, or hash-drifted files.
+- [x] Package the exact same seven derivatives in both native products and implement one
+      stable cross-platform selection per local Gregorian day. Keep the photos outside the
+      accessibility tree and input path; preserve text and actions when imagery is hidden;
+      suppress imagery for the patient preference and stronger supported system contrast/
+      transparency settings; place all readable content on opaque or governed scrimmed
+      surfaces; and prohibit species, care-state, risk, urgency, or outcome semantics.
+- [x] Verify the background foundation with native catalog/resource tests, iOS Simulator
+      visual inspection, Android API 35 semantic inspection, Release artifact hash/set
+      checks, Android `FLAG_SECURE` capture proof, and negative asset-verifier mutations.
+- [ ] Record a durable source-archive location and applicable license/attribution evidence
+      for all seven supplied backgrounds before external, pilot, App Store, Play Store,
+      production, or marketing distribution.
+- [ ] Obtain named patient-advisor and accessibility review of the image set, crops,
+      legibility, comfort, cultural interpretation, and images-hidden behavior on supported
+      physical devices, text sizes, appearances, languages, and orientations.
 - [ ] Verify retained released-artifact upgrades, distribution signing, monotonic
       version/build values, external store records/screenshots, installed-widget persistence,
       and actual notification rendering after those release surfaces exist and are approved.
@@ -339,6 +369,11 @@ authorization, idempotency, audit, and patient-visible outcome evidence.
       `2.0` in landscape, and prove 44-point iOS plus 48 dp Android targets. This closes
       only the current offline shell; future screens, manual assistive-technology review,
       language/RTL coverage, full WCAG conformance, and named approvals remain open.
+- [x] Integrate the governed seven-photo Nightingale background catalog into the bounded
+      offline shell without making any image essential: cross-platform local-day selection,
+      deterministic packaging, strong scrims/cards, images-hidden and high-contrast/
+      reduced-transparency suppression, no motion loop, no accessibility announcement, and
+      exact derivative hashes are mechanically and natively tested.
 - [x] Establish the draft foundation threat and clinical-hazard model: version current and
       future trust boundaries, 25 implemented-control claims with their limits, 22
       security/privacy threats, 22 clinical hazards, 18 abuse cases, 20 activation gates,
@@ -469,6 +504,13 @@ part of application development work.
         target to source hashes, and explicitly withhold standards, vulnerability,
         provenance, license, signing, artifact, distribution, and supply-chain approval
         claims.
+17. [x] Govern and integrate the seven supplied Nightingale background images across both
+        native foundations. Preserve source lineage, commit only exact metadata-stripped
+        derivatives, use the same local-Gregorian-epoch-day catalog index on iOS and
+        Android, keep imagery decorative and suppressible, enforce readable surfaces and
+        exact Release packaging, and validate on iOS Simulator plus Android API 35.
+        Distribution rights/attribution, physical-device review, patient-advisor review,
+        and exact-SHA publication evidence remain separate gates.
 
 ## 10. Explicit holds
 

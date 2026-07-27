@@ -8,33 +8,48 @@ enum NightingalePalette {
         return UIColor(red: 0.20, green: 0.38, blue: 0.29, alpha: 1)
     }
     static let forest = Color(uiColor: forestUIColor)
-    static let warmMist = Color(red: 0.98, green: 0.95, blue: 0.89)
-    static let coolMist = Color(red: 0.90, green: 0.96, blue: 0.94)
 }
 
 struct NightingaleScenicBackground: View {
-    @Environment(\.colorScheme) private var colorScheme
     let policy: NightingaleSceneAccessibilityPolicy
+    let assetName: String
+
+    init(
+        policy: NightingaleSceneAccessibilityPolicy,
+        date: Date = Date(),
+        calendar: Calendar = .autoupdatingCurrent
+    ) {
+        self.policy = policy
+        assetName = NightingaleBackgroundCatalog.assetName(
+            for: date,
+            calendar: calendar
+        )
+    }
 
     var body: some View {
         GeometryReader { proxy in
-            ZStack(alignment: .bottomTrailing) {
+            ZStack {
                 Color(uiColor: .systemBackground)
 
-                if policy.showDecorativeImagery {
-                    LinearGradient(
-                        colors: gradientColors,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-
-                    Image("BrandMark")
+                if
+                    policy.showDecorativeImagery,
+                    let backgroundImage
+                {
+                    Image(uiImage: backgroundImage)
                         .resizable()
-                        .scaledToFit()
-                        .frame(width: min(proxy.size.width * 1.15, 560))
-                        .offset(x: proxy.size.width * 0.18, y: proxy.size.height * 0.08)
+                        .scaledToFill()
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .clipped()
                         .opacity(policy.decorativeImageOpacity)
                 }
+
+                LinearGradient(
+                    colors: policy.backgroundScrimAlphas.map {
+                        Color(uiColor: .systemBackground).opacity($0)
+                    },
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
             }
         }
         .ignoresSafeArea()
@@ -42,11 +57,17 @@ struct NightingaleScenicBackground: View {
         .allowsHitTesting(false)
     }
 
-    private var gradientColors: [Color] {
-        if colorScheme == .dark {
-            return [Color(uiColor: .systemBackground), NightingalePalette.forest.opacity(0.22)]
+    private var backgroundImage: UIImage? {
+        guard
+            let resourceURL = Bundle.main.url(
+                forResource: assetName,
+                withExtension: "jpg"
+            )
+        else {
+            return nil
         }
-        return [NightingalePalette.warmMist, NightingalePalette.coolMist]
+
+        return UIImage(contentsOfFile: resourceURL.path)
     }
 }
 
@@ -72,9 +93,14 @@ struct NightingalePrivacyCoverView: View {
             }
             .padding(28)
             .background(
-                Color(uiColor: .systemBackground).opacity(0.96),
+                Color(uiColor: .systemBackground),
                 in: RoundedRectangle(cornerRadius: 24)
             )
+            .overlay {
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(Color.primary.opacity(0.12))
+            }
+            .padding(24)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Privacy cover. Your care information is hidden while Nightingale is not active.")

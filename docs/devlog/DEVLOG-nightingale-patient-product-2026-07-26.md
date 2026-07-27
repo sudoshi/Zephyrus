@@ -1448,4 +1448,117 @@ deployment authorization.
 - No patient, patient record, production database, production API, identity, grant,
   session, credential, route, network permission, source adapter, disclosure, mutation,
   message, notification, migration, deployment, pilot, or release state was read or
-  changed. Fresh commit/push and exact-SHA CI evidence remain required for this slice.
+  changed.
+- Published the bounded inventory as commit
+  `60e599d90df368606f7e4ca9c5a44424570a3d6f`. Exact-SHA
+  [CI run 30224908508](https://github.com/sudoshi/Zephyrus/actions/runs/30224908508)
+  completed with all 18 jobs green and no rerun.
+
+## Governed Nightingale background catalog and dedicated native CI
+
+### Product direction and asset admission
+
+- Adopted the seven images supplied under `nightingale/backgrounds` as the dedicated
+  Nightingale background collection. They are decorative atmosphere only; no filename,
+  species, clinical state, pathway state, acuity, urgency, care-team action, or outcome is
+  exposed or inferred.
+- Added `nightingale/backgrounds/backgrounds.v1.json` as the immutable machine-readable
+  lineage record. It retains each source filename, source SHA-256, source dimensions, and
+  source byte count plus the exact app-derivative path, SHA-256, dimensions, and byte count.
+- Created exactly seven quality-82, optimized progressive JPEG derivatives. Sources with a
+  long edge above 2400 pixels were downsampled without upscaling; smaller sources retained
+  their dimensions. `jpegtran -copy none -optimize -progressive` removed EXIF, XMP,
+  Photoshop/IPTC, comments, GPS-capable application markers, and other non-pixel
+  application metadata.
+- The committed derivative set totals 4,439,974 bytes. The approximately 33 MB source
+  binaries are not duplicated in this stream; their exact fingerprints remain in the
+  manifest. A durable source archive and applicable license/attribution record remain
+  mandatory before any external, pilot, marketing, store, or production distribution.
+
+### Cross-platform experience and accessibility contract
+
+- Packaged the exact same seven derivatives in both native products. Android compiles the
+  shared `drawable-nodpi` resource root; iOS packages the same files as loose bundle
+  resources through its generated Xcode project. No independently recompressed platform
+  variant exists.
+- Aligned selection across platforms to
+  `floorMod(local Gregorian epoch day since 1970-01-01, 7)`. The photo remains stable
+  throughout a local day and maps to the same catalog entry on iOS and Android, including
+  mathematical wraparound for negative epoch days. The iOS implementation carries only
+  the local timezone into a Gregorian calendar, and a non-Gregorian device-calendar
+  regression test prevents identifier-dependent drift.
+- Prohibited carousel, parallax, timer-driven rotation, video, autonomous pan/zoom,
+  clinical-event selection, and automatic motion loops. The existing short,
+  patient-triggered presentation transition snaps when reduced motion is effective.
+- Kept the photo outside the accessibility tree and input path. “Hide decorative imagery”
+  removes the photo and decorative mark without removing text, headings, controls, focus
+  order, or actions. iOS also withholds photography under Reduce Transparency or Increased
+  Contrast; Android uses its supported high-contrast signal.
+- Moved the product header and privacy-cover content onto strong cards. A governed
+  system-surface gradient separates the photo from the content layer, all readable text
+  remains on opaque or near-opaque surfaces, and stronger supported contrast/transparency
+  settings force full opacity.
+
+### Asset and Release enforcement
+
+- Added `scripts/ci/verify-nightingale-background-assets.mjs`. It parses every JPEG marker
+  and every progressive scan through the final end-of-image marker, verifies the exact
+  file set, IDs, paths, source/derivative hashes, bytes, dimensions, orientation,
+  no-upscale/2400-pixel bounds, progressive encoding, uniqueness, accessibility policy,
+  selection rule, and explicit foundation-only rights state.
+- The verifier includes negative mutations for a missing catalog entry, unsubstantiated
+  rights approval, moving selection policy, duplicate derivative identity, binary tamper,
+  unexpected derivative, and metadata injected after an entropy-coded image scan.
+- Wired the asset verifier into the Nightingale native product-boundary script. Added
+  platform Release artifact verifiers that check exact app identity/version, permission/
+  network/deep-link/test-hook absence, embedded surfaces and dependencies, and the exact
+  seven packaged JPEG hashes.
+- Added dedicated Nightingale Android and iOS CI jobs for source/governance checks,
+  dependency drift, Debug/Release unit tests and lint/builds, Release artifact inspection,
+  Android API 35 instrumentation, iOS XCTest/XCUITest, and retained verification
+  artifacts. This stream no longer relies on the documentation-sensitive foundation job
+  as its only native gate.
+
+### Local native verification
+
+- Background manifest verification and all seven fail-closed mutations passed.
+- The native product boundary and XcodeGen reproducibility checks passed.
+- iOS normally signed Debug build-for-testing succeeded; 9/9 XCTest unit tests and 4/4
+  XCUITest journeys passed on the iPhone 16e simulator running iOS 26.3.1. The unit suite
+  covers exact resource loading and the shared day-index contract; the UI suite covers
+  positive background status, imagery suppression persistence, privacy cover, and
+  largest-text landscape behavior.
+- An initial unsigned iOS unit invocation reproduced Keychain status `-34018` in the
+  protected-state canary. The new background test passed in that run. The accepted normally
+  signed configuration then passed all nine tests; the unsigned failure is retained as
+  environment evidence, not counted as a product failure or passing result.
+- iOS unsigned Release build and artifact verification passed. The exact local executable/
+  manifest hashes are recorded in the accessibility/layout matrix.
+- Android Debug and Release unit suites each passed 8/8 from forced task execution.
+  `verifyNightingaleProductBoundary`, `lintDebug`, `lintRelease`, Debug assembly, unsigned
+  Release assembly, and the exact Release APK boundary/hash scan all passed.
+- Android API 35 instrumentation passed 7/7 with no failure or skip. `FLAG_SECURE` continued
+  to produce a black ADB capture; capture protection was not weakened for visual review.
+  The semantic hierarchy exposed no background filename or species token and retained all
+  patient-readable text and controls.
+- The inspected 1170×2532 iOS image-bearing foundation screenshot had SHA-256
+  `07494f15eadc37916613fd502cc43a8ccaffc7ce2a31a1b1c9d9a51abe208272`.
+  It showed a supplied photo behind the strong system-surface gradient and readable cards.
+  This is local diagnostic evidence, not patient-advisor, rights, marketing, store,
+  distribution, or release approval.
+
+### Dependency identity and current holds
+
+- Regenerated the deterministic foundation dependency inventory after the Android resource
+  source-set and iOS resource-phase changes. Component identity remains seven direct
+  Android declarations, 83 Release runtime components, 457 dependency edges, zero iOS
+  third-party packages, and four Apple system-module imports; only the governed source
+  hashes changed.
+- Added the comprehensive background governance/integration record and updated the master
+  plan, documentation index, accessibility/layout matrix, migration classification, and
+  threat/hazard model. The plan checklist now distinguishes completed native engineering
+  from open rights, human review, physical-device, signing, store, pilot, and release gates.
+- No production database or patient source was accessed. No patient, principal, encounter,
+  grant, identity link, session, clinical projection, message, notification, migration,
+  deployment, pilot, or release state was created, read, or changed.
+- Commit, push, and exact-SHA CI ratification remain required for this background/CI slice.

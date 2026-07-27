@@ -129,22 +129,132 @@ final class NightingaleProductBoundaryTests: XCTestCase {
 
         XCTAssertFalse(standard.reduceMotion)
         XCTAssertTrue(standard.showDecorativeImagery)
-        XCTAssertEqual(standard.decorativeImageOpacity, 0.08)
+        XCTAssertEqual(standard.decorativeImageOpacity, 1)
+        XCTAssertEqual(standard.backgroundScrimAlphas, [0.46, 0.70, 0.88])
+        XCTAssertEqual(standard.cardOpacity, 0.96)
         XCTAssertEqual(standard.transitionDuration, 0.18)
 
         XCTAssertTrue(patientReduced.reduceMotion)
         XCTAssertFalse(patientReduced.showDecorativeImagery)
         XCTAssertEqual(patientReduced.decorativeImageOpacity, 0)
+        XCTAssertEqual(patientReduced.backgroundScrimAlphas, [1, 1, 1])
         XCTAssertEqual(patientReduced.transitionDuration, 0)
 
         XCTAssertTrue(systemReduced.reduceMotion)
         XCTAssertFalse(systemReduced.showDecorativeImagery)
         XCTAssertEqual(systemReduced.decorativeImageOpacity, 0)
+        XCTAssertEqual(systemReduced.backgroundScrimAlphas, [1, 1, 1])
         XCTAssertEqual(systemReduced.cardOpacity, 1)
         XCTAssertEqual(systemReduced.transitionDuration, 0)
 
         XCTAssertTrue(accessibilityText.showDecorativeImagery)
-        XCTAssertEqual(accessibilityText.decorativeImageOpacity, 0.04)
+        XCTAssertEqual(accessibilityText.decorativeImageOpacity, 1)
+        XCTAssertEqual(accessibilityText.backgroundScrimAlphas, [0.72, 0.88, 0.97])
+    }
+
+    func testBackgroundCatalogIsExactStableForLocalDayAndRotatesWithoutMotion() throws {
+        XCTAssertEqual(
+            NightingaleBackgroundCatalog.assetNames,
+            [
+                "nightingale_background_01",
+                "nightingale_background_02",
+                "nightingale_background_03",
+                "nightingale_background_04",
+                "nightingale_background_05",
+                "nightingale_background_06",
+                "nightingale_background_07",
+            ]
+        )
+        XCTAssertEqual(Set(NightingaleBackgroundCatalog.assetNames).count, 7)
+
+        for assetName in NightingaleBackgroundCatalog.assetNames {
+            let resourceURL = Bundle.main.url(
+                forResource: assetName,
+                withExtension: "jpg"
+            )
+            XCTAssertNotNil(
+                resourceURL,
+                "Missing governed Nightingale background resource: \(assetName)"
+            )
+            if let resourceURL {
+                XCTAssertNotNil(
+                    UIImage(contentsOfFile: resourceURL.path),
+                    "Unreadable governed Nightingale background resource: \(assetName)"
+                )
+            }
+        }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
+        let morning = try XCTUnwrap(
+            calendar.date(
+                from: DateComponents(
+                    year: 2026,
+                    month: 7,
+                    day: 26,
+                    hour: 1
+                )
+            )
+        )
+        let evening = try XCTUnwrap(
+            calendar.date(
+                from: DateComponents(
+                    year: 2026,
+                    month: 7,
+                    day: 26,
+                    hour: 23
+                )
+            )
+        )
+        let nextDay = try XCTUnwrap(
+            calendar.date(byAdding: .day, value: 1, to: morning)
+        )
+
+        let morningIndex = NightingaleBackgroundCatalog.index(
+            for: morning,
+            calendar: calendar
+        )
+        XCTAssertEqual(morningIndex, 3)
+        XCTAssertEqual(
+            morningIndex,
+            NightingaleBackgroundCatalog.index(for: evening, calendar: calendar)
+        )
+        XCTAssertEqual(
+            NightingaleBackgroundCatalog.index(for: nextDay, calendar: calendar),
+            (morningIndex + 1) % NightingaleBackgroundCatalog.assetNames.count
+        )
+        var nonGregorianCalendar = Calendar(identifier: .buddhist)
+        nonGregorianCalendar.timeZone = calendar.timeZone
+        XCTAssertEqual(
+            NightingaleBackgroundCatalog.index(
+                for: morning,
+                calendar: nonGregorianCalendar
+            ),
+            morningIndex
+        )
+
+        let unixEpoch = try XCTUnwrap(
+            calendar.date(
+                from: DateComponents(year: 1970, month: 1, day: 1)
+            )
+        )
+        let dayBeforeEpoch = try XCTUnwrap(
+            calendar.date(byAdding: .day, value: -1, to: unixEpoch)
+        )
+        XCTAssertEqual(
+            NightingaleBackgroundCatalog.index(
+                for: unixEpoch,
+                calendar: calendar
+            ),
+            0
+        )
+        XCTAssertEqual(
+            NightingaleBackgroundCatalog.index(
+                for: dayBeforeEpoch,
+                calendar: calendar
+            ),
+            6
+        )
     }
 
     func testForestAccentMeetsTextContrastInLightAndDarkAppearances() {

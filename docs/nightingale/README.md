@@ -28,6 +28,12 @@ foundation dependency inventory now binds seven direct Android Release runtime
 declarations, 83 resolved components, 457 dependency edges, and the current zero-package
 iOS application target to exact source hashes. It is not a standards-conformant SBOM,
 vulnerability/provenance assessment, or supply-chain approval.
+The offline shell also consumes the same governed catalog of seven Nightingale background
+photos on both platforms. Each local Gregorian day maps to the same catalog entry on iOS
+and Android; the images are decorative, suppressible, hidden from accessibility meaning,
+and packaged behind strong scrims and content surfaces. Source lineage and exact derivative
+hashes are retained, while external distribution remains blocked until durable rights or
+attribution evidence and named human review are recorded.
 
 Current product-identity records:
 
@@ -48,6 +54,9 @@ Current product-identity records:
 - [Draft foundation threat and clinical-hazard model](./FOUNDATION-THREAT-AND-HAZARD-MODEL-2026-07-26.md)
 - [Foundation dependency inventory decision and evidence](./FOUNDATION-DEPENDENCY-INVENTORY-2026-07-26.md)
 - [Generated foundation dependency inventory](./supply-chain/foundation-dependency-inventory.v0.json)
+- [Background asset governance and native integration](./BACKGROUND-ASSET-GOVERNANCE-AND-NATIVE-INTEGRATION-2026-07-26.md)
+- [Governed background manifest](../../nightingale/backgrounds/backgrounds.v1.json)
+- [Background catalog runtime and distribution rules](../../nightingale/backgrounds/README.md)
 - [Empty/default-off contract foundation](./api-contract/nightingale-foundation.v0.json)
 - [Identity candidate and fixtures](./identity/candidates/v0/candidate.json)
 - [Current-inpatient source candidate and fixtures](./source-candidates/current-inpatient/v0/candidate.json)
@@ -75,3 +84,6 @@ Current product-identity records:
   with a dated reviewer/approval record. Draft evidence must say that it is draft.
 - Never store patient information, credentials, tokens, production fixtures, or private
   contact information in this directory.
+- Background photos are decorative product assets, not clinical content or patient-state
+  signals. A catalog change requires an exact manifest/version update, native parity
+  verification, accessibility review, and a release-rights decision.

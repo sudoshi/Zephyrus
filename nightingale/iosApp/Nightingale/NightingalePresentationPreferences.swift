@@ -21,6 +21,7 @@ struct NightingaleSceneAccessibilityPolicy: Equatable {
     let reduceMotion: Bool
     let showDecorativeImagery: Bool
     let decorativeImageOpacity: Double
+    let backgroundScrimAlphas: [Double]
     let cardOpacity: Double
     let transitionDuration: Double
 
@@ -39,19 +40,27 @@ struct NightingaleSceneAccessibilityPolicy: Equatable {
             && !increasedContrast
 
         let imageOpacity: Double
+        let backgroundScrimAlphas: [Double]
         if !showDecorativeImagery {
             imageOpacity = 0
+            backgroundScrimAlphas = [1, 1, 1]
         } else if accessibilityTextSize {
-            imageOpacity = 0.04
+            imageOpacity = 1
+            backgroundScrimAlphas = [0.72, 0.88, 0.97]
+        } else if darkMode {
+            imageOpacity = 1
+            backgroundScrimAlphas = [0.58, 0.78, 0.92]
         } else {
-            imageOpacity = darkMode ? 0.10 : 0.08
+            imageOpacity = 1
+            backgroundScrimAlphas = [0.46, 0.70, 0.88]
         }
 
         return NightingaleSceneAccessibilityPolicy(
             reduceMotion: reduceMotion,
             showDecorativeImagery: showDecorativeImagery,
             decorativeImageOpacity: imageOpacity,
-            cardOpacity: systemReduceTransparency || increasedContrast ? 1 : 0.92,
+            backgroundScrimAlphas: backgroundScrimAlphas,
+            cardOpacity: systemReduceTransparency || increasedContrast ? 1 : 0.96,
             transitionDuration: reduceMotion ? 0 : 0.18
         )
     }

@@ -9,6 +9,15 @@ The initial native applications are intentionally safe shells: they demonstrate 
 - `iosApp/` — iOS 17+ SwiftUI application, bundle identifier `net.acumenus.nightingale`.
 - `androidApp/` — Android application, package and application identifier `net.acumenus.nightingale`.
 - `brand/` — immutable source artwork and icon provenance.
+- `backgrounds/` — the governed seven-image decorative background catalog, its immutable
+  source/derivative lineage, and the exact shared iOS/Android app derivatives.
+
+Both native apps select the same background for the patient’s local Gregorian date, keep
+the photograph out of accessibility semantics, and preserve a complete text-only
+experience when imagery is hidden. See
+[the background governance record](../docs/nightingale/BACKGROUND-ASSET-GOVERNANCE-AND-NATIVE-INTEGRATION-2026-07-26.md).
+The assets are foundation-only until release rights/attribution and named human review are
+recorded.
 
 ## Non-negotiable product boundary
 

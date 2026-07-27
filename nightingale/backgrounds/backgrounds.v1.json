@@ -1,0 +1,155 @@
+{
+    "schema": "net.acumenus.nightingale.background-assets.v1",
+    "catalog_version": 1,
+    "asset_count": 7,
+    "purpose": "decorative_background_only",
+    "clinical_semantics_permitted": false,
+    "species_labels_permitted_in_patient_ui": false,
+    "automatic_motion_permitted": false,
+    "selection_policy": "one_stable_asset_per_local_calendar_day",
+    "selection_index": "floor_mod(local_gregorian_epoch_day_since_1970_01_01, 7)",
+    "accessibility": {
+        "hidden_from_accessibility_tree": true,
+        "patient_hide_control_required": true,
+        "hide_when_increased_contrast_or_reduced_transparency": true,
+        "opaque_or_governed_scrim_behind_all_text": true
+    },
+    "rights": {
+        "source": "user_supplied_by_project_owner",
+        "license_or_attribution_record": "pending_release_owner_confirmation",
+        "distribution_status": "foundation_only_pending_release_rights_record"
+    },
+    "source_retention": {
+        "original_binaries_committed": false,
+        "reason": "Avoid duplicating 33 MB of unoptimized source media in Git; retain immutable source lineage and the exact app derivatives.",
+        "required_release_record": "Archive location and applicable license or attribution evidence must be recorded before external distribution."
+    },
+    "derivative_recipe": {
+        "resize": "sips JPEG quality 82; preserve original dimensions when the long edge is at most 2400 px, otherwise constrain the long edge to 2400 px",
+        "metadata": "jpegtran -copy none -optimize -progressive",
+        "color_assumption": "source files reported sRGB before derivation",
+        "maximum_long_edge_pixels": 2400,
+        "upscaling_permitted": false
+    },
+    "assets": [
+        {
+            "id": "nightingale-background-01",
+            "source": {
+                "filename": "1031776-1400x1980-phone-hd-robin-bird-background-photo.jpg",
+                "sha256": "4bdd867e6e722ec4947cdef67a21309109c3fdbaa58e75369fb0542c4a9dadc5",
+                "bytes": 339274,
+                "width": 1400,
+                "height": 1980
+            },
+            "derivative": {
+                "path": "nightingale/backgrounds/optimized/drawable-nodpi/nightingale_background_01.jpg",
+                "sha256": "4a741d9d3add77eac8aad8071bf3c9945bbd2ce4aa0d93b0daa79efe166b30b4",
+                "bytes": 285047,
+                "width": 1400,
+                "height": 1980
+            }
+        },
+        {
+            "id": "nightingale-background-02",
+            "source": {
+                "filename": "HD-wallpaper-nightingale-bird-feathers-bright.jpg",
+                "sha256": "aa5fdef716bc669e2c20c3aa5482abd4e8089de5308b10dc15df86498ff52cdb",
+                "bytes": 115969,
+                "width": 800,
+                "height": 1169
+            },
+            "derivative": {
+                "path": "nightingale/backgrounds/optimized/drawable-nodpi/nightingale_background_02.jpg",
+                "sha256": "6f2888ae489e2ca2f268065fc7f3f029a051921b4290200e740e455c17cc3510",
+                "bytes": 149373,
+                "width": 800,
+                "height": 1169
+            }
+        },
+        {
+            "id": "nightingale-background-03",
+            "source": {
+                "filename": "beautiful-sparrow-sitting-thin-branch-tree.jpg",
+                "sha256": "c598a9c6e05dc93698d0a66d8ba9917fa5a1c253f767c46914e3d0a4c9de3a1e",
+                "bytes": 5262454,
+                "width": 2667,
+                "height": 4000
+            },
+            "derivative": {
+                "path": "nightingale/backgrounds/optimized/drawable-nodpi/nightingale_background_03.jpg",
+                "sha256": "760c01a4ee1a6830d8a975b5626dd4e452702639a562be875dd2e7838d5334d4",
+                "bytes": 591858,
+                "width": 1600,
+                "height": 2400
+            }
+        },
+        {
+            "id": "nightingale-background-04",
+            "source": {
+                "filename": "common-linnet-bird-carduelis-cannabina-perched-branch-tree-with-yellow-blossoms.jpg",
+                "sha256": "3379a5b8b527c0e796e1835d797beb5ab68bb71f3efd105fef1b181c2897044f",
+                "bytes": 6545732,
+                "width": 2667,
+                "height": 4000
+            },
+            "derivative": {
+                "path": "nightingale/backgrounds/optimized/drawable-nodpi/nightingale_background_04.jpg",
+                "sha256": "16addb872da986ee99aa3de4db4715f4ff8dc945170934a33eb1192fe3bfb2a3",
+                "bytes": 788373,
+                "width": 1600,
+                "height": 2400
+            }
+        },
+        {
+            "id": "nightingale-background-05",
+            "source": {
+                "filename": "miguel-alcantara-VCq1vozVMbw-unsplash.jpg",
+                "sha256": "a80c1a17fe9885e95eca3bd1d45acb2f63c4a7119c0848819b9c51092649b93c",
+                "bytes": 1501013,
+                "width": 2400,
+                "height": 3600
+            },
+            "derivative": {
+                "path": "nightingale/backgrounds/optimized/drawable-nodpi/nightingale_background_05.jpg",
+                "sha256": "339ab8239cab04fa6cac373a00dc6993e30a6b3786d35e065b3e810ce6f52e8d",
+                "bytes": 830081,
+                "width": 1600,
+                "height": 2400
+            }
+        },
+        {
+            "id": "nightingale-background-06",
+            "source": {
+                "filename": "muhammad-shakir-g3mOCylYkmk-unsplash.jpg",
+                "sha256": "507f7325791acdd3f0a885d635c4be4037267079507e9efc56a6a3151ae537f1",
+                "bytes": 5069027,
+                "width": 3456,
+                "height": 5184
+            },
+            "derivative": {
+                "path": "nightingale/backgrounds/optimized/drawable-nodpi/nightingale_background_06.jpg",
+                "sha256": "e6d9d06cf85ef9360186762e9c0ce0c2297cd6ec445f8409eaa5df49b99086d9",
+                "bytes": 1110350,
+                "width": 1600,
+                "height": 2400
+            }
+        },
+        {
+            "id": "nightingale-background-07",
+            "source": {
+                "filename": "vertical-closeup-shot-brown-shrike-bird-perched-branch.jpg",
+                "sha256": "2c6f15fae52da5543a470210e2d8cdddf6ed2f0a50dd3a241a85bf36119ee484",
+                "bytes": 12878303,
+                "width": 5304,
+                "height": 6630
+            },
+            "derivative": {
+                "path": "nightingale/backgrounds/optimized/drawable-nodpi/nightingale_background_07.jpg",
+                "sha256": "024349a43146b2682af268f6ae4abe14be7725b04456eaf478cda00869086f2c",
+                "bytes": 684892,
+                "width": 1920,
+                "height": 2400
+            }
+        }
+    ]
+}

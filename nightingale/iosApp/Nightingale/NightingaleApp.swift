@@ -106,21 +106,7 @@ private struct NightingaleFoundationView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    if policy.showDecorativeImagery {
-                        Image("BrandMark")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 88, height: 88)
-                            .accessibilityHidden(true)
-                    }
-
-                    Text(NightingaleProductBoundary.productName)
-                        .font(.largeTitle.weight(.semibold))
-                        .accessibilityAddTraits(.isHeader)
-                        .accessibilityIdentifier("nightingale-product-heading")
-                    Text("A calm place to understand, prepare, and connect with your care team.")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
+                    foundationHeader
 
                     NightingaleFoundationStatusCard(cardOpacity: policy.cardOpacity)
                     NightingaleDisplayComfortCard(
@@ -134,6 +120,36 @@ private struct NightingaleFoundationView: View {
             }
         }
         .accessibilityIdentifier("nightingale-safe-shell")
+    }
+
+    private var foundationHeader: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if policy.showDecorativeImagery {
+                Image("BrandMark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 88, height: 88)
+                    .accessibilityHidden(true)
+            }
+
+            Text(NightingaleProductBoundary.productName)
+                .font(.largeTitle.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("nightingale-product-heading")
+            Text("A calm place to understand, prepare, and connect with your care team.")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Color(uiColor: .systemBackground).opacity(policy.cardOpacity),
+            in: RoundedRectangle(cornerRadius: 22)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(Color.primary.opacity(0.1))
+        }
     }
 }
 
@@ -219,7 +235,7 @@ private struct NightingaleDisplayComfortCard: View {
 
             Text(
                 policy.showDecorativeImagery
-                    ? "The Nightingale artwork is shown softly behind the page."
+                    ? "A calming Nightingale background is shown softly behind the page."
                     : "Decorative imagery is hidden. Essential text and controls remain available."
             )
             .font(.footnote)

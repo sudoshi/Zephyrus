@@ -150,6 +150,10 @@ class NightingaleLaunchInstrumentedTest {
     fun displayComfortControlsPersistAndExplainTheirEffect() {
         setPresentationPreferences(reduceMotion = false, hideImagery = false)
         try {
+            composeRule.onNodeWithText(
+                "A calming Nightingale background is shown softly behind the page.",
+            ).performScrollTo().assertIsDisplayed()
+
             composeRule.onNodeWithTag("nightingale-reduce-motion-toggle")
                 .performScrollTo()
                 .assertIsOff()

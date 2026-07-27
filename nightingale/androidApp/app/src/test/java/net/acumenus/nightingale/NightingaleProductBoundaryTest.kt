@@ -65,19 +65,42 @@ class NightingaleProductBoundaryTest {
         assertFalse(highContrast.showDecorativeImagery)
         assertEquals(0, highContrast.transitionDurationMillis)
 
-        assertEquals(0.08f, largeText.imageAlpha)
+        assertEquals(1f, largeText.imageAlpha)
+        assertEquals(listOf(0.72f, 0.88f, 0.97f), largeText.scrimAlphas)
         assertFalse(largeText.reduceMotion)
         assertTrue(largeText.showDecorativeImagery)
 
-        assertEquals(0.16f, standard.imageAlpha)
+        assertEquals(1f, standard.imageAlpha)
+        assertEquals(listOf(0.46f, 0.70f, 0.88f), standard.scrimAlphas)
         assertFalse(standard.reduceMotion)
         assertTrue(standard.showDecorativeImagery)
         assertEquals(180, standard.transitionDurationMillis)
 
         assertEquals(0f, patientReduced.imageAlpha)
+        assertEquals(listOf(1f, 1f, 1f), patientReduced.scrimAlphas)
         assertTrue(patientReduced.reduceMotion)
         assertFalse(patientReduced.showDecorativeImagery)
         assertEquals(0, patientReduced.transitionDurationMillis)
+    }
+
+    @Test
+    fun backgroundCatalogIsExactStableForLocalDayAndWrapsDeterministically() {
+        assertEquals(7, NightingaleBackgroundCatalog.resourceIds.size)
+        assertEquals(7, NightingaleBackgroundCatalog.resourceIds.toSet().size)
+        assertEquals(0, NightingaleBackgroundCatalog.indexForEpochDay(0))
+        assertEquals(1, NightingaleBackgroundCatalog.indexForEpochDay(1))
+        assertEquals(6, NightingaleBackgroundCatalog.indexForEpochDay(6))
+        assertEquals(0, NightingaleBackgroundCatalog.indexForEpochDay(7))
+        assertEquals(6, NightingaleBackgroundCatalog.indexForEpochDay(-1))
+
+        for (epochDay in -14L..14L) {
+            val index = NightingaleBackgroundCatalog.indexForEpochDay(epochDay)
+            assertTrue(index in NightingaleBackgroundCatalog.resourceIds.indices)
+            assertEquals(
+                NightingaleBackgroundCatalog.resourceIds[index],
+                NightingaleBackgroundCatalog.resourceIdForEpochDay(epochDay),
+            )
+        }
     }
 
     @Test

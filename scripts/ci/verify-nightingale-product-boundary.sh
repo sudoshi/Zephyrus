@@ -18,6 +18,12 @@ ios_ui_tests="$repo_root/nightingale/iosApp/NightingaleUITests/NightingaleLaunch
 android_visual="$android_source/java/net/acumenus/nightingale/NightingaleVisualFoundation.kt"
 android_tests="$repo_root/nightingale/androidApp/app/src/test/java/net/acumenus/nightingale/NightingaleProductBoundaryTest.kt"
 android_ui_tests="$repo_root/nightingale/androidApp/app/src/androidTest/java/net/acumenus/nightingale/NightingaleLaunchInstrumentedTest.kt"
+background_manifest="$repo_root/nightingale/backgrounds/backgrounds.v1.json"
+background_assets="$repo_root/nightingale/backgrounds/optimized/drawable-nodpi"
+background_verifier="$repo_root/scripts/ci/verify-nightingale-background-assets.mjs"
+ios_background_catalog="$ios_source/NightingaleBackgroundCatalog.swift"
+ios_background_link="$repo_root/nightingale/iosApp/NightingaleBackgrounds"
+android_background_catalog="$android_source/java/net/acumenus/nightingale/NightingaleBackgroundCatalog.kt"
 
 for required_path in \
     "$ios_source" \
@@ -34,13 +40,72 @@ for required_path in \
     "$ios_ui_tests" \
     "$android_visual" \
     "$android_tests" \
-    "$android_ui_tests"
+    "$android_ui_tests" \
+    "$background_manifest" \
+    "$background_assets" \
+    "$background_verifier" \
+    "$ios_background_catalog" \
+    "$ios_background_link" \
+    "$android_background_catalog"
 do
     [[ -e "$required_path" ]] || {
         echo "Missing Nightingale boundary input: $required_path" >&2
         exit 66
     }
 done
+
+command -v node >/dev/null 2>&1 || {
+    echo "Node is required to verify the Nightingale background catalog." >&2
+    exit 69
+}
+
+node "$background_verifier" "$repo_root" --self-test
+
+[[ -L "$ios_background_link" ]] || {
+    echo "The Nightingale iOS background resource boundary must remain a relative symlink." >&2
+    exit 1
+}
+
+[[ "$(readlink "$ios_background_link")" == "../backgrounds/optimized/drawable-nodpi" ]] || {
+    echo "The Nightingale iOS background resource symlink target changed." >&2
+    exit 1
+}
+
+grep -Fq -- 'path: NightingaleBackgrounds' "$ios_project" || {
+    echo "The Nightingale iOS XcodeGen spec is missing the governed background resources." >&2
+    exit 1
+}
+
+grep -Fq -- 'res.srcDir("../../backgrounds/optimized")' "$android_project" || {
+    echo "The Nightingale Android source set is missing the governed background resources." >&2
+    exit 1
+}
+
+for catalog in "$ios_background_catalog" "$android_background_catalog"
+do
+    for sequence in 01 02 03 04 05 06 07
+    do
+        grep -Fq -- "nightingale_background_$sequence" "$catalog" || {
+            echo "Nightingale native catalog is missing background $sequence: $catalog" >&2
+            exit 1
+        }
+    done
+done
+
+grep -Fq -- 'one_stable_asset_per_local_calendar_day' "$background_manifest" || {
+    echo "The Nightingale background selection must remain stable for each local day." >&2
+    exit 1
+}
+
+grep -Fq -- '.accessibilityHidden(true)' "$ios_visual" || {
+    echo "The Nightingale iOS decorative background must remain accessibility-hidden." >&2
+    exit 1
+}
+
+grep -Fq -- 'contentDescription = null' "$android_visual" || {
+    echo "The Nightingale Android decorative backgrounds must remain unannounced." >&2
+    exit 1
+}
 
 for forbidden in \
     "net.acumenus.hummingbird" \
@@ -149,6 +214,11 @@ grep -Fq -- 'testLargestTextLandscapeKeepsContentOrderedReachableAndTouchable' "
     exit 1
 }
 
+grep -Fq -- 'testBackgroundCatalogIsExactStableForLocalDayAndRotatesWithoutMotion' "$ios_tests" || {
+    echo "The Nightingale iOS governed background catalog test is missing." >&2
+    exit 1
+}
+
 for orientation in \
     "UIInterfaceOrientationLandscapeLeft" \
     "UIInterfaceOrientationLandscapeRight"
@@ -185,6 +255,11 @@ grep -Fq -- 'patientTextColorsMeetContrastInLightAndDarkSchemes' "$android_tests
 
 grep -Fq -- 'largestTextLandscapeKeepsContentOrderedReachableAndTouchable' "$android_ui_tests" || {
     echo "The Nightingale Android largest-text landscape journey is missing." >&2
+    exit 1
+}
+
+grep -Fq -- 'backgroundCatalogIsExactStableForLocalDayAndWrapsDeterministically' "$android_tests" || {
+    echo "The Nightingale Android governed background catalog test is missing." >&2
     exit 1
 }
 

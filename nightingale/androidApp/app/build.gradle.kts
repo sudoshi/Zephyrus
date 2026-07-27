@@ -44,6 +44,10 @@ android {
     buildFeatures {
         compose = true
     }
+
+    sourceSets {
+        getByName("main").res.srcDir("../../backgrounds/optimized")
+    }
 }
 
 dependencies {
@@ -80,6 +84,25 @@ tasks.register("verifyNightingaleProductBoundary") {
         }
         check(manifest.contains("android:dataExtractionRules=\"@xml/data_extraction_rules\"")) {
             "Nightingale device-transfer and cloud-backup exclusions are required."
+        }
+
+        val expectedBackgroundNames =
+            (1..7).map { sequence ->
+                "nightingale_background_${sequence.toString().padStart(2, '0')}.jpg"
+            }
+        val backgroundRoot =
+            layout.projectDirectory
+                .dir("../../backgrounds/optimized/drawable-nodpi")
+                .asFile
+        val actualBackgroundNames =
+            backgroundRoot
+                .listFiles()
+                ?.filter { it.isFile }
+                ?.map { it.name }
+                ?.sorted()
+                ?: emptyList()
+        check(actualBackgroundNames == expectedBackgroundNames) {
+            "Nightingale background resource set changed: $actualBackgroundNames"
         }
 
         val sourceRoot = layout.projectDirectory.dir("src").asFile
