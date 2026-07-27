@@ -31,7 +31,11 @@ import {
   prepareReplay,
   recentReplayEvents,
   replayStatus,
+  windowForPreset,
 } from '@/features/patientFlowNavigator/replayTimeline';
+import type { WindowPreset } from '@/features/patientFlowNavigator/replayTimeline';
+import { buildViewSearch, parseViewState } from '@/features/patientFlowNavigator/viewState';
+import type { NavigatorViewSnapshot, ParsedViewState } from '@/features/patientFlowNavigator/viewState';
 import {
   ENTITY_PROJECTION_KINDS,
   aggregatesAt,
@@ -92,8 +96,12 @@ import NavigatorFloorRail from './NavigatorFloorRail';
 import NavigatorInspector from './NavigatorInspector';
 import NavigatorIntro from './NavigatorIntro';
 import NavigatorLegend from './NavigatorLegend';
+import NavigatorMinimap from './NavigatorMinimap';
+import NavigatorSmallMultiples from './NavigatorSmallMultiples';
+import NavigatorStructureNav from './NavigatorStructureNav';
 import NavigatorToolbar from './NavigatorToolbar';
-import type { LayerControl, NavigatorMetrics } from './NavigatorToolbar';
+import { gridToWorldCells, densityGrid, heatBounds } from '@/features/patientFlowNavigator/trailHeat';
+import type { LayerControl, NavigatorMetrics, NavigatorTaskMode } from './NavigatorToolbar';
 import './PatientFlowNavigator.css';
 import { formatDurationMinutes } from '@/lib/duration';
 
@@ -136,7 +144,7 @@ const EMPTY_OCCUPANCY_SUMMARY: OccupancySummary = {
   topBarriers: [],
 };
 
-export interface HandoffParams {
+export interface HandoffParams extends ParsedViewState {
   floor: string | null;
   unitRef: string | null;
   t: number | null;
@@ -148,9 +156,25 @@ export interface HandoffParams {
   patient: string | null;
 }
 
-/** Mobile→web A3 handoff: ?persona=&scope=&t=&focus_stop=&patient= (persona is resolved server-side). Exported for tests. */
+/**
+ * Mobile→web A3 handoff + E5 view-state params:
+ * ?persona=&scope=&t=&focus_stop=&patient=&cam=&layers=&census=&win=&sel=&wall=
+ * (persona is resolved server-side). Exported for tests.
+ */
 export function parseHandoff(): HandoffParams {
-  const empty: HandoffParams = { floor: null, unitRef: null, t: null, focusStop: null, patient: null };
+  const empty: HandoffParams = {
+    floor: null,
+    unitRef: null,
+    t: null,
+    focusStop: null,
+    patient: null,
+    camera: null,
+    layers: null,
+    censusScope: null,
+    windowPreset: null,
+    selection: null,
+    wall: false,
+  };
   if (typeof window === 'undefined') return empty;
   const params = new URLSearchParams(window.location.search);
 
@@ -173,7 +197,14 @@ export function parseHandoff(): HandoffParams {
   const rawPatient = params.get('patient');
   const patient = rawPatient && /^ptok_[A-Za-z0-9]{24}$/.test(rawPatient) ? rawPatient : null;
 
-  return { floor, unitRef, t, focusStop: params.get('focus_stop'), patient };
+  return {
+    floor,
+    unitRef,
+    t,
+    focusStop: params.get('focus_stop'),
+    patient,
+    ...parseViewState(window.location.search),
+  };
 }
 
 function defaultLayersForLens(lens: FlowLens | null | undefined): PatientLayerState {
@@ -324,7 +355,14 @@ export default function PatientFlowNavigator({
     category: initialCategory,
     search: '',
   });
-  const layersRef = useRef<PatientLayerState>(defaultLayersForLens(lens));
+  // E5: a shared view link may carry an explicit layer set and census scope;
+  // both stay clamped by the same gates as the interactive controls (a URL
+  // can request, never grant — the lens and flags still decide what renders).
+  const initialLayers = useMemo<PatientLayerState>(
+    () => (handoff.layers ? { ...defaultLayersForLens(lens), ...handoff.layers } : defaultLayersForLens(lens)),
+    [handoff.layers, lens],
+  );
+  const layersRef = useRef<PatientLayerState>(initialLayers);
   const censusScopeRef = useRef<NavigatorCensusScope>('all');
   // Phase C scene flags: ptok → worded chip state, refreshed on the
   // conformance poll; version feeds the heavy-layer bucket key.
@@ -353,6 +391,10 @@ export default function PatientFlowNavigator({
   const scopeAppliedRef = useRef(false);
   const inspectorInitializedRef = useRef(false);
   const occupancyRequestRef = useRef(0);
+  // E5: one-shot guards for linked camera pose and aggregate selection —
+  // an epoch rebootstrap must not re-yank the operator back to the link.
+  const handoffCameraDoneRef = useRef(false);
+  const handoffSelectionDoneRef = useRef(false);
 
   const [summary, setSummary] = useState<PatientFlowSummary | null>(null);
   const [ambient, setAmbient] = useState<PatientFlowAmbient | null>(null);
@@ -363,7 +405,16 @@ export default function PatientFlowNavigator({
   const [roundStops, setRoundStops] = useState<RoundStop[]>([]);
   const [filters, setFilters] = useState<PatientFlowFilters>(filtersRef.current);
   const [layers, setLayers] = useState<PatientLayerState>(layersRef.current);
-  const [censusScope, setCensusScope] = useState<NavigatorCensusScope>('all');
+  // E5: honor a linked census scope; the deviations scope only exists when
+  // the adherence surface composes for this page/persona.
+  const [censusScope, setCensusScope] = useState<NavigatorCensusScope>(() => {
+    if (handoff.censusScope === 'deviations') return conformanceEnabled ? 'deviations' : 'all';
+    return handoff.censusScope ?? 'all';
+  });
+  // TN-6: chronobar window preset — 48h default; historical sources keep
+  // their data-extent window regardless.
+  const [windowPreset, setWindowPreset] = useState<WindowPreset>(handoff.windowPreset ?? '48h');
+  const windowPresetRef = useRef(windowPreset);
   const [currentTime, setCurrentTime] = useState(currentTimeRef.current);
   const [speed, setSpeed] = useState(60);
   const [playing, setPlaying] = useState(false);
@@ -373,6 +424,13 @@ export default function PatientFlowNavigator({
   // Raw xyz debug readout is title-attribute-only — written via ref so a
   // camera emit never re-renders the tree when the place label is unchanged.
   const cameraSpanRef = useRef<HTMLSpanElement | null>(null);
+  // E1: latest camera pose for the minimap — a ref (not state) so the ~7 Hz
+  // camera stream never re-renders the orchestrator; the minimap polls it.
+  const cameraViewRef = useRef<CameraView | null>(null);
+  // E1: floor location codes with an observed deviation, for the minimap pips.
+  // Guarded setState from refreshScene (change-keyed) so the hot path is cheap.
+  const [deviantLocationCodes, setDeviantLocationCodes] = useState<string[]>([]);
+  const deviantLocationKeyRef = useRef('');
   const [metrics, setMetrics] = useState<NavigatorMetrics>({ active: 0, events: 0, occupiedLocations: 0 });
   // F-8 non-pointer parity: the delayed/watch locations currently drawn in the
   // scene, exposed as a keyboard-selectable list (NavigatorActionList).
@@ -428,6 +486,13 @@ export default function PatientFlowNavigator({
   const [searchMatches, setSearchMatches] = useState<number | null>(null);
   const [searchResults, setSearchResults] = useState<Array<{ patientId: string; label: string }>>([]);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  // E3: top-down orthographic plan view (the `O` key + toolbar toggle).
+  const [ortho, setOrtho] = useState(false);
+  // E4: GSTC flatten — draw the last-6h trail density on the 3D floor.
+  const [floorHeatOn, setFloorHeatOn] = useState(false);
+  // E6: task mode — progressive disclosure of the toolbar (WN-6). Default
+  // Monitor is the resting at-a-glance layout minus the investigation kit.
+  const [taskMode, setTaskMode] = useState<NavigatorTaskMode>('monitor');
   const [roundsRun, setRoundsRun] = useState<RunSummary | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [inspectorAction, setInspectorAction] = useState<{ label: string; href: string } | null>(null);
@@ -502,6 +567,9 @@ export default function PatientFlowNavigator({
   const introStopList = useMemo(() => introStops(roundsActive), [roundsActive]);
 
   const tracks = useMemo(() => rebuildTracks(events), [events]);
+
+  // E1: deviant floor-location codes as a Set for the minimap pips.
+  const deviationLocationSet = useMemo(() => new Set(deviantLocationCodes), [deviantLocationCodes]);
 
   // S-1: advance wall-clock now every 60s. The ref updates in the same tick so
   // any repaint that fires before the effects run already sees the fresh value.
@@ -668,6 +736,23 @@ export default function PatientFlowNavigator({
     lastOccupancyInsightsRef.current = occupancyInsights;
     // Only the visible disks are selectable in the scene; the list mirrors them.
     setActionableInsights(visibleOccupancyInsights.filter((insight) => insight.primaryStatus !== 'ok'));
+    // E1 minimap deviation pips: the location codes of currently-visible
+    // flagged patients. Change-keyed so the hot path only re-renders the
+    // minimap when the set actually shifts. Empty (and free) while dark.
+    if (deviationsRef.current.size > 0) {
+      const codes = [...new Set(states
+        .filter((state) => deviationsRef.current.has(state.patientId))
+        .map((state) => state.event.to_location)
+        .filter((code): code is string => Boolean(code)))].sort();
+      const key = codes.join('|');
+      if (key !== deviantLocationKeyRef.current) {
+        deviantLocationKeyRef.current = key;
+        setDeviantLocationCodes(codes);
+      }
+    } else if (deviantLocationKeyRef.current !== '') {
+      deviantLocationKeyRef.current = '';
+      setDeviantLocationCodes([]);
+    }
     scene.setPathwayDeviations(deviationsRef.current, layersRef.current.pathway);
     scene.updateTokens(
       states,
@@ -846,7 +931,7 @@ export default function PatientFlowNavigator({
     if (historical || playingRef.current || liveRef.current) return;
     if (!followNowRef.current) return;
     if (Math.abs(currentTimeRef.current - nowMs) >= 90_000) return;
-    setTimeWindow({ start: nowMs - LIVE_WINDOW_HALF_MS, end: nowMs + LIVE_WINDOW_HALF_MS });
+    setTimeWindow(windowForPreset(windowPresetRef.current, nowMs));
     currentTimeRef.current = nowMs;
     setCurrentTime(nowMs);
   }, [historical, nowMs]);
@@ -907,10 +992,23 @@ export default function PatientFlowNavigator({
     setCurrentTime(timeMs);
   }, []);
 
+  // TN-6: switching presets resizes the window around now and clamps the
+  // scrub position into it. The default 48h path is identical to before.
+  const applyWindowPreset = useCallback((preset: WindowPreset): void => {
+    windowPresetRef.current = preset;
+    setWindowPreset(preset);
+    if (historicalRef.current) return;
+    const next = windowForPreset(preset, nowMsRef.current);
+    setTimeWindow(next);
+    const clamped = Math.min(next.end, Math.max(next.start, currentTimeRef.current));
+    if (clamped !== currentTimeRef.current) applyTime(clamped);
+  }, [applyTime]);
+
   // N-3: the camera readout speaks place, not xyz — the nearest unit centroid
   // to the orbit target names what the operator is looking at. Raw coordinates
   // survive in the status-bar title attribute for debugging.
   const handleCameraMove = useCallback((view: CameraView): void => {
+    cameraViewRef.current = view;
     if (cameraSpanRef.current) {
       cameraSpanRef.current.title =
         `camera x ${Math.round(view.position.x)} y ${Math.round(view.position.y)} z ${Math.round(view.position.z)}`
@@ -988,7 +1086,11 @@ export default function PatientFlowNavigator({
         setLocations(locationData);
         setEvents(sortedEvents);
         setFeed(recentReplayEvents(sortedEvents));
-        setTimeWindow({ start: timeline.windowStart, end: timeline.windowEnd });
+        // TN-6: a narrowed preset survives bootstrap (deep links, epoch
+        // rebootstraps); historical sources always keep the extent window.
+        setTimeWindow(timeline.historical || windowPresetRef.current === '48h'
+          ? { start: timeline.windowStart, end: timeline.windowEnd }
+          : windowForPreset(windowPresetRef.current, anchorMs));
         applyTime(timeline.currentTime);
         setError(null);
         setRebuildNotice(null);
@@ -1300,6 +1402,12 @@ export default function PatientFlowNavigator({
       // no-oped; bumping the nonce re-runs them against the live scene.
       // (Exposed by the ?patient= deep link on a slow first load.)
       setSceneNonce((nonce) => nonce + 1);
+      // E5: a linked camera pose restores exactly once, before the model
+      // finishes loading — the link IS the operator's framing.
+      if (handoff.camera && !handoffCameraDoneRef.current) {
+        handoffCameraDoneRef.current = true;
+        scene.setCameraView(handoff.camera);
+      }
       scene.setHoverEnabled(!(playingRef.current && speedRef.current > 60));
       lastBucketKeyRef.current = '';
       lastRoundsKeyRef.current = '';
@@ -1324,7 +1432,7 @@ export default function PatientFlowNavigator({
       sceneRef.current = null;
       scene?.dispose();
     };
-  }, [summary?.model_url, dotsPolicy, handleCameraMove, refreshScene]);
+  }, [summary?.model_url, dotsPolicy, handleCameraMove, refreshScene, handoff.camera]);
 
   // ---- playback / live -----------------------------------------------------
   const disconnectLive = useCallback((): void => {
@@ -1425,6 +1533,32 @@ export default function PatientFlowNavigator({
     setFilters((prev) => ({ ...prev, floor }));
     fitToFloor(floor);
   }, [fitToFloor]);
+
+  // E2 canonical views (Top / House / Floor / Bed): the four framings an
+  // operator reaches for, each a van Wijk arc. "Where am I / how do I get
+  // back" in one click. Top/Floor frame the current floor's points (or the
+  // whole house at 'all'); Bed frames the current selection.
+  const applyCanonicalView = useCallback((view: 'top' | 'house' | 'floor' | 'bed'): void => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    const floorFilter = filtersRef.current.floor;
+    const floorPoints = (): Array<{ x: number; y: number; z: number }> =>
+      Object.values(locationsRef.current)
+        .filter((loc) => loc.position_m && (floorFilter === 'all' || String(loc.floor) === floorFilter))
+        .map((loc) => ({ x: loc.position_m!.x, y: loc.position_m!.y ?? 0, z: loc.position_m!.z }));
+
+    if (view === 'house') {
+      scene.flyToHome();
+    } else if (view === 'top') {
+      scene.focusTopDown(floorPoints());
+    } else if (view === 'floor') {
+      scene.focusOn(floorPoints());
+    } else if (!scene.focusTrace()) {
+      // Bed: the selection (trace frames the whole story when a journey is
+      // open); with nothing selected, fall back to the active patients.
+      focusActivePatients();
+    }
+  }, [focusActivePatients]);
 
   // N-5: Enter in Find flies to the bbox of the matched tokens.
   const focusSearchMatches = useCallback((): void => {
@@ -1544,6 +1678,56 @@ export default function PatientFlowNavigator({
     }).catch(() => setStatus('Copy failed — clipboard unavailable'));
   }, []);
 
+  // E5: snapshot the exact current view as a shareable URL. Selection rides
+  // the strongest existing param for its kind (patient=ptok / focus_stop=
+  // uuid / sel=aggregate) — never a new way to address a person.
+  const buildCurrentViewUrl = useCallback((): string => {
+    const scene = sceneRef.current;
+    const entity = scene?.getSelectedEntity() ?? null;
+    const snapshot: NavigatorViewSnapshot = {
+      camera: scene ? scene.getCameraView() : null,
+      floor: filtersRef.current.floor,
+      layers: { ...layersRef.current },
+      censusScope: censusScopeRef.current,
+      timeMs: followNowRef.current ? null : currentTimeRef.current,
+      windowPreset: windowPresetRef.current,
+      selection: entity && (entity.kind === 'occupancy' || entity.kind === 'barrier')
+        ? { kind: entity.kind, id: entity.id }
+        : null,
+      patient: entity?.kind === 'patient' && /^ptok_[A-Za-z0-9]{24}$/.test(entity.id) ? entity.id : null,
+      focusStop: entity?.kind === 'round-stop' ? entity.id : null,
+    };
+    return `${window.location.origin}/rtdc/patient-flow-navigator${buildViewSearch(snapshot)}`;
+  }, []);
+
+  const copyViewLink = useCallback((): void => {
+    void navigator.clipboard?.writeText(buildCurrentViewUrl())
+      .then(() => setToastMessage('View link copied'))
+      .catch(() => setStatus('Copy failed — clipboard unavailable'));
+  }, [buildCurrentViewUrl]);
+
+  // E5: a saved-view bookmark shares as a link too — camera/floor/layers only
+  // (a bookmark has no time or selection of its own).
+  const copySavedViewLink = useCallback((slot: number): void => {
+    const view = views[slot];
+    if (!view) return;
+    const snapshot: NavigatorViewSnapshot = {
+      camera: view.camera,
+      floor: view.floor,
+      layers: { ...layersRef.current, ...view.layers },
+      censusScope: 'all',
+      timeMs: null,
+      windowPreset: '48h',
+      selection: null,
+      patient: null,
+      focusStop: null,
+    };
+    const url = `${window.location.origin}/rtdc/patient-flow-navigator${buildViewSearch(snapshot)}`;
+    void navigator.clipboard?.writeText(url)
+      .then(() => setToastMessage(`View ${slot + 1} link copied`))
+      .catch(() => setStatus('Copy failed — clipboard unavailable'));
+  }, [views]);
+
   const selectPatientFromList = useCallback((patientId: string): void => {
     const state = lastVisibleStatesRef.current.find((candidate) => candidate.patientId === patientId);
     if (!state) return;
@@ -1592,6 +1776,26 @@ export default function PatientFlowNavigator({
     setInspectorAction(null);
     sceneRef.current?.selectEntity({ kind: 'barrier', id: String(barrier.barrier_id) });
   }, []);
+
+  // E5: restore a linked aggregate selection once its dataset is present —
+  // the same list-selection code paths a keyboard user takes (H1.2/F-8).
+  useEffect(() => {
+    if (handoffSelectionDoneRef.current || !handoff.selection) return;
+    const { kind, id } = handoff.selection;
+    if (kind === 'occupancy') {
+      if (!lastOccupancyInsightsRef.current.some((insight) => insight.location === id)) return;
+      handoffSelectionDoneRef.current = true;
+      selectLocationFromList(id);
+    } else {
+      const barrierId = Number(id);
+      if (!Number.isFinite(barrierId) || !barriers.some((barrier) => barrier.barrier_id === barrierId)) return;
+      handoffSelectionDoneRef.current = true;
+      selectBarrierFromList(barrierId);
+    }
+    // The link is explicit locate intent (the ?patient=/?focus_stop
+    // precedent) — but a linked camera pose outranks the flight.
+    if (!handoff.camera) sceneRef.current?.focusSelection();
+  }, [handoff.selection, handoff.camera, metrics, barriers, sceneNonce, selectBarrierFromList, selectLocationFromList]);
 
   // N-7: three persona-keyed camera/floor/layers bookmarks. The updater
   // stays pure — persistence happens outside setState.
@@ -1642,6 +1846,7 @@ export default function PatientFlowNavigator({
       }
       const key = event.key.toLowerCase();
       if (key === 'h') {
+        setOrtho(false);
         sceneRef.current?.resetCamera();
       } else if (key === 'f') {
         // focusTrace frames the whole traced story when a journey is open
@@ -1649,6 +1854,10 @@ export default function PatientFlowNavigator({
         if (!sceneRef.current?.focusTrace()) focusActivePatients();
       } else if (key === 'n') {
         if (!historical) handleScrub(nowMsRef.current);
+      } else if (key === 'o') {
+        // E3: toggle the top-down orthographic plan view.
+        const scene = sceneRef.current;
+        if (scene) setOrtho(scene.setOrthographic(!scene.isOrthographic()));
       } else if (event.key === '?') {
         setShortcutsOpen((value) => !value);
       }
@@ -1656,6 +1865,58 @@ export default function PatientFlowNavigator({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [closeJourney, dismissIntro, focusActivePatients, handleScrub, historical]);
+
+  // E3: keep the ortho toggle in sync when Home/canonical views exit plan view
+  // (resetCamera drops ortho; the toolbar toggle must reflect that).
+  const toggleOrtho = useCallback((): void => {
+    const scene = sceneRef.current;
+    if (scene) setOrtho(scene.setOrthographic(!scene.isOrthographic()));
+  }, []);
+
+  // E2 — SDF unit-name billboards. Rebuilt only when the unit set, floor
+  // filter, or Model layer changes (not per frame); the scene owns per-frame
+  // billboarding, LOD, and distance culling. Tied to the Model layer — if you
+  // can see the building you can read its unit names; far ones fade out.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    const floorFilter = filters.floor;
+    const labels: Array<{ id: string; text: string; position: { x: number; y: number; z: number } }> = [];
+    for (const [unitId, anchor] of placementIndex.unitAnchors) {
+      const floor = placementIndex.unitFloors.get(unitId);
+      if (floorFilter !== 'all' && String(floor) !== floorFilter) continue;
+      const unit = units.find((candidate) => candidate.unit_id === unitId);
+      const text = unit?.name
+        ?? placementIndex.unitCodeById.get(unitId)?.toUpperCase()
+        ?? `Unit ${unitId}`;
+      labels.push({ id: String(unitId), text, position: anchor });
+    }
+    scene.setUnitLabels(labels, layers.base);
+  }, [placementIndex, units, filters.floor, layers.base, sceneNonce]);
+
+  // E4 — GSTC flatten on the 3D floor: the last 6 h of movement as flat density
+  // tiles. Recomputed when toggled, the data, floor, or wall-now changes (a
+  // cheap re-bin, not per frame). Off → the layer clears.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    if (!floorHeatOn) {
+      scene.setTrailHeat([], 0, 0, false);
+      return;
+    }
+    const bounds = heatBounds(locations, filters.floor);
+    if (!bounds) {
+      scene.setTrailHeat([], 0, 0, false);
+      return;
+    }
+    const cols = 16;
+    const rows = 16;
+    const grid = densityGrid(tracks, locations, bounds, nowMs - 6 * 3_600_000, nowMs, cols, rows, filters.floor);
+    const cells = gridToWorldCells(grid, bounds, 0.35);
+    const cellW = (bounds.maxX - bounds.minX) / cols;
+    const cellD = (bounds.maxZ - bounds.minZ) / rows;
+    scene.setTrailHeat(cells, cellW, cellD, true);
+  }, [floorHeatOn, tracks, locations, filters.floor, nowMs, sceneNonce]);
 
   // B3 — trace mode mirrors the journey drawer: open journey = traced story
   // in-scene (gradient trail + dwell markers, others dimmed). Toggling clears
@@ -1919,6 +2180,8 @@ export default function PatientFlowNavigator({
             patientTicks={chronobarPatientTicks}
             replaying={live}
             onScrub={handleScrub}
+            windowPreset={windowPreset}
+            onWindowPresetChange={applyWindowPreset}
           />
         )}
         playing={playing}
@@ -1930,6 +2193,8 @@ export default function PatientFlowNavigator({
         categories={categories}
         layers={layers}
         layerControls={layerControls}
+        taskMode={taskMode}
+        onTaskModeChange={setTaskMode}
         censusScope={censusScope}
         showDeviationScope={conformanceEnabled}
         metrics={metrics}
@@ -1940,8 +2205,11 @@ export default function PatientFlowNavigator({
           setPlaying((value) => !value);
         }}
         onToggleLive={() => (live ? disconnectLive() : connectLive())}
-        onResetCamera={resetCamera}
+        onResetCamera={() => { setOrtho(false); resetCamera(); }}
         onFocusPatients={focusActivePatients}
+        onCanonicalView={applyCanonicalView}
+        orthoActive={ortho}
+        onToggleOrtho={toggleOrtho}
         onFocusCensusScope={focusCensusScope}
         onSpeedChange={setSpeed}
         onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
@@ -1956,6 +2224,8 @@ export default function PatientFlowNavigator({
         savedViews={views.map((view) => view !== null)}
         onSaveView={saveView}
         onApplyView={applyView}
+        onCopyViewLink={copyViewLink}
+        onCopySavedViewLink={copySavedViewLink}
         roundsHud={roundsHud}
         tourAuto={tourAuto}
         onTourPrev={() => tourStep(-1)}
@@ -1975,6 +2245,41 @@ export default function PatientFlowNavigator({
         onSelectLocation={selectLocationFromList}
         onSelectBarrier={selectBarrierFromList}
       />
+
+      <NavigatorStructureNav
+        locations={locations}
+        onSelectBed={selectLocationFromList}
+        onFrame={(points) => sceneRef.current?.focusOn(points)}
+      />
+
+      {/* E1: the minimap answers "where am I" — suppressed on wall/kiosk
+          (?wall=1), where the whole screen is the instrument. */}
+      {!handoff.wall && (
+        <NavigatorMinimap
+          locations={locations}
+          floor={filters.floor}
+          delayed={actionableInsights}
+          deviationLocations={deviationLocationSet}
+          getCameraView={() => cameraViewRef.current}
+          getSelectionPoint={() => sceneRef.current?.getSelectionPoint() ?? null}
+          onNavigate={(point) => sceneRef.current?.focusOn([point])}
+          onFitFloor={() => applyCanonicalView('floor')}
+        />
+      )}
+
+      {/* E4: the hourly small-multiples analysis card — the non-replay path to
+          "what happened this shift". Desk affordance; hidden on wall/kiosk and
+          revealed only in Investigate mode (E6 progressive disclosure). */}
+      {!handoff.wall && patientDotsVisible && taskMode === 'investigate' && (
+        <NavigatorSmallMultiples
+          tracks={tracks}
+          locations={locations}
+          floor={filters.floor}
+          endMs={nowMs}
+          floorHeatOn={floorHeatOn}
+          onToggleFloorHeat={() => setFloorHeatOn((value) => !value)}
+        />
+      )}
 
       {journeyState === 'idle' ? (
         <NavigatorInspector title={inspectorTitle} rows={inspectorRows} action={inspectorAction} />
@@ -2019,6 +2324,7 @@ export default function PatientFlowNavigator({
             <div><dt>H</dt><dd>Home view</dd></div>
             <div><dt>F</dt><dd>Focus selection (or active patients)</dd></div>
             <div><dt>N</dt><dd>Jump to now</dd></div>
+            <div><dt>O</dt><dd>Top-down plan view (orthographic)</dd></div>
             <div><dt>↑ ↓</dt><dd>Step floors (floor rail focused)</dd></div>
             <div><dt>← → ↑ ↓</dt><dd>Pan the camera (click the scene first)</dd></div>
             <div><dt>Enter</dt><dd>In Find: fly to matches</dd></div>

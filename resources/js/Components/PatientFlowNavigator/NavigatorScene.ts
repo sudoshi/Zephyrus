@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Text as TroikaText } from 'troika-three-text';
+import { buildFlightPath, flightDurationMs } from '@/features/patientFlowNavigator/cameraFlight';
 import { parseTime, positionFor } from '@/features/patientFlowNavigator/stateProjection';
 import { patientTokenInspectorData } from '@/features/patientFlowNavigator/inspector';
 import { confidenceOpacity } from '@/features/patientFlowNavigator/projections';
@@ -101,7 +103,15 @@ export class NavigatorScene {
 
   private scene: THREE.Scene;
 
-  private camera: THREE.PerspectiveCamera;
+  // The ACTIVE camera (raycast, flight, billboards, render all read this).
+  // E3 swaps it between the perspective iso camera and a top-down ortho one.
+  private camera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
+
+  private perspectiveCamera: THREE.PerspectiveCamera;
+
+  private orthoCamera: THREE.OrthographicCamera;
+
+  private orthoEnabled = false;
 
   private orbit: OrbitControls;
 
@@ -169,6 +179,24 @@ export class NavigatorScene {
 
   private readonly followDelta = new THREE.Vector3();
 
+  // E2: one active camera flight along the van Wijk arc. Operator input
+  // ('start') or a newer flight cancels it; pre-allocated vectors keep the
+  // per-frame step allocation-free.
+  private flight: {
+    startedAt: number;
+    duration: number;
+    panAt: (t: number) => number;
+    widthAt: (t: number) => number;
+    fromTarget: THREE.Vector3;
+    toTarget: THREE.Vector3;
+    fromDir: THREE.Vector3;
+    toDir: THREE.Vector3;
+  } | null = null;
+
+  private readonly flightScratchTarget = new THREE.Vector3();
+
+  private readonly flightScratchDir = new THREE.Vector3();
+
   private traceLineMaterial: THREE.LineBasicMaterial | null = null;
 
   // Phase C (plan §7.2): pathway-deviation glyphs. A hollow amber bracket
@@ -181,6 +209,28 @@ export class NavigatorScene {
   private pathwayDeviations = new Map<string, string>();
 
   private pathwayEnabled = false;
+
+  // E2: SDF unit-name billboards (troika-three-text). Wayfinding labels, not
+  // clickable — kept out of the raycast set. Distance-culled + LOD-scaled and
+  // billboarded each frame; hidden entirely in ortho/top overview (E3).
+  private unitLabelLayer = new THREE.Group();
+
+  private unitLabels = new Map<string, TroikaText>();
+
+  private unitLabelsEnabled = false;
+
+  private static readonly LABEL_CULL_DISTANCE = 300;
+
+  private static readonly LABEL_NEAR_DISTANCE = 70;
+
+  // E4: GSTC flatten — the last-N-hours trail density as flat floor tiles.
+  // A transient MODE (not a persistent layer), so it never enters the layer
+  // schema/saved-views; cleared on toggle-off.
+  private trailHeatLayer = new THREE.Group();
+
+  private trailHeatGeometry = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+
+  private trailHeatMaterials: THREE.MeshBasicMaterial[] = [];
 
   private heatSingleMaterial: THREE.MeshStandardMaterial;
 
@@ -260,10 +310,16 @@ export class NavigatorScene {
   private readonly onResize = (): void => {
     const width = this.container.clientWidth;
     const height = this.container.clientHeight;
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
+    this.perspectiveCamera.aspect = width / height;
+    this.perspectiveCamera.updateProjectionMatrix();
+    // E3: the ortho frustum re-derives from its framed height on aspect change.
+    if (this.orthoEnabled) this.applyOrthoFrustum(this.orthoFrameHeight);
     this.renderer.setSize(width, height);
   };
+
+  // E3: the world-space vertical extent the ortho camera frames; focus/fit
+  // updates it, resize re-derives the frustum from it.
+  private orthoFrameHeight = 180;
 
   // Reused per-cast buffers — the 20 Hz hover path must not allocate.
   private raycastScratch: THREE.Object3D[] = [];
@@ -367,8 +423,13 @@ export class NavigatorScene {
     this.scene.background = new THREE.Color(0x121514);
     this.scene.fog = new THREE.Fog(0x121514, 150, 470);
 
-    this.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1400);
-    this.camera.position.copy(HOME_POSITION);
+    this.perspectiveCamera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1400);
+    this.perspectiveCamera.position.copy(HOME_POSITION);
+    // E3 ortho camera — frustum sized on toggle; up = −z so north reads "up"
+    // in plan view. Far plane clears the fixed high vantage it flies to.
+    this.orthoCamera = new THREE.OrthographicCamera(-100, 100, 100, -100, 0.1, 2000);
+    this.orthoCamera.up.set(0, 0, -1);
+    this.camera = this.perspectiveCamera;
 
     this.orbit = new OrbitControls(this.camera, this.renderer.domElement);
     this.orbit.target.copy(HOME_TARGET);
@@ -389,11 +450,15 @@ export class NavigatorScene {
     grid.position.y = -0.12;
     this.scene.add(grid);
 
-    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.ghostLayer, this.patientLayer, this.barrierLayer, this.roundsLayer, this.roundsRouteLayer, this.pathwayLayer);
+    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.trailHeatLayer, this.ghostLayer, this.patientLayer, this.barrierLayer, this.roundsLayer, this.roundsRouteLayer, this.pathwayLayer, this.unitLabelLayer);
 
     // Tour Auto pauses when the OPERATOR grabs the camera; OrbitControls only
-    // dispatches 'start' for real input, never for programmatic flights.
-    this.orbit.addEventListener('start', () => this.callbacks.onUserCameraStart?.());
+    // dispatches 'start' for real input, never for programmatic flights. The
+    // operator's hand also cancels any in-progress flight (E2).
+    this.orbit.addEventListener('start', () => {
+      this.flight = null;
+      this.callbacks.onUserCameraStart?.();
+    });
 
     this.heatSingleMaterial = new THREE.MeshStandardMaterial({
       color: 0x77c06f,
@@ -499,6 +564,19 @@ export class NavigatorScene {
   clearSelection(): void {
     this.selectedEntity = null;
     this.clearSelectionVisual();
+  }
+
+  /** The current stable selection, for view-link snapshots (E5). */
+  getSelectedEntity(): SelectionEntity | null {
+    return this.selectedEntity;
+  }
+
+  /** World position of the current selection, or null (E1 minimap dot). */
+  getSelectionPoint(): { x: number; y: number; z: number } | null {
+    const mesh = this.selectedMesh
+      ?? (this.selectedEntity ? this.resolveEntityMesh(this.selectedEntity) : null);
+    if (!mesh) return null;
+    return { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
   }
 
   /** Stable entity for a hit, or null for mesh-only kinds (ghost/base). */
@@ -795,6 +873,44 @@ export class NavigatorScene {
   /** Trace mode on/off (B3). Caller owns triggering the bucketed rebuild. */
   setTraceMode(patientId: string | null): void {
     this.tracePatientId = patientId;
+  }
+
+  /**
+   * E4 GSTC flatten: render last-N-hours trail density as flat floor tiles.
+   * `cells` carry world centers + normalized intensity; `cellW/cellD` size the
+   * tile. A transient mode — pass an empty array (or visible=false) to clear.
+   * Materials are pooled by intensity bucket so a rebuild allocates no GPU
+   * material. Density reads as a cool analysis ink, never a status color.
+   */
+  setTrailHeat(
+    cells: Array<{ x: number; y: number; z: number; intensity: number }>,
+    cellW: number,
+    cellD: number,
+    visible: boolean,
+  ): void {
+    while (this.trailHeatLayer.children.length) {
+      this.trailHeatLayer.children.pop();
+    }
+    if (!visible || cells.length === 0) return;
+    if (this.trailHeatMaterials.length === 0) {
+      // 6 opacity buckets of one cool ink — aggregate density, not status.
+      for (let bucket = 0; bucket < 6; bucket += 1) {
+        this.trailHeatMaterials.push(new THREE.MeshBasicMaterial({
+          color: 0x8fb8cc,
+          transparent: true,
+          opacity: 0.12 + (bucket / 5) * 0.6,
+          depthWrite: false,
+        }));
+      }
+    }
+    for (const cell of cells) {
+      const bucket = Math.min(5, Math.max(0, Math.round(cell.intensity * 5)));
+      const tile = new THREE.Mesh(this.trailHeatGeometry, this.trailHeatMaterials[bucket]);
+      tile.position.set(cell.x, cell.y, cell.z);
+      tile.scale.set(cellW * 0.96, 1, cellD * 0.96);
+      tile.userData = { kind: 'trail-heat' };
+      this.trailHeatLayer.add(tile);
+    }
   }
 
   /**
@@ -1298,16 +1414,201 @@ export class NavigatorScene {
     return material;
   }
 
-  focusOn(points: Array<{ x: number; y: number; z: number }>): void {
+  // The fixed 3/4 iso direction focusOn has always framed from — preserved so
+  // a Focus flight lands on the same view it used to jump to.
+  private static readonly ISO_DIR = new THREE.Vector3(1.35, 1.05, 1.35).normalize();
+
+  private static readonly ISO_DISTANCE_SCALE = Math.hypot(1.35, 1.05, 1.35);
+
+  /**
+   * Frame a set of points. Animated by default along the van Wijk arc (E2);
+   * pass `{ instant: true }` for a hard cut (used where a flight would fight a
+   * rebuild). The destination direction stays the classic iso 3/4 framing.
+   */
+  focusOn(points: Array<{ x: number; y: number; z: number }>, options?: { instant?: boolean }): void {
     if (!points.length) return;
     const box = new THREE.Box3();
     points.forEach((point) => box.expandByPoint(new THREE.Vector3(point.x, point.y, point.z)));
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const radius = Math.max(size.x, size.y, size.z, 24);
-    this.orbit.target.copy(center);
-    this.camera.position.set(center.x + radius * 1.35, center.y + radius * 1.05, center.z + radius * 1.35);
-    this.orbit.update();
+    const distance = radius * NavigatorScene.ISO_DISTANCE_SCALE;
+    this.flyTo(center, distance, NavigatorScene.ISO_DIR, options);
+  }
+
+  /**
+   * Move the camera to look at `target` from `dir` at `distance`. Animated
+   * along the van Wijk & Nuij optimal pan/zoom arc unless `instant` — long
+   * pans arc out for context, short hops stay near-linear (E2).
+   */
+  flyTo(
+    target: THREE.Vector3,
+    distance: number,
+    dir: THREE.Vector3,
+    options?: { instant?: boolean },
+  ): void {
+    // E3: in plan view there is no arc — reframe the ortho camera straight
+    // down, mapping the requested framing distance to the frustum height.
+    if (this.orthoEnabled) {
+      this.frameOrtho(target.clone(), Math.max(40, distance));
+      return;
+    }
+    const toDir = dir.clone().normalize();
+    if (options?.instant) {
+      this.flight = null;
+      this.orbit.target.copy(target);
+      this.camera.position.copy(target).addScaledVector(toDir, distance);
+      this.orbit.update();
+      return;
+    }
+
+    const fromTarget = this.orbit.target.clone();
+    const fromDir = this.flightScratchDir.subVectors(this.camera.position, this.orbit.target);
+    const fromDistance = Math.max(this.orbit.minDistance, fromDir.length());
+    fromDir.normalize();
+
+    const panDistance = fromTarget.distanceTo(target);
+    const path = buildFlightPath(panDistance, fromDistance, distance);
+    // Degenerate (already there) — no flight, just settle.
+    if (path.pathLength < 1e-4) {
+      this.flight = null;
+      this.orbit.target.copy(target);
+      this.camera.position.copy(target).addScaledVector(toDir, distance);
+      this.orbit.update();
+      return;
+    }
+
+    this.flight = {
+      startedAt: performance.now(),
+      duration: flightDurationMs(path.pathLength),
+      panAt: path.panAt,
+      widthAt: path.widthAt,
+      fromTarget,
+      toTarget: target.clone(),
+      fromDir: fromDir.clone(),
+      toDir,
+    };
+  }
+
+  /** Advance an active flight; returns true while one is running (animate). */
+  private stepFlight(): boolean {
+    const flight = this.flight;
+    if (!flight) return false;
+    const elapsed = performance.now() - flight.startedAt;
+    const t = Math.min(1, elapsed / flight.duration);
+
+    // Pan along the straight target line; smoothstep the reorientation so a
+    // direction change eases rather than tracks the (non-linear) pan param.
+    const pan = flight.panAt(t);
+    const width = flight.widthAt(t);
+    const ease = t * t * (3 - 2 * t);
+
+    this.flightScratchTarget.copy(flight.fromTarget).lerp(flight.toTarget, pan);
+    this.flightScratchDir.copy(flight.fromDir).lerp(flight.toDir, ease);
+    if (this.flightScratchDir.lengthSq() < 1e-6) this.flightScratchDir.copy(flight.toDir);
+    this.flightScratchDir.normalize();
+
+    this.orbit.target.copy(this.flightScratchTarget);
+    this.camera.position.copy(this.flightScratchTarget).addScaledVector(this.flightScratchDir, width);
+
+    if (t >= 1) this.flight = null;
+    return true;
+  }
+
+  /** True while a programmatic flight is in progress (tests / soak). */
+  isFlying(): boolean {
+    return this.flight !== null;
+  }
+
+  /**
+   * E2: place SDF unit-name billboards at unit anchors. Rebuilds the label set
+   * only when the anchor list changes (cheap: ~20 units); positioning,
+   * billboarding, LOD scale, and distance culling happen per frame in
+   * updateUnitLabels. `enabled` gates the whole layer (persona/ortho off).
+   */
+  setUnitLabels(labels: Array<{ id: string; text: string; position: { x: number; y: number; z: number } }>, enabled: boolean): void {
+    this.unitLabelsEnabled = enabled;
+    const seen = new Set<string>();
+    for (const { id, text, position } of labels) {
+      seen.add(id);
+      let label = this.unitLabels.get(id);
+      if (!label) {
+        label = new TroikaText();
+        label.font = undefined; // troika's bundled default (Roboto SDF) — no network fetch
+        label.fontSize = 4.2;
+        label.anchorX = 'center';
+        label.anchorY = 'middle';
+        label.color = 0xece7dc;
+        label.outlineWidth = 0.18;
+        label.outlineColor = 0x121514;
+        label.material.depthWrite = false;
+        label.material.transparent = true;
+        this.unitLabels.set(id, label);
+        this.unitLabelLayer.add(label);
+      }
+      if (label.text !== text) {
+        label.text = text;
+        label.sync();
+      }
+      label.userData.anchor = position;
+    }
+    // Drop labels for units no longer present.
+    for (const [id, label] of this.unitLabels.entries()) {
+      if (!seen.has(id)) {
+        this.unitLabelLayer.remove(label);
+        label.dispose();
+        this.unitLabels.delete(id);
+      }
+    }
+  }
+
+  /** Per-frame billboard + LOD + distance-cull for the unit labels (E2). */
+  private updateUnitLabels(): void {
+    if (this.unitLabels.size === 0) return;
+    const show = this.unitLabelsEnabled;
+    for (const label of this.unitLabels.values()) {
+      const anchor = label.userData.anchor as { x: number; y: number; z: number } | undefined;
+      if (!show || !anchor) {
+        label.visible = false;
+        continue;
+      }
+      label.position.set(anchor.x, anchor.y + 6.5, anchor.z);
+      const distance = this.camera.position.distanceTo(label.position);
+      if (distance > NavigatorScene.LABEL_CULL_DISTANCE) {
+        label.visible = false;
+        continue;
+      }
+      label.visible = true;
+      label.quaternion.copy(this.camera.quaternion);
+      // LOD: hold true size when close, grow slightly with distance so far
+      // labels stay legible without dominating; fade the farthest third.
+      const near = NavigatorScene.LABEL_NEAR_DISTANCE;
+      const far = NavigatorScene.LABEL_CULL_DISTANCE;
+      const scale = distance <= near ? 1 : 1 + ((distance - near) / (far - near)) * 0.9;
+      label.scale.setScalar(scale);
+      const fadeStart = far * 0.72;
+      label.material.opacity = distance <= fadeStart
+        ? 1
+        : Math.max(0, 1 - (distance - fadeStart) / (far - fadeStart));
+    }
+  }
+
+  // Straight-down direction for the Top canonical view — a hair of −z keeps
+  // OrbitControls out of the pole singularity while reading as plan-view.
+  private static readonly TOP_DIR = new THREE.Vector3(0, 1, 0.0001).normalize();
+
+  /**
+   * E2 canonical "Top" view: frame the points from directly overhead (plan
+   * view) so structure and spread read without perspective foreshortening.
+   */
+  focusTopDown(points: Array<{ x: number; y: number; z: number }>, options?: { instant?: boolean }): void {
+    if (!points.length) return;
+    const box = new THREE.Box3();
+    points.forEach((point) => box.expandByPoint(new THREE.Vector3(point.x, point.y, point.z)));
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const spread = Math.max(size.x, size.z, 24);
+    this.flyTo(center, spread * 1.8, NavigatorScene.TOP_DIR, options);
   }
 
   /** Fly to the current selection; false when nothing is selected (N-6 `F`). */
@@ -1320,25 +1621,106 @@ export class NavigatorScene {
     return true;
   }
 
-  /** Camera pose snapshot for saved views (N-7). */
+  /** Camera pose snapshot for saved views / view links (N-7/E5). Always the
+   *  perspective pose — bookmarks and links are perspective-framed. */
   getCameraView(): CameraView {
+    const position = this.perspectiveCamera.position;
     return {
-      position: { x: this.camera.position.x, y: this.camera.position.y, z: this.camera.position.z },
+      position: { x: position.x, y: position.y, z: position.z },
       target: { x: this.orbit.target.x, y: this.orbit.target.y, z: this.orbit.target.z },
     };
   }
 
-  /** Restore a saved camera pose (N-7). */
+  /** Restore a saved camera pose (N-7). Exits ortho — bookmarks are iso. */
   setCameraView(view: CameraView): void {
-    this.camera.position.set(view.position.x, view.position.y, view.position.z);
+    if (this.orthoEnabled) this.setOrthographic(false);
+    this.perspectiveCamera.position.set(view.position.x, view.position.y, view.position.z);
     this.orbit.target.set(view.target.x, view.target.y, view.target.z);
     this.orbit.update();
   }
 
   resetCamera(): void {
-    this.camera.position.copy(HOME_POSITION);
+    this.flight = null;
+    // Home is the panic key — always land in the perspective iso overview.
+    if (this.orthoEnabled) this.setOrthographic(false);
+    this.perspectiveCamera.position.copy(HOME_POSITION);
     this.orbit.target.copy(HOME_TARGET);
     this.orbit.update();
+  }
+
+  /** E2 canonical "House" view: fly (arc) to the default iso overview. */
+  flyToHome(options?: { instant?: boolean }): void {
+    if (this.orthoEnabled) {
+      this.frameOrtho(HOME_TARGET.clone(), this.orthoFrameHeight);
+      return;
+    }
+    const dir = HOME_POSITION.clone().sub(HOME_TARGET);
+    this.flyTo(HOME_TARGET.clone(), dir.length(), dir.normalize(), options);
+  }
+
+  /**
+   * E3: toggle the top-down orthographic plan view. Ortho reads structure and
+   * spread without perspective foreshortening — locked straight-down, pan +
+   * zoom only. The active camera swaps beneath OrbitControls, raycast, flight,
+   * and billboards (all read `this.camera`); the perspective iso view restores
+   * on toggle-off. Returns the new state.
+   */
+  setOrthographic(enabled: boolean): boolean {
+    if (enabled === this.orthoEnabled) return this.orthoEnabled;
+    this.flight = null;
+    const target = this.orbit.target.clone();
+
+    if (enabled) {
+      // Frame the same vertical extent the perspective view currently shows.
+      const distance = this.perspectiveCamera.position.distanceTo(target);
+      const height = 2 * distance * Math.tan((this.perspectiveCamera.fov * Math.PI) / 180 / 2);
+      this.camera = this.orthoCamera;
+      this.orbit.object = this.orthoCamera;
+      this.orbit.minPolarAngle = 0;
+      this.orbit.maxPolarAngle = 0; // locked straight down (plan view)
+      this.frameOrtho(target, Math.max(40, height));
+    } else {
+      // Restore the iso perspective looking at the same target, distance
+      // recovered from the ortho frame height so the scale barely jumps.
+      const distance = this.orthoFrameHeight / (2 * Math.tan((this.perspectiveCamera.fov * Math.PI) / 180 / 2));
+      this.camera = this.perspectiveCamera;
+      this.orbit.object = this.perspectiveCamera;
+      this.orbit.minPolarAngle = 0;
+      this.orbit.maxPolarAngle = Math.PI * 0.49;
+      this.perspectiveCamera.position.copy(target).addScaledVector(NavigatorScene.ISO_DIR, distance);
+      this.orbit.target.copy(target);
+      this.orbit.update();
+    }
+
+    this.orthoEnabled = enabled;
+    return this.orthoEnabled;
+  }
+
+  isOrthographic(): boolean {
+    return this.orthoEnabled;
+  }
+
+  /** Point the ortho camera straight down at `target`, framing `height`. */
+  private frameOrtho(target: THREE.Vector3, height: number): void {
+    this.orbit.target.copy(target);
+    // A fixed high vantage — ortho scale is frustum-based, not distance-based,
+    // so any height that clears the scene works; the tiny +z avoids the pole.
+    this.orthoCamera.position.set(target.x, target.y + 800, target.z + 0.001);
+    this.applyOrthoFrustum(height);
+    this.orbit.update();
+  }
+
+  /** Size the ortho frustum to frame `height` world units at the current aspect. */
+  private applyOrthoFrustum(height: number): void {
+    this.orthoFrameHeight = height;
+    const aspect = this.container.clientWidth / Math.max(1, this.container.clientHeight);
+    const halfH = height / 2;
+    const halfW = halfH * aspect;
+    this.orthoCamera.left = -halfW;
+    this.orthoCamera.right = halfW;
+    this.orthoCamera.top = halfH;
+    this.orthoCamera.bottom = -halfH;
+    this.orthoCamera.updateProjectionMatrix();
   }
 
   /** Renderer memory/draw counters for the H4 soak hook (soakHook.ts). */
@@ -1375,6 +1757,13 @@ export class NavigatorScene {
     this.clearGroup(this.roundsRouteLayer);
     this.clearGroup(this.pathwayLayer);
     this.glyphByPatient.clear();
+    // troika Text owns its own GPU resources — dispose each, don't route
+    // through clearGroup (which only handles Mesh geometry).
+    this.unitLabels.forEach((label) => {
+      this.unitLabelLayer.remove(label);
+      label.dispose();
+    });
+    this.unitLabels.clear();
     this.roundStopMeshByUuid.clear();
     this.queueSpriteMaterials.forEach((material) => {
       material.map?.dispose();
@@ -1396,6 +1785,9 @@ export class NavigatorScene {
     this.roundMaterials.forEach((material) => material.dispose());
     this.heatSingleMaterial.dispose();
     this.heatMultiMaterial.dispose();
+    while (this.trailHeatLayer.children.length) this.trailHeatLayer.children.pop();
+    this.trailHeatMaterials.forEach((material) => material.dispose());
+    this.trailHeatGeometry.dispose();
     this.tokenGeometry.dispose();
     this.ghostGeometry.dispose();
     this.heatGeometry.dispose();
@@ -1413,7 +1805,11 @@ export class NavigatorScene {
     if (this.disposed) return;
     const delta = Math.min(this.clock.getDelta(), 0.05);
     this.callbacks.onFrame(delta);
+    // E2: advance any active van Wijk flight before OrbitControls damps —
+    // the flight owns target+position this frame, damping then settles.
+    this.stepFlight();
     this.orbit.update();
+    this.updateUnitLabels();
     this.emitCameraText();
     this.renderer.render(this.scene, this.camera);
     this.animationId = requestAnimationFrame(this.animate);
