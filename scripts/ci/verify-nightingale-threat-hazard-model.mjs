@@ -74,7 +74,7 @@ function sequential(prefix, count, width = 2) {
 const expectedIds = {
     AST: sequential("AST", 18),
     TB: sequential("TB", 14),
-    CTRL: sequential("CTRL", 26, 3),
+    CTRL: sequential("CTRL", 27, 3),
     THR: [
         "THR-S-001",
         "THR-S-002",
@@ -315,6 +315,16 @@ function runNegativeSelfTests(evidence) {
             mutate(candidate) {
                 candidate.model = candidate.model.replace(
                     /^\|\s*HZ-008\s*\|.*\n/m,
+                    "",
+                );
+            },
+        },
+        {
+            name: "language-readiness control removal",
+            expected: "CTRL table identifiers changed",
+            mutate(candidate) {
+                candidate.model = candidate.model.replace(
+                    /^\|\s*CTRL-027\s*\|.*\n/m,
                     "",
                 );
             },

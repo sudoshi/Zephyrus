@@ -23,6 +23,7 @@ android_ui_tests="$repo_root/nightingale/androidApp/app/src/androidTest/java/net
 background_manifest="$repo_root/nightingale/backgrounds/backgrounds.v1.json"
 background_assets="$repo_root/nightingale/backgrounds/optimized/drawable-nodpi"
 background_verifier="$repo_root/scripts/ci/verify-nightingale-background-assets.mjs"
+copy_verifier="$repo_root/scripts/ci/verify-nightingale-foundation-copy.mjs"
 ios_background_catalog="$ios_source/NightingaleBackgroundCatalog.swift"
 ios_background_link="$repo_root/nightingale/iosApp/NightingaleBackgrounds"
 android_background_catalog="$android_source/java/net/acumenus/nightingale/NightingaleBackgroundCatalog.kt"
@@ -48,6 +49,7 @@ for required_path in \
     "$background_manifest" \
     "$background_assets" \
     "$background_verifier" \
+    "$copy_verifier" \
     "$ios_background_catalog" \
     "$ios_background_link" \
     "$android_background_catalog"
@@ -64,6 +66,7 @@ command -v node >/dev/null 2>&1 || {
 }
 
 node "$background_verifier" "$repo_root" --self-test
+node "$copy_verifier" "$repo_root" --self-test
 
 [[ -L "$ios_background_link" ]] || {
     echo "The Nightingale iOS background resource boundary must remain a relative symlink." >&2

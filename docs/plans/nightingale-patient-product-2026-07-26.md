@@ -369,16 +369,23 @@ authorization, idempotency, audit, and patient-visible outcome evidence.
       `2.0` in landscape, and prove 44-point iOS plus 48 dp Android targets. This closes
       only the current offline shell; future screens, manual assistive-technology review,
       language/RTL coverage, full WCAG conformance, and named approvals remain open.
+- [x] Complete the bounded offline-shell accessibility/language-readiness subset: move all
+      15 nonclinical strings into exact, reconciled native catalogs; expose exactly three
+      ordered headings; use two restrained status-announcement paths; exercise iOS rendered
+      double length plus Debug-only RTL layout and Android Debug `en-XA`/`ar-XB`; and reject
+      pseudolocales from both Release artifacts. This is readiness evidence only. No
+      translation, human VoiceOver/TalkBack review, full WCAG conformance, or future-screen
+      accessibility is approved.
 - [x] Integrate the governed seven-photo Nightingale background catalog into the bounded
       offline shell without making any image essential: cross-platform local-day selection,
       deterministic packaging, strong scrims/cards, images-hidden and high-contrast/
       reduced-transparency suppression, no motion loop, no accessibility announcement, and
       exact derivative hashes are mechanically and natively tested.
 - [x] Establish the draft foundation threat and clinical-hazard model: version current and
-      future trust boundaries, 26 implemented-control claims with their limits, 22
+      future trust boundaries, 27 implemented-control claims with their limits, 22
       security/privacy threats, 22 clinical hazards, 18 abuse cases, 20 activation gates,
       verification/incident requirements, platform asymmetries, and 17 open risks; bind it
-      mechanically to the unchanged default-off foundation with ten negative self-tests.
+      mechanically to the unchanged default-off foundation with 11 negative self-tests.
       This is engineering governance, not a safety case, compliance claim, residual-risk
       acceptance, penetration test, tabletop, or named approval.
 - [x] Carry forward the existing automated privacy controls only as candidate evidence and
@@ -533,6 +540,13 @@ part of application development work.
         challenges are time-expired despite retaining `issued` state. This legacy
         Hummingbird reference foundation is not a Nightingale patient, credential, session,
         activation, source approval, or permission to reuse the rejected provisioner.
+20. [x] Close the current offline shell's bounded accessibility/language-readiness gap.
+        Govern 15 exact cross-platform English strings, three headings, and two restrained
+        status-announcement paths; pass iOS double-length/RTL and Android `en-XA`/`ar-XB`
+        emulator journeys; verify Debug-only test behavior and English-only Release
+        packaging; and retain non-PHI screenshots/hierarchies. Keep every translation,
+        human assistive-technology review, full WCAG claim, live screen, identity/source
+        approval, patient capability, distribution, pilot, and production gate open.
 
 ## 10. Explicit holds
 

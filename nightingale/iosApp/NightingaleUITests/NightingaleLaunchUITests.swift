@@ -128,6 +128,99 @@ final class NightingaleLaunchUITests: XCTestCase {
         XCTAssertEqual(hideImagery.value as? String, "1")
     }
 
+    func testDoubleLengthPseudolanguageReflowsAndKeepsControlsReachable() {
+        let device = XCUIDevice.shared
+        device.orientation = .landscapeLeft
+
+        let app = resetApplication()
+        app.launchArguments += ["-NSDoubleLocalizedStrings", "YES"]
+        app.launchEnvironment["NIGHTINGALE_TEST_ACCESSIBILITY_TEXT_SIZE"] = "1"
+        app.launch()
+
+        let sourceMission =
+            "A calm place to understand, prepare, and connect with your care team."
+        let mission = app.staticTexts["nightingale-foundation-mission"]
+        XCTAssertTrue(mission.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(
+            mission.label.count,
+            sourceMission.count,
+            "The Apple double-length pseudolanguage must affect rendered localized copy."
+        )
+
+        for identifier in [
+            "nightingale-reduce-motion-toggle",
+            "nightingale-hide-imagery-toggle",
+        ] {
+            let control = app.switches[identifier]
+            XCTAssertTrue(control.waitForExistence(timeout: 5))
+            XCTAssertGreaterThanOrEqual(control.frame.height, 44)
+            control.tap()
+            XCTAssertEqual(control.value as? String, "1")
+        }
+    }
+
+    func testRightToLeftLayoutDirectionMirrorsTheShellWithoutChangingSemanticOrder() {
+        let leftToRight = resetApplication()
+        leftToRight.launch()
+        let leftToRightHeading = leftToRight.staticTexts["nightingale-product-heading"]
+        XCTAssertTrue(leftToRightHeading.waitForExistence(timeout: 5))
+        let leftToRightMinimumX = leftToRightHeading.frame.minX
+        leftToRight.terminate()
+
+        let rightToLeft = resetApplication()
+        rightToLeft.launchArguments += [
+            "-AppleLanguages",
+            "(ar)",
+            "-AppleLocale",
+            "ar_SA",
+            "-AppleTextDirection",
+            "YES",
+        ]
+        rightToLeft.launchEnvironment["NIGHTINGALE_TEST_LAYOUT_DIRECTION"] = "RTL"
+        rightToLeft.launch()
+
+        let rightToLeftHeading = rightToLeft.staticTexts["nightingale-product-heading"]
+        XCTAssertTrue(rightToLeftHeading.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(
+            rightToLeftHeading.frame.minX,
+            leftToRightMinimumX + 40,
+            "The right-to-left pseudolanguage must mirror leading alignment."
+        )
+
+        let orderedIdentifiers = rightToLeft.descendants(matching: .any)
+            .allElementsBoundByAccessibilityElement
+            .map(\.identifier)
+            .filter {
+                [
+                    "nightingale-product-heading",
+                    "nightingale-privacy-status-heading",
+                    "nightingale-display-comfort-heading",
+                    "nightingale-reduce-motion-toggle",
+                    "nightingale-hide-imagery-toggle",
+                ].contains($0)
+            }
+        XCTAssertEqual(
+            orderedIdentifiers,
+            [
+                "nightingale-product-heading",
+                "nightingale-privacy-status-heading",
+                "nightingale-display-comfort-heading",
+                "nightingale-reduce-motion-toggle",
+                "nightingale-hide-imagery-toggle",
+            ]
+        )
+
+        let hideImagery = rightToLeft.switches["nightingale-hide-imagery-toggle"]
+        XCTAssertTrue(hideImagery.waitForExistence(timeout: 5))
+        let valueBeforeTap = hideImagery.value as? String
+        hideImagery.tap()
+        XCTAssertNotEqual(
+            hideImagery.value as? String,
+            valueBeforeTap,
+            "The mirrored switch must remain operable in either persisted state."
+        )
+    }
+
     private func resetApplication() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["NIGHTINGALE_TEST_RESET_PRESENTATION_PREFERENCES"] = "1"

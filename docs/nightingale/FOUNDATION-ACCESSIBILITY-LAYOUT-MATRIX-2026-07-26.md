@@ -455,6 +455,20 @@ None of these preliminary failures is counted as passing evidence.
 
 ## 11. What is complete
 
+### 11.1 2026-07-27 language-readiness addendum
+
+The follow-up
+[foundation accessibility and language-readiness record](./FOUNDATION-ACCESSIBILITY-LANGUAGE-READINESS-2026-07-27.md)
+closes the prior matrix's **bounded current-shell** pseudo-localization and RTL exercises.
+It adds exact 15-string cross-platform catalogs, three headings, restrained preference
+status announcements, iOS rendered double-length and RTL UI journeys, Android Debug
+`en-XA`/`ar-XB` instrumentation, retained visual/hierarchy evidence, and English-only
+Release-artifact checks.
+
+This addendum does not revise the prior artifact hashes below; the follow-up record binds
+its own rebuilt artifacts. It also does not close human assistive-technology review,
+product-wide accessibility, non-English patient copy, or any future clinical screen.
+
 The following bounded foundation subset is complete:
 
 - light/dark patient text palette selection;
@@ -469,7 +483,10 @@ The following bounded foundation subset is complete:
 - imagery-hidden, stronger-contrast/transparency, semantics, and no-motion boundaries;
 - iOS Increased Contrast Release inspection;
 - Android dark configuration plus secure semantic hierarchy inspection; and
-- exact local Debug/Release artifact binding.
+- exact local Debug/Release artifact binding;
+- exact cross-platform English source-copy reconciliation;
+- current-shell rendered text-expansion and RTL exercises; and
+- current-shell heading and restrained status-announcement policy.
 
 ## 12. What remains open
 
@@ -479,9 +496,10 @@ The following are intentionally not closed:
 - VoiceOver and TalkBack manual traversal by an independent reviewer;
 - focus recovery after errors, modals, navigation, live updates, and authentication;
 - keyboard, Switch Control, Voice Control, external-input, and magnification journeys;
-- right-to-left layout;
-- pseudo-localization and language-expansion testing;
-- non-English patient copy and interpreter workflows;
+- product-wide right-to-left behavior beyond the current offline shell;
+- pseudo-localization and language-expansion testing for every future screen and state;
+- approved non-English patient copy, translation QA, locale fallback, and interpreter
+  workflows;
 - captions, transcripts, audio, media controls, charts, tables, and clinical status
   semantics because none exists in the foundation;
 - disabled, destructive, urgent, warning, stale, correction, and retraction states because

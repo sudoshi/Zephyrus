@@ -138,10 +138,45 @@ if len(re.findall(r"android:exported[^=]*=true", manifest)) != 2:
 resources = command(aapt2, "dump", "resources", str(release_apk))
 if "xml/network_security_config" not in resources:
     fail("compiled resources are missing xml/network_security_config")
+for copy_key in (
+    "app_name",
+    "display_comfort_heading",
+    "display_comfort_scope",
+    "foundation_mission",
+    "foundation_no_patient_data",
+    "foundation_unavailable",
+    "hide_imagery_label",
+    "imagery_hidden_status",
+    "imagery_shown_status",
+    "motion_reduced_status",
+    "motion_standard_status",
+    "privacy_cover_accessibility_label",
+    "privacy_cover_message",
+    "privacy_heading",
+    "reduce_motion_label",
+):
+    if f"string/{copy_key}" not in resources:
+        fail(f"compiled resources are missing governed copy key: {copy_key}")
 for sequence in range(1, 8):
     resource_name = f"drawable/nightingale_background_{sequence:02d}"
     if resource_name not in resources:
         fail(f"compiled resources are missing {resource_name}")
+
+configurations = command(aapt2, "dump", "configurations", str(release_apk))
+for prohibited_pseudolocale in (
+    "en-rXA",
+    "ar-rXB",
+    "b+en+XA",
+    "b+ar+XB",
+):
+    if re.search(
+        rf"(^|\n){re.escape(prohibited_pseudolocale)}($|\n)",
+        configurations,
+    ):
+        fail(
+            "Release APK contains Debug-only pseudolocale: "
+            f"{prohibited_pseudolocale}"
+        )
 
 signing = subprocess.run(
     [apksigner, "verify", "--verbose", str(release_apk)],
@@ -230,7 +265,8 @@ for token in forbidden_binary_tokens:
 print(
     "Nightingale Android Release artifact verified: exact identity, one "
     "package-local permission, no network/deep link/test hook, explicit "
-    "cleartext denial, unsigned CI state, two DEX files, four expected "
-    "AndroidX native libraries, and seven exact governed background JPEGs."
+    "cleartext denial, exact English foundation-copy keys without Debug "
+    "pseudolocales, unsigned CI state, two DEX files, four expected AndroidX "
+    "native libraries, and seven exact governed background JPEGs."
 )
 PY

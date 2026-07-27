@@ -5,7 +5,9 @@ import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.app.LocaleManager
 import android.os.ParcelFileDescriptor
+import android.os.LocaleList
 import android.security.NetworkSecurityPolicy
 import android.util.Base64
 import android.view.WindowManager
@@ -19,7 +21,11 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -27,6 +33,7 @@ import java.security.KeyStore
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -264,6 +271,101 @@ class NightingaleLaunchInstrumentedTest {
         }
     }
 
+    @Test
+    fun headingsSwitchActionsAndPoliteStatusAnnouncementsAreExact() {
+        val root = composeRule.onRoot(useUnmergedTree = true).fetchSemanticsNode()
+        val nodes = mutableListOf<SemanticsNode>()
+        collectNodes(root, nodes)
+
+        val headingTags = nodes
+            .filter { SemanticsProperties.Heading in it.config }
+            .mapNotNull { node: SemanticsNode ->
+                node.config.getOrElseNullable(SemanticsProperties.TestTag) { null }
+            }
+        assertEquals(
+            listOf(
+                "nightingale-product-heading",
+                "nightingale-privacy-status-heading",
+                "nightingale-display-comfort-heading",
+            ),
+            headingTags,
+        )
+
+        val liveRegions = nodes
+            .mapNotNull { node: SemanticsNode ->
+                val liveRegion: LiveRegionMode =
+                    node.config.getOrElseNullable(SemanticsProperties.LiveRegion) { null }
+                    ?: return@mapNotNull null
+                val tag: String =
+                    node.config.getOrElseNullable(SemanticsProperties.TestTag) { null }
+                        ?: return@mapNotNull null
+                tag to liveRegion
+            }
+        assertEquals(
+            listOf(
+                "nightingale-motion-status" to LiveRegionMode.Polite,
+                "nightingale-imagery-status" to LiveRegionMode.Polite,
+            ),
+            liveRegions,
+        )
+
+        listOf(
+            "nightingale-reduce-motion-toggle",
+            "nightingale-hide-imagery-toggle",
+        ).forEach { tag ->
+            val control = composeRule.onNodeWithTag(tag).fetchSemanticsNode()
+            assertEquals(Role.Switch, control.config[SemanticsProperties.Role])
+            assertTrue(SemanticsActions.OnClick in control.config)
+        }
+    }
+
+    @Test
+    fun debugPseudoLocalesExpandAndMirrorWithoutLosingControls() {
+        val localeManager = composeRule.activity.getSystemService(LocaleManager::class.java)
+        val originalLocales = localeManager.applicationLocales
+        val sourceMission = composeRule.activity.getString(R.string.foundation_mission)
+
+        try {
+            setApplicationLocales(localeManager, LocaleList.forLanguageTags("en-XA"))
+            val expandedMission =
+                composeRule.activity.getString(R.string.foundation_mission)
+            assertNotEquals(sourceMission, expandedMission)
+            assertTrue(expandedMission.length > sourceMission.length)
+            composeRule.onNodeWithTag("nightingale-foundation-mission")
+                .assertIsDisplayed()
+            composeRule.onNodeWithTag("nightingale-hide-imagery-toggle")
+                .performScrollTo()
+                .assertIsOff()
+
+            setApplicationLocales(localeManager, LocaleList.forLanguageTags("ar-XB"))
+            val shell = composeRule.onNodeWithTag(
+                "nightingale-safe-shell",
+                useUnmergedTree = true,
+            ).fetchSemanticsNode()
+            assertEquals(LayoutDirection.Rtl, shell.layoutInfo.layoutDirection)
+
+            val orderedTags = listOf(
+                "nightingale-product-heading",
+                "nightingale-privacy-status-heading",
+                "nightingale-display-comfort-heading",
+                "nightingale-reduce-motion-toggle",
+                "nightingale-hide-imagery-toggle",
+            )
+            val semanticTags = mutableListOf<String>()
+            collectTestTags(shell, semanticTags)
+            assertEquals(orderedTags, semanticTags.filter(orderedTags::contains))
+
+            composeRule.onNodeWithTag("nightingale-hide-imagery-toggle")
+                .performScrollTo()
+                .assertIsOff()
+                .performClick()
+                .assertIsOn()
+        } finally {
+            setApplicationLocales(localeManager, originalLocales)
+            setPresentationPreferences(reduceMotion = false, hideImagery = false)
+        }
+    }
+
     private fun setPresentationPreferences(
         reduceMotion: Boolean,
         hideImagery: Boolean,
@@ -293,6 +395,33 @@ class NightingaleLaunchInstrumentedTest {
         ParcelFileDescriptor.AutoCloseInputStream(descriptor)
             .bufferedReader()
             .use { it.readText() }
+    }
+
+    private fun setApplicationLocales(
+        localeManager: LocaleManager,
+        locales: LocaleList,
+    ) {
+        localeManager.applicationLocales = locales
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            val appliedLocales = localeManager.applicationLocales
+            val applicationSelectionMatches =
+                appliedLocales.toLanguageTags() == locales.toLanguageTags()
+            val resourcesMatch =
+                locales.isEmpty ||
+                    composeRule.activity.resources.configuration.locales[0]
+                        .toLanguageTag() == locales[0].toLanguageTag()
+
+            applicationSelectionMatches && resourcesMatch
+        }
+        composeRule.waitForIdle()
+    }
+
+    private fun collectNodes(node: SemanticsNode, destination: MutableList<SemanticsNode>) {
+        destination.add(node)
+        node.children.forEach { child ->
+            collectNodes(child, destination)
+        }
     }
 
     private fun collectTestTags(node: SemanticsNode, destination: MutableList<String>) {

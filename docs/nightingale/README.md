@@ -34,6 +34,12 @@ and Android; the images are decorative, suppressible, hidden from accessibility 
 and packaged behind strong scrims and content surfaces. Source lineage and exact derivative
 hashes are retained, while external distribution remains blocked until durable rights or
 attribution evidence and named human review are recorded.
+The current offline shell now also has a 15-string, exact cross-platform English source
+contract, three ordered headings, restrained status announcements, and native Debug
+language-readiness journeys. iOS passes rendered double-length and right-to-left layout
+tests; Android passes `en-XA` expansion and `ar-XB` mirroring. Release artifacts exclude
+all pseudolocales. These are bounded engineering checks, not approved translations, human
+VoiceOver/TalkBack review, or full accessibility conformance.
 The offline foundation also now packages an exact iOS privacy manifest and an explicit
 Android network-security policy. Native and Release-artifact checks prove no tracking or
 collected-data declaration in the current offline iOS bundle, app-local `UserDefaults`
@@ -57,6 +63,7 @@ Current product-identity records:
 - [Journey, preference, presentation, synthetic, and release source classification](./JOURNEY-PREFERENCE-PRESENTATION-RELEASE-SOURCE-CLASSIFICATION-2026-07-26.md)
 - [Presentation-preferences foundation decision and evidence](./PRESENTATION-PREFERENCES-FOUNDATION-DECISION-2026-07-26.md)
 - [Foundation accessibility and layout matrix](./FOUNDATION-ACCESSIBILITY-LAYOUT-MATRIX-2026-07-26.md)
+- [Foundation accessibility and language-readiness evidence](./FOUNDATION-ACCESSIBILITY-LANGUAGE-READINESS-2026-07-27.md)
 - [Draft foundation threat and clinical-hazard model](./FOUNDATION-THREAT-AND-HAZARD-MODEL-2026-07-26.md)
 - [Foundation dependency inventory decision and evidence](./FOUNDATION-DEPENDENCY-INVENTORY-2026-07-26.md)
 - [Generated foundation dependency inventory](./supply-chain/foundation-dependency-inventory.v0.json)
@@ -72,6 +79,7 @@ Current product-identity records:
 - [130-file communication/notification checksum ledger](./migration/candidates/v0/communication-notification-source-classification.json)
 - [133-file journey/preference/presentation/release checksum ledger](./migration/candidates/v0/journey-preference-presentation-release-source-classification.json)
 - [Launcher, themed-icon, and splash evidence](../evidence/nightingale/brand-identity-2026-07-26/README.md)
+- [Accessibility/language-readiness screenshots and hierarchies](../evidence/nightingale/accessibility-language-readiness-2026-07-27/README.md)
 
 ## Lineage and filing rules
 

@@ -303,7 +303,8 @@ function inspect(candidate) {
             "Foundation",
             "Security",
             "SwiftUI",
-        ]) && ios.counts?.apple_system_modules === 4,
+            "UIKit",
+        ]) && ios.counts?.apple_system_modules === 5,
         "iOS Apple system-module inventory changed",
     );
     assert(

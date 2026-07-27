@@ -22,8 +22,11 @@ android {
     }
 
     buildTypes {
-        debug {}
+        debug {
+            isPseudoLocalesEnabled = true
+        }
         release {
+            isPseudoLocalesEnabled = false
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

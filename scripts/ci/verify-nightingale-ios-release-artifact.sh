@@ -124,6 +124,56 @@ if privacy_manifest != expected_privacy_manifest:
         f"declaration: {privacy_manifest!r}"
     )
 
+localization_directories = sorted(
+    item.name for item in app_bundle.glob("*.lproj") if item.is_dir()
+)
+if localization_directories != ["en.lproj"]:
+    fail(
+        "Release localization inventory changed: "
+        f"expected ['en.lproj'], found {localization_directories}"
+    )
+localized_copy_path = app_bundle / "en.lproj" / "Localizable.strings"
+try:
+    with localized_copy_path.open("rb") as stream:
+        localized_copy = plistlib.load(stream)
+except (OSError, plistlib.InvalidFileException) as error:
+    fail(f"cannot read packaged English Localizable.strings: {error}")
+expected_localized_copy = {
+    "app_name": "Nightingale",
+    "display_comfort_heading": "Display comfort",
+    "display_comfort_scope":
+        "These settings are stored by Nightingale, not your care account. "
+        "They never change your care information.",
+    "foundation_mission":
+        "A calm place to understand, prepare, and connect with your care team.",
+    "foundation_no_patient_data":
+        "No patient information is stored or requested by this build.",
+    "foundation_unavailable":
+        "Live patient access is not available in this foundation build. "
+        "Please ask your care team for current information.",
+    "hide_imagery_label": "Hide decorative imagery",
+    "imagery_hidden_status":
+        "Decorative imagery is hidden. Essential text and controls remain available.",
+    "imagery_shown_status":
+        "A calming Nightingale background is shown softly behind the page.",
+    "motion_reduced_status":
+        "Motion is reduced. Nightingale changes views without decorative movement.",
+    "motion_standard_status":
+        "Gentle transitions are enabled. Nightingale also follows your system "
+        "Reduce Motion setting.",
+    "privacy_cover_accessibility_label":
+        "Privacy cover. Your care information is hidden while Nightingale is not active.",
+    "privacy_cover_message":
+        "Your care information is covered while the app is not active.",
+    "privacy_heading": "Your privacy comes first",
+    "reduce_motion_label": "Reduce motion in Nightingale",
+}
+if localized_copy != expected_localized_copy:
+    fail(
+        "packaged English foundation copy changed: "
+        f"expected {expected_localized_copy!r}, found {localized_copy!r}"
+    )
+
 expected_background_hashes = {
     "nightingale_background_01.jpg":
         "4a741d9d3add77eac8aad8071bf3c9945bbd2ce4aa0d93b0daa79efe166b30b4",
@@ -207,6 +257,7 @@ print(
     "Nightingale iOS Release artifact verified: exact identity/version/"
     "orientations, no network/deep-link/test hook, no embedded extension/"
     "framework/provisioning profile, system-only linked dependencies, exact "
-    "offline privacy manifest, and seven exact governed background JPEGs."
+    "offline privacy manifest, exact English-only foundation copy, and seven "
+    "exact governed background JPEGs."
 )
 PY

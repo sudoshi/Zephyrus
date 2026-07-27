@@ -1,0 +1,171 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "app_name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nightingale"
+          }
+        }
+      }
+    },
+    "display_comfort_heading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display comfort"
+          }
+        }
+      }
+    },
+    "display_comfort_scope" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These settings are stored by Nightingale, not your care account. They never change your care information."
+          }
+        }
+      }
+    },
+    "foundation_mission" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A calm place to understand, prepare, and connect with your care team."
+          }
+        }
+      }
+    },
+    "foundation_no_patient_data" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No patient information is stored or requested by this build."
+          }
+        }
+      }
+    },
+    "foundation_unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live patient access is not available in this foundation build. Please ask your care team for current information."
+          }
+        }
+      }
+    },
+    "hide_imagery_label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide decorative imagery"
+          }
+        }
+      }
+    },
+    "imagery_hidden_status" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decorative imagery is hidden. Essential text and controls remain available."
+          }
+        }
+      }
+    },
+    "imagery_shown_status" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A calming Nightingale background is shown softly behind the page."
+          }
+        }
+      }
+    },
+    "motion_reduced_status" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motion is reduced. Nightingale changes views without decorative movement."
+          }
+        }
+      }
+    },
+    "motion_standard_status" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gentle transitions are enabled. Nightingale also follows your system Reduce Motion setting."
+          }
+        }
+      }
+    },
+    "privacy_cover_accessibility_label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy cover. Your care information is hidden while Nightingale is not active."
+          }
+        }
+      }
+    },
+    "privacy_cover_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your care information is covered while the app is not active."
+          }
+        }
+      }
+    },
+    "privacy_heading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your privacy comes first"
+          }
+        }
+      }
+    },
+    "reduce_motion_label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reduce motion in Nightingale"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -6,6 +6,7 @@ struct NightingaleApp: App {
         WindowGroup {
             NightingalePrivacyProtectedRoot()
                 .nightingaleTestAccessibilityTextSize()
+                .nightingaleTestLayoutDirection()
         }
     }
 }
@@ -18,6 +19,21 @@ private extension View {
             "NIGHTINGALE_TEST_ACCESSIBILITY_TEXT_SIZE"
         ] == "1" {
             dynamicTypeSize(.accessibility5)
+        } else {
+            self
+        }
+        #else
+        self
+        #endif
+    }
+
+    @ViewBuilder
+    func nightingaleTestLayoutDirection() -> some View {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment[
+            "NIGHTINGALE_TEST_LAYOUT_DIRECTION"
+        ] == "RTL" {
+            environment(\.layoutDirection, .rightToLeft)
         } else {
             self
         }
@@ -132,13 +148,14 @@ private struct NightingaleFoundationView: View {
                     .accessibilityHidden(true)
             }
 
-            Text(NightingaleProductBoundary.productName)
+            Text(NightingaleCopyKey.productName)
                 .font(.largeTitle.weight(.semibold))
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("nightingale-product-heading")
-            Text("A calm place to understand, prepare, and connect with your care team.")
+            Text(NightingaleCopyKey.foundationMission)
                 .font(.title3)
                 .foregroundStyle(.secondary)
+                .accessibilityIdentifier("nightingale-foundation-mission")
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -159,14 +176,19 @@ private struct NightingaleFoundationStatusCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Your privacy comes first", systemImage: "hand.raised.fill")
+            Label {
+                Text(NightingaleCopyKey.privacyHeading)
+            } icon: {
+                Image(systemName: "hand.raised.fill")
+            }
                 .font(.headline)
                 .foregroundStyle(NightingalePalette.forest)
                 .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("nightingale-privacy-status-heading")
-            Text("Live patient access is not available in this foundation build. Please ask your care team for current information.")
+            Text(NightingaleCopyKey.foundationUnavailable)
                 .font(.body)
-            Text("No patient information is stored or requested by this build.")
+            Text(NightingaleCopyKey.foundationNoPatientData)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
@@ -189,54 +211,64 @@ private struct NightingaleDisplayComfortCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Display comfort")
+            Text(NightingaleCopyKey.displayComfortHeading)
                 .font(.headline)
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("nightingale-display-comfort-heading")
 
-            Text("These settings are stored by Nightingale, not your care account. They never change your care information.")
+            Text(NightingaleCopyKey.displayComfortScope)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
             Toggle(
-                "Reduce motion in Nightingale",
                 isOn: Binding(
                     get: {
                         presentationPreferences.snapshot.reduceMotionRequested
                     },
-                    set: presentationPreferences.setReduceMotionRequested
+                    set: { reduced in
+                        presentationPreferences.setReduceMotionRequested(reduced)
+                        NightingaleAccessibilityAnnouncement.motionStatus(
+                            reduced: reduced
+                        )
+                    }
                 )
-            )
+            ) {
+                Text(NightingaleCopyKey.reduceMotionLabel)
+            }
             .frame(minHeight: 44)
             .contentShape(Rectangle())
             .accessibilityIdentifier("nightingale-reduce-motion-toggle")
 
             Text(
                 policy.reduceMotion
-                    ? "Motion is reduced. Nightingale changes views without decorative movement."
-                    : "Gentle transitions are enabled. Nightingale also follows your system Reduce Motion setting."
+                    ? NightingaleCopyKey.motionReducedStatus
+                    : NightingaleCopyKey.motionStandardStatus
             )
             .font(.footnote)
             .foregroundStyle(.secondary)
             .accessibilityIdentifier("nightingale-motion-status")
 
             Toggle(
-                "Hide decorative imagery",
                 isOn: Binding(
                     get: {
                         presentationPreferences.snapshot.hideDecorativeImageryRequested
                     },
-                    set: presentationPreferences.setHideDecorativeImageryRequested
+                    set: { hidden in
+                        presentationPreferences.setHideDecorativeImageryRequested(hidden)
+                        NightingaleAccessibilityAnnouncement.imageryStatus(hidden: hidden)
+                    }
                 )
-            )
+            ) {
+                Text(NightingaleCopyKey.hideImageryLabel)
+            }
             .frame(minHeight: 44)
             .contentShape(Rectangle())
             .accessibilityIdentifier("nightingale-hide-imagery-toggle")
 
             Text(
                 policy.showDecorativeImagery
-                    ? "A calming Nightingale background is shown softly behind the page."
-                    : "Decorative imagery is hidden. Essential text and controls remain available."
+                    ? NightingaleCopyKey.imageryShownStatus
+                    : NightingaleCopyKey.imageryHiddenStatus
             )
             .font(.footnote)
             .foregroundStyle(.secondary)

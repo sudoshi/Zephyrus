@@ -318,6 +318,7 @@ Nightingale must not assume that:
 | CTRL-024   | No production database work is authorized by this product stream                                                                                   | Plan, contract, and activation holds                             | A future source integration needs separate, path-scoped authorization                     |
 | CTRL-025   | Exact seven-photo catalog is metadata-stripped, nonessential, cross-platform deterministic, and hidden under stronger contrast/transparency policy | Asset manifest/verifier, native UI/tests, Release artifact scans | Durable rights/attribution and human patient review remain open                           |
 | CTRL-026   | Exact iOS offline privacy manifest plus Android cleartext denial, system-only trust, no network permission, and backup exclusion                   | Privacy-control record, native tests, Release artifact scans     | Store declarations, future data flows, signed artifacts, and privacy approval remain open |
+| CTRL-027   | Exact 15-string English source contract, three shell headings, restrained status announcements, and Debug-only text-expansion/RTL exercises        | Language-readiness record, native tests, Release artifact scans  | No translation, human AT review, future-screen coverage, or WCAG conformance is approved  |
 
 ## 9. Security and privacy threat register
 
@@ -450,7 +451,7 @@ release is not messaging permission; deployment is not pilot approval.
 | VER-002         | Backend unavailable/inconsistent truth tables and unbound-route proof                                | HZ-002, HZ-019                        | Implemented foundation only    |
 | VER-003         | Native product/namespace/no-network/release-hook scans                                               | THR-I-004, THR-E-003                  | Implemented foundation only    |
 | VER-004         | Protected-state read/write/corrupt/delete synthetic canaries                                         | THR-T-001, HZ-021                     | Implemented foundation only    |
-| VER-005         | Accessibility contrast/order/reflow/target/landscape automation                                      | HZ-014                                | Implemented current shell only |
+| VER-005         | Accessibility contrast/order/reflow/target/landscape/text-expansion/RTL automation                   | HZ-014                                | Implemented current shell only |
 | VER-006         | Identity proofing, enrollment, replay, enumeration, session, step-up, recovery abuse suite           | THR-S-001/003, THR-D-001, THR-OPS-001 | Not implemented                |
 | VER-007         | Representative grant/revoke/sensitive-content/cross-patient suite                                    | THR-S-002, HZ-013                     | Not implemented                |
 | VER-008         | IDOR/resource ownership/scope/purpose/effective-window matrix                                        | THR-E-001/002                         | Not implemented                |

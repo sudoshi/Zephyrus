@@ -38,7 +38,7 @@
         "gradle_task": ":app:writeNightingaleReleaseDependencyResolution",
         "deterministic_timestamp_policy": "No generation timestamp is stored; source hashes define inventory identity.",
         "source_sha256": {
-            "nightingale/androidApp/app/build.gradle.kts": "7c3df5d5829d1bbd737fe8c94e341465df29a2e6fc0f4122f0e333041b50dd95",
+            "nightingale/androidApp/app/build.gradle.kts": "d3a333b3f397b71fbd37647fcf8878f85e75a4e2fa09f9b109448fac86707ab6",
             "nightingale/androidApp/build.gradle.kts": "a2c1a3dc7e80664eeede26bfe0b554c1afbbfe81b9b5dfbc33e6aa3fcee3ee1e",
             "nightingale/androidApp/settings.gradle.kts": "6746ef09487ea290564b04c8836f9c3e074fd470160598a19fbf32efaf333b82",
             "nightingale/androidApp/gradle/wrapper/gradle-wrapper.properties": "ad8aae83783da405b1acb1d39069787f8de5fd64ae5dbf1480f8ced80956c433",
@@ -2819,12 +2819,13 @@
             "Combine",
             "Foundation",
             "Security",
-            "SwiftUI"
+            "SwiftUI",
+            "UIKit"
         ],
         "package_manager_inputs_present": false,
         "counts": {
             "third_party_runtime_packages": 0,
-            "apple_system_modules": 4
+            "apple_system_modules": 5
         }
     },
     "interpretation": [

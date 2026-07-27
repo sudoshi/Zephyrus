@@ -43,6 +43,58 @@ final class NightingaleProductBoundaryTests: XCTestCase {
         )
     }
 
+    func testPackagedFoundationCopyIsExactEnglishOnlySourceMaterial() throws {
+        let localizedURL = try XCTUnwrap(
+            Bundle.main.url(
+                forResource: "Localizable",
+                withExtension: "strings",
+                subdirectory: nil,
+                localization: "en"
+            )
+        )
+        let localizedData = try Data(contentsOf: localizedURL)
+        let rawCopy = try PropertyListSerialization.propertyList(
+            from: localizedData,
+            options: [],
+            format: nil
+        )
+        let copy = try XCTUnwrap(rawCopy as? [String: String])
+
+        XCTAssertEqual(
+            copy,
+            [
+                "app_name": "Nightingale",
+                "display_comfort_heading": "Display comfort",
+                "display_comfort_scope":
+                    "These settings are stored by Nightingale, not your care account. They never change your care information.",
+                "foundation_mission":
+                    "A calm place to understand, prepare, and connect with your care team.",
+                "foundation_no_patient_data":
+                    "No patient information is stored or requested by this build.",
+                "foundation_unavailable":
+                    "Live patient access is not available in this foundation build. Please ask your care team for current information.",
+                "hide_imagery_label": "Hide decorative imagery",
+                "imagery_hidden_status":
+                    "Decorative imagery is hidden. Essential text and controls remain available.",
+                "imagery_shown_status":
+                    "A calming Nightingale background is shown softly behind the page.",
+                "motion_reduced_status":
+                    "Motion is reduced. Nightingale changes views without decorative movement.",
+                "motion_standard_status":
+                    "Gentle transitions are enabled. Nightingale also follows your system Reduce Motion setting.",
+                "privacy_cover_accessibility_label":
+                    "Privacy cover. Your care information is hidden while Nightingale is not active.",
+                "privacy_cover_message":
+                    "Your care information is covered while the app is not active.",
+                "privacy_heading": "Your privacy comes first",
+                "reduce_motion_label": "Reduce motion in Nightingale",
+            ]
+        )
+        XCTAssertTrue(Bundle.main.localizations.contains("en"))
+        XCTAssertFalse(Bundle.main.localizations.contains("en-XA"))
+        XCTAssertFalse(Bundle.main.localizations.contains("ar-XB"))
+    }
+
     func testProtectedStateNamespaceIsNightingaleOnlyAndCredentialAgnostic() {
         XCTAssertEqual(
             NightingaleProtectedStateNamespace.keychainService,

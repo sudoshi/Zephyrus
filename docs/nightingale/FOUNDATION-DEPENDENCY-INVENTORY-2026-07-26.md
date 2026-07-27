@@ -21,7 +21,7 @@ authorization for distribution or live clinical use.
 | How many unique resolved Android dependency edges are recorded?          | 457                                                                                         |
 | Does the iOS application target declare a third-party package manager?   | No                                                                                          |
 | How many iOS third-party runtime packages are declared?                  | 0                                                                                           |
-| Which Apple modules does the iOS application source import?              | `Combine`, `Foundation`, `Security`, and `SwiftUI`                                          |
+| Which Apple modules does the iOS application source import?              | `Combine`, `Foundation`, `Security`, `SwiftUI`, and `UIKit`                                 |
 | Did generation require a patient, credential, database, API, or network? | No patient/production system was accessed; Gradle resolved public build dependency metadata |
 | Is the record deterministic?                                             | Yes; timestamps are omitted and six source files are bound by SHA-256                       |
 | Is the record continuously vulnerability-scanned or provenance-approved? | No                                                                                          |

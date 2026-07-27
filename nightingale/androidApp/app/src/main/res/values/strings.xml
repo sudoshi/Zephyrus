@@ -1,3 +1,17 @@
 <resources>
     <string name="app_name">Nightingale</string>
+    <string name="display_comfort_heading">Display comfort</string>
+    <string name="display_comfort_scope">These settings are stored by Nightingale, not your care account. They never change your care information.</string>
+    <string name="foundation_mission">A calm place to understand, prepare, and connect with your care team.</string>
+    <string name="foundation_no_patient_data">No patient information is stored or requested by this build.</string>
+    <string name="foundation_unavailable">Live patient access is not available in this foundation build. Please ask your care team for current information.</string>
+    <string name="hide_imagery_label">Hide decorative imagery</string>
+    <string name="imagery_hidden_status">Decorative imagery is hidden. Essential text and controls remain available.</string>
+    <string name="imagery_shown_status">A calming Nightingale background is shown softly behind the page.</string>
+    <string name="motion_reduced_status">Motion is reduced. Nightingale changes views without decorative movement.</string>
+    <string name="motion_standard_status">Gentle transitions are enabled. Nightingale also follows your system Reduce Motion setting.</string>
+    <string name="privacy_cover_accessibility_label">Privacy cover. Your care information is hidden while Nightingale is not active.</string>
+    <string name="privacy_cover_message">Your care information is covered while the app is not active.</string>
+    <string name="privacy_heading">Your privacy comes first</string>
+    <string name="reduce_motion_label">Reduce motion in Nightingale</string>
 </resources>

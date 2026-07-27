@@ -83,9 +83,9 @@ struct NightingalePrivacyCoverView: View {
                     .font(.system(size: 44))
                     .foregroundStyle(NightingalePalette.forest)
                     .accessibilityHidden(true)
-                Text("Nightingale")
+                Text(NightingaleCopyKey.productName)
                     .font(.title.bold())
-                Text("Your care information is covered while the app is not active.")
+                Text(NightingaleCopyKey.privacyCoverMessage)
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -103,7 +103,7 @@ struct NightingalePrivacyCoverView: View {
             .padding(24)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Privacy cover. Your care information is hidden while Nightingale is not active.")
+        .accessibilityLabel(Text(NightingaleCopyKey.privacyCoverAccessibilityLabel))
         .accessibilityIdentifier("nightingale-privacy-cover")
     }
 }

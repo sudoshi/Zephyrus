@@ -1667,3 +1667,98 @@ deployment authorization.
   accessibility conformance, independent clinical/privacy/security review, distribution,
   pilot, and production release all remain open and default denied.
 - Scoped commit, push, and exact-SHA CI ratification remain required for this slice.
+
+## 2026-07-27 — Foundation accessibility and language readiness
+
+### Audit and bounded implementation
+
+- Audited the current iOS and Android offline shells against the remaining Stream E
+  language-expansion, RTL, heading, and status-announcement gaps. The audit found Android's
+  privacy title lacked heading semantics, status changes lacked an explicit restrained
+  announcement policy, visible copy was not governed through one exact cross-platform
+  contract, and neither native suite exercised text expansion or RTL.
+- Added an exact 15-key English source contract in iOS `Localizable.xcstrings` and Android
+  `res/values/strings.xml`. Every visible foundation string now resolves through the
+  native localization system. The new self-testing verifier rejects missing/extra/drifted
+  copy, runtime literals, unapproved iOS locales, Release pseudolocales, missing headings,
+  assertive Android announcements, or missing pseudolanguage journeys.
+- Exposed exactly three ordered headings on both platforms. Android's privacy heading now
+  carries Compose heading semantics.
+- Added exactly two restrained status-notification paths. Android uses polite live-region
+  semantics. iOS posts a localized, low-priority `UIAccessibility` announcement only
+  after the user changes reduced motion or decorative imagery.
+- Added a compile-time Debug-only iOS RTL layout adapter and build-type-specific Android
+  language-readiness policy. Android Debug maps only the `ar-XB` pseudolocale to RTL;
+  Android Release always uses the platform direction and contains no `ar-XB` literal.
+  Pseudolocales remain tests, not translations.
+
+### Accepted native and artifact evidence
+
+- The signed iOS Debug unit suite passed 11/11 on the iPhone 16e simulator running iOS
+  26.3.1 under Xcode 26.3.
+- The complete iOS UI suite passed 6/6. The added double-length journey proved rendered
+  copy expansion, landscape reflow, 44-point controls, and both state changes. The RTL
+  journey proved a heading moved from left-leading to right-leading alignment, retained
+  the exact five-element semantic order, and preserved an operable mirrored switch.
+- The iOS unsigned Release build and exact verifier passed. The Release application
+  contains exactly `en.lproj`, its compiled strings parse to all 15 exact values, and no
+  test hook or pseudolocale is present. The Release executable SHA-256 is
+  `3667f3c743ec7b5ddce915beef2f0c96ead628d2d166d563de2f7e6bf3a1b698`.
+- Android Debug and Release unit suites each passed 8/8. `lintDebug`, `lintRelease`, Debug
+  assembly, unsigned Release assembly, and the exact Release APK verifier passed.
+- The complete Android API 35 emulator instrumentation suite passed 10/10. The new journey
+  proved `en-XA` expansion, `ar-XB` bidirectional markers, RTL direction on the actual
+  tagged shell, exact semantic order, and a reachable/operable switch. The Debug APK
+  contains `en-rXA` and `ar-rXB`; the Release APK contains neither.
+- The Android Release APK SHA-256 is
+  `28b055b8873f8db9cf98a24edacdbf74349fbb6c6fd013175df12bca4e7f673e`.
+  `FLAG_SECURE` retained an all-black capture. The non-PHI `en-XA`/`ar-XB`
+  accessibility hierarchies and iOS visual captures are retained under
+  `docs/evidence/nightingale/accessibility-language-readiness-2026-07-27/`.
+- Regenerated the dependency inventory because iOS now imports the Apple UIKit system
+  module for accessibility announcements and Android's build source changed. It retains
+  seven direct Android declarations, 83 resolved components, 457 edges, zero iOS
+  third-party packages, and now records five Apple system modules.
+
+### Corrected failures retained
+
+- The first Android instrumentation compilation used unavailable
+  `SemanticsConfiguration.getOrNull`; `getOrElseNullable` is the accepted implementation.
+- The first iOS compilation proved SwiftUI did not expose the attempted
+  `accessibilityLiveRegion` modifier. The accepted low-priority UIKit announcement policy
+  compiled and passed the complete suite.
+- Apple locale/text-direction launch arguments alone did not mirror the English-only
+  SwiftUI bundle. The accepted Debug-only direction adapter produced changed geometry and
+  is absent from Release behavior.
+- The first iOS RTL switch assertion assumed a clean persisted state. The accepted test
+  records the pre-tap value and proves an actual change.
+- Android's first locale cleanup waited for an empty resource locale even though system
+  fallback is nonempty. The accepted helper separately validates app locale selection and
+  nonempty resource selection.
+- The first Android `ar-XB` run rendered bidirectional markers but left the Compose tagged
+  shell LTR under instrumentation. The Debug-only policy now mirrors the actual shell;
+  the Release implementation remains platform-directed.
+- The first Android direction assertion inspected the instrumentation framework's outer
+  root rather than Nightingale's tagged shell. The accepted assertion targets
+  `nightingale-safe-shell`.
+- One intermediate Compose edit omitted an outer brace and failed both Debug and Release
+  compilation. It was corrected before the full unit, lint, assembly, instrumentation,
+  and artifact runs. None of these failed preflights is accepted as passing evidence.
+
+### Checklist, threat model, and remaining boundary
+
+- Checked only the new bounded accessibility/language-readiness subitem and immediate
+  sequence item 20. The broad WCAG/platform-guidance item and every named human-review
+  item remain unchecked.
+- Added `CTRL-027` to the draft threat/hazard model and increased its verifier to 27 exact
+  controls plus 11 negative self-tests. The new control explicitly withholds translation,
+  human assistive-technology, future-screen, and WCAG claims.
+- Added the full
+  [accessibility/language-readiness evidence](../nightingale/FOUNDATION-ACCESSIBILITY-LANGUAGE-READINESS-2026-07-27.md)
+  and linked the retained screenshots/hierarchies from the Nightingale index.
+- No clinical or patient-data UI, route, identity/provider, source adapter, network client,
+  database query, disclosure, mutation, message, notification, enrollment, migration,
+  deployment, pilot, or production activation was added or enabled.
+- The already-existing synthetic production reference outcome remains unchanged. This
+  slice performed no production database access or mutation.
+- Scoped commit, push, and exact-SHA CI ratification remain required for this slice.
