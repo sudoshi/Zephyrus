@@ -23,6 +23,9 @@ export interface Flow4dSoakHook {
   rendererInfo: () => SoakRendererInfo | null;
   nowDeltaMs: () => number | null;
   roundsRun: () => SoakRoundsRun | null;
+  /** The dataset epoch the client last adopted (F-6 pt 2) — lets the H4 soak
+   * assert the rebootstrap actually crossed the demo-refresh boundary. */
+  epoch: () => string | null;
 }
 
 declare global {

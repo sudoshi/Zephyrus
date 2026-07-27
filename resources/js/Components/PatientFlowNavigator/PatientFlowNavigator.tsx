@@ -4,12 +4,14 @@ import {
   createPatientFlowEventSource,
   fetchPatientFlowAmbient,
   fetchPatientFlowBarriers,
+  fetchPatientFlowEpoch,
   fetchPatientFlowEvents,
   fetchPatientFlowLocations,
   fetchPatientFlowOccupancy,
   fetchPatientFlowProjections,
   fetchPatientFlowSummary,
 } from '@/features/patientFlowNavigator/api';
+import { adoptEpoch } from '@/features/patientFlowNavigator/epoch';
 import {
   parseTime,
   patientStatesAt,
@@ -347,6 +349,28 @@ export default function PatientFlowNavigator({
   const [forecast, setForecast] = useState<ForecastAggregates | null>(null);
   const [inspectorTitle, setInspectorTitle] = useState('Select a patient or location');
   const [inspectorRows, setInspectorRows] = useState<Array<[string, string]>>([]);
+  // F-6 pt 2 — dataset-epoch rebootstrap: bumping the nonce re-runs the whole
+  // bootstrap atomically (all four datasets together, never one at a time).
+  const [bootstrapNonce, setBootstrapNonce] = useState(0);
+  const [rebuildNotice, setRebuildNotice] = useState<string | null>(null);
+  const epochRef = useRef<string | null>(null);
+  const rebootstrappingRef = useRef(false);
+
+  // One deliberate entry point for reloading the WORLD: the demo refresh
+  // rebased every timestamp, so partial refetches would mix epochs. Clears
+  // selection (the old mesh describes a dataset that no longer exists),
+  // shows a quiet notice, and re-runs the bootstrap atomically.
+  const requestRebootstrap = useCallback((notice: string) => {
+    if (rebootstrappingRef.current) return;
+    rebootstrappingRef.current = true;
+    setRebuildNotice(notice);
+    setError(null);
+    sceneRef.current?.clearSelection();
+    setInspectorTitle('Select a patient or location');
+    setInspectorRows([]);
+    setInspectorAction(null);
+    setBootstrapNonce((nonce) => nonce + 1);
+  }, []);
   const [feed, setFeed] = useState<PatientFlowEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchMatches, setSearchMatches] = useState<number | null>(null);
@@ -429,13 +453,27 @@ export default function PatientFlowNavigator({
 
   // S-1: advance wall-clock now every 60s. The ref updates in the same tick so
   // any repaint that fires before the effects run already sees the fresh value.
+  // The same tick carries the F-6 epoch check — a cheap aggregate read; when
+  // the demo refresh lands a new epoch the whole view rebootstraps atomically.
   useEffect(() => {
     const id = window.setInterval(() => {
       nowMsRef.current = Date.now();
       setNowMs(nowMsRef.current);
+
+      if (document.visibilityState !== 'hidden' && !rebootstrappingRef.current) {
+        fetchPatientFlowEpoch()
+          .then((next) => {
+            const adoption = adoptEpoch(epochRef.current, next);
+            epochRef.current = adoption.epoch;
+            if (adoption.changed) {
+              requestRebootstrap('Data refreshed — rebuilding view');
+            }
+          })
+          .catch(() => { /* epoch is a convenience signal; never break the tick */ });
+      }
     }, 60_000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [requestRebootstrap]);
 
   const dataStart = useMemo(() => (events.length ? parseTime(events[0].occurred_at) : null), [events]);
   const dataEnd = useMemo(
@@ -707,6 +745,7 @@ export default function PatientFlowNavigator({
     roundsRun: () => (roundsRunRef.current
       ? { uuid: roundsRunRef.current.run_uuid, status: roundsRunRef.current.status }
       : null),
+    epoch: () => epochRef.current,
   }), []);
 
   // Live-follow: slide the 48h window with wall-clock now, but only in
@@ -846,8 +885,14 @@ export default function PatientFlowNavigator({
         ]);
         if (cancelled) return;
 
-        const prepared = prepareReplay(summaryData, eventData, mountedAtMs, handoff.t);
+        // A rebootstrap lands in the NEW epoch's frame: the deep-link time and
+        // the original mount anchor both describe the pre-refresh world, so
+        // only the first bootstrap honors them (F-6 pt 2).
+        const anchorMs = bootstrapNonce === 0 ? mountedAtMs : Date.now();
+        const handoffTime = bootstrapNonce === 0 ? handoff.t : undefined;
+        const prepared = prepareReplay(summaryData, eventData, anchorMs, handoffTime);
         const { events: sortedEvents, timeline } = prepared;
+        epochRef.current = summaryData.epoch?.epoch ?? epochRef.current;
         setSummary(summaryData);
         setAmbient(ambientData);
         setLocations(locationData);
@@ -855,6 +900,8 @@ export default function PatientFlowNavigator({
         setFeed(recentReplayEvents(sortedEvents));
         setTimeWindow({ start: timeline.windowStart, end: timeline.windowEnd });
         applyTime(timeline.currentTime);
+        setError(null);
+        setRebuildNotice(null);
         if (!patientDotsVisible) {
           setStatus('Aggregate persona lens');
         } else {
@@ -863,7 +910,10 @@ export default function PatientFlowNavigator({
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : 'Unable to load patient flow data';
         setError(message);
+        setRebuildNotice(null);
         setStatus('Load failed');
+      } finally {
+        rebootstrappingRef.current = false;
       }
     }
 
@@ -872,7 +922,7 @@ export default function PatientFlowNavigator({
     return () => {
       cancelled = true;
     };
-  }, [applyTime, handoff.t, mountedAtMs, patientDotsVisible]);
+  }, [applyTime, bootstrapNonce, handoff.t, mountedAtMs, patientDotsVisible]);
 
   // Projection stream (future half) — lens-clamped server-side; a failure
   // only disables ghosts, never the navigator. Re-polled every 5 min (S-2);
@@ -1517,7 +1567,21 @@ export default function PatientFlowNavigator({
     <section ref={containerRef} className="patient-flow-shell" aria-label="Patient Flow 4D Navigator">
       <canvas ref={canvasRef} className="patient-flow-canvas" aria-label="Patient flow 3D navigator" />
 
-      {error && <div className="patient-flow-error">{error}</div>}
+      {error && (
+        <div className="patient-flow-error" role="alert">
+          <span>{error}</span>
+          <button
+            type="button"
+            className="patient-flow-error-retry"
+            onClick={() => requestRebootstrap('Retrying load')}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      {rebuildNotice && !error && (
+        <div className="patient-flow-rebuild-notice" role="status">{rebuildNotice}</div>
+      )}
 
       <NavigatorToolbar
         summary={summary}
