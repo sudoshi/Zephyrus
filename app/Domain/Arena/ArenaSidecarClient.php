@@ -103,14 +103,25 @@ class ArenaSidecarClient
      * @param  array<int, array<string, mixed>>|null  $filters
      * @return array<int, array<string, mixed>>|null
      */
-    public function conformance(array $ocel, ?string $pathway = null, ?array $filters = null): ?array
-    {
+    public function conformance(
+        array $ocel,
+        ?string $pathway = null,
+        ?array $filters = null,
+        bool $perCase = false,
+        ?array $caseIds = null,
+    ): ?array {
         $body = ['ocel' => $ocel];
         if ($pathway !== null) {
             $body['pathway'] = $pathway;
         }
         if (! empty($filters)) {
             $body['filters'] = array_values($filters);
+        }
+        if ($perCase) {
+            $body['per_case'] = true;
+        }
+        if (! empty($caseIds)) {
+            $body['case_ids'] = array_values($caseIds);
         }
         $result = $this->post('/conformance', $body);
 

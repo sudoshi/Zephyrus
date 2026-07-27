@@ -17,6 +17,7 @@
 
 .patient-flow-toolbar,
 .patient-flow-inspector,
+.patient-flow-journey,
 .patient-flow-feed,
 .patient-flow-statusbar {
   position: absolute;
@@ -148,6 +149,43 @@
   cursor: pointer;
 }
 
+.patient-flow-chronobar-buttons {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* SC 2.5.7 (plan B5) — single-pointer stepping as the non-drag alternative;
+   neutral chrome so the gold Now button stays the emphasized action. */
+.patient-flow-chronobar-step {
+  flex: 0 0 auto;
+  min-height: 24px;
+  border: 1px solid rgba(239, 234, 220, 0.22);
+  border-radius: 5px;
+  background: rgba(27, 31, 29, 0.94);
+  color: #ddd6c7;
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 7px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scented scrubber (plan B5, TN-1): a quiet event-density row above the
+   track — intensity is opacity on one neutral ink, never a status color. */
+.patient-flow-chronobar-density {
+  display: flex;
+  gap: 1px;
+  height: 6px;
+  margin: 4px 0 2px;
+}
+
+.patient-flow-chronobar-density span {
+  flex: 1 1 0;
+  border-radius: 1px;
+  background: #ddd6c7;
+}
+
 .patient-flow-chronobar-now-button:disabled {
   opacity: 0.4;
   cursor: default;
@@ -271,6 +309,33 @@
   border: 0;
   background: transparent;
   cursor: pointer;
+}
+
+/* Selected-patient event ticks (plan B3/B5): the selection's own instants,
+   sky like the info family — never amber/coral (those are earned). */
+.patient-flow-chronobar-patient-tick {
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  width: 24px;
+  margin-left: -12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.patient-flow-chronobar-patient-tick::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  height: 5px;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: #38bdf8;
+  box-shadow: 0 0 3px rgba(56, 189, 248, 0.7);
 }
 
 .patient-flow-chronobar-barrier::after {
@@ -1365,6 +1430,186 @@
   background: rgba(63, 25, 20, 0.94);
   color: #ffe2dc;
   padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* DI-2 — the dead-navigator retry affordance; palette reuses the card's own
+   values (the overlay palette is the sanctioned F-9 exception). */
+.patient-flow-error-retry {
+  min-width: 64px;
+  min-height: 24px;
+  border: 1px solid rgba(239, 234, 220, 0.22);
+  border-radius: 5px;
+  background: rgba(27, 31, 29, 0.94);
+  color: #f3efe5;
+  font-size: 12px;
+  padding: 3px 12px;
+  cursor: pointer;
+}
+
+.patient-flow-error-retry:hover {
+  border-color: rgba(239, 234, 220, 0.55);
+}
+
+/* Patient Journey Drawer (plan §7.1, PJ-1) — the inspector's slot, promoted
+   to a story. Same overlay family; every value below already exists in this
+   file (the F-9-sanctioned scoped palette). */
+.patient-flow-journey {
+  right: 16px;
+  bottom: 48px;
+  width: min(390px, calc(100vw - 32px));
+  max-height: min(560px, calc(100% - 140px));
+  overflow: auto;
+  padding: 14px;
+  font-size: 12px;
+  color: #f3efe5;
+}
+
+.patient-flow-journey-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.patient-flow-journey-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.patient-flow-journey-head strong {
+  display: block;
+  font-size: 15px;
+}
+
+.patient-flow-journey-loc,
+.patient-flow-journey-los {
+  display: block;
+  color: #ddd6c7;
+  margin-top: 2px;
+}
+
+.patient-flow-journey-close {
+  min-width: 24px;
+  min-height: 24px;
+  border: 1px solid rgba(239, 234, 220, 0.22);
+  border-radius: 5px;
+  background: rgba(27, 31, 29, 0.94);
+  color: #f3efe5;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.patient-flow-journey-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.patient-flow-journey-align,
+.patient-flow-journey-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.patient-flow-journey-align button,
+.patient-flow-journey-actions button {
+  min-height: 24px;
+  border: 1px solid rgba(239, 234, 220, 0.22);
+  border-radius: 5px;
+  background: rgba(27, 31, 29, 0.94);
+  color: #ddd6c7;
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.patient-flow-journey-align button.active,
+.patient-flow-journey-actions button.active {
+  color: #f3efe5;
+  border-color: rgba(239, 234, 220, 0.55);
+}
+
+.patient-flow-journey-section {
+  margin: 0 0 10px;
+}
+
+.patient-flow-journey-section h3 {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #ddd6c7;
+}
+
+.patient-flow-journey-section ul,
+.patient-flow-journey-segments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.patient-flow-journey-section li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.patient-flow-journey-segments li {
+  display: block;
+  border: 1px solid rgba(239, 234, 220, 0.18);
+  border-radius: 5px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+}
+
+.patient-flow-journey-segments li.open {
+  border-color: rgba(239, 234, 220, 0.55);
+}
+
+.patient-flow-journey-segment-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.patient-flow-journey-segment-sub {
+  color: #ddd6c7;
+  margin-top: 2px;
+}
+
+.patient-flow-journey-note {
+  margin: 0 0 8px;
+  color: #ddd6c7;
+}
+
+.patient-flow-journey-foot {
+  margin-top: 6px;
+  color: #ddd6c7;
+}
+
+/* F-6 pt 2 — the atomic-rebootstrap notice: quiet, informational, never an
+   alarm (the refresh is expected behavior on the 6h demo wall). */
+.patient-flow-rebuild-notice {
+  position: absolute;
+  z-index: 4;
+  inset: 88px auto auto 50%;
+  transform: translateX(-50%);
+  border: 1px solid rgba(239, 234, 220, 0.22);
+  border-radius: 5px;
+  background: rgba(27, 31, 29, 0.94);
+  color: #f3efe5;
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 6px 12px;
 }
 
 @media (max-width: 760px) {

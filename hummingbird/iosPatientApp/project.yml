@@ -16,7 +16,10 @@ targets:
       - HummingbirdPatient
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.hummingbird.patient
+        # Ships to the "Zephyrus-Nightingale" App Store Connect record (app id
+        # 6794950746). The target/scheme keep the HummingbirdPatient name — only
+        # what Apple sees is branded Nightingale.
+        PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.nightingale
         GENERATE_INFOPLIST_FILE: "NO"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
@@ -26,12 +29,19 @@ targets:
     info:
       path: HummingbirdPatient/Info.plist
       properties:
-        CFBundleDisplayName: Hummingbird Patient
+        CFBundleDisplayName: Nightingale
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        # DO NOT bake an endpoint into a shipped build. A distributed Release
+        # artifact must stay default-off with an empty base URL:
+        # scripts/ci/verify-hummingbird-ios-release-transport.sh asserts
+        # HBPPatientAPIEnabled == false AND an empty HBPPatientAPIBaseURL, and
+        # fails CI otherwise. Enabling is a runtime concern — PatientAppConfiguration
+        # lets HBP_PATIENT_API_ENABLED / HBP_PATIENT_API_BASE_URL from the process
+        # environment override these, which is how a dev scheme points at a host.
         HBPPatientAPIEnabled: false
         HBPPatientAPIBaseURL: ""
 
@@ -44,7 +54,7 @@ targets:
       - target: HummingbirdPatient
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.hummingbird.patient.tests
+        PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.nightingale.tests
         GENERATE_INFOPLIST_FILE: "YES"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/HummingbirdPatient.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HummingbirdPatient"
         BUNDLE_LOADER: "$(TEST_HOST)"
@@ -58,7 +68,7 @@ targets:
       - target: HummingbirdPatient
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.hummingbird.patient.ui-tests
+        PRODUCT_BUNDLE_IDENTIFIER: net.acumenus.nightingale.ui-tests
         GENERATE_INFOPLIST_FILE: "YES"
 
 schemes:

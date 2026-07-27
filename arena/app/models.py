@@ -98,6 +98,11 @@ class PerformanceResponse(BaseModel):
 
 class ConformanceRequest(OcelSource):
     pathway: str | None = Field(default=None, description="restrict to one pathway key (default: all)")
+    per_case: bool = Field(default=False, description="include a verdict for every evaluated case (case_results)")
+    case_ids: list[str] | None = Field(
+        default=None,
+        description="restrict case_results to these OCEL case object ids (aggregates always cover the full log)",
+    )
 
 
 class DeviationCount(BaseModel):
@@ -109,6 +114,17 @@ class DeviationCount(BaseModel):
 class SampleDeviantCase(BaseModel):
     case_id: str
     deviations: list[str]
+
+
+class CaseConformance(BaseModel):
+    """One case's verdict — the per-patient adherence seam (FLOW-4D plan A2).
+    `activity_timeline` maps each observed reference activity to its FIRST
+    occurrence (ISO timestamp): the expected-vs-observed lane raw material."""
+
+    case_id: str
+    conformant: bool
+    deviations: list[str]
+    activity_timeline: dict[str, str]
 
 
 class PathwayConformance(BaseModel):
@@ -123,6 +139,7 @@ class PathwayConformance(BaseModel):
     conformance_rate: float | None
     deviations: list[DeviationCount]
     sample_deviant_cases: list[SampleDeviantCase]
+    case_results: list[CaseConformance] = Field(default_factory=list)
 
 
 # --- X4 governed AI copilot: the conformance-fitness trust gate (§X.8.2) ---

@@ -4,12 +4,18 @@ import {
   createPatientFlowEventSource,
   fetchPatientFlowAmbient,
   fetchPatientFlowBarriers,
+  fetchPatientFlowEpoch,
   fetchPatientFlowEvents,
   fetchPatientFlowLocations,
   fetchPatientFlowOccupancy,
   fetchPatientFlowProjections,
   fetchPatientFlowSummary,
 } from '@/features/patientFlowNavigator/api';
+import { adoptEpoch } from '@/features/patientFlowNavigator/epoch';
+import { eventDensityBuckets, fetchPatientJourney, journeyEventTicks } from '@/features/patientFlowNavigator/journey';
+import type { JourneyAlignAnchor } from '@/features/patientFlowNavigator/journey';
+import type { PatientJourney } from '@/features/patientFlowNavigator/journeySchemas';
+import NavigatorJourneyDrawer from './NavigatorJourneyDrawer';
 import {
   parseTime,
   patientStatesAt,
@@ -131,11 +137,15 @@ export interface HandoffParams {
   t: number | null;
   /** Rounds board → 4D deep link: fly to this round stop once placed (R-1). */
   focusStop: string | null;
+  /** Cross-surface patient pivot (plan B4, PJ-3): select this patient and
+   * open their journey once events load. Opaque ptok only — a raw ref in
+   * the URL is dropped here, exactly like the /events filter contract. */
+  patient: string | null;
 }
 
-/** Mobile→web A3 handoff: ?persona=&scope=&t=&focus_stop= (persona is resolved server-side). Exported for tests. */
+/** Mobile→web A3 handoff: ?persona=&scope=&t=&focus_stop=&patient= (persona is resolved server-side). Exported for tests. */
 export function parseHandoff(): HandoffParams {
-  const empty: HandoffParams = { floor: null, unitRef: null, t: null, focusStop: null };
+  const empty: HandoffParams = { floor: null, unitRef: null, t: null, focusStop: null, patient: null };
   if (typeof window === 'undefined') return empty;
   const params = new URLSearchParams(window.location.search);
 
@@ -155,7 +165,10 @@ export function parseHandoff(): HandoffParams {
     if (Number.isFinite(parsed)) t = parsed;
   }
 
-  return { floor, unitRef, t, focusStop: params.get('focus_stop') };
+  const rawPatient = params.get('patient');
+  const patient = rawPatient && /^ptok_[A-Za-z0-9]{24}$/.test(rawPatient) ? rawPatient : null;
+
+  return { floor, unitRef, t, focusStop: params.get('focus_stop'), patient };
 }
 
 function defaultLayersForLens(lens: FlowLens | null | undefined): PatientLayerState {
@@ -347,6 +360,42 @@ export default function PatientFlowNavigator({
   const [forecast, setForecast] = useState<ForecastAggregates | null>(null);
   const [inspectorTitle, setInspectorTitle] = useState('Select a patient or location');
   const [inspectorRows, setInspectorRows] = useState<Array<[string, string]>>([]);
+  // F-6 pt 2 — dataset-epoch rebootstrap: bumping the nonce re-runs the whole
+  // bootstrap atomically (all four datasets together, never one at a time).
+  const [bootstrapNonce, setBootstrapNonce] = useState(0);
+  const [rebuildNotice, setRebuildNotice] = useState<string | null>(null);
+  const epochRef = useRef<string | null>(null);
+  const rebootstrappingRef = useRef(false);
+
+  // ---- Patient Journey Drawer (plan §7.1 B, PJ-1) --------------------------
+  // The drawer replaces the inspector for PATIENT selections only; on a 403
+  // or fetch failure it falls back to the inspector (status line explains).
+  const [journeyState, setJourneyState] = useState<'idle' | 'loading' | 'ok'>('idle');
+  const [journeyData, setJourneyData] = useState<PatientJourney | null>(null);
+  const [journeyAlign, setJourneyAlign] = useState<JourneyAlignAnchor>('clock');
+  const [journeyFollow, setJourneyFollow] = useState(false);
+  const [journeyLinkCopied, setJourneyLinkCopied] = useState(false);
+  const journeyPatientRef = useRef<string | null>(null);
+  const journeyFollowRef = useRef(false);
+  useEffect(() => {
+    journeyFollowRef.current = journeyFollow;
+  }, [journeyFollow]);
+
+  // One deliberate entry point for reloading the WORLD: the demo refresh
+  // rebased every timestamp, so partial refetches would mix epochs. Clears
+  // selection (the old mesh describes a dataset that no longer exists),
+  // shows a quiet notice, and re-runs the bootstrap atomically.
+  const requestRebootstrap = useCallback((notice: string) => {
+    if (rebootstrappingRef.current) return;
+    rebootstrappingRef.current = true;
+    setRebuildNotice(notice);
+    setError(null);
+    sceneRef.current?.clearSelection();
+    setInspectorTitle('Select a patient or location');
+    setInspectorRows([]);
+    setInspectorAction(null);
+    setBootstrapNonce((nonce) => nonce + 1);
+  }, []);
   const [feed, setFeed] = useState<PatientFlowEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchMatches, setSearchMatches] = useState<number | null>(null);
@@ -429,13 +478,27 @@ export default function PatientFlowNavigator({
 
   // S-1: advance wall-clock now every 60s. The ref updates in the same tick so
   // any repaint that fires before the effects run already sees the fresh value.
+  // The same tick carries the F-6 epoch check — a cheap aggregate read; when
+  // the demo refresh lands a new epoch the whole view rebootstraps atomically.
   useEffect(() => {
     const id = window.setInterval(() => {
       nowMsRef.current = Date.now();
       setNowMs(nowMsRef.current);
+
+      if (document.visibilityState !== 'hidden' && !rebootstrappingRef.current) {
+        fetchPatientFlowEpoch()
+          .then((next) => {
+            const adoption = adoptEpoch(epochRef.current, next);
+            epochRef.current = adoption.epoch;
+            if (adoption.changed) {
+              requestRebootstrap('Data refreshed — rebuilding view');
+            }
+          })
+          .catch(() => { /* epoch is a convenience signal; never break the tick */ });
+      }
     }, 60_000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [requestRebootstrap]);
 
   const dataStart = useMemo(() => (events.length ? parseTime(events[0].occurred_at) : null), [events]);
   const dataEnd = useMemo(
@@ -460,6 +523,20 @@ export default function PatientFlowNavigator({
       .map((barrier) => (barrier.opened_at ? Date.parse(barrier.opened_at) : Number.NaN))
       .filter((ms) => Number.isFinite(ms) && ms <= nowMs),
     [barriers, nowMs],
+  );
+
+  // B5 — the scented scrubber: house event density across the window, so
+  // retrospective scrubbing is guided instead of blind (TN-1).
+  const chronobarDensity = useMemo(() => eventDensityBuckets(
+    events.map((event) => parseTime(event.occurred_at) ?? Number.NaN),
+    windowStart,
+    windowEnd,
+  ), [events, windowEnd, windowStart]);
+
+  // B3/B5 — the open journey's event instants as jump ticks.
+  const chronobarPatientTicks = useMemo(
+    () => (journeyData ? journeyEventTicks(journeyData) : []),
+    [journeyData],
   );
 
   const placementIndex = useMemo(
@@ -707,6 +784,7 @@ export default function PatientFlowNavigator({
     roundsRun: () => (roundsRunRef.current
       ? { uuid: roundsRunRef.current.run_uuid, status: roundsRunRef.current.status }
       : null),
+    epoch: () => epochRef.current,
   }), []);
 
   // Live-follow: slide the 48h window with wall-clock now, but only in
@@ -846,8 +924,14 @@ export default function PatientFlowNavigator({
         ]);
         if (cancelled) return;
 
-        const prepared = prepareReplay(summaryData, eventData, mountedAtMs, handoff.t);
+        // A rebootstrap lands in the NEW epoch's frame: the deep-link time and
+        // the original mount anchor both describe the pre-refresh world, so
+        // only the first bootstrap honors them (F-6 pt 2).
+        const anchorMs = bootstrapNonce === 0 ? mountedAtMs : Date.now();
+        const handoffTime = bootstrapNonce === 0 ? handoff.t : undefined;
+        const prepared = prepareReplay(summaryData, eventData, anchorMs, handoffTime);
         const { events: sortedEvents, timeline } = prepared;
+        epochRef.current = summaryData.epoch?.epoch ?? epochRef.current;
         setSummary(summaryData);
         setAmbient(ambientData);
         setLocations(locationData);
@@ -855,6 +939,8 @@ export default function PatientFlowNavigator({
         setFeed(recentReplayEvents(sortedEvents));
         setTimeWindow({ start: timeline.windowStart, end: timeline.windowEnd });
         applyTime(timeline.currentTime);
+        setError(null);
+        setRebuildNotice(null);
         if (!patientDotsVisible) {
           setStatus('Aggregate persona lens');
         } else {
@@ -863,7 +949,10 @@ export default function PatientFlowNavigator({
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : 'Unable to load patient flow data';
         setError(message);
+        setRebuildNotice(null);
         setStatus('Load failed');
+      } finally {
+        rebootstrappingRef.current = false;
       }
     }
 
@@ -872,7 +961,7 @@ export default function PatientFlowNavigator({
     return () => {
       cancelled = true;
     };
-  }, [applyTime, handoff.t, mountedAtMs, patientDotsVisible]);
+  }, [applyTime, bootstrapNonce, handoff.t, mountedAtMs, patientDotsVisible]);
 
   // Projection stream (future half) — lens-clamped server-side; a failure
   // only disables ghosts, never the navigator. Re-polled every 5 min (S-2);
@@ -1070,8 +1159,20 @@ export default function PatientFlowNavigator({
               ? { label: 'Open in Rounds board', href: `/rtdc/virtual-rounds?patient=${data.round_patient_uuid}` }
               : null,
           );
+          // B1: a patient selection opens their journey; anything else closes
+          // it so the inspector slot always describes the current selection.
+          if (data.kind === 'patient') {
+            openJourneyRef.current(String(redacted.patient_context_ref ?? redacted.patient_id ?? ''));
+          } else {
+            closeJourneyRef.current();
+          }
         },
-        onUserCameraStart: () => setTourAuto(false),
+        // The operator's hand always wins: camera input pauses the rounds
+        // Auto tour AND patient follow (B3) in one gesture.
+        onUserCameraStart: () => {
+          setTourAuto(false);
+          setJourneyFollow(false);
+        },
         // E-4 hover chip: identity-free by construction AND by guard test —
         // hoverLabelFor lives in sceneVocabulary, pinned by hoverLabel.test.ts.
         hoverLabel: hoverLabelFor,
@@ -1219,6 +1320,61 @@ export default function PatientFlowNavigator({
   // H1.2: the non-pointer selection path — search list and feed rows select
   // exactly what a canvas click on that token would (same builder, same
   // redaction, same scene highlight via the selection entity).
+  const closeJourney = useCallback((): void => {
+    journeyPatientRef.current = null;
+    setJourneyState('idle');
+    setJourneyData(null);
+    setJourneyFollow(false);
+    setJourneyLinkCopied(false);
+  }, []);
+
+  // Opens the journey for an opaque patient context ref. Persona rides the
+  // request (F-1) and the patient is addressed only through the ptok scope —
+  // the server's patientScope() runs the A2P authorization + audit.
+  const openJourneyForPatient = useCallback((patientContextRef: string | null | undefined): void => {
+    if (typeof patientContextRef !== 'string' || !/^ptok_[A-Za-z0-9]{24}$/.test(patientContextRef)) return;
+    journeyPatientRef.current = patientContextRef;
+    setJourneyData(null);
+    setJourneyFollow(false);
+    setJourneyLinkCopied(false);
+    setJourneyState('loading');
+
+    void fetchPatientJourney({ patientContextRef, persona: lens?.role_id }).then((result) => {
+      if (journeyPatientRef.current !== patientContextRef) return; // stale response
+      if (result.kind === 'ok') {
+        setJourneyData(result.journey);
+        setJourneyState('ok');
+        return;
+      }
+      // Fallback: the inspector still carries the scene detail (plan B: a
+      // journey miss must never cost the operator the selection itself).
+      journeyPatientRef.current = null;
+      setJourneyState('idle');
+      setStatus(result.kind === 'forbidden'
+        ? 'Journey not available for this persona'
+        : 'Journey unavailable — inspector fallback');
+    });
+  }, [lens?.role_id]);
+
+  // The scene's onSelect closure is constructed once at mount; route through
+  // refs so it always calls the current opener/closer (the file-wide pattern).
+  const openJourneyRef = useRef(openJourneyForPatient);
+  const closeJourneyRef = useRef(closeJourney);
+  useEffect(() => {
+    openJourneyRef.current = openJourneyForPatient;
+    closeJourneyRef.current = closeJourney;
+  }, [closeJourney, openJourneyForPatient]);
+
+  const copyJourneyLink = useCallback((): void => {
+    const ptok = journeyPatientRef.current;
+    if (!ptok) return;
+    const url = `${window.location.origin}/rtdc/patient-flow-navigator?patient=${ptok}`;
+    void navigator.clipboard?.writeText(url).then(() => {
+      setJourneyLinkCopied(true);
+      window.setTimeout(() => setJourneyLinkCopied(false), 2_000);
+    }).catch(() => setStatus('Copy failed — clipboard unavailable'));
+  }, []);
+
   const selectPatientFromList = useCallback((patientId: string): void => {
     const state = lastVisibleStatesRef.current.find((candidate) => candidate.patientId === patientId);
     if (!state) return;
@@ -1231,7 +1387,8 @@ export default function PatientFlowNavigator({
     setInspectorRows(flattenInspector(redacted));
     setInspectorAction(null);
     sceneRef.current?.selectEntity({ kind: 'patient', id: patientId });
-  }, [dotsPolicy]);
+    openJourneyForPatient(String(redacted.patient_context_ref ?? redacted.patient_id ?? patientId));
+  }, [dotsPolicy, openJourneyForPatient]);
 
   // F-8: keyboard/AT selection of a delayed location — the same code path a
   // canvas raycast on the disk takes (shared occupancyInspectorData builder,
@@ -1311,13 +1468,16 @@ export default function PatientFlowNavigator({
         setInspectorTitle('Select a patient or location');
         setInspectorRows([]);
         setInspectorAction(null);
+        closeJourney();
         return;
       }
       const key = event.key.toLowerCase();
       if (key === 'h') {
         sceneRef.current?.resetCamera();
       } else if (key === 'f') {
-        if (!sceneRef.current?.focusSelection()) focusActivePatients();
+        // focusTrace frames the whole traced story when a journey is open
+        // and falls back to the plain selection focus otherwise (B3).
+        if (!sceneRef.current?.focusTrace()) focusActivePatients();
       } else if (key === 'n') {
         if (!historical) handleScrub(nowMsRef.current);
       } else if (event.key === '?') {
@@ -1326,7 +1486,44 @@ export default function PatientFlowNavigator({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [dismissIntro, focusActivePatients, handleScrub, historical]);
+  }, [closeJourney, dismissIntro, focusActivePatients, handleScrub, historical]);
+
+  // B3 — trace mode mirrors the journey drawer: open journey = traced story
+  // in-scene (gradient trail + dwell markers, others dimmed). Toggling clears
+  // the bucket key so the trail layer rebuilds immediately.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    scene.setTraceMode(journeyState === 'ok' ? journeyPatientRef.current : null);
+    lastBucketKeyRef.current = '';
+    refreshScene();
+  }, [journeyData, journeyState, refreshScene]);
+
+  // B3 — follow-patient: explicit drawer toggle; operator camera input or
+  // closing the journey clears it.
+  useEffect(() => {
+    sceneRef.current?.setFollowPatient(journeyFollow ? journeyPatientRef.current : null);
+  }, [journeyData, journeyFollow]);
+
+  // B4 — the ?patient= cross-surface pivot (PJ-3): once events are loaded,
+  // select the patient and open their journey (one attempt per mount; the
+  // deep link is explicit locate intent, so the F flight is warranted —
+  // same precedent as ?focus_stop). A miss reads honestly in the status bar.
+  const handoffPatientDoneRef = useRef(false);
+  useEffect(() => {
+    if (handoffPatientDoneRef.current || !handoff.patient || events.length === 0) return;
+    handoffPatientDoneRef.current = true;
+
+    const matched = events.some((event) => event.patient_id === handoff.patient);
+    if (!matched) {
+      setStatus('Linked patient not in the current window');
+      return;
+    }
+
+    sceneRef.current?.selectEntity({ kind: 'patient', id: handoff.patient });
+    openJourneyForPatient(handoff.patient);
+    if (!sceneRef.current?.focusSelection()) focusActivePatients();
+  }, [events, focusActivePatients, handoff.patient, openJourneyForPatient]);
 
   // ---- Virtual Rounds integration (Phase 3) --------------------------------
 
@@ -1517,7 +1714,21 @@ export default function PatientFlowNavigator({
     <section ref={containerRef} className="patient-flow-shell" aria-label="Patient Flow 4D Navigator">
       <canvas ref={canvasRef} className="patient-flow-canvas" aria-label="Patient flow 3D navigator" />
 
-      {error && <div className="patient-flow-error">{error}</div>}
+      {error && (
+        <div className="patient-flow-error" role="alert">
+          <span>{error}</span>
+          <button
+            type="button"
+            className="patient-flow-error-retry"
+            onClick={() => requestRebootstrap('Retrying load')}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      {rebuildNotice && !error && (
+        <div className="patient-flow-rebuild-notice" role="status">{rebuildNotice}</div>
+      )}
 
       <NavigatorToolbar
         summary={summary}
@@ -1535,6 +1746,8 @@ export default function PatientFlowNavigator({
             freshness={summary?.source.freshness ?? 'missing'}
             forecast={forecast}
             barrierTicks={barrierTicks}
+            densityBuckets={chronobarDensity}
+            patientTicks={chronobarPatientTicks}
             replaying={live}
             onScrub={handleScrub}
           />
@@ -1593,7 +1806,24 @@ export default function PatientFlowNavigator({
         onSelectBarrier={selectBarrierFromList}
       />
 
-      <NavigatorInspector title={inspectorTitle} rows={inspectorRows} action={inspectorAction} />
+      {journeyState === 'idle' ? (
+        <NavigatorInspector title={inspectorTitle} rows={inspectorRows} action={inspectorAction} />
+      ) : (
+        <NavigatorJourneyDrawer
+          journey={journeyData}
+          state={journeyState}
+          align={journeyAlign}
+          onAlignChange={setJourneyAlign}
+          onClose={closeJourney}
+          onFocus={() => {
+            if (!sceneRef.current?.focusTrace()) focusActivePatients();
+          }}
+          followEnabled={journeyFollow}
+          onFollowToggle={setJourneyFollow}
+          onCopyLink={copyJourneyLink}
+          copiedLink={journeyLinkCopied}
+        />
+      )}
 
       <NavigatorLegend layers={layers} />
 

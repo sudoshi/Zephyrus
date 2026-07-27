@@ -64,6 +64,38 @@ class ArenaController extends Controller
         return response()->json($payload, $status);
     }
 
+    /**
+     * Cached per-case conformance verdicts for ONE patient (FLOW-4D plan §8
+     * A2). Requires scope=patient:{ptok_…} under EnforceFlowLens:scoped-patients
+     * — the middleware's patientScope() runs the A2P authorization + disclosure
+     * audit, and the resolved scope hands us the patient_ref for the
+     * deterministic hash join. Reads the arena.case_conformance cache only.
+     */
+    public function caseConformance(Request $request): JsonResponse
+    {
+        $scope = $request->attributes->get('flow_scope');
+
+        if (! is_array($scope) || ($scope['type'] ?? null) !== 'patient' || empty($scope['patient_ref'])) {
+            return response()->json([
+                'error' => [
+                    'code' => 'case_conformance_requires_patient_scope',
+                    'message' => 'This endpoint requires scope=patient:{ptok_…}.',
+                ],
+            ], 422);
+        }
+
+        $payload = $this->arena->caseConformance(
+            $this->arena->caseOidsForPatient((string) $scope['patient_ref']),
+        );
+        $payload['patient_context_ref'] = $scope['patient_context_ref'];
+        $payload['generated_at'] = now()->toJSON();
+
+        return response()->json($payload)->withHeaders([
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'Pragma' => 'no-cache',
+        ]);
+    }
+
     public function petrinet(Request $request): JsonResponse
     {
         $payload = $this->arena->petrinet($this->filtersFrom($request));
