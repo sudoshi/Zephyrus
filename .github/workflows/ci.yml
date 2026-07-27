@@ -208,6 +208,7 @@ jobs:
           php scripts/verify-hummingbird-transport-security.php
           php scripts/generate-hummingbird-route-inventory.php --check
           bash scripts/check-no-tracking-technologies.sh
+          bash scripts/ci/verify-app-identity-uniqueness.sh
 
       - name: Verify immutable release snapshots
         run: |
