@@ -60,6 +60,8 @@ interface NavigatorToolbarProps {
   onToggleLive: () => void;
   onResetCamera: () => void;
   onFocusPatients: () => void;
+  /** E2 canonical views — Top / House / Floor / Bed, each a van Wijk arc. */
+  onCanonicalView: (view: 'top' | 'house' | 'floor' | 'bed') => void;
   /** Explicit camera flight to the narrowed census set (B-4). */
   onFocusCensusScope: () => void;
   onAskEddy: () => void;
@@ -115,6 +117,7 @@ export default function NavigatorToolbar({
   onToggleLive,
   onResetCamera,
   onFocusPatients,
+  onCanonicalView,
   onFocusCensusScope,
   onAskEddy,
   onSpeedChange,
@@ -250,6 +253,15 @@ export default function NavigatorToolbar({
             <Bot />
           </button>
         )}
+      </div>
+
+      {/* E2 canonical views — the four framings ("where am I / how do I get
+          back") as one segmented control; each flies the van Wijk arc. */}
+      <div className="patient-flow-canonical-views" role="group" aria-label="Canonical views">
+        <button type="button" title="Top-down plan view of the current floor" onClick={() => onCanonicalView('top')}>Top</button>
+        <button type="button" title="House overview (default iso view)" onClick={() => onCanonicalView('house')}>House</button>
+        <button type="button" title="Frame the current floor" onClick={() => onCanonicalView('floor')}>Floor</button>
+        <button type="button" title="Frame the current selection" onClick={() => onCanonicalView('bed')}>Bed</button>
       </div>
 
       {/* N-7: three persona-keyed camera bookmarks — restore on the left,

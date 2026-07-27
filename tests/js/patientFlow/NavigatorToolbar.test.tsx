@@ -42,6 +42,7 @@ function renderToolbar(overrides: Partial<React.ComponentProps<typeof NavigatorT
     onToggleLive: vi.fn(),
     onResetCamera: vi.fn(),
     onFocusPatients: vi.fn(),
+    onCanonicalView: vi.fn(),
     onFocusCensusScope: vi.fn(),
     onAskEddy: vi.fn(),
     onSpeedChange: vi.fn(),
@@ -239,6 +240,20 @@ describe('NavigatorToolbar saved views (N-7)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Save current view to slot 3' }));
     expect(handlers.onSaveView).toHaveBeenCalledWith(2);
+  });
+});
+
+describe('NavigatorToolbar canonical views (E2)', () => {
+  it('offers Top / House / Floor / Bed, each routing to the framing', () => {
+    const handlers = renderToolbar();
+
+    const group = screen.getByRole('group', { name: 'Canonical views' });
+    expect(group).toBeInTheDocument();
+
+    for (const [label, view] of [['Top', 'top'], ['House', 'house'], ['Floor', 'floor'], ['Bed', 'bed']] as const) {
+      fireEvent.click(screen.getByRole('button', { name: label }));
+      expect(handlers.onCanonicalView).toHaveBeenCalledWith(view);
+    }
   });
 });
 

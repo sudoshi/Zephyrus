@@ -1495,6 +1495,32 @@ export default function PatientFlowNavigator({
     fitToFloor(floor);
   }, [fitToFloor]);
 
+  // E2 canonical views (Top / House / Floor / Bed): the four framings an
+  // operator reaches for, each a van Wijk arc. "Where am I / how do I get
+  // back" in one click. Top/Floor frame the current floor's points (or the
+  // whole house at 'all'); Bed frames the current selection.
+  const applyCanonicalView = useCallback((view: 'top' | 'house' | 'floor' | 'bed'): void => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    const floorFilter = filtersRef.current.floor;
+    const floorPoints = (): Array<{ x: number; y: number; z: number }> =>
+      Object.values(locationsRef.current)
+        .filter((loc) => loc.position_m && (floorFilter === 'all' || String(loc.floor) === floorFilter))
+        .map((loc) => ({ x: loc.position_m!.x, y: loc.position_m!.y ?? 0, z: loc.position_m!.z }));
+
+    if (view === 'house') {
+      scene.flyToHome();
+    } else if (view === 'top') {
+      scene.focusTopDown(floorPoints());
+    } else if (view === 'floor') {
+      scene.focusOn(floorPoints());
+    } else if (!scene.focusTrace()) {
+      // Bed: the selection (trace frames the whole story when a journey is
+      // open); with nothing selected, fall back to the active patients.
+      focusActivePatients();
+    }
+  }, [focusActivePatients]);
+
   // N-5: Enter in Find flies to the bbox of the matched tokens.
   const focusSearchMatches = useCallback((): void => {
     const points = lastVisibleStatesRef.current.map((state) => state.position);
@@ -1796,6 +1822,27 @@ export default function PatientFlowNavigator({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [closeJourney, dismissIntro, focusActivePatients, handleScrub, historical]);
 
+  // E2 — SDF unit-name billboards. Rebuilt only when the unit set, floor
+  // filter, or Model layer changes (not per frame); the scene owns per-frame
+  // billboarding, LOD, and distance culling. Tied to the Model layer — if you
+  // can see the building you can read its unit names; far ones fade out.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    const floorFilter = filters.floor;
+    const labels: Array<{ id: string; text: string; position: { x: number; y: number; z: number } }> = [];
+    for (const [unitId, anchor] of placementIndex.unitAnchors) {
+      const floor = placementIndex.unitFloors.get(unitId);
+      if (floorFilter !== 'all' && String(floor) !== floorFilter) continue;
+      const unit = units.find((candidate) => candidate.unit_id === unitId);
+      const text = unit?.name
+        ?? placementIndex.unitCodeById.get(unitId)?.toUpperCase()
+        ?? `Unit ${unitId}`;
+      labels.push({ id: String(unitId), text, position: anchor });
+    }
+    scene.setUnitLabels(labels, layers.base);
+  }, [placementIndex, units, filters.floor, layers.base, sceneNonce]);
+
   // B3 — trace mode mirrors the journey drawer: open journey = traced story
   // in-scene (gradient trail + dwell markers, others dimmed). Toggling clears
   // the bucket key so the trail layer rebuilds immediately.
@@ -2083,6 +2130,7 @@ export default function PatientFlowNavigator({
         onToggleLive={() => (live ? disconnectLive() : connectLive())}
         onResetCamera={resetCamera}
         onFocusPatients={focusActivePatients}
+        onCanonicalView={applyCanonicalView}
         onFocusCensusScope={focusCensusScope}
         onSpeedChange={setSpeed}
         onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}

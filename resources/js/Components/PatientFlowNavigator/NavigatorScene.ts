@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Text as TroikaText } from 'troika-three-text';
+import { buildFlightPath, flightDurationMs } from '@/features/patientFlowNavigator/cameraFlight';
 import { parseTime, positionFor } from '@/features/patientFlowNavigator/stateProjection';
 import { patientTokenInspectorData } from '@/features/patientFlowNavigator/inspector';
 import { confidenceOpacity } from '@/features/patientFlowNavigator/projections';
@@ -169,6 +171,24 @@ export class NavigatorScene {
 
   private readonly followDelta = new THREE.Vector3();
 
+  // E2: one active camera flight along the van Wijk arc. Operator input
+  // ('start') or a newer flight cancels it; pre-allocated vectors keep the
+  // per-frame step allocation-free.
+  private flight: {
+    startedAt: number;
+    duration: number;
+    panAt: (t: number) => number;
+    widthAt: (t: number) => number;
+    fromTarget: THREE.Vector3;
+    toTarget: THREE.Vector3;
+    fromDir: THREE.Vector3;
+    toDir: THREE.Vector3;
+  } | null = null;
+
+  private readonly flightScratchTarget = new THREE.Vector3();
+
+  private readonly flightScratchDir = new THREE.Vector3();
+
   private traceLineMaterial: THREE.LineBasicMaterial | null = null;
 
   // Phase C (plan §7.2): pathway-deviation glyphs. A hollow amber bracket
@@ -181,6 +201,19 @@ export class NavigatorScene {
   private pathwayDeviations = new Map<string, string>();
 
   private pathwayEnabled = false;
+
+  // E2: SDF unit-name billboards (troika-three-text). Wayfinding labels, not
+  // clickable — kept out of the raycast set. Distance-culled + LOD-scaled and
+  // billboarded each frame; hidden entirely in ortho/top overview (E3).
+  private unitLabelLayer = new THREE.Group();
+
+  private unitLabels = new Map<string, TroikaText>();
+
+  private unitLabelsEnabled = false;
+
+  private static readonly LABEL_CULL_DISTANCE = 300;
+
+  private static readonly LABEL_NEAR_DISTANCE = 70;
 
   private heatSingleMaterial: THREE.MeshStandardMaterial;
 
@@ -389,11 +422,15 @@ export class NavigatorScene {
     grid.position.y = -0.12;
     this.scene.add(grid);
 
-    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.ghostLayer, this.patientLayer, this.barrierLayer, this.roundsLayer, this.roundsRouteLayer, this.pathwayLayer);
+    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.ghostLayer, this.patientLayer, this.barrierLayer, this.roundsLayer, this.roundsRouteLayer, this.pathwayLayer, this.unitLabelLayer);
 
     // Tour Auto pauses when the OPERATOR grabs the camera; OrbitControls only
-    // dispatches 'start' for real input, never for programmatic flights.
-    this.orbit.addEventListener('start', () => this.callbacks.onUserCameraStart?.());
+    // dispatches 'start' for real input, never for programmatic flights. The
+    // operator's hand also cancels any in-progress flight (E2).
+    this.orbit.addEventListener('start', () => {
+      this.flight = null;
+      this.callbacks.onUserCameraStart?.();
+    });
 
     this.heatSingleMaterial = new THREE.MeshStandardMaterial({
       color: 0x77c06f,
@@ -1303,16 +1340,195 @@ export class NavigatorScene {
     return material;
   }
 
-  focusOn(points: Array<{ x: number; y: number; z: number }>): void {
+  // The fixed 3/4 iso direction focusOn has always framed from — preserved so
+  // a Focus flight lands on the same view it used to jump to.
+  private static readonly ISO_DIR = new THREE.Vector3(1.35, 1.05, 1.35).normalize();
+
+  private static readonly ISO_DISTANCE_SCALE = Math.hypot(1.35, 1.05, 1.35);
+
+  /**
+   * Frame a set of points. Animated by default along the van Wijk arc (E2);
+   * pass `{ instant: true }` for a hard cut (used where a flight would fight a
+   * rebuild). The destination direction stays the classic iso 3/4 framing.
+   */
+  focusOn(points: Array<{ x: number; y: number; z: number }>, options?: { instant?: boolean }): void {
     if (!points.length) return;
     const box = new THREE.Box3();
     points.forEach((point) => box.expandByPoint(new THREE.Vector3(point.x, point.y, point.z)));
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const radius = Math.max(size.x, size.y, size.z, 24);
-    this.orbit.target.copy(center);
-    this.camera.position.set(center.x + radius * 1.35, center.y + radius * 1.05, center.z + radius * 1.35);
-    this.orbit.update();
+    const distance = radius * NavigatorScene.ISO_DISTANCE_SCALE;
+    this.flyTo(center, distance, NavigatorScene.ISO_DIR, options);
+  }
+
+  /**
+   * Move the camera to look at `target` from `dir` at `distance`. Animated
+   * along the van Wijk & Nuij optimal pan/zoom arc unless `instant` — long
+   * pans arc out for context, short hops stay near-linear (E2).
+   */
+  flyTo(
+    target: THREE.Vector3,
+    distance: number,
+    dir: THREE.Vector3,
+    options?: { instant?: boolean },
+  ): void {
+    const toDir = dir.clone().normalize();
+    if (options?.instant) {
+      this.flight = null;
+      this.orbit.target.copy(target);
+      this.camera.position.copy(target).addScaledVector(toDir, distance);
+      this.orbit.update();
+      return;
+    }
+
+    const fromTarget = this.orbit.target.clone();
+    const fromDir = this.flightScratchDir.subVectors(this.camera.position, this.orbit.target);
+    const fromDistance = Math.max(this.orbit.minDistance, fromDir.length());
+    fromDir.normalize();
+
+    const panDistance = fromTarget.distanceTo(target);
+    const path = buildFlightPath(panDistance, fromDistance, distance);
+    // Degenerate (already there) — no flight, just settle.
+    if (path.pathLength < 1e-4) {
+      this.flight = null;
+      this.orbit.target.copy(target);
+      this.camera.position.copy(target).addScaledVector(toDir, distance);
+      this.orbit.update();
+      return;
+    }
+
+    this.flight = {
+      startedAt: performance.now(),
+      duration: flightDurationMs(path.pathLength),
+      panAt: path.panAt,
+      widthAt: path.widthAt,
+      fromTarget,
+      toTarget: target.clone(),
+      fromDir: fromDir.clone(),
+      toDir,
+    };
+  }
+
+  /** Advance an active flight; returns true while one is running (animate). */
+  private stepFlight(): boolean {
+    const flight = this.flight;
+    if (!flight) return false;
+    const elapsed = performance.now() - flight.startedAt;
+    const t = Math.min(1, elapsed / flight.duration);
+
+    // Pan along the straight target line; smoothstep the reorientation so a
+    // direction change eases rather than tracks the (non-linear) pan param.
+    const pan = flight.panAt(t);
+    const width = flight.widthAt(t);
+    const ease = t * t * (3 - 2 * t);
+
+    this.flightScratchTarget.copy(flight.fromTarget).lerp(flight.toTarget, pan);
+    this.flightScratchDir.copy(flight.fromDir).lerp(flight.toDir, ease);
+    if (this.flightScratchDir.lengthSq() < 1e-6) this.flightScratchDir.copy(flight.toDir);
+    this.flightScratchDir.normalize();
+
+    this.orbit.target.copy(this.flightScratchTarget);
+    this.camera.position.copy(this.flightScratchTarget).addScaledVector(this.flightScratchDir, width);
+
+    if (t >= 1) this.flight = null;
+    return true;
+  }
+
+  /** True while a programmatic flight is in progress (tests / soak). */
+  isFlying(): boolean {
+    return this.flight !== null;
+  }
+
+  /**
+   * E2: place SDF unit-name billboards at unit anchors. Rebuilds the label set
+   * only when the anchor list changes (cheap: ~20 units); positioning,
+   * billboarding, LOD scale, and distance culling happen per frame in
+   * updateUnitLabels. `enabled` gates the whole layer (persona/ortho off).
+   */
+  setUnitLabels(labels: Array<{ id: string; text: string; position: { x: number; y: number; z: number } }>, enabled: boolean): void {
+    this.unitLabelsEnabled = enabled;
+    const seen = new Set<string>();
+    for (const { id, text, position } of labels) {
+      seen.add(id);
+      let label = this.unitLabels.get(id);
+      if (!label) {
+        label = new TroikaText();
+        label.font = undefined; // troika's bundled default (Roboto SDF) — no network fetch
+        label.fontSize = 4.2;
+        label.anchorX = 'center';
+        label.anchorY = 'middle';
+        label.color = 0xece7dc;
+        label.outlineWidth = 0.18;
+        label.outlineColor = 0x121514;
+        label.material.depthWrite = false;
+        label.material.transparent = true;
+        this.unitLabels.set(id, label);
+        this.unitLabelLayer.add(label);
+      }
+      if (label.text !== text) {
+        label.text = text;
+        label.sync();
+      }
+      label.userData.anchor = position;
+    }
+    // Drop labels for units no longer present.
+    for (const [id, label] of this.unitLabels.entries()) {
+      if (!seen.has(id)) {
+        this.unitLabelLayer.remove(label);
+        label.dispose();
+        this.unitLabels.delete(id);
+      }
+    }
+  }
+
+  /** Per-frame billboard + LOD + distance-cull for the unit labels (E2). */
+  private updateUnitLabels(): void {
+    if (this.unitLabels.size === 0) return;
+    const show = this.unitLabelsEnabled;
+    for (const label of this.unitLabels.values()) {
+      const anchor = label.userData.anchor as { x: number; y: number; z: number } | undefined;
+      if (!show || !anchor) {
+        label.visible = false;
+        continue;
+      }
+      label.position.set(anchor.x, anchor.y + 6.5, anchor.z);
+      const distance = this.camera.position.distanceTo(label.position);
+      if (distance > NavigatorScene.LABEL_CULL_DISTANCE) {
+        label.visible = false;
+        continue;
+      }
+      label.visible = true;
+      label.quaternion.copy(this.camera.quaternion);
+      // LOD: hold true size when close, grow slightly with distance so far
+      // labels stay legible without dominating; fade the farthest third.
+      const near = NavigatorScene.LABEL_NEAR_DISTANCE;
+      const far = NavigatorScene.LABEL_CULL_DISTANCE;
+      const scale = distance <= near ? 1 : 1 + ((distance - near) / (far - near)) * 0.9;
+      label.scale.setScalar(scale);
+      const fadeStart = far * 0.72;
+      label.material.opacity = distance <= fadeStart
+        ? 1
+        : Math.max(0, 1 - (distance - fadeStart) / (far - fadeStart));
+    }
+  }
+
+  // Straight-down direction for the Top canonical view — a hair of −z keeps
+  // OrbitControls out of the pole singularity while reading as plan-view.
+  private static readonly TOP_DIR = new THREE.Vector3(0, 1, 0.0001).normalize();
+
+  /**
+   * E2 canonical "Top" view: frame the points from directly overhead (plan
+   * view) so structure and spread read without perspective foreshortening.
+   */
+  focusTopDown(points: Array<{ x: number; y: number; z: number }>, options?: { instant?: boolean }): void {
+    if (!points.length) return;
+    const box = new THREE.Box3();
+    points.forEach((point) => box.expandByPoint(new THREE.Vector3(point.x, point.y, point.z)));
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const spread = Math.max(size.x, size.z, 24);
+    this.flyTo(center, spread * 1.8, NavigatorScene.TOP_DIR, options);
   }
 
   /** Fly to the current selection; false when nothing is selected (N-6 `F`). */
@@ -1341,9 +1557,16 @@ export class NavigatorScene {
   }
 
   resetCamera(): void {
+    this.flight = null;
     this.camera.position.copy(HOME_POSITION);
     this.orbit.target.copy(HOME_TARGET);
     this.orbit.update();
+  }
+
+  /** E2 canonical "House" view: fly (arc) to the default iso overview. */
+  flyToHome(options?: { instant?: boolean }): void {
+    const dir = HOME_POSITION.clone().sub(HOME_TARGET);
+    this.flyTo(HOME_TARGET.clone(), dir.length(), dir.normalize(), options);
   }
 
   /** Renderer memory/draw counters for the H4 soak hook (soakHook.ts). */
@@ -1380,6 +1603,13 @@ export class NavigatorScene {
     this.clearGroup(this.roundsRouteLayer);
     this.clearGroup(this.pathwayLayer);
     this.glyphByPatient.clear();
+    // troika Text owns its own GPU resources — dispose each, don't route
+    // through clearGroup (which only handles Mesh geometry).
+    this.unitLabels.forEach((label) => {
+      this.unitLabelLayer.remove(label);
+      label.dispose();
+    });
+    this.unitLabels.clear();
     this.roundStopMeshByUuid.clear();
     this.queueSpriteMaterials.forEach((material) => {
       material.map?.dispose();
@@ -1418,7 +1648,11 @@ export class NavigatorScene {
     if (this.disposed) return;
     const delta = Math.min(this.clock.getDelta(), 0.05);
     this.callbacks.onFrame(delta);
+    // E2: advance any active van Wijk flight before OrbitControls damps —
+    // the flight owns target+position this frame, damping then settles.
+    this.stepFlight();
     this.orbit.update();
+    this.updateUnitLabels();
     this.emitCameraText();
     this.renderer.render(this.scene, this.camera);
     this.animationId = requestAnimationFrame(this.animate);
