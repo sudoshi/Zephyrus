@@ -2214,3 +2214,82 @@ deployment authorization.
 - No production database access, sample-patient mutation, route, source query, identity
   provider, content release, notification, signing, upload, deployment, or activation
   occurred. The authorized Nightingale sample remains pending/inactive and unreachable.
+
+## 2026-07-27 — Default-off controlled-pilot manifest foundation
+
+### Configuration and governance boundary
+
+- Added a generated, non-runnable controlled-pilot candidate covering the exact
+  facility, unit, cohort, language, exclusion, support-hour, validity, prerequisite,
+  named-approval, audit, rollback, and kill-switch fields required before an external
+  pilot go/no-go review.
+- Kept the committed template empty and fail-closed: revision zero, draft/inactive, no
+  facility/unit/cohort/language/support values, zero allowed enrollment, no validity
+  window, no prerequisite/approval records, an engaged kill switch, and no review request
+  or runtime activation.
+- Defined opaque `ngf_`, `ngu_`, and `ngc_` handle classes; separate released
+  inclusion/exclusion policies; a 25-enrollment technical ceiling; prohibited automatic
+  enrollment; canonical locale tags with released interpreter coverage; and withhold on
+  unknown language or unavailable eligibility/exclusion inputs.
+- Required IANA-style timezone configuration, non-overlapping local weekly support
+  windows, separately released urgent-help guidance, and a fixed uncovered-hours
+  disposition that withholds new enrollment without exposing staffing availability.
+- Required exact UTC start/expiry timestamps, a maximum validity of 168 hours, explicit
+  fail-closed expiry, and a new manifest for renewal. The seven-day ceiling is a technical
+  authorization lifetime rather than a patient length-of-stay or pilot-duration claim.
+- Required eight prerequisite records and seven distinct named approval roles. The
+  candidate records no real approver and does not appoint one.
+- Required nine append-only, durable-before-change audit events with nine content-free
+  fields. Patient identifiers, clinical values, and message bodies are prohibited; audit
+  failure holds.
+- Required a default-engaged kill switch, exact rollback target and verification records,
+  and no enrollment or disclosure after expiry. No kill-switch or rollback service was
+  implemented.
+
+### Mechanical acceptance
+
+- Added a deterministic builder and an independent verifier. The verifier reproduces both
+  JSON artifacts exactly, binds four foundation/activation sources by SHA-256, requires
+  the executable contract to retain zero paths, and requires every executable activation
+  fact plus every backend production/disclosure/mutation default to remain negative.
+- Evaluated 34 synthetic no-PHI cases. Exactly 33 hold. The single complete synthetic
+  case may proceed only to `eligible_for_external_go_no_go_review_only`, which is
+  expressly not activation, enrollment, deployment, disclosure, clinical release, or
+  production authorization.
+- Exercised 25 adversarial artifact mutations. Corrected the self-test harness during
+  implementation so a mutation counts only if validation itself rejects it; a synthetic
+  “did not fail” assertion can no longer be mistaken for a passing negative test.
+- Integrated the verifier into the docs-sensitive Nightingale contract CI job and the
+  native product-boundary chain.
+- The full 14-stage Nightingale contract/backend/native-boundary chain passed. The
+  focused Laravel suite remained 23/23 tests and 149 assertions.
+
+### Native emulator reacceptance
+
+- Booted an isolated iPhone 16e simulator on iOS 26.3.1. The generated Xcode project
+  matched `project.yml`; 11/11 unit tests and 6/6 UI journeys passed with zero failures or
+  skips. The unsigned Release Simulator application passed the exact identity, privacy,
+  dependency, no-network/no-deep-link/no-test-hook, English-copy, and background boundary.
+  The isolated simulator was shut down.
+- Preserved the other process's API 35 Android emulator on port 5554. Started a second
+  read-only `hb` instance on port 5556. Both lint variants, both assemblies, and the
+  unsigned Release APK boundary passed; all 10/10 installed journeys passed with zero
+  failures, errors, or skips.
+- The first Android JVM invocation restored cached outputs and was not accepted as fresh
+  execution. A forced `--rerun-tasks` pass executed all 45 actionable tasks and passed
+  8/8 Debug plus 8/8 Release tests with zero failures, errors, or skips.
+- Terminated only the port-5556 Android instance. The pre-existing port-5554 emulator
+  remained connected.
+
+### Checklist and safety accounting
+
+- Checked the first Stream F item and added immediate-sequence milestone 22. Exact
+  checklist reconciliation is now 42 checked, 12 open, 54 total: **77.78% complete**.
+- Added the decision record under
+  `docs/nightingale/CONTROLLED-PILOT-MANIFEST-FOUNDATION-2026-07-27.md` and exact
+  acceptance evidence under
+  `docs/evidence/nightingale/controlled-pilot-manifest-2026-07-27/`.
+- No production database access, sample-patient change, real pilot scope, identity/source
+  selection, patient operation, enrollment, content release, audit sink, route, client,
+  signing, distribution, deployment, or activation occurred. The sample remains
+  pending/inactive and unreachable.

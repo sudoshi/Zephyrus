@@ -375,6 +375,12 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
       shared accessibility identifiers, four Debug hooks, ten fully qualified persistent
       identifiers, zero telemetry events, zero diagnostic channels, no legacy product
       namespace, and eight negative verifier mutations.
+- [x] Default-off controlled-pilot configuration candidate: exact facility/unit/cohort/
+      language/exclusion/support-hour/validity/approval/audit/rollback shape; empty
+      committed template; seven-day and 25-enrollment technical ceilings; 34 synthetic
+      cases with 33 holds and one external-review-only result; and 25 negative mutations.
+      No manifest repository, evaluator, enrollment service, route, deployment, or
+      activation exists.
 - [ ] Approved Nightingale identity, representative, enrollment, recovery, and session
       contract.
 - [ ] Approved authoritative current-inpatient source, lifecycle, cohort, linkage,
@@ -389,7 +395,9 @@ Before a mutation can be specified, its fixture matrix must additionally prove:
       operations review.
 - [ ] Default-off non-production integration plan and rollback.
 
-Until these gates are met, `paths` remains empty.
+Until these gates are met, `paths` remains empty. The controlled-pilot candidate defines
+the future scope record but does not satisfy any named approval, integration, release, or
+go/no-go gate.
 
 The encounter-access, Today, patient-journey reference, identity/source, and three
 source-classification ledgers are pre-contract evidence for these gates, not proof that an

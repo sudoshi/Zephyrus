@@ -30,7 +30,13 @@ approval, patient-content release, feature activation, pilot enrollment, and
 source-connector deployment as five independent conjunctive gates. Thirty-one of 32
 combinations hold; the sole all-positive row may only continue to a future
 operation-specific release evaluation. All five executable-contract flags remain false,
-and the gate has no caller. The current native namespace is also generated and
+and the gate has no caller. A separate generated controlled-pilot candidate now defines
+the required facility/unit/cohort/language/exclusion/support-hour scope, a 168-hour
+validity ceiling, seven approval roles, append-only content-free audit events, and
+rollback/kill-switch references. Its committed template is empty and inactive. Of 34
+synthetic cases, 33 hold and one may proceed only to an external go/no-go review; there is
+no runtime evaluator, enrollment, route, deployment, or activation. The current native
+namespace is also generated and
 machine-verified across ten accessibility IDs, four Debug hooks, ten fully qualified
 storage identifiers, zero telemetry events, and zero diagnostic channels, with no legacy
 Hummingbird patient identity in runtime sources. Nightingale now also has two device-local display-comfort controls:
@@ -89,7 +95,10 @@ Current product-identity records:
 - [Patient-journey reference-scenario held-candidate decision](./PATIENT-JOURNEY-REFERENCE-SCENARIO-CANDIDATE-DECISION-2026-07-27.md)
 - [Generic non-disclosure route-free foundation](./GENERIC-NON-DISCLOSURE-FOUNDATION-2026-07-27.md)
 - [Namespace and activation-separation foundation](./NAMESPACE-AND-ACTIVATION-SEPARATION-FOUNDATION-2026-07-27.md)
+- [Controlled-pilot manifest foundation](./CONTROLLED-PILOT-MANIFEST-FOUNDATION-2026-07-27.md)
 - [Generated foundation namespace manifest](./namespace/foundation-namespace.v1.json)
+- [Generated controlled-pilot candidate](./pilot/candidates/v0/candidate.json)
+- [Controlled-pilot synthetic fixtures](./pilot/candidates/v0/fixtures.json)
 - [Route, compatibility, identity, and inpatient-source ADR](./ROUTE-COMPATIBILITY-IDENTITY-SOURCE-ADR-2026-07-26.md)
 - [Identity, session, recovery, and inpatient-source held-candidate decision](./IDENTITY-SESSION-RECOVERY-AND-SOURCE-CANDIDATE-DECISION-2026-07-26.md)
 - [Identity-input, enrollment/recovery, first-read, and error source classification](./IDENTITY-INPUT-FIRST-READ-ERROR-SOURCE-CLASSIFICATION-2026-07-26.md)
@@ -117,6 +126,7 @@ Current product-identity records:
 - [Accessibility/language-readiness screenshots and hierarchies](../evidence/nightingale/accessibility-language-readiness-2026-07-27/README.md)
 - [Authorized production sample-patient evidence](../evidence/nightingale/production-sample-patient-2026-07-27/README.md)
 - [Current-main product-boundary reconciliation evidence](../evidence/nightingale/current-main-reconciliation-2026-07-27/README.md)
+- [Controlled-pilot manifest acceptance evidence](../evidence/nightingale/controlled-pilot-manifest-2026-07-27/README.md)
 
 ## Lineage and filing rules
 

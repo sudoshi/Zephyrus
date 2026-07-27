@@ -1,0 +1,739 @@
+#!/usr/bin/env node
+
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import process from "node:process";
+
+const args = process.argv.slice(2);
+const write = args.includes("--write");
+const unknownOptions = args.filter(
+    (argument) => argument.startsWith("--") && argument !== "--write",
+);
+const positional = args.filter((argument) => !argument.startsWith("--"));
+
+if (unknownOptions.length > 0 || positional.length > 1) {
+    process.stderr.write(
+        "Usage: build-nightingale-controlled-pilot-manifest.mjs [repository-root] [--write]\n",
+    );
+    process.exit(64);
+}
+
+const repoRoot = path.resolve(positional[0] ?? ".");
+const outputDirectory = path.join(
+    repoRoot,
+    "docs/nightingale/pilot/candidates/v0",
+);
+
+const CANDIDATE_ID = "nightingale.controlled-pilot-manifest.v0-candidate";
+const POLICY_VERSION = "nightingale-controlled-pilot-manifest.v0-candidate";
+const REVIEWED_SOURCE_COMMIT = "b333ebf8a618cac5c3c8a27d43ea666de32579bc";
+const GENERATED_AT = "2026-07-27T20:00:00Z";
+const MAXIMUM_VALIDITY_HOURS = 168;
+const MAXIMUM_ACTIVE_ENROLLMENTS = 25;
+
+const sourcePaths = [
+    "config/nightingale.php",
+    "docs/nightingale/api-contract/nightingale-foundation.v0.json",
+    "app/Nightingale/Activation/NightingaleActivationGate.php",
+    "app/Nightingale/Activation/NightingalePilotEnrollmentState.php",
+];
+
+const requiredApprovalRoles = [
+    "product_owner",
+    "clinical_safety_owner",
+    "privacy_security_owner",
+    "patient_advisor_accessibility_owner",
+    "identity_source_owner",
+    "operations_support_owner",
+    "release_owner",
+];
+
+const requiredAuditEventTypes = [
+    "manifest_created",
+    "manifest_review_requested",
+    "manifest_approved",
+    "go_no_go_requested",
+    "pilot_started",
+    "pilot_expired",
+    "pilot_withdrawn",
+    "kill_switch_invoked",
+    "rollback_completed",
+];
+
+const requiredAuditFields = [
+    "manifest_id",
+    "manifest_revision",
+    "event_type",
+    "occurred_at",
+    "actor_role",
+    "actor_reference_hash",
+    "outcome",
+    "reason_code",
+    "policy_version",
+];
+
+const constraints = {
+    runtime_implementation_permitted: false,
+    route_registration_permitted: false,
+    native_networking_permitted: false,
+    identity_provider_selection_permitted: false,
+    source_adapter_selection_permitted: false,
+    production_query_permitted: false,
+    patient_or_representative_creation_permitted: false,
+    patient_enrollment_permitted: false,
+    patient_disclosure_permitted: false,
+    patient_mutation_permitted: false,
+    communication_or_notification_permitted: false,
+    deployment_permitted: false,
+    pilot_activation_permitted: false,
+};
+
+function sha256(value) {
+    return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function sourceEvidence(relativePath) {
+    const absolutePath = path.join(repoRoot, relativePath);
+    if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) {
+        throw new Error(`Missing controlled-pilot source: ${relativePath}`);
+    }
+
+    return {
+        path: relativePath,
+        sha256: sha256(fs.readFileSync(absolutePath)),
+    };
+}
+
+const manifestTemplate = {
+    manifest_id: "nightingale.controlled-pilot.unissued",
+    manifest_revision: 0,
+    policy_version: POLICY_VERSION,
+    state: "draft_inactive",
+    go_no_go_review_requested: false,
+    runtime_activation_permitted: false,
+    scope: {
+        facility_handles: [],
+        unit_handles: [],
+        cohort: {
+            cohort_handle: null,
+            inclusion_policy_release_id: null,
+            exclusion_policy_release_id: null,
+            maximum_active_enrollments: 0,
+            enrollment_is_automatic: false,
+            unknown_or_unavailable_eligibility_result: "withhold",
+        },
+        languages: {
+            patient_locale_tags: [],
+            interpreter_coverage_release_id: null,
+            unapproved_locale_fallback_permitted: false,
+            unknown_language_disposition: "withhold",
+        },
+        exclusions: {
+            exclusion_policy_release_id: null,
+            deny_if_rule_result_unknown: true,
+            deny_if_rule_source_unavailable: true,
+            sensitive_service_inference_permitted: false,
+            exclusion_reason_disclosure_permitted: false,
+        },
+    },
+    support_coverage: {
+        timezone: null,
+        weekly_windows: [],
+        urgent_help_content_release_id: null,
+        uncovered_window_disposition:
+            "withhold_new_enrollment_and_show_released_support_guidance",
+        support_availability_may_be_inferred: false,
+    },
+    validity: {
+        starts_at: null,
+        expires_at: null,
+        maximum_validity_hours: MAXIMUM_VALIDITY_HOURS,
+        renewal_requires_new_manifest: true,
+        expiry_fails_closed: true,
+    },
+    prerequisites: {
+        clinical_approval_record: null,
+        patient_content_release_record: null,
+        feature_activation_record: null,
+        source_connector_deployment_record: null,
+        identity_source_approval_record: null,
+        audit_sink_deployment_record: null,
+        rollback_plan_record: null,
+        kill_switch_test_record: null,
+    },
+    approvals: Object.fromEntries(
+        requiredApprovalRoles.map((role) => [
+            role,
+            {
+                approver_subject: null,
+                approval_record: null,
+                approved_at: null,
+            },
+        ]),
+    ),
+    audit: {
+        append_only_required: true,
+        durable_before_effective_change: true,
+        event_schema_release_id: null,
+        required_event_types: [...requiredAuditEventTypes],
+        required_fields: [...requiredAuditFields],
+        patient_identifiers_permitted: false,
+        clinical_content_permitted: false,
+        message_content_permitted: false,
+        audit_failure_disposition: "withhold",
+    },
+    rollback: {
+        kill_switch_default_state: "engaged",
+        rollback_target_release_id: null,
+        rollback_verification_record: null,
+        enrollment_and_disclosure_after_expiry_permitted: false,
+    },
+};
+
+const completeSyntheticManifest = {
+    manifest_id: "nightingale.controlled-pilot.synthetic-review-only",
+    manifest_revision: 1,
+    policy_version: POLICY_VERSION,
+    state: "approved_inactive",
+    go_no_go_review_requested: true,
+    runtime_activation_permitted: false,
+    scope: {
+        facility_handles: ["ngf_synthetic_alpha"],
+        unit_handles: ["ngu_synthetic_medical_01"],
+        cohort: {
+            cohort_handle: "ngc_synthetic_adult_inpatient_01",
+            inclusion_policy_release_id: "synthetic-inclusion-release-v1",
+            exclusion_policy_release_id: "synthetic-exclusion-release-v1",
+            maximum_active_enrollments: 10,
+            enrollment_is_automatic: false,
+            unknown_or_unavailable_eligibility_result: "withhold",
+        },
+        languages: {
+            patient_locale_tags: ["en-US", "es-US"],
+            interpreter_coverage_release_id:
+                "synthetic-interpreter-coverage-release-v1",
+            unapproved_locale_fallback_permitted: false,
+            unknown_language_disposition: "withhold",
+        },
+        exclusions: {
+            exclusion_policy_release_id: "synthetic-exclusion-release-v1",
+            deny_if_rule_result_unknown: true,
+            deny_if_rule_source_unavailable: true,
+            sensitive_service_inference_permitted: false,
+            exclusion_reason_disclosure_permitted: false,
+        },
+    },
+    support_coverage: {
+        timezone: "America/New_York",
+        weekly_windows: [
+            {
+                iso_weekday: 1,
+                starts_at_local: "08:00",
+                ends_at_local: "18:00",
+            },
+            {
+                iso_weekday: 2,
+                starts_at_local: "08:00",
+                ends_at_local: "18:00",
+            },
+            {
+                iso_weekday: 3,
+                starts_at_local: "08:00",
+                ends_at_local: "18:00",
+            },
+            {
+                iso_weekday: 4,
+                starts_at_local: "08:00",
+                ends_at_local: "18:00",
+            },
+            {
+                iso_weekday: 5,
+                starts_at_local: "08:00",
+                ends_at_local: "18:00",
+            },
+        ],
+        urgent_help_content_release_id:
+            "synthetic-urgent-help-content-release-v1",
+        uncovered_window_disposition:
+            "withhold_new_enrollment_and_show_released_support_guidance",
+        support_availability_may_be_inferred: false,
+    },
+    validity: {
+        starts_at: "2026-07-27T19:00:00Z",
+        expires_at: "2026-08-03T19:00:00Z",
+        maximum_validity_hours: MAXIMUM_VALIDITY_HOURS,
+        renewal_requires_new_manifest: true,
+        expiry_fails_closed: true,
+    },
+    prerequisites: {
+        clinical_approval_record: "synthetic-clinical-approval-v1",
+        patient_content_release_record: "synthetic-content-release-v1",
+        feature_activation_record: "synthetic-feature-activation-v1",
+        source_connector_deployment_record: "synthetic-source-deployment-v1",
+        identity_source_approval_record:
+            "synthetic-identity-source-approval-v1",
+        audit_sink_deployment_record: "synthetic-audit-sink-v1",
+        rollback_plan_record: "synthetic-rollback-plan-v1",
+        kill_switch_test_record: "synthetic-kill-switch-test-v1",
+    },
+    approvals: Object.fromEntries(
+        requiredApprovalRoles.map((role) => [
+            role,
+            {
+                approver_subject: `synthetic-${role.replaceAll("_", "-")}`,
+                approval_record: `synthetic-${role.replaceAll("_", "-")}-approval-v1`,
+                approved_at: "2026-07-27T18:00:00Z",
+            },
+        ]),
+    ),
+    audit: {
+        append_only_required: true,
+        durable_before_effective_change: true,
+        event_schema_release_id: "synthetic-audit-event-schema-v1",
+        required_event_types: [...requiredAuditEventTypes],
+        required_fields: [...requiredAuditFields],
+        patient_identifiers_permitted: false,
+        clinical_content_permitted: false,
+        message_content_permitted: false,
+        audit_failure_disposition: "withhold",
+    },
+    rollback: {
+        kill_switch_default_state: "engaged",
+        rollback_target_release_id: "synthetic-offline-foundation-release-v1",
+        rollback_verification_record: "synthetic-rollback-verification-v1",
+        enrollment_and_disclosure_after_expiry_permitted: false,
+    },
+};
+
+const cases = [
+    {
+        case_id: "complete_synthetic_candidate",
+        input: "complete_synthetic_manifest",
+        mutations: [],
+        expected_disposition: "eligible_for_external_go_no_go_review_only",
+        expected_primary_reason: null,
+    },
+    {
+        case_id: "committed_default_template",
+        input: "committed_default_template",
+        mutations: [],
+        expected_disposition: "hold",
+        expected_primary_reason: "manifest_not_approved_inactive",
+    },
+    {
+        case_id: "draft_state",
+        input: "complete_synthetic_manifest",
+        mutations: [{ path: "state", value: "draft_inactive" }],
+        expected_disposition: "hold",
+        expected_primary_reason: "manifest_not_approved_inactive",
+    },
+    {
+        case_id: "go_no_go_not_requested",
+        input: "complete_synthetic_manifest",
+        mutations: [{ path: "go_no_go_review_requested", value: false }],
+        expected_disposition: "hold",
+        expected_primary_reason: "go_no_go_review_not_requested",
+    },
+    {
+        case_id: "runtime_activation_attempted",
+        input: "complete_synthetic_manifest",
+        mutations: [{ path: "runtime_activation_permitted", value: true }],
+        expected_disposition: "hold",
+        expected_primary_reason: "runtime_activation_must_remain_prohibited",
+    },
+    {
+        case_id: "facility_scope_empty",
+        input: "complete_synthetic_manifest",
+        mutations: [{ path: "scope.facility_handles", value: [] }],
+        expected_disposition: "hold",
+        expected_primary_reason: "facility_scope_missing_or_invalid",
+    },
+    {
+        case_id: "unit_scope_empty",
+        input: "complete_synthetic_manifest",
+        mutations: [{ path: "scope.unit_handles", value: [] }],
+        expected_disposition: "hold",
+        expected_primary_reason: "unit_scope_missing_or_invalid",
+    },
+    {
+        case_id: "cohort_handle_missing",
+        input: "complete_synthetic_manifest",
+        mutations: [{ path: "scope.cohort.cohort_handle", value: null }],
+        expected_disposition: "hold",
+        expected_primary_reason: "cohort_handle_missing_or_invalid",
+    },
+    {
+        case_id: "cohort_inclusion_release_missing",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            {
+                path: "scope.cohort.inclusion_policy_release_id",
+                value: null,
+            },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "cohort_policy_release_missing",
+    },
+    {
+        case_id: "cohort_exclusion_release_mismatch",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            {
+                path: "scope.cohort.exclusion_policy_release_id",
+                value: "synthetic-other-exclusion-release-v1",
+            },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "exclusion_policy_release_mismatch",
+    },
+    {
+        case_id: "cohort_limit_zero",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            { path: "scope.cohort.maximum_active_enrollments", value: 0 },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "cohort_enrollment_limit_invalid",
+    },
+    {
+        case_id: "cohort_limit_exceeds_ceiling",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            { path: "scope.cohort.maximum_active_enrollments", value: 26 },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "cohort_enrollment_limit_invalid",
+    },
+    {
+        case_id: "automatic_enrollment_attempted",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            { path: "scope.cohort.enrollment_is_automatic", value: true },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "automatic_enrollment_prohibited",
+    },
+    {
+        case_id: "language_scope_empty",
+        input: "complete_synthetic_manifest",
+        mutations: [{ path: "scope.languages.patient_locale_tags", value: [] }],
+        expected_disposition: "hold",
+        expected_primary_reason: "language_scope_missing_or_invalid",
+    },
+    {
+        case_id: "language_tag_invalid",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            {
+                path: "scope.languages.patient_locale_tags",
+                value: ["English"],
+            },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "language_scope_missing_or_invalid",
+    },
+    {
+        case_id: "interpreter_coverage_missing",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            {
+                path: "scope.languages.interpreter_coverage_release_id",
+                value: null,
+            },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "interpreter_coverage_release_missing",
+    },
+    {
+        case_id: "unapproved_language_fallback_attempted",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            {
+                path: "scope.languages.unapproved_locale_fallback_permitted",
+                value: true,
+            },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "unapproved_language_fallback_prohibited",
+    },
+    {
+        case_id: "unknown_exclusion_result_not_denied",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            {
+                path: "scope.exclusions.deny_if_rule_result_unknown",
+                value: false,
+            },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "exclusion_unknown_must_deny",
+    },
+    {
+        case_id: "exclusion_source_outage_not_denied",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            {
+                path: "scope.exclusions.deny_if_rule_source_unavailable",
+                value: false,
+            },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "exclusion_source_outage_must_deny",
+    },
+    {
+        case_id: "support_timezone_missing",
+        input: "complete_synthetic_manifest",
+        mutations: [{ path: "support_coverage.timezone", value: null }],
+        expected_disposition: "hold",
+        expected_primary_reason: "support_timezone_missing_or_invalid",
+    },
+    {
+        case_id: "support_windows_empty",
+        input: "complete_synthetic_manifest",
+        mutations: [{ path: "support_coverage.weekly_windows", value: [] }],
+        expected_disposition: "hold",
+        expected_primary_reason: "support_windows_missing_or_invalid",
+    },
+    {
+        case_id: "support_windows_overlap",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            {
+                path: "support_coverage.weekly_windows",
+                value: [
+                    {
+                        iso_weekday: 1,
+                        starts_at_local: "08:00",
+                        ends_at_local: "18:00",
+                    },
+                    {
+                        iso_weekday: 1,
+                        starts_at_local: "17:00",
+                        ends_at_local: "20:00",
+                    },
+                ],
+            },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "support_windows_overlap",
+    },
+    {
+        case_id: "urgent_help_release_missing",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            {
+                path: "support_coverage.urgent_help_content_release_id",
+                value: null,
+            },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "urgent_help_content_release_missing",
+    },
+    {
+        case_id: "validity_not_started",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            { path: "validity.starts_at", value: "2026-07-28T20:00:00Z" },
+            { path: "validity.expires_at", value: "2026-08-04T20:00:00Z" },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "manifest_not_yet_effective",
+    },
+    {
+        case_id: "validity_expired",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            { path: "validity.starts_at", value: "2026-07-20T19:00:00Z" },
+            { path: "validity.expires_at", value: "2026-07-27T19:00:00Z" },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "manifest_expired",
+    },
+    {
+        case_id: "validity_exceeds_technical_ceiling",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            { path: "validity.expires_at", value: "2026-08-03T20:00:01Z" },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "manifest_validity_exceeds_ceiling",
+    },
+    {
+        case_id: "audit_sink_missing",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            {
+                path: "prerequisites.audit_sink_deployment_record",
+                value: null,
+            },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "prerequisite_record_missing",
+    },
+    {
+        case_id: "audit_not_append_only",
+        input: "complete_synthetic_manifest",
+        mutations: [{ path: "audit.append_only_required", value: false }],
+        expected_disposition: "hold",
+        expected_primary_reason: "audit_append_only_required",
+    },
+    {
+        case_id: "audit_event_inventory_incomplete",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            {
+                path: "audit.required_event_types",
+                value: requiredAuditEventTypes.slice(0, -1),
+            },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "audit_event_inventory_invalid",
+    },
+    {
+        case_id: "audit_field_inventory_incomplete",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            {
+                path: "audit.required_fields",
+                value: requiredAuditFields.slice(0, -1),
+            },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "audit_field_inventory_invalid",
+    },
+    {
+        case_id: "clinical_content_in_audit_attempted",
+        input: "complete_synthetic_manifest",
+        mutations: [{ path: "audit.clinical_content_permitted", value: true }],
+        expected_disposition: "hold",
+        expected_primary_reason: "audit_content_must_remain_prohibited",
+    },
+    {
+        case_id: "rollback_target_missing",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            { path: "rollback.rollback_target_release_id", value: null },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "rollback_evidence_missing",
+    },
+    {
+        case_id: "kill_switch_not_default_engaged",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            { path: "rollback.kill_switch_default_state", value: "released" },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "kill_switch_must_default_engaged",
+    },
+    {
+        case_id: "named_approval_missing",
+        input: "complete_synthetic_manifest",
+        mutations: [
+            {
+                path: "approvals.clinical_safety_owner.approver_subject",
+                value: null,
+            },
+        ],
+        expected_disposition: "hold",
+        expected_primary_reason: "named_approval_missing",
+    },
+];
+
+const candidate = {
+    candidate_id: CANDIDATE_ID,
+    policy_version: POLICY_VERSION,
+    schema_version: 0,
+    status: "draft_default_off_not_approved_for_pilot",
+    generated_at: GENERATED_AT,
+    reviewed_source_commit: REVIEWED_SOURCE_COMMIT,
+    product: "Nightingale",
+    purpose:
+        "Define the exact facility, unit, cohort, language, exclusion, support-hour, validity, audit, rollback, and approval shape required before a future controlled-pilot go/no-go review.",
+    disposition_vocabulary: [
+        "hold",
+        "eligible_for_external_go_no_go_review_only",
+    ],
+    eligibility_boundary: {
+        positive_disposition_is_activation: false,
+        positive_disposition_is_enrollment_authorization: false,
+        positive_disposition_is_deployment_authorization: false,
+        positive_disposition_is_patient_disclosure_authorization: false,
+        external_go_no_go_record_still_required: true,
+        runtime_evaluator_implemented: false,
+        runtime_callers: 0,
+    },
+    technical_ceilings: {
+        maximum_validity_hours: MAXIMUM_VALIDITY_HOURS,
+        maximum_active_enrollments: MAXIMUM_ACTIVE_ENROLLMENTS,
+        automatic_enrollment_permitted: false,
+    },
+    required_approval_roles: [...requiredApprovalRoles],
+    required_audit_event_types: [...requiredAuditEventTypes],
+    required_audit_fields: [...requiredAuditFields],
+    committed_default_manifest: manifestTemplate,
+    constraints,
+    source_evidence: sourcePaths.map(sourceEvidence),
+};
+
+const fixtures = {
+    fixture_set_id: "nightingale.controlled-pilot-manifest.v0-fixtures",
+    fixture_class: "synthetic-no-phi",
+    evaluation_time: GENERATED_AT,
+    complete_synthetic_manifest: completeSyntheticManifest,
+    cases,
+    expected_summary: {
+        case_count: cases.length,
+        eligible_for_external_go_no_go_review_only: cases.filter(
+            (fixture) =>
+                fixture.expected_disposition ===
+                "eligible_for_external_go_no_go_review_only",
+        ).length,
+        hold: cases.filter((fixture) => fixture.expected_disposition === "hold")
+            .length,
+    },
+};
+
+function formatGeneratedJson(value) {
+    const expanded = JSON.stringify(value, null, 4);
+
+    return `${expanded.replace(
+        /^(\s*)"([^"]+)": \[\n((?:\s+"(?:[^"\\]|\\.)*"(?:,)?\n){1,3})\1\]/gm,
+        (match, indentation, key, itemLines) => {
+            const items = itemLines
+                .trim()
+                .split("\n")
+                .map((line) => JSON.parse(line.trim().replace(/,$/, "")));
+            const compact = `${indentation}"${key}": [${items
+                .map((item) => JSON.stringify(item))
+                .join(", ")}]`;
+            return compact.length <= 80 ? compact : match;
+        },
+    )}\n`;
+}
+
+const rendered = {
+    "candidate.json": formatGeneratedJson(candidate),
+    "fixtures.json": formatGeneratedJson(fixtures),
+};
+
+if (write) {
+    fs.mkdirSync(outputDirectory, { recursive: true });
+    for (const [filename, contents] of Object.entries(rendered)) {
+        fs.writeFileSync(path.join(outputDirectory, filename), contents);
+    }
+} else {
+    process.stdout.write(
+        `${JSON.stringify(
+            Object.fromEntries(
+                Object.entries(rendered).map(([filename, contents]) => [
+                    filename,
+                    JSON.parse(contents),
+                ]),
+            ),
+            null,
+            4,
+        )}\n`,
+    );
+}

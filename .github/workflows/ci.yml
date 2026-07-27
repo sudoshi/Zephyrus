@@ -772,7 +772,7 @@ jobs:
           php-version: "8.2"
           coverage: none
 
-      - name: Verify empty contract, held candidates, backend foundation, and native product boundary
+      - name: Verify empty contract, held candidates, pilot manifest, backend foundation, and native product boundary
         run: |
           node scripts/ci/verify-nightingale-contract-foundation.mjs . --self-test
           node scripts/ci/verify-nightingale-encounter-access-candidate.mjs . --self-test
@@ -785,6 +785,7 @@ jobs:
           node scripts/ci/verify-nightingale-threat-hazard-model.mjs . --self-test
           node scripts/ci/verify-nightingale-foundation-dependency-inventory.mjs . --self-test
           node scripts/ci/verify-nightingale-namespace-foundation.mjs . --self-test
+          node scripts/ci/verify-nightingale-controlled-pilot-manifest.mjs . --self-test
           php scripts/ci/verify-nightingale-backend-foundation.php . --self-test
           bash scripts/ci/verify-nightingale-product-boundary.sh .
 

@@ -52,7 +52,10 @@ continues to a future operation-specific release evaluation.
 - a clinical approval repository or approval-record validator;
 - a patient-content release repository or content payload;
 - a feature-switch provider;
-- a pilot manifest, cohort membership service, consent service, or support schedule;
+- a runtime pilot-manifest repository/evaluator, cohort membership service, consent
+  service, or support schedule (a later generated, non-runnable configuration candidate is
+  documented in
+  [`CONTROLLED-PILOT-MANIFEST-FOUNDATION-2026-07-27.md`](./CONTROLLED-PILOT-MANIFEST-FOUNDATION-2026-07-27.md));
 - a source-connector deployment or health evaluator;
 - a disclosure, mutation, message, notification, telemetry event, diagnostic channel, or
   log sink; or

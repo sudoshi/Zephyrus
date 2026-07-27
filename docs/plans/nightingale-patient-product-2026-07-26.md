@@ -1,6 +1,7 @@
 # Nightingale Patient Product — Direction, Migration, and Implementation Plan
 
-**Status:** Active product-direction plan; no patient feature is activated or pilot-ready.
+**Status:** Active product-direction plan; 42/54 bounded items complete (77.78%); no
+patient feature is activated or pilot-ready.
 
 **Companion execution log:**
 [DEVLOG-nightingale-patient-product-2026-07-26.md](../devlog/DEVLOG-nightingale-patient-product-2026-07-26.md)
@@ -442,8 +443,17 @@ residual risks are versioned; pilot criteria remain independently ratified.
 
 ### Stream F — Controlled pilot and scale
 
-- [ ] Define facility/unit/cohort/language/exclusion/support-hour configuration with a
-      default-off, audited, expiry-bound manifest.
+- [x] Define facility/unit/cohort/language/exclusion/support-hour configuration with a
+      default-off, audited, expiry-bound manifest. The generated candidate contains an
+      empty committed template; opaque facility/unit/cohort handles; non-automatic
+      enrollment with a 25-principal technical ceiling; canonical locale tags and released
+      interpreter coverage; fail-closed exclusion results; IANA-zone weekly support
+      windows; a seven-day validity ceiling; seven named approval roles; nine append-only,
+      content-free audit event types; rollback and default-engaged kill-switch evidence;
+      and 34 synthetic cases with 25 adversarial verifier mutations. Thirty-three cases
+      hold; the only complete synthetic case may proceed solely to an external go/no-go
+      review. There is no runtime evaluator, caller, route, patient enrollment, production
+      query, disclosure, deployment, or activation.
 - [ ] Complete identity proofing, recovery, representatives, consent, sensitive-service,
       device, push, retention, incident, kill-switch, downtime, and support procedures.
 - [ ] Run production-like integration, load, failover, EHR outage, push outage, recovery,
@@ -588,6 +598,16 @@ part of application development work.
         both checksum-pinned migration ledgers plus the dependent Today evidence against
         the corrected 256-source universe. Do not sign, upload, distribute, activate, or
         claim store readiness.
+22. [x] Define the controlled-pilot configuration boundary without creating a pilot
+        runtime. Generate an exact default-off manifest for facility, unit, cohort,
+        language, exclusion, support-hour, validity, prerequisite, named-approval, audit,
+        rollback, and kill-switch records. Require a non-null UTC start/expiry no more than
+        168 hours apart before even external go/no-go review; cap the technical cohort at
+        25; prohibit automatic enrollment, unapproved language fallback, exclusion
+        inference, PHI/content-bearing audit events, post-expiry activity, and runtime
+        activation; and verify 34 synthetic cases plus 25 negative mutations. Keep the
+        committed template empty, all executable activation facts false, and the sole
+        structurally complete synthetic case limited to external review.
 
 ### 9.1 Current-main collision checkpoint (non-milestone)
 
@@ -608,6 +628,32 @@ API 35 emulator. The evidence is retained in
 This checkpoint receives no new checkbox or percentage credit because it restores an
 already-completed architecture rather than adding function. The master checklist remains
 41/54 complete (75.93%); all 13 open gates remain open.
+
+### 9.2 Controlled-pilot manifest checkpoint
+
+The first Stream F item is now complete as a non-runnable governance boundary. The
+generated source of record is
+`docs/nightingale/pilot/candidates/v0/candidate.json`, with its synthetic evaluation matrix
+in the adjacent `fixtures.json`. The candidate defines every required configuration
+domain while committing no real facility, unit, cohort, language, support schedule,
+approval, release, deployment, or pilot identifier.
+
+The field-level decision record is
+`docs/nightingale/CONTROLLED-PILOT-MANIFEST-FOUNDATION-2026-07-27.md`; exact contract,
+backend, iOS Simulator, Android emulator, artifact, and safety evidence is retained under
+`docs/evidence/nightingale/controlled-pilot-manifest-2026-07-27/`.
+
+The independent verifier reproduces both generated artifacts exactly, binds four current
+activation/foundation sources by SHA-256, validates the empty executable contract and
+code-owned negative backend defaults, evaluates 34 synthetic cases, and exercises 25
+negative mutations. Exactly 33 cases hold. The one structurally complete synthetic case
+returns only `eligible_for_external_go_no_go_review_only`, which is expressly neither
+activation nor enrollment, deployment, disclosure, or production authorization.
+
+This closes one configuration-definition item and moves the master checklist to 42/54
+(77.78%), leaving 12/54 open. All real approvals, identity/source implementation,
+patient-visible operations, human validation, signed distribution, production-like
+exercises, pilot authorization, merge, and deployment remain open.
 
 ## 10. Explicit holds
 
