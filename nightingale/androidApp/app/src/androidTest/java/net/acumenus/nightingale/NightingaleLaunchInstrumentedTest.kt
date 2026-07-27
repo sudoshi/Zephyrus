@@ -402,15 +402,23 @@ class NightingaleLaunchInstrumentedTest {
         locales: LocaleList,
     ) {
         localeManager.applicationLocales = locales
-        composeRule.activityRule.scenario.recreate()
         composeRule.waitUntil(timeoutMillis = 10_000) {
             val appliedLocales = localeManager.applicationLocales
             val applicationSelectionMatches =
                 appliedLocales.toLanguageTags() == locales.toLanguageTags()
-            val resourcesMatch =
+            val resumedActivity = runCatching {
+                composeRule.activity.takeIf {
+                    composeRule.activityRule.scenario.state ==
+                        Lifecycle.State.RESUMED
+                }
+            }.getOrNull()
+            val resourcesMatch = if (resumedActivity == null) {
+                false
+            } else {
                 locales.isEmpty ||
-                    composeRule.activity.resources.configuration.locales[0]
+                    resumedActivity.resources.configuration.locales[0]
                         .toLanguageTag() == locales[0].toLanguageTag()
+            }
 
             applicationSelectionMatches && resourcesMatch
         }
