@@ -40,7 +40,7 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
 
         let review = app.buttons["patientCommunications.routing.reviewButton"]
         reveal(review)
-        XCTAssertTrue(review.isEnabled)
+        XCTAssertTrue(review.waitForEnabled())
         capture("patient-communications-routing-reassign-review")
         review.tap()
 
@@ -80,7 +80,7 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
 
         let review = app.buttons["patientCommunications.routing.reviewButton"]
         reveal(review)
-        XCTAssertTrue(review.isEnabled)
+        XCTAssertTrue(review.waitForEnabled())
         XCTAssertFalse(app.staticTexts["55555555-5555-4555-8555-555555555555"].exists)
         capture("patient-communications-routing-xxxl-contrast-reduced-effects")
     }
@@ -284,7 +284,7 @@ final class PatientCommunicationRoutingUITests: XCTestCase {
 
         let send = app.buttons["patientCommunications.sendButton"]
         reveal(send)
-        XCTAssertTrue(send.isEnabled)
+        XCTAssertTrue(send.waitForEnabled())
         send.tap()
 
         let retry = app.buttons["patientCommunications.mutation.retryExactButton"]
