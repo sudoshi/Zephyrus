@@ -223,6 +223,15 @@ export class NavigatorScene {
 
   private static readonly LABEL_NEAR_DISTANCE = 70;
 
+  // E4: GSTC flatten — the last-N-hours trail density as flat floor tiles.
+  // A transient MODE (not a persistent layer), so it never enters the layer
+  // schema/saved-views; cleared on toggle-off.
+  private trailHeatLayer = new THREE.Group();
+
+  private trailHeatGeometry = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+
+  private trailHeatMaterials: THREE.MeshBasicMaterial[] = [];
+
   private heatSingleMaterial: THREE.MeshStandardMaterial;
 
   private heatMultiMaterial: THREE.MeshStandardMaterial;
@@ -441,7 +450,7 @@ export class NavigatorScene {
     grid.position.y = -0.12;
     this.scene.add(grid);
 
-    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.ghostLayer, this.patientLayer, this.barrierLayer, this.roundsLayer, this.roundsRouteLayer, this.pathwayLayer, this.unitLabelLayer);
+    this.scene.add(this.forecastLayer, this.heatLayer, this.trailLayer, this.trailHeatLayer, this.ghostLayer, this.patientLayer, this.barrierLayer, this.roundsLayer, this.roundsRouteLayer, this.pathwayLayer, this.unitLabelLayer);
 
     // Tour Auto pauses when the OPERATOR grabs the camera; OrbitControls only
     // dispatches 'start' for real input, never for programmatic flights. The
@@ -864,6 +873,44 @@ export class NavigatorScene {
   /** Trace mode on/off (B3). Caller owns triggering the bucketed rebuild. */
   setTraceMode(patientId: string | null): void {
     this.tracePatientId = patientId;
+  }
+
+  /**
+   * E4 GSTC flatten: render last-N-hours trail density as flat floor tiles.
+   * `cells` carry world centers + normalized intensity; `cellW/cellD` size the
+   * tile. A transient mode — pass an empty array (or visible=false) to clear.
+   * Materials are pooled by intensity bucket so a rebuild allocates no GPU
+   * material. Density reads as a cool analysis ink, never a status color.
+   */
+  setTrailHeat(
+    cells: Array<{ x: number; y: number; z: number; intensity: number }>,
+    cellW: number,
+    cellD: number,
+    visible: boolean,
+  ): void {
+    while (this.trailHeatLayer.children.length) {
+      this.trailHeatLayer.children.pop();
+    }
+    if (!visible || cells.length === 0) return;
+    if (this.trailHeatMaterials.length === 0) {
+      // 6 opacity buckets of one cool ink — aggregate density, not status.
+      for (let bucket = 0; bucket < 6; bucket += 1) {
+        this.trailHeatMaterials.push(new THREE.MeshBasicMaterial({
+          color: 0x8fb8cc,
+          transparent: true,
+          opacity: 0.12 + (bucket / 5) * 0.6,
+          depthWrite: false,
+        }));
+      }
+    }
+    for (const cell of cells) {
+      const bucket = Math.min(5, Math.max(0, Math.round(cell.intensity * 5)));
+      const tile = new THREE.Mesh(this.trailHeatGeometry, this.trailHeatMaterials[bucket]);
+      tile.position.set(cell.x, cell.y, cell.z);
+      tile.scale.set(cellW * 0.96, 1, cellD * 0.96);
+      tile.userData = { kind: 'trail-heat' };
+      this.trailHeatLayer.add(tile);
+    }
   }
 
   /**
@@ -1738,6 +1785,9 @@ export class NavigatorScene {
     this.roundMaterials.forEach((material) => material.dispose());
     this.heatSingleMaterial.dispose();
     this.heatMultiMaterial.dispose();
+    while (this.trailHeatLayer.children.length) this.trailHeatLayer.children.pop();
+    this.trailHeatMaterials.forEach((material) => material.dispose());
+    this.trailHeatGeometry.dispose();
     this.tokenGeometry.dispose();
     this.ghostGeometry.dispose();
     this.heatGeometry.dispose();

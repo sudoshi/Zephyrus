@@ -97,8 +97,10 @@ import NavigatorInspector from './NavigatorInspector';
 import NavigatorIntro from './NavigatorIntro';
 import NavigatorLegend from './NavigatorLegend';
 import NavigatorMinimap from './NavigatorMinimap';
+import NavigatorSmallMultiples from './NavigatorSmallMultiples';
 import NavigatorStructureNav from './NavigatorStructureNav';
 import NavigatorToolbar from './NavigatorToolbar';
+import { gridToWorldCells, densityGrid, heatBounds } from '@/features/patientFlowNavigator/trailHeat';
 import type { LayerControl, NavigatorMetrics } from './NavigatorToolbar';
 import './PatientFlowNavigator.css';
 import { formatDurationMinutes } from '@/lib/duration';
@@ -486,6 +488,8 @@ export default function PatientFlowNavigator({
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   // E3: top-down orthographic plan view (the `O` key + toolbar toggle).
   const [ortho, setOrtho] = useState(false);
+  // E4: GSTC flatten — draw the last-6h trail density on the 3D floor.
+  const [floorHeatOn, setFloorHeatOn] = useState(false);
   const [roundsRun, setRoundsRun] = useState<RunSummary | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [inspectorAction, setInspectorAction] = useState<{ label: string; href: string } | null>(null);
@@ -1887,6 +1891,30 @@ export default function PatientFlowNavigator({
     scene.setUnitLabels(labels, layers.base);
   }, [placementIndex, units, filters.floor, layers.base, sceneNonce]);
 
+  // E4 — GSTC flatten on the 3D floor: the last 6 h of movement as flat density
+  // tiles. Recomputed when toggled, the data, floor, or wall-now changes (a
+  // cheap re-bin, not per frame). Off → the layer clears.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    if (!floorHeatOn) {
+      scene.setTrailHeat([], 0, 0, false);
+      return;
+    }
+    const bounds = heatBounds(locations, filters.floor);
+    if (!bounds) {
+      scene.setTrailHeat([], 0, 0, false);
+      return;
+    }
+    const cols = 16;
+    const rows = 16;
+    const grid = densityGrid(tracks, locations, bounds, nowMs - 6 * 3_600_000, nowMs, cols, rows, filters.floor);
+    const cells = gridToWorldCells(grid, bounds, 0.35);
+    const cellW = (bounds.maxX - bounds.minX) / cols;
+    const cellD = (bounds.maxZ - bounds.minZ) / rows;
+    scene.setTrailHeat(cells, cellW, cellD, true);
+  }, [floorHeatOn, tracks, locations, filters.floor, nowMs, sceneNonce]);
+
   // B3 — trace mode mirrors the journey drawer: open journey = traced story
   // in-scene (gradient trail + dwell markers, others dimmed). Toggling clears
   // the bucket key so the trail layer rebuilds immediately.
@@ -2231,6 +2259,19 @@ export default function PatientFlowNavigator({
           getSelectionPoint={() => sceneRef.current?.getSelectionPoint() ?? null}
           onNavigate={(point) => sceneRef.current?.focusOn([point])}
           onFitFloor={() => applyCanonicalView('floor')}
+        />
+      )}
+
+      {/* E4: the hourly small-multiples analysis card — the non-replay path to
+          "what happened this shift". Desk affordance; hidden on wall/kiosk. */}
+      {!handoff.wall && patientDotsVisible && (
+        <NavigatorSmallMultiples
+          tracks={tracks}
+          locations={locations}
+          floor={filters.floor}
+          endMs={nowMs}
+          floorHeatOn={floorHeatOn}
+          onToggleFloorHeat={() => setFloorHeatOn((value) => !value)}
         />
       )}
 
