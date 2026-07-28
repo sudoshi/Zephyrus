@@ -13,6 +13,7 @@ use App\Services\CarePathways\PathwayInstanceReadService;
 use App\Services\Flow\FlowLensService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -163,26 +164,29 @@ class PatientJourneyService
         }
 
         $admittedAt = $encounter->admitted_at ? CarbonImmutable::parse((string) $encounter->admitted_at) : null;
-        $losDays = $admittedAt !== null ? intdiv(max(0, $admittedAt->diffInMinutes($now, false)), 1440) : 0;
+        // Carbon 3 returns a float from diffInMinutes; cast to int BEFORE intdiv
+        // (an implicit float→int is E_DEPRECATED in PHP 8.1+ and a TypeError in 9).
+        $losMinutes = $admittedAt !== null ? (int) max(0.0, $admittedAt->diffInMinutes($now, false)) : 0;
 
-        return $this->pathwayDemo->syntheticProgress($losDays, $now);
+        return $this->pathwayDemo->syntheticProgress(intdiv($losMinutes, 1440), $now);
     }
 
     /**
      * The demo attaches to exactly one patient — the longest-stay active
      * inpatient (earliest admit) — so the synthetic pathway shows meaningful
      * progress and never appears on every patient. Only consulted when the demo
-     * flag is on.
+     * flag is on. The designated patient changes at most once per demo refresh,
+     * so the lookup is cached briefly to keep it off every journey request.
      */
     private function isDesignatedDemoEncounter(Encounter $encounter): bool
     {
-        $designatedId = Encounter::query()
+        $designatedId = Cache::remember('flow4d.demo.designated_encounter_id', 60, static fn () => Encounter::query()
             ->where('status', 'active')
             ->where('is_deleted', false)
             ->whereNotNull('admitted_at')
             ->orderBy('admitted_at')
             ->orderBy('encounter_id')
-            ->value('encounter_id');
+            ->value('encounter_id'));
 
         return $designatedId !== null && (int) $designatedId === (int) $encounter->getKey();
     }

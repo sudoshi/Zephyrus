@@ -112,6 +112,14 @@ final class PathwayInstanceReadServiceTest extends TestCase
         $this->assertNull($service->progressForEncounterId(987654));
     }
 
+    public function test_a_null_encounter_id_short_circuits_even_with_the_gate_on(): void
+    {
+        // The journey spine calls progressForEncounterId($encounter?->getKey());
+        // a patient with no active encounter passes null — must return null
+        // without touching the DB, gate on or off.
+        $this->assertNull(app(PathwayInstanceReadService::class)->progressForEncounterId(null));
+    }
+
     public function test_reads_never_mutate_the_append_only_status_history(): void
     {
         $before = DB::table('patient_experience.pathway_milestone_status_events')->count();
