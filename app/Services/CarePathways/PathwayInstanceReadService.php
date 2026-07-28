@@ -69,11 +69,13 @@ final class PathwayInstanceReadService
             return null;
         }
 
+        // Explicit column list: this table also carries an encrypted source
+        // identity column we never touch — never pull it into memory.
         $instance = DB::table('patient_experience.pathway_instances')
             ->where('access_grant_id', $accessGrantId)
             ->orderByDesc('instantiated_at')
             ->orderByDesc('pathway_instance_id')
-            ->first();
+            ->first(['pathway_instance_id', 'pathway_version_id', 'recorded_at']);
 
         if ($instance === null) {
             return null;
