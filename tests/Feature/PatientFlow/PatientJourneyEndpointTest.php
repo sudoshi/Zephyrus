@@ -43,14 +43,19 @@ class PatientJourneyEndpointTest extends TestCase
     /** Admit → transfer → discharge for one synthetic patient, via the real normalizer. */
     private function seedJourneyEvents(): string
     {
+        // Anchor to `now` so the events always fall inside the journey's 72h
+        // lookback window. (Previously hardcoded 2026-07-25 dates that bit-rotted
+        // out of range once the calendar advanced >72h past them.) Gaps preserved:
+        // A01→A02 = 210 min, A02→A03 = 525 min.
+        $base = CarbonImmutable::now()->subHours(30);
         $messages = [
-            ['A01', '2026-07-25 08:00:00', 'TICU^TICU-R001^TICU-B001^ZEPHYRUS'],
-            ['A02', '2026-07-25 11:30:00', 'MS5B^MS5B-R001^MS5B-B001^ZEPHYRUS'],
-            ['A03', '2026-07-25 20:15:00', 'MS5B^MS5B-R001^MS5B-B001^ZEPHYRUS'],
+            ['A01', $base, 'TICU^TICU-R001^TICU-B001^ZEPHYRUS'],
+            ['A02', $base->addMinutes(210), 'MS5B^MS5B-R001^MS5B-B001^ZEPHYRUS'],
+            ['A03', $base->addMinutes(210 + 525), 'MS5B^MS5B-R001^MS5B-B001^ZEPHYRUS'],
         ];
 
         foreach ($messages as $index => [$trigger, $time, $location]) {
-            $hl7Time = CarbonImmutable::parse($time)->format('YmdHis');
+            $hl7Time = $time->format('YmdHis');
             $raw = implode("\r", [
                 "MSH|^~\\&|EHR|AMC|FLOW|AMC|{$hl7Time}||ADT^{$trigger}|JRNMSG{$index}|P|2.5.1",
                 "EVN|{$trigger}|{$hl7Time}",
