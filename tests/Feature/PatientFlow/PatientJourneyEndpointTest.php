@@ -11,6 +11,7 @@ use App\Services\PatientFlow\FlowEventNormalizer;
 use App\Services\PatientFlow\FlowEventRepository;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 /**
@@ -164,6 +165,47 @@ class PatientJourneyEndpointTest extends TestCase
         $this->assertNotEmpty($response->json('pathway_progress.milestones'));
         // The synthetic pathway carries no real patient identity.
         $this->assertStringNotContainsString($patientRef, $response->getContent());
+    }
+
+    public function test_demo_los_calc_handles_fractional_timestamps_without_a_precision_deprecation(): void
+    {
+        // Regression: Carbon 3 diffInMinutes returns a float; a raw intdiv(float)
+        // both loses precision (E_DEPRECATED) and breaks under PHP 9. Admit at a
+        // NON-whole-minute offset so the minute delta is fractional.
+        config(['care-pathways.demo.enabled' => true, 'care-pathways.assignment_enabled' => false]);
+        Cache::flush(); // designated-encounter lookup is cached; keep this test deterministic
+
+        $patientRef = $this->seedJourneyEvents();
+        Encounter::create([
+            'patient_ref' => $patientRef,
+            'admitted_at' => CarbonImmutable::now()->subDays(2)->subHours(5)->subSeconds(19),
+            'status' => 'active',
+            'is_deleted' => false,
+        ]);
+        $contextRef = app(MobilePatientContextService::class)->contextRefFor($patientRef);
+
+        $deprecations = [];
+        set_error_handler(static function (int $errno, string $message) use (&$deprecations): bool {
+            if ($errno === E_DEPRECATED && str_contains($message, 'loses precision')) {
+                $deprecations[] = $message;
+            }
+
+            return false;
+        });
+        try {
+            $response = $this->actingAs($this->admin())
+                ->getJson("/api/patient-flow/journey?persona=house_supervisor&scope=patient:{$contextRef}")
+                ->assertOk();
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertSame([], $deprecations, 'LOS calc must not trigger an implicit float→int deprecation');
+        // LOS ≈ 2.2 days → intdiv to day 2: milestones through day 1 complete,
+        // the day-2 milestone current.
+        $summary = $response->json('pathway_progress.summary');
+        $this->assertSame(3, $summary['completed']);
+        $this->assertSame('hf_gdmt', $summary['current_stable_key']);
     }
 
     public function test_journey_requires_a_patient_scope(): void

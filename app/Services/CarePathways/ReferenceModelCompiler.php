@@ -181,13 +181,16 @@ final class ReferenceModelCompiler
      */
     private function orderMilestones(iterable $milestones): array
     {
+        // Keyed by stable_key so a duplicate (compileVersion relies on the DB
+        // unique constraint, but compile() is public) can't produce duplicate
+        // activities — first occurrence wins, deterministically.
         $rows = [];
         foreach ($milestones as $m) {
             $key = trim((string) ($m['stable_key'] ?? ''));
-            if ($key === '') {
+            if ($key === '' || isset($rows[$key])) {
                 continue;
             }
-            $rows[] = [
+            $rows[$key] = [
                 'stable_key' => $key,
                 'title' => trim((string) ($m['title'] ?? '')),
                 'phase' => isset($m['phase']) && $m['phase'] !== '' ? (string) $m['phase'] : null,
@@ -195,6 +198,7 @@ final class ReferenceModelCompiler
                 'timing' => $this->timing($m['expected_range'] ?? []),
             ];
         }
+        $rows = array_values($rows);
 
         usort($rows, static function (array $a, array $b): int {
             $sa = $a['sequence'] ?? PHP_INT_MAX;

@@ -154,4 +154,22 @@ final class ReferenceModelCompilerTest extends TestCase
         $this->assertSame([], $model['timing_targets']);
         $this->assertArrayHasKey('m1_missing', $model['deviation_labels']);
     }
+
+    public function test_duplicate_stable_keys_are_deduplicated_first_occurrence_wins(): void
+    {
+        // compile() is public; the DB unique constraint only protects
+        // compileVersion(). A duplicate key must not double an activity.
+        $model = (new ReferenceModelCompiler)->compile(
+            ['pathway_key' => 'x', 'label' => 'X', 'semantic_version' => '1.0.0'],
+            [
+                ['stable_key' => 'm1', 'title' => 'First', 'sequence' => 1, 'expected_range' => ['day_offset_max' => 1]],
+                ['stable_key' => 'm1', 'title' => 'Duplicate', 'sequence' => 1, 'expected_range' => ['day_offset_max' => 9]],
+                ['stable_key' => 'm2', 'title' => 'Second', 'sequence' => 2, 'expected_range' => []],
+            ],
+        );
+
+        $this->assertSame(['m1', 'm2'], $model['activities']);
+        // First occurrence wins — the '_late' ceiling is day 1, not 9.
+        $this->assertSame('First beyond day 1', $model['deviation_labels']['m1_late']);
+    }
 }

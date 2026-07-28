@@ -81,6 +81,29 @@ in the journey drawer for one designated demo patient. Deploy is a normal
 `./deploy.sh --frontend` (no migration, no `--db`); do it only on the usual cadence
 with [SU] awareness, since it surfaces the demo overlay on the investor env.
 
+## Post-review hardening (PR #117, follow-up)
+
+An independent code review after merge (no CRITICAL/HIGH; PHI-opaqueness, dark-serving
+inertness, and append-only reads all confirmed) surfaced four hardening items, fixed
+in a follow-up:
+
+1. **`intdiv(float)` in the LOS calc** — Carbon 3's `diffInMinutes()` returns a float;
+   the raw `intdiv(max(0, $diff), 1440)` logged an `E_DEPRECATED` (implicit lossy
+   float→int) on every demo journey-open and would `TypeError` under PHP 9. Now casts
+   to int first. Regression test uses a fractional-second admit + an `E_DEPRECATED`
+   trap (PHPUnit here isn't configured to fail on deprecations).
+2. **`isDesignatedDemoEncounter` per-request scan** — the `ORDER BY admitted_at LIMIT 1`
+   ran on every journey request while the demo flag is on (no supporting index).
+   Cached 60 s (the designated patient changes at most once per demo refresh).
+3. **Minimal columns** on the `pathway_instances` read — the table also carries an
+   encrypted source-identity column; the read now selects only the 3 columns it uses.
+4. **Duplicate-`stable_key` guard** in the public `compile()` (compileVersion relies on
+   the DB unique constraint; `compile()` is public) — first occurrence wins.
+
+Left as documented limitations (not bugs): the narrow client stale-payload window on a
+just-flipped flag (dark feature only), and stage-level progress (v1 is milestone-level;
+the plan's "stage/milestone" phrasing narrows to milestones here).
+
 ## Deferred (with serving; not scheduled)
 
 - The `PlanDefinition` projection output on the compiler (D3).
