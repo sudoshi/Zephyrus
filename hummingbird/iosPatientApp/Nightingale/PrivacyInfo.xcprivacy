@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    Apple required-reason API and data-collection manifest.
+
+    Salvaged from PR #92, then corrected. That version declared an empty
+    NSPrivacyCollectedDataTypes, which was true of its foundation build (no
+    networking at all) and is NOT true of this app, which authenticates and
+    exchanges clinical content with the patient API.
+
+    Verified against the source rather than assumed:
+      - UserDefaults is the only required-reason API category in use
+        (Networking/PatientSecureStore.swift). No FileManager timestamp, disk
+        space, system boot time, or active-keyboard API appears anywhere.
+      - NSPrivacyTracking is false: there is no tracking SDK, and
+        scripts/check-no-tracking-technologies.sh enforces that in CI.
+
+    The NSPrivacyCollectedDataTypes entries below reflect what the client
+    demonstrably transmits and receives: a patient context identifier and
+    bearer credentials, released clinical projections (today, pathway, care
+    team, rounds summary, discharge readiness), and patient-authored message
+    content. Whether each is "collected" in Apple's sense also depends on
+    backend retention, so these entries need product and privacy sign-off
+    before an App Store submission. They are deliberately conservative —
+    over-declaring is safe, under-declaring is a misrepresentation.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeHealth</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeUserID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSPrivacyTracking</key>
+	<false/>
+</dict>
+</plist>

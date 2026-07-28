@@ -1,0 +1,747 @@
+{
+    "schema_version": 1,
+    "classification_id": "nightingale-source-classification.v1",
+    "reviewed_source_commit": "b1078405de2dacd767ec69da11197f1e755d8277",
+    "reviewed_at": "2026-07-26",
+    "status": "evidence_only_not_approved_for_implementation",
+    "scope": [
+        "identity_input",
+        "enrollment_recovery",
+        "first_read_projection",
+        "error_non_disclosure"
+    ],
+    "global_constraints": {
+        "implementation_permitted": false,
+        "runtime_adoption_permitted": false,
+        "route_registration_permitted": false,
+        "legacy_route_alias_permitted": false,
+        "legacy_identity_provider_reuse_permitted": false,
+        "legacy_credential_migration_permitted": false,
+        "legacy_device_identity_reuse_permitted": false,
+        "first_record_selection_permitted": false,
+        "server_message_passthrough_permitted": false,
+        "projection_absence_conflation_permitted": false,
+        "production_data_used": false,
+        "production_query_permitted": false,
+        "production_replay_permitted": false,
+        "patient_or_principal_created": false
+    },
+    "dispositions": {
+        "reimplement_principle_only": "A bounded safety property may inform a new Nightingale-owned design, but no code, identifier, route, schema, credential, copy, or product policy is approved for reuse.",
+        "evidence_only": "The source or test is retained as evidence about current behavior and coverage. It is not a Nightingale requirement and cannot authorize implementation.",
+        "held": "The behavior depends on unresolved ownership, assurance, clinical, privacy, source, contract, or patient-language decisions.",
+        "reject": "The behavior is incompatible with the independent Nightingale boundary and must not be migrated."
+    },
+    "sources": [
+        {
+            "path": "docs/hummingbird/api-contract/hummingbird-patient.v1.yaml",
+            "sha256": "fb6220b4ef8eb106223624a9785256fdc1603995f281f430a79897905cb45a1b",
+            "surface": "legacy_contract",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "evidence_only",
+            "decision": "Inventory request, response, scope, and error shapes only; do not copy paths, operation identifiers, security schemes, or Hummingbird schemas into Nightingale."
+        },
+        {
+            "path": "routes/patient.php",
+            "sha256": "e892a9d570668bec6ae54d18cbfd891f7d9df2e2c2f8f6e3689125d6b465af28",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject every legacy path, name, middleware composition, feature flag, token ability, and route alias; retain only the principle of explicit layered gates."
+        },
+        {
+            "path": "config/hummingbird-patient.php",
+            "sha256": "d5dafe054077892e649fd44f95edc6bc1bb499e4dffeb4f4390316823db07625",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject Hummingbird flags, token lifetimes, policy names, topic copy, source keys, and environment-controlled activation; use only as a hazard and control inventory."
+        },
+        {
+            "path": "database/migrations/2026_07_19_000100_create_patient_experience_identity_foundation.php",
+            "sha256": "f093d43a7a84b00ee519f6b1392a8aee5018ab1f43d930ea5abf1c4d7ecaa1e2",
+            "surface": "legacy_database",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "held",
+            "decision": "Schema constraints, hashed challenges, encrypted linkage, effective grants, isolated sessions, and append-only audit are candidate principles; every table, purpose, status, relationship, credential, and source binding remains unapproved."
+        },
+        {
+            "path": "database/migrations/2026_07_19_000200_create_patient_experience_projection_kernel.php",
+            "sha256": "20c55f5d563bfd3342ec4e833d71dd32b4f04c49fe1c455a96b05a03aae257ef",
+            "surface": "legacy_database",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "held",
+            "decision": "Versioned release, provenance, uncertainty, correction, and append-only projection concepts require a Nightingale-owned schema and named approvals before reuse."
+        },
+        {
+            "path": "app/Http/Concerns/RendersPatientEnvelope.php",
+            "sha256": "d42daaf79047cd4ba8ebb971ec883a9cb1b3da5a648537016e193bb210c93fbb",
+            "surface": "legacy_backend",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "reimplement_principle_only",
+            "decision": "Reimplement an exact Nightingale envelope and no-store policy only after contract approval; reject direct trait reuse and legacy metadata ownership."
+        },
+        {
+            "path": "app/Http/Controllers/Api/Patient/AuthController.php",
+            "sha256": "2e53bd85515c7eabf476724574a0035f5c77236dcdae8fb5d57e61ea016eb6c7",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "held",
+            "decision": "Controller flow is evidence for bounded auth failures and revocation, but all enrollment, password, refresh, response, and route choices remain held."
+        },
+        {
+            "path": "app/Http/Controllers/Api/Patient/EncounterController.php",
+            "sha256": "3de0a2edeb487a890dba2166791f5c36b1ce97d9d82ec1967054d0fad251c81b",
+            "surface": "legacy_backend",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "held",
+            "decision": "Retain request-time authorization and durable disclosure audit as candidate principles; reject seven-field grant serialization, row-oriented audit, and grant-row freshness claims."
+        },
+        {
+            "path": "app/Http/Controllers/Api/Patient/EncounterProjectionController.php",
+            "sha256": "8d55765655a35ea87d809c5bf964a4e8b25ecb6a25081788d05319bbbfbacaf0",
+            "surface": "legacy_backend",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "reimplement_principle_only",
+            "decision": "Generic not-found collapse is a candidate anti-oracle principle; all six kinds, paths, scopes, and legacy disclosure service coupling are held."
+        },
+        {
+            "path": "app/Http/Controllers/Api/Patient/MeController.php",
+            "sha256": "d32343fc395fa540bd984e8b26e9a6f4e15daa8a99a057f0928d640d069901f3",
+            "surface": "legacy_backend",
+            "categories": ["identity_input", "error_non_disclosure"],
+            "disposition": "reject",
+            "decision": "Reject the legacy profile projection as Nightingale identity input because it exposes email, phone, verification state, principal type, locale, timezone, and raw preference structure before a Nightingale field-ownership decision."
+        },
+        {
+            "path": "app/Http/Controllers/Api/Patient/SessionController.php",
+            "sha256": "7cb84bbd04dccce36fdd3fe4380d52911bca3c8ca33491e41babb9fb22ac8dbb",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "reimplement_principle_only",
+            "decision": "Owned-session revocation and unknown/cross-principal collapse are useful principles; reject legacy session UUIDs, device metadata, auth-method labels, and route contract."
+        },
+        {
+            "path": "app/Http/Requests/Patient/TokenRequest.php",
+            "sha256": "f1030e037737514987c0f1bd9921786652c080bf4a856fc7fd54fc1625680aac",
+            "surface": "legacy_backend",
+            "categories": ["identity_input", "error_non_disclosure"],
+            "disposition": "reject",
+            "decision": "Reject email/password and optional durable-device input as a Nightingale provider decision; validation limits are evidence only."
+        },
+        {
+            "path": "app/Http/Requests/Patient/VerifyEnrollmentChallengeRequest.php",
+            "sha256": "db606dff38332eda36cef5b060479771f331f1d71a3eac83499cf5dde47c5805",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "held",
+            "decision": "Two-part proof, bounded lengths, and password confirmation are evidence; challenge shape, local account creation, password policy, device fields, and representative behavior require an approved proofing design."
+        },
+        {
+            "path": "app/Http/Middleware/EnsureHummingbirdPatientEnabled.php",
+            "sha256": "0fa5ff4f732b171873450e66f377fd03b51ae5231a7b21464160e999d82b6b9c",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reimplement_principle_only",
+            "decision": "Default-off product gating is required in principle; reject the Hummingbird flag and middleware as Nightingale authority."
+        },
+        {
+            "path": "app/Http/Middleware/EnsureHummingbirdPatientFeatureEnabled.php",
+            "sha256": "087dca7053d8199974589fd81fe88e1e03ff8da54f0ce6ac6305b7014f422b07",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reimplement_principle_only",
+            "decision": "Per-operation fail-closed activation is a required principle; reject arbitrary legacy feature names and Hummingbird configuration ownership."
+        },
+        {
+            "path": "app/Http/Middleware/EnsurePatientRealm.php",
+            "sha256": "0f4c513a0aeb39e8509417e7d3ed885c5a0ed6ba5d31072bd278a411af1dcc67",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reimplement_principle_only",
+            "decision": "Exact realm, token-name, session-owner, status, and expiry verification is useful evidence; Nightingale must use an independent provider, credential format, session model, and error contract."
+        },
+        {
+            "path": "app/Http/Middleware/ProtectPatientResponse.php",
+            "sha256": "8930258e8f14554553fc6f6f8a593ce17ba829306f8dd4acab45d6d0c2743f5e",
+            "surface": "legacy_backend",
+            "categories": ["error_non_disclosure"],
+            "disposition": "reimplement_principle_only",
+            "decision": "Central response decoration is a useful architectural primitive; Nightingale needs its own route matching, decorator, tests, and safe-error registry."
+        },
+        {
+            "path": "app/Models/Patient/PatientPrincipal.php",
+            "sha256": "25fd0415462d4ad0e63020b40678e79328cebd92e8b9ba9d6dbf9c5052218370",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject the local Hummingbird principal and password model as Nightingale identity; no principal row, credential, email, phone, preference, or status migrates."
+        },
+        {
+            "path": "app/Models/Patient/PatientIdentityLink.php",
+            "sha256": "14c975603f2417769e45ccef9d7c82dd1ef9bf89955181522127d09e36645dea",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "held",
+            "decision": "Encrypted source linkage, keyed lookup, provenance, merge, and revocation are candidate properties; source authority, assurance, and linkage lifecycle are unresolved."
+        },
+        {
+            "path": "app/Models/Patient/PatientEnrollmentChallenge.php",
+            "sha256": "85fe910b3e4b457013773b80063416798da93208322de67659b939f61d9c7e53",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "held",
+            "decision": "One-way secret checks, attempt limits, expiry, consumption, and revocation are evidence; a model defaulting to encounter enrollment cannot serve as Nightingale enrollment or recovery authority."
+        },
+        {
+            "path": "app/Models/Patient/PatientSession.php",
+            "sha256": "b18a83a4bdc92591a2bc4a220d633d84ff5c6febeb853314d0e11299ea5195d6",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "held",
+            "decision": "Session-family, expiry, revocation, and ownership concepts are held evidence; reject token-family, device-fingerprint, network metadata, and legacy session migration."
+        },
+        {
+            "path": "app/Models/Patient/PatientEncounterAccessGrant.php",
+            "sha256": "237908876e22fe2c3fcd6e55cedde87046288adb4ddced43368273acf97934e5",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "held",
+            "decision": "Effective ownership and revocation are useful evidence; raw scopes, relationship defaults, source linkage, nullability drift, and external identifiers are not approved for Nightingale."
+        },
+        {
+            "path": "app/Models/Patient/PatientEncounterProjection.php",
+            "sha256": "b2675fea1fa6d2a3362ce54bb732858da221604f1f388b766d8fea1f6f449eb0",
+            "surface": "legacy_backend",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "held",
+            "decision": "Immutable released projection concepts are held; model, kinds, content, provenance, required scopes, and release states need Nightingale ownership and clinical approval."
+        },
+        {
+            "path": "app/Models/Patient/PatientReleasePolicyVersion.php",
+            "sha256": "2167f8b301b3fb6d259490e450bb124a1dd4e21f77e3249f5821bdba56407f63",
+            "surface": "legacy_backend",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "held",
+            "decision": "Effective versioned release policy is a required principle, but no Hummingbird policy row or environment-selected version is a Nightingale approval."
+        },
+        {
+            "path": "app/Policies/Patient/PatientEncounterAccessGrantPolicy.php",
+            "sha256": "61ca77c6713c23be4e3ab522edf9f279b517aef52d5d75ebf68d5a1b9d4fd58c",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "held",
+            "decision": "Request-time principal, relationship, state, and effective-window checks are evidence; missing identity-link and source-currentness gates prevent adoption."
+        },
+        {
+            "path": "app/Policies/Patient/PatientEncounterProjectionPolicy.php",
+            "sha256": "582267c8e7aff6d8e68574319907654fcf3111fb93834221cfffc48943362209",
+            "surface": "legacy_backend",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "held",
+            "decision": "Projection policy provides defense in depth but remains coupled to Hummingbird grant, scope, relationship, release-state, and policy-version choices."
+        },
+        {
+            "path": "app/Services/Patient/PatientAuthFailure.php",
+            "sha256": "3b5a6779f23afbcb142da0beaf6f3d208aa5c97f0ed01ea3a519a3e1b7ee6191",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "reimplement_principle_only",
+            "decision": "Typed internal failure is useful, but messages must never be serialized directly; Nightingale must map owned codes to approved localized patient copy at the outer boundary."
+        },
+        {
+            "path": "app/Services/Patient/PatientAuthService.php",
+            "sha256": "98fcfd11460870f75eb5ea7cbb6e5cbf4f45fefe2fccc0c1b5ad50f0a0bf214d",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "held",
+            "decision": "Row locking, atomic challenge consumption, generic credential denial, refresh rotation/reuse response, ownership, revocation, cleanup, and audit are evidence; reject local email/password, legacy models, session/device fingerprinting, and absent recovery workflow."
+        },
+        {
+            "path": "app/Services/Patient/PatientEncounterAccessService.php",
+            "sha256": "a593503e20dc8ba45699af4974f36345a0e85b739fa2f428565c8d3d4b079ef9",
+            "surface": "legacy_backend",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "held",
+            "decision": "Owner/status/effective filtering is evidence; reject first-row-enabling ordering, raw grant projection, absent identity-link checks, and unsupported freshness claims."
+        },
+        {
+            "path": "app/Services/Patient/PatientResponseDecorator.php",
+            "sha256": "d77359f42ad81b68eb4b10906009eadd24b7b6f26c31c70b2b0fb8ebad3d80e4",
+            "surface": "legacy_backend",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reimplement_principle_only",
+            "decision": "Central allowlisted code-to-copy mapping, framework-message suppression, no-store, no-index, and authorization variance are candidate controls; raw validation detail preservation, legacy codes, English-only copy, and decorator scope require independent review."
+        },
+        {
+            "path": "app/Services/Patient/PatientResponseMetadata.php",
+            "sha256": "2f7724de26326d3aa20d8d6168a6e2e6bcadf8ca8eacde5916e9742056ecd73a",
+            "surface": "legacy_backend",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "held",
+            "decision": "Request ID, generated time, explicit freshness, policy, and vocabulary versions are candidate fields; aliases, default claims, and Hummingbird configuration sources are rejected."
+        },
+        {
+            "path": "app/Services/Patient/Projection/PatientProjectionContentGuard.php",
+            "sha256": "55c1ef8f34750f4831eb98dd519824ba61344e2fe56a94c6c855c2db90772d9a",
+            "surface": "legacy_backend",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "reimplement_principle_only",
+            "decision": "Allowlist-first patient schema, forbidden source fields, raw-reference rejection, provenance, uncertainty, and canonical digest are strong candidate principles; exact content kinds, fields, enums, relationships, regexes, and copy remain held."
+        },
+        {
+            "path": "app/Services/Patient/Projection/PatientProjectionDisclosureService.php",
+            "sha256": "9d5b5dfea90985f022b190baee18eb2826cf395b67c936576e50ef25fa418049",
+            "surface": "legacy_backend",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "reimplement_principle_only",
+            "decision": "Per-request ownership/scope/release recheck, anti-oracle collapse, latest released selection, audit-before-payload, and bounded provenance are evidence; legacy scopes, policy lookup, kinds, locks, data model, and copy cannot be reused."
+        },
+        {
+            "path": "app/Services/Patient/Projection/PatientProjectionStateVocabulary.php",
+            "sha256": "6c0d8fc2b5e268612ff043c192c9d0ded06cb211af9a2e559c7a25f2db953f01",
+            "surface": "legacy_backend",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "held",
+            "decision": "Fail-closed code validation is a candidate principle; the split draft registry, labels, domains, version, locale ownership, and free-text boundary are not Nightingale-approved."
+        },
+        {
+            "path": "tests/Feature/Patient/PatientApiBoundaryTest.php",
+            "sha256": "2235aca6ad0c2b59c43eb5db7b2eff3d74351b47ae98f4d0528a0cd13b1f2508",
+            "surface": "legacy_test",
+            "categories": [
+                "identity_input",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "evidence_only",
+            "decision": "Reuse negative-test techniques for default-off, realm isolation, response shaping, and forbidden source fields; legacy paths, enabled fixtures, profile fields, and one-row success are not requirements."
+        },
+        {
+            "path": "tests/Feature/Patient/PatientAuthLifecycleTest.php",
+            "sha256": "3603200dbd738e14a26679e761950f8f310c28cd32b6ebc30f5b96f7d6860d1d",
+            "surface": "legacy_test",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "evidence_only",
+            "decision": "Retain atomic enrollment, attempt lockout, generic credential denial, refresh rotation/reuse, revocation, cleanup, and audit cases as a test-idea catalog; no credential or route contract is approved."
+        },
+        {
+            "path": "tests/Feature/Patient/PatientIdentityFoundationTest.php",
+            "sha256": "c6e1f158b82e50f52d999c38d177bb6dc422efe162b3b6971615142ed400ff4b",
+            "surface": "legacy_test",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "evidence_only",
+            "decision": "Use encryption, hashing, external-handle, relationship, and append-only test patterns only; schema existence and account_recovery enum coverage do not constitute a recovery implementation."
+        },
+        {
+            "path": "tests/Feature/Patient/PatientProjectionApiTest.php",
+            "sha256": "3775071196794e2856f05e35eeac86f7dd6ea1b074dd08549318416d171a9e2e",
+            "surface": "legacy_test",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "evidence_only",
+            "decision": "Retain unknown/cross-principal/revoked/expired/wrong-relationship/unreleased/retracted anti-oracle tests and no-store assertions as patterns; fixtures and projections remain Hummingbird-only."
+        },
+        {
+            "path": "tests/Feature/Patient/PatientProjectionKernelTest.php",
+            "sha256": "80943a02526b6bfb5a5db79eea226a4cf138d5d95ab723cab2dc1be2de61dc83",
+            "surface": "legacy_test",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "evidence_only",
+            "decision": "Retain database and content-guard negative-test ideas; no legacy schema, content field, release state, or source fixture is approved."
+        },
+        {
+            "path": "tests/Feature/Patient/PatientSessionManagementTest.php",
+            "sha256": "8ec0665944bc49c451af6ac40a50ab96e9ccefbbdea51f61a48a960286ad0bce",
+            "surface": "legacy_test",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "evidence_only",
+            "decision": "Owned-session enumeration, cross-principal equivalence, repeat revocation, current-session presence, and bounded collection are useful cases; device/session contract is held."
+        },
+        {
+            "path": "tests/Feature/Patient/PatientTimestampContractTest.php",
+            "sha256": "77ab5ede20b2daa76c13cc49ea758a1b0d2318ca0176775fd3c42b602af3e470",
+            "surface": "legacy_test",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "evidence_only",
+            "decision": "UTC RFC 3339 and daylight-saving boundary cases are reusable test principles after Nightingale contract field ownership is approved."
+        },
+        {
+            "path": "tests/Unit/Patient/PatientResponseMetadataTest.php",
+            "sha256": "4e7747e395aec252fb2ef50e043b866c483af43bdfcfbfe4de64cb4db965157a",
+            "surface": "legacy_test",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "evidence_only",
+            "decision": "Metadata merge and default tests reveal compatibility behavior; reissue against an exact Nightingale envelope and reject implicit legacy aliases."
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Features/Authentication/PatientWelcomeView.swift",
+            "sha256": "d8ac98e05769aa4835d2a59a86814f234517f1fb0dfa569c078a3b34ec23b25d",
+            "surface": "legacy_ios",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject email/password and seven-field invitation UI, Hummingbird copy, client-side assurance decisions, and state that is not explicitly cleared on background; retain accessible secure-field techniques as evidence only."
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/App/PatientAppViewModel.swift",
+            "sha256": "74918da1c9af1a263b4535dec933c4c6acf4384bb7afa195997a26e5e1c37694",
+            "surface": "legacy_ios",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject credential orchestration, silent first-encounter selection, raw-scope fan-out, not-found and incompatible-vocabulary collapse, all-or-nothing projection tuple, and server-message passthrough; retain token zeroization and storage-failure revocation ideas only."
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Networking/PatientAPIClient.swift",
+            "sha256": "72a8b54098bfd19402812aa0e2ef367154aa589d8f1bd7eb7f03b99b89ba9e8b",
+            "surface": "legacy_ios",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject the legacy base path, production host, operations, bearer contract, redirect/error mapping, and decoded server messages; future Nightingale transport must be generated from its own approved contract and fail closed."
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Networking/PatientAPIModels.swift",
+            "sha256": "93c3250b7292c9abe17e3bb932e39c489332c8becc321663b4b8365a1e468759",
+            "surface": "legacy_ios",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject legacy token, profile, grant, projection, error, enrollment, device, auth-method, and recovery enum models; use decoding strictness gaps and field inventory as evidence."
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Networking/PatientSecureStore.swift",
+            "sha256": "4383411a5e554228b17aae9be0cf82f980b245116b3998a1180eead43f9b1016",
+            "surface": "legacy_ios",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject Hummingbird Keychain service, access/refresh token schema, and credential migration; only device-only, non-synchronizing storage behavior was independently reimplemented in the Nightingale foundation."
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Models/PatientExperienceSnapshot.swift",
+            "sha256": "15342e15a634243bbbedffda4f0b07a0a9a9d75fbdfdc0c38c1c8e121faee450",
+            "surface": "legacy_ios",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "reject",
+            "decision": "Reject first-record selection, random UUID substitution for malformed server identifiers, generic empty-state inference, raw-scope retention, source-copy fallback, and synthetic production-shaped snapshot."
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatient/Models/PatientStateVocabulary.swift",
+            "sha256": "e13015b0f09f58f845d64d202839d16be1ea36744b35445d95e6ef6904da231a",
+            "surface": "legacy_ios",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "held",
+            "decision": "Version compatibility and patient labels require an independently checksum-bound registry, localization, missing/unknown state contract, and approvals; no label or code migrates."
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatientTests/PatientAPIBoundaryTests.swift",
+            "sha256": "d50f0ad0f003447658df322d061d56157bf08e125d27ab2a4c51a1880c6aef41",
+            "surface": "legacy_ios_test",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "evidence_only",
+            "decision": "Reuse route allowlist, HTTPS, host, identifier, redirect, storage-service, and product-boundary negative-test techniques against Nightingale-owned values only."
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatientTests/PatientAPIClientTests.swift",
+            "sha256": "b96bfbdfca371903c5aba06a609a2c511798a08545ec5889b8d1c9ebf110c608",
+            "surface": "legacy_ios_test",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "evidence_only",
+            "decision": "Retain transport, header, token, redirect, envelope, and error negative-test patterns; every asserted Hummingbird route and message is non-authoritative."
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatientTests/PatientAPIModelTests.swift",
+            "sha256": "2e461608ad1db8af66e204ba0396e864826adc71ebf4533d494390ebd138b95a",
+            "surface": "legacy_ios_test",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "evidence_only",
+            "decision": "Reuse malformed-envelope, timestamp, field, vocabulary, and projection-decoding test techniques only after an approved Nightingale schema exists."
+        },
+        {
+            "path": "hummingbird/iosPatientApp/HummingbirdPatientTests/PatientAppViewModelTests.swift",
+            "sha256": "4938eefb40b613e3e43476d4fadc1bdbde04604155b8b268db25818ec2f58b26",
+            "surface": "legacy_ios_test",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "evidence_only",
+            "decision": "Test doubles expose first-row, scope, projection, credential, session, and message behavior; use them as a gap catalog, not as Nightingale acceptance criteria."
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/PatientAppViewModel.kt",
+            "sha256": "dfa4d35f325b8199a66af67978e074aafd4364487944f5609a6ec93f5305d63e",
+            "surface": "legacy_android",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject legacy identity UI orchestration, product copy, client assurance, scope-derived availability, and status-message policy; retain char-array clearing and generic messaging-failure patterns only as evidence."
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/PatientExperienceModels.kt",
+            "sha256": "4b9eb48815c34248d8f6580e4c72dd9c8a014ce6bce3f3810d82a2adadc8fcf8",
+            "surface": "legacy_android",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject legacy auth modes, enrollment form, raw encounter scopes, destination state, projection models, and patient copy; define Nightingale models from an approved contract."
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/data/PatientApiClient.kt",
+            "sha256": "9f803c7533f5bd7b2d2877777e8274b17a7fa0c8455395b4b3ddfe4ded26e3f5",
+            "surface": "legacy_android",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject the 23-path allowlist, Hummingbird host/base path, bearer/token/device/enrollment contract, and exception messages decoded from the server; retain no-cache/no-redirect and URL validation techniques only."
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/data/PatientApiModels.kt",
+            "sha256": "a1932c3dc2f037f4006c72e083d57bc6219f63de42f348c7909737707d25e115",
+            "surface": "legacy_android",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject legacy token, profile, grant, projection, error, device, session, enrollment, and recovery models; decoder validations are evidence for a new fail-closed schema."
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/data/PatientSecureStore.kt",
+            "sha256": "f891b4a587c99832d14d0e8db27754c689507bce2c14dbf006af7b8d42047bbe",
+            "surface": "legacy_android",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject EncryptedSharedPreferences, legacy access/refresh/session values, durable device UUID, alias, and migration; the Nightingale foundation already uses an independent token-agnostic Keystore primitive."
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/data/PatientSessionCoordinator.kt",
+            "sha256": "10bfbe8782746390ea71242d1c95ff5f09809b61be40533f91cba1e9acfaada2",
+            "surface": "legacy_android",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject email/password and challenge exchange, refresh persistence, firstOrNull encounter selection, client-scope fan-out, 403/404 projection collapse, incompatible-vocabulary nulling, and inferred empty/fallback states; retain secret clearing and storage-failure revoke ideas only."
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/data/PatientStateVocabulary.kt",
+            "sha256": "023157f23c8aa372f6ef10e1d07086603cb507d446e9a18798cb3fcbf953660e",
+            "surface": "legacy_android",
+            "categories": ["first_read_projection", "error_non_disclosure"],
+            "disposition": "held",
+            "decision": "No state code or label migrates; Nightingale requires one checksum-bound cross-platform registry, localization, exact incompatibility handling, and named review."
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/main/java/net/acumenus/hummingbird/patient/ui/PatientAuthenticationScreen.kt",
+            "sha256": "625eed90c62f8623844d915762289421b4580abb0fa6452f32e10d9e66d27e1a",
+            "surface": "legacy_android",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "error_non_disclosure"
+            ],
+            "disposition": "reject",
+            "decision": "Reject email/password and seven-field invitation UX, Hummingbird copy, and unapproved support path; volatile Compose state and post-submit secret clearing are useful evidence but do not cover lifecycle/background clearing."
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/PatientAppViewModelTest.kt",
+            "sha256": "58bfa794fda3f8b40c72d9f619ebe593668fc1379cafdbb7cb894a4ca468d0e6",
+            "surface": "legacy_android_test",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "evidence_only",
+            "decision": "Retain state-transition, secret-clearing, generic-error, and API-disabled test ideas; asserted Hummingbird flows and copy are not Nightingale requirements."
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/data/PatientEndpointBoundaryTest.kt",
+            "sha256": "92edaed877c4cd3f2eb02eb3829bc8083a14cc84492592b9bbdc492d54c87c50",
+            "surface": "legacy_android_test",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "evidence_only",
+            "decision": "Reuse exact operation allowlist, HTTPS, host, identifier, and disabled-network negative-test techniques against Nightingale-owned operations only."
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/data/PatientEnvelopeDecoderTest.kt",
+            "sha256": "ca83242060bce3c21d62e30ffa3a1bb9566373adb51c5b88788f2b62eb56e81d",
+            "surface": "legacy_android_test",
+            "categories": [
+                "identity_input",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "evidence_only",
+            "decision": "Reuse malformed-envelope, UUID, length, timestamp, vocabulary, revision, and bounded-list cases only after a Nightingale schema is approved."
+        },
+        {
+            "path": "hummingbird/androidPatientApp/app/src/test/java/net/acumenus/hummingbird/patient/data/PatientSessionCoordinatorTest.kt",
+            "sha256": "7918d69d4e751e0f063c1061db1b3a1289a5d145fc5edb1a9571399d5408e9db",
+            "surface": "legacy_android_test",
+            "categories": [
+                "identity_input",
+                "enrollment_recovery",
+                "first_read_projection",
+                "error_non_disclosure"
+            ],
+            "disposition": "evidence_only",
+            "decision": "Use refresh, revocation, storage-failure, first-read, projection-absence, and vocabulary cases as a gap catalog; no legacy outcome is automatically correct for Nightingale."
+        }
+    ]
+}

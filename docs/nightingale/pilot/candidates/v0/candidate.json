@@ -1,0 +1,223 @@
+{
+    "candidate_id": "nightingale.controlled-pilot-manifest.v0-candidate",
+    "policy_version": "nightingale-controlled-pilot-manifest.v0-candidate",
+    "schema_version": 0,
+    "status": "draft_default_off_not_approved_for_pilot",
+    "generated_at": "2026-07-27T20:00:00Z",
+    "reviewed_source_commit": "b333ebf8a618cac5c3c8a27d43ea666de32579bc",
+    "product": "Nightingale",
+    "purpose": "Define the exact facility, unit, cohort, language, exclusion, support-hour, validity, audit, rollback, and approval shape required before a future controlled-pilot go/no-go review.",
+    "disposition_vocabulary": [
+        "hold",
+        "eligible_for_external_go_no_go_review_only"
+    ],
+    "eligibility_boundary": {
+        "positive_disposition_is_activation": false,
+        "positive_disposition_is_enrollment_authorization": false,
+        "positive_disposition_is_deployment_authorization": false,
+        "positive_disposition_is_patient_disclosure_authorization": false,
+        "external_go_no_go_record_still_required": true,
+        "runtime_evaluator_implemented": false,
+        "runtime_callers": 0
+    },
+    "technical_ceilings": {
+        "maximum_validity_hours": 168,
+        "maximum_active_enrollments": 25,
+        "automatic_enrollment_permitted": false
+    },
+    "required_approval_roles": [
+        "product_owner",
+        "clinical_safety_owner",
+        "privacy_security_owner",
+        "patient_advisor_accessibility_owner",
+        "identity_source_owner",
+        "operations_support_owner",
+        "release_owner"
+    ],
+    "required_audit_event_types": [
+        "manifest_created",
+        "manifest_review_requested",
+        "manifest_approved",
+        "go_no_go_requested",
+        "pilot_started",
+        "pilot_expired",
+        "pilot_withdrawn",
+        "kill_switch_invoked",
+        "rollback_completed"
+    ],
+    "required_audit_fields": [
+        "manifest_id",
+        "manifest_revision",
+        "event_type",
+        "occurred_at",
+        "actor_role",
+        "actor_reference_hash",
+        "outcome",
+        "reason_code",
+        "policy_version"
+    ],
+    "committed_default_manifest": {
+        "manifest_id": "nightingale.controlled-pilot.unissued",
+        "manifest_revision": 0,
+        "policy_version": "nightingale-controlled-pilot-manifest.v0-candidate",
+        "state": "draft_inactive",
+        "go_no_go_review_requested": false,
+        "runtime_activation_permitted": false,
+        "scope": {
+            "facility_handles": [],
+            "unit_handles": [],
+            "cohort": {
+                "cohort_handle": null,
+                "inclusion_policy_release_id": null,
+                "exclusion_policy_release_id": null,
+                "maximum_active_enrollments": 0,
+                "enrollment_is_automatic": false,
+                "unknown_or_unavailable_eligibility_result": "withhold"
+            },
+            "languages": {
+                "patient_locale_tags": [],
+                "interpreter_coverage_release_id": null,
+                "unapproved_locale_fallback_permitted": false,
+                "unknown_language_disposition": "withhold"
+            },
+            "exclusions": {
+                "exclusion_policy_release_id": null,
+                "deny_if_rule_result_unknown": true,
+                "deny_if_rule_source_unavailable": true,
+                "sensitive_service_inference_permitted": false,
+                "exclusion_reason_disclosure_permitted": false
+            }
+        },
+        "support_coverage": {
+            "timezone": null,
+            "weekly_windows": [],
+            "urgent_help_content_release_id": null,
+            "uncovered_window_disposition": "withhold_new_enrollment_and_show_released_support_guidance",
+            "support_availability_may_be_inferred": false
+        },
+        "validity": {
+            "starts_at": null,
+            "expires_at": null,
+            "maximum_validity_hours": 168,
+            "renewal_requires_new_manifest": true,
+            "expiry_fails_closed": true
+        },
+        "prerequisites": {
+            "clinical_approval_record": null,
+            "patient_content_release_record": null,
+            "feature_activation_record": null,
+            "source_connector_deployment_record": null,
+            "identity_source_approval_record": null,
+            "audit_sink_deployment_record": null,
+            "rollback_plan_record": null,
+            "kill_switch_test_record": null
+        },
+        "approvals": {
+            "product_owner": {
+                "approver_subject": null,
+                "approval_record": null,
+                "approved_at": null
+            },
+            "clinical_safety_owner": {
+                "approver_subject": null,
+                "approval_record": null,
+                "approved_at": null
+            },
+            "privacy_security_owner": {
+                "approver_subject": null,
+                "approval_record": null,
+                "approved_at": null
+            },
+            "patient_advisor_accessibility_owner": {
+                "approver_subject": null,
+                "approval_record": null,
+                "approved_at": null
+            },
+            "identity_source_owner": {
+                "approver_subject": null,
+                "approval_record": null,
+                "approved_at": null
+            },
+            "operations_support_owner": {
+                "approver_subject": null,
+                "approval_record": null,
+                "approved_at": null
+            },
+            "release_owner": {
+                "approver_subject": null,
+                "approval_record": null,
+                "approved_at": null
+            }
+        },
+        "audit": {
+            "append_only_required": true,
+            "durable_before_effective_change": true,
+            "event_schema_release_id": null,
+            "required_event_types": [
+                "manifest_created",
+                "manifest_review_requested",
+                "manifest_approved",
+                "go_no_go_requested",
+                "pilot_started",
+                "pilot_expired",
+                "pilot_withdrawn",
+                "kill_switch_invoked",
+                "rollback_completed"
+            ],
+            "required_fields": [
+                "manifest_id",
+                "manifest_revision",
+                "event_type",
+                "occurred_at",
+                "actor_role",
+                "actor_reference_hash",
+                "outcome",
+                "reason_code",
+                "policy_version"
+            ],
+            "patient_identifiers_permitted": false,
+            "clinical_content_permitted": false,
+            "message_content_permitted": false,
+            "audit_failure_disposition": "withhold"
+        },
+        "rollback": {
+            "kill_switch_default_state": "engaged",
+            "rollback_target_release_id": null,
+            "rollback_verification_record": null,
+            "enrollment_and_disclosure_after_expiry_permitted": false
+        }
+    },
+    "constraints": {
+        "runtime_implementation_permitted": false,
+        "route_registration_permitted": false,
+        "native_networking_permitted": false,
+        "identity_provider_selection_permitted": false,
+        "source_adapter_selection_permitted": false,
+        "production_query_permitted": false,
+        "patient_or_representative_creation_permitted": false,
+        "patient_enrollment_permitted": false,
+        "patient_disclosure_permitted": false,
+        "patient_mutation_permitted": false,
+        "communication_or_notification_permitted": false,
+        "deployment_permitted": false,
+        "pilot_activation_permitted": false
+    },
+    "source_evidence": [
+        {
+            "path": "config/nightingale.php",
+            "sha256": "547fa76746ba3f7926bbdf380bb8b7d7308d0413e747e9b01d228a6483c41579"
+        },
+        {
+            "path": "docs/nightingale/api-contract/nightingale-foundation.v0.json",
+            "sha256": "6765da41f884cec3cb6596e2484a47297878940731b306a1b5ecf664cf7c0580"
+        },
+        {
+            "path": "app/Nightingale/Activation/NightingaleActivationGate.php",
+            "sha256": "d9c20d2844b2e7a0d23ac22510afb3857682f79609721466382804b45ac5b5eb"
+        },
+        {
+            "path": "app/Nightingale/Activation/NightingalePilotEnrollmentState.php",
+            "sha256": "9e06cb30f344f269521731fd7b28d646ab9b77ab53cf0fb301800f999c8ae637"
+        }
+    ]
+}

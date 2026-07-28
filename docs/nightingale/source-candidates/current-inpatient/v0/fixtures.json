@@ -1,0 +1,404 @@
+{
+    "fixture_schema": "nightingale.current-inpatient-source.candidate-fixtures.v0",
+    "candidate_id": "nightingale.current-inpatient-source.v0-candidate",
+    "synthetic_only": true,
+    "production_replay_permitted": false,
+    "contains_credentials": false,
+    "contains_source_identifiers": false,
+    "result_templates": {
+        "unavailable": {
+            "source_state": "unavailable",
+            "permits_governed_evaluation": false,
+            "authorizes_patient_access": false
+        },
+        "inconsistent": {
+            "source_state": "inconsistent",
+            "permits_governed_evaluation": false,
+            "authorizes_patient_access": false
+        },
+        "confirmed_closed": {
+            "source_state": "confirmed_closed",
+            "permits_governed_evaluation": false,
+            "authorizes_patient_access": false
+        },
+        "confirmed_current": {
+            "source_state": "confirmed_current",
+            "permits_governed_evaluation": true,
+            "authorizes_patient_access": false
+        }
+    },
+    "cases": [
+        {
+            "case_id": "confirmed_current_all_prerequisites",
+            "category": "positive",
+            "preconditions": [
+                "Every confirmed-current prerequisite is satisfied for exactly one coherent inpatient lifecycle."
+            ],
+            "expected_result": "confirmed_current",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "confirmed_closed_all_prerequisites",
+            "category": "closed",
+            "preconditions": [
+                "Every confirmed-closed prerequisite is satisfied for exactly one coherent closed lifecycle."
+            ],
+            "expected_result": "confirmed_closed",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "product_disabled",
+            "category": "activation",
+            "preconditions": ["The Nightingale product gate is disabled."],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_unavailable"
+        },
+        {
+            "case_id": "source_capability_disabled",
+            "category": "activation",
+            "preconditions": ["The inpatient-source capability is disabled."],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_unavailable"
+        },
+        {
+            "case_id": "source_adapter_unconfigured",
+            "category": "dependency",
+            "preconditions": [
+                "No approved inpatient-source adapter is configured."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_unavailable"
+        },
+        {
+            "case_id": "source_dependency_unavailable",
+            "category": "dependency",
+            "preconditions": [
+                "The approved source dependency cannot be reached."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_unavailable"
+        },
+        {
+            "case_id": "source_timeout",
+            "category": "dependency",
+            "preconditions": [
+                "Source evaluation does not complete within its governed deadline."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_unavailable"
+        },
+        {
+            "case_id": "database_unavailable",
+            "category": "dependency",
+            "preconditions": [
+                "The future approved source database is unavailable."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_unavailable"
+        },
+        {
+            "case_id": "source_response_malformed",
+            "category": "integrity",
+            "preconditions": [
+                "Source evidence cannot be parsed or validated exactly."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "source_policy_unconfigured",
+            "category": "policy",
+            "preconditions": [
+                "No approved, versioned current-inpatient policy is configured."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "freshness_policy_unapproved",
+            "category": "freshness",
+            "preconditions": [
+                "A source age exists but no approved threshold can interpret it."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "source_observed_at_missing",
+            "category": "freshness",
+            "preconditions": [
+                "The source observation time required by policy is missing."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "source_observed_at_stale",
+            "category": "freshness",
+            "preconditions": [
+                "The source observation is stale under the approved policy version."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "clock_untrusted",
+            "category": "freshness",
+            "preconditions": [
+                "The evaluation clock or time-zone interpretation cannot be trusted."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "no_inpatient_record",
+            "category": "absence",
+            "preconditions": [
+                "The source returns no record that can establish current or closed inpatient state."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "patient_link_missing",
+            "category": "linkage",
+            "preconditions": [
+                "No governed patient-to-source linkage is available."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "patient_link_unverified",
+            "category": "linkage",
+            "preconditions": [
+                "The patient-to-source linkage is pending or unverified."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "facility_out_of_scope",
+            "category": "scope",
+            "preconditions": [
+                "The facility is not in the approved Nightingale source cohort."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "unit_out_of_scope",
+            "category": "scope",
+            "preconditions": [
+                "The unit is not in the approved Nightingale source cohort."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "patient_class_out_of_scope",
+            "category": "scope",
+            "preconditions": [
+                "The patient class is not approved as an inpatient cohort."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "cohort_policy_unavailable",
+            "category": "scope",
+            "preconditions": [
+                "Facility, unit, or patient-class scope policy cannot be evaluated."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "required_field_missing",
+            "category": "completeness",
+            "preconditions": ["A policy-required source fact is absent."],
+            "expected_result": "unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "source_audit_unavailable",
+            "category": "audit",
+            "preconditions": [
+                "The durable source-evaluation audit cannot be committed."
+            ],
+            "expected_result": "unavailable",
+            "audit_mode": "best_effort_safety_failure"
+        },
+        {
+            "case_id": "multiple_current_records",
+            "category": "cardinality",
+            "preconditions": [
+                "More than one current inpatient lifecycle is eligible."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "duplicate_source_link",
+            "category": "linkage",
+            "preconditions": [
+                "More than one active source linkage claims the same patient context."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "ambiguous_patient_match",
+            "category": "linkage",
+            "preconditions": [
+                "Source evidence maps to more than one possible patient."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "status_missing",
+            "category": "lifecycle",
+            "preconditions": [
+                "The source status required to classify the lifecycle is missing."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "status_unknown",
+            "category": "lifecycle",
+            "preconditions": [
+                "The source status is not recognized by the approved mapping."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "record_soft_deleted",
+            "category": "lifecycle",
+            "preconditions": [
+                "The only apparent current record is marked deleted or void."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "active_with_discharge_time",
+            "category": "lifecycle",
+            "preconditions": [
+                "The source claims active status while also recording a final discharge time."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "admitted_at_missing",
+            "category": "lifecycle",
+            "preconditions": [
+                "A supposedly current or closed encounter lacks the required admission instant."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "admitted_at_future",
+            "category": "lifecycle",
+            "preconditions": [
+                "The admission instant is after the trusted evaluation instant."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "discharged_at_missing",
+            "category": "lifecycle",
+            "preconditions": [
+                "The source claims a closed lifecycle without a required final discharge instant."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "discharged_at_future",
+            "category": "lifecycle",
+            "preconditions": [
+                "A final discharge instant is after the trusted evaluation instant."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "discharged_before_admitted",
+            "category": "lifecycle",
+            "preconditions": [
+                "The final discharge instant precedes the admission instant."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "lifecycle_inconsistent",
+            "category": "lifecycle",
+            "preconditions": [
+                "Admission, transfer, status, or discharge facts form no coherent lifecycle."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "source_version_missing",
+            "category": "concurrency",
+            "preconditions": [
+                "No source version or equivalent stability evidence is available."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "source_changed_during_evaluation",
+            "category": "concurrency",
+            "preconditions": [
+                "The source lifecycle changes before governed handoff completes."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "transfer_unresolved",
+            "category": "transition",
+            "preconditions": [
+                "A pending transfer leaves current facility or unit state unresolved."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "merge_or_correction_pending",
+            "category": "transition",
+            "preconditions": [
+                "A merge or correction can change patient linkage or lifecycle classification."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "record_retracted",
+            "category": "transition",
+            "preconditions": [
+                "The source retracts evidence previously used to classify the lifecycle."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "policy_version_mismatch",
+            "category": "policy",
+            "preconditions": [
+                "Evaluation facts and handoff use different source policy versions."
+            ],
+            "expected_result": "inconsistent",
+            "audit_mode": "durable_safety_failure"
+        }
+    ]
+}

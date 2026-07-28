@@ -1,0 +1,551 @@
+{
+    "fixture_schema": "nightingale.encounter-access.candidate-fixtures.v0",
+    "candidate_id": "nightingale.encounter-access.v0-candidate",
+    "synthetic_only": true,
+    "production_replay_permitted": false,
+    "response_templates": {
+        "success_one": {
+            "status": 200,
+            "headers": {
+                "Cache-Control": "private, no-store, max-age=0",
+                "Pragma": "no-cache",
+                "X-Robots-Tag": "noindex, nofollow, noarchive",
+                "Vary": "Authorization",
+                "Content-Type": "application/json"
+            },
+            "body": {
+                "data": {
+                    "encounters": [
+                        {
+                            "encounter_handle": "ntg_enc_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                        }
+                    ]
+                },
+                "meta": {
+                    "request_id": "ntg_req_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "generated_at": "2026-07-26T15:00:00Z",
+                    "policy_version": "nightingale-encounter-access-policy.v0-candidate",
+                    "authorization_evaluated_at": "2026-07-26T15:00:00Z",
+                    "completeness": "complete"
+                },
+                "links": {}
+            }
+        },
+        "success_empty": {
+            "status": 200,
+            "headers": {
+                "Cache-Control": "private, no-store, max-age=0",
+                "Pragma": "no-cache",
+                "X-Robots-Tag": "noindex, nofollow, noarchive",
+                "Vary": "Authorization",
+                "Content-Type": "application/json"
+            },
+            "body": {
+                "data": {
+                    "encounters": []
+                },
+                "meta": {
+                    "request_id": "ntg_req_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "generated_at": "2026-07-26T15:00:00Z",
+                    "policy_version": "nightingale-encounter-access-policy.v0-candidate",
+                    "authorization_evaluated_at": "2026-07-26T15:00:00Z",
+                    "completeness": "complete"
+                },
+                "links": {}
+            }
+        },
+        "not_found": {
+            "status": 404,
+            "headers": {
+                "Cache-Control": "private, no-store, max-age=0",
+                "Pragma": "no-cache",
+                "X-Robots-Tag": "noindex, nofollow, noarchive",
+                "Vary": "Authorization",
+                "Content-Type": "application/json"
+            },
+            "body": {
+                "data": null,
+                "error": {
+                    "code": "not_found",
+                    "message": "This experience is not available."
+                },
+                "meta": {
+                    "request_id": "ntg_req_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "generated_at": "2026-07-26T15:00:00Z",
+                    "policy_version": "nightingale-encounter-access-policy.v0-candidate",
+                    "authorization_evaluated_at": "2026-07-26T15:00:00Z",
+                    "completeness": "withheld"
+                },
+                "links": {}
+            }
+        },
+        "authentication_required": {
+            "status": 401,
+            "headers": {
+                "Cache-Control": "private, no-store, max-age=0",
+                "Pragma": "no-cache",
+                "X-Robots-Tag": "noindex, nofollow, noarchive",
+                "Vary": "Authorization",
+                "Content-Type": "application/json"
+            },
+            "body": {
+                "data": null,
+                "error": {
+                    "code": "authentication_required",
+                    "message": "Sign in is required."
+                },
+                "meta": {
+                    "request_id": "ntg_req_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "generated_at": "2026-07-26T15:00:00Z",
+                    "policy_version": "nightingale-encounter-access-policy.v0-candidate",
+                    "authorization_evaluated_at": "2026-07-26T15:00:00Z",
+                    "completeness": "withheld"
+                },
+                "links": {}
+            }
+        },
+        "access_unavailable": {
+            "status": 403,
+            "headers": {
+                "Cache-Control": "private, no-store, max-age=0",
+                "Pragma": "no-cache",
+                "X-Robots-Tag": "noindex, nofollow, noarchive",
+                "Vary": "Authorization",
+                "Content-Type": "application/json"
+            },
+            "body": {
+                "data": null,
+                "error": {
+                    "code": "access_unavailable",
+                    "message": "This experience is not available for this account."
+                },
+                "meta": {
+                    "request_id": "ntg_req_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "generated_at": "2026-07-26T15:00:00Z",
+                    "policy_version": "nightingale-encounter-access-policy.v0-candidate",
+                    "authorization_evaluated_at": "2026-07-26T15:00:00Z",
+                    "completeness": "withheld"
+                },
+                "links": {}
+            }
+        },
+        "account_state_requires_review": {
+            "status": 409,
+            "headers": {
+                "Cache-Control": "private, no-store, max-age=0",
+                "Pragma": "no-cache",
+                "X-Robots-Tag": "noindex, nofollow, noarchive",
+                "Vary": "Authorization",
+                "Content-Type": "application/json"
+            },
+            "body": {
+                "data": null,
+                "error": {
+                    "code": "account_state_requires_review",
+                    "message": "We could not safely determine your current hospital stay. Please ask your care team for help."
+                },
+                "meta": {
+                    "request_id": "ntg_req_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "generated_at": "2026-07-26T15:00:00Z",
+                    "policy_version": "nightingale-encounter-access-policy.v0-candidate",
+                    "authorization_evaluated_at": "2026-07-26T15:00:00Z",
+                    "completeness": "withheld"
+                },
+                "links": {}
+            }
+        },
+        "rate_limited": {
+            "status": 429,
+            "headers": {
+                "Cache-Control": "private, no-store, max-age=0",
+                "Pragma": "no-cache",
+                "X-Robots-Tag": "noindex, nofollow, noarchive",
+                "Vary": "Authorization",
+                "Content-Type": "application/json"
+            },
+            "body": {
+                "data": null,
+                "error": {
+                    "code": "rate_limited",
+                    "message": "Too many requests were submitted. Please try again later."
+                },
+                "meta": {
+                    "request_id": "ntg_req_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "generated_at": "2026-07-26T15:00:00Z",
+                    "policy_version": "nightingale-encounter-access-policy.v0-candidate",
+                    "authorization_evaluated_at": "2026-07-26T15:00:00Z",
+                    "completeness": "withheld"
+                },
+                "links": {}
+            }
+        },
+        "temporarily_unavailable": {
+            "status": 503,
+            "headers": {
+                "Cache-Control": "private, no-store, max-age=0",
+                "Pragma": "no-cache",
+                "X-Robots-Tag": "noindex, nofollow, noarchive",
+                "Vary": "Authorization",
+                "Content-Type": "application/json"
+            },
+            "body": {
+                "data": null,
+                "error": {
+                    "code": "temporarily_unavailable",
+                    "message": "Current hospital-stay information is temporarily unavailable. Please ask your care team if you need help now."
+                },
+                "meta": {
+                    "request_id": "ntg_req_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "generated_at": "2026-07-26T15:00:00Z",
+                    "policy_version": "nightingale-encounter-access-policy.v0-candidate",
+                    "authorization_evaluated_at": "2026-07-26T15:00:00Z",
+                    "completeness": "withheld"
+                },
+                "links": {}
+            }
+        }
+    },
+    "cases": [
+        {
+            "case_id": "eligible_self_single",
+            "category": "allow",
+            "preconditions": [
+                "all release, identity, relationship, grant, source, handle, recheck, and audit gates pass",
+                "exactly one eligible self inpatient context exists"
+            ],
+            "expected_template": "success_one",
+            "audit_mode": "durable_evaluation_and_disclosure"
+        },
+        {
+            "case_id": "no_candidate_grants",
+            "category": "omit",
+            "preconditions": [
+                "all authoritative checks complete",
+                "no candidate grant exists for the principal"
+            ],
+            "expected_template": "success_empty",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "revoked_grant_omitted",
+            "category": "omit",
+            "preconditions": ["only grant has status revoked"],
+            "expected_template": "success_empty",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "suspended_grant_omitted",
+            "category": "omit",
+            "preconditions": ["only grant has status suspended"],
+            "expected_template": "success_empty",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "pending_grant_omitted",
+            "category": "omit",
+            "preconditions": ["only grant has status pending"],
+            "expected_template": "success_empty",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "closed_grant_omitted",
+            "category": "omit",
+            "preconditions": ["only grant has status closed"],
+            "expected_template": "success_empty",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "expired_status_grant_omitted",
+            "category": "omit",
+            "preconditions": ["only grant has status expired"],
+            "expected_template": "success_empty",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "revoked_timestamp_omitted",
+            "category": "omit",
+            "preconditions": [
+                "grant status is active but revoked_at is non-null"
+            ],
+            "expected_template": "success_empty",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "future_validity_omitted",
+            "category": "omit",
+            "preconditions": [
+                "grant valid_from is later than authorization_evaluated_at"
+            ],
+            "expected_template": "success_empty",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "expired_window_omitted",
+            "category": "omit",
+            "preconditions": [
+                "grant expires_at is not later than authorization_evaluated_at"
+            ],
+            "expected_template": "success_empty",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "wrong_principal_omitted",
+            "category": "nondisclosure",
+            "preconditions": ["candidate grant belongs to another principal"],
+            "expected_template": "success_empty",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "purpose_mismatch_omitted",
+            "category": "omit",
+            "preconditions": [
+                "grant has a recognized but non-inpatient purpose of use"
+            ],
+            "expected_template": "success_empty",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "representative_relationship_held",
+            "category": "nondisclosure",
+            "preconditions": [
+                "grant relationship is a recognized representative type",
+                "representative access is held for this candidate"
+            ],
+            "expected_template": "success_empty",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "source_encounter_closed_omitted",
+            "category": "omit",
+            "preconditions": [
+                "authoritative source confirms the encounter is no longer an active inpatient context"
+            ],
+            "expected_template": "success_empty",
+            "audit_mode": "durable_evaluation"
+        },
+        {
+            "case_id": "product_disabled",
+            "category": "release-gate",
+            "preconditions": ["Nightingale product gate is false"],
+            "expected_template": "not_found",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "operation_disabled",
+            "category": "release-gate",
+            "preconditions": ["encounter-access operation gate is false"],
+            "expected_template": "not_found",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "authentication_missing",
+            "category": "identity",
+            "preconditions": ["no credential is present"],
+            "expected_template": "authentication_required",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "wrong_identity_realm",
+            "category": "identity",
+            "preconditions": [
+                "credential is valid for a non-Nightingale realm"
+            ],
+            "expected_template": "access_unavailable",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "principal_inactive",
+            "category": "identity",
+            "preconditions": ["principal is not active"],
+            "expected_template": "access_unavailable",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "principal_locked",
+            "category": "identity",
+            "preconditions": ["principal is locked"],
+            "expected_template": "access_unavailable",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "session_missing",
+            "category": "session",
+            "preconditions": ["credential does not bind to an owned session"],
+            "expected_template": "authentication_required",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "session_expired",
+            "category": "session",
+            "preconditions": ["session absolute or idle expiry is effective"],
+            "expected_template": "authentication_required",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "session_revoked",
+            "category": "session",
+            "preconditions": ["session is revoked"],
+            "expected_template": "authentication_required",
+            "audit_mode": "best_effort_denial"
+        },
+        {
+            "case_id": "identity_link_missing",
+            "category": "identity-integrity",
+            "preconditions": [
+                "active principal has no current identity link for the grant"
+            ],
+            "expected_template": "account_state_requires_review",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "identity_link_revoked",
+            "category": "identity-integrity",
+            "preconditions": ["grant identity link is revoked"],
+            "expected_template": "account_state_requires_review",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "identity_link_merged",
+            "category": "identity-integrity",
+            "preconditions": ["grant identity link was merged or superseded"],
+            "expected_template": "account_state_requires_review",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "identity_principal_mismatch",
+            "category": "identity-integrity",
+            "preconditions": [
+                "identity link and grant do not belong to the authenticated principal"
+            ],
+            "expected_template": "account_state_requires_review",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "unknown_relationship",
+            "category": "data-integrity",
+            "preconditions": [
+                "grant relationship is not in the approved registry"
+            ],
+            "expected_template": "temporarily_unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "unknown_grant_status",
+            "category": "data-integrity",
+            "preconditions": ["grant status is not in the approved registry"],
+            "expected_template": "temporarily_unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "unknown_purpose_of_use",
+            "category": "data-integrity",
+            "preconditions": ["grant purpose is not in the approved registry"],
+            "expected_template": "temporarily_unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "malformed_nightingale_handle",
+            "category": "handle-integrity",
+            "preconditions": [
+                "mapped Nightingale handle does not match the approved opaque format"
+            ],
+            "expected_template": "temporarily_unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "nightingale_handle_collision",
+            "category": "handle-integrity",
+            "preconditions": [
+                "one Nightingale handle resolves to multiple authorization records"
+            ],
+            "expected_template": "temporarily_unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "source_link_missing",
+            "category": "source-integrity",
+            "preconditions": [
+                "grant lacks an approved current source-encounter linkage"
+            ],
+            "expected_template": "account_state_requires_review",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "source_system_unavailable",
+            "category": "dependency",
+            "preconditions": [
+                "current inpatient status cannot be authoritatively confirmed"
+            ],
+            "expected_template": "temporarily_unavailable",
+            "audit_mode": "best_effort_safety_failure"
+        },
+        {
+            "case_id": "database_unavailable",
+            "category": "dependency",
+            "preconditions": ["authorization registry query does not complete"],
+            "expected_template": "temporarily_unavailable",
+            "audit_mode": "best_effort_safety_failure"
+        },
+        {
+            "case_id": "request_audit_unavailable",
+            "category": "audit",
+            "preconditions": ["durable evaluation audit cannot be recorded"],
+            "expected_template": "temporarily_unavailable",
+            "audit_mode": "best_effort_safety_failure"
+        },
+        {
+            "case_id": "disclosure_audit_unavailable",
+            "category": "audit",
+            "preconditions": [
+                "durable handle-disclosure audit cannot be recorded"
+            ],
+            "expected_template": "temporarily_unavailable",
+            "audit_mode": "best_effort_safety_failure"
+        },
+        {
+            "case_id": "multiple_eligible_contexts",
+            "category": "ambiguity",
+            "preconditions": [
+                "more than one eligible self inpatient context remains after all gates"
+            ],
+            "expected_template": "account_state_requires_review",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "grant_changed_before_serialization",
+            "category": "race",
+            "preconditions": [
+                "grant, relationship, identity, source, or handle version changes after evaluation and before serialization"
+            ],
+            "expected_template": "account_state_requires_review",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "policy_version_mismatch",
+            "category": "policy",
+            "preconditions": [
+                "runtime policy identity differs from the approved contract policy"
+            ],
+            "expected_template": "temporarily_unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "malformed_scope_registry",
+            "category": "data-integrity",
+            "preconditions": [
+                "grant capability registry contains an unknown or malformed authorization scope"
+            ],
+            "expected_template": "temporarily_unavailable",
+            "audit_mode": "durable_safety_failure"
+        },
+        {
+            "case_id": "rate_limited",
+            "category": "ingress",
+            "preconditions": [
+                "approved principal-specific rate limit is exceeded"
+            ],
+            "expected_template": "rate_limited",
+            "audit_mode": "best_effort_denial"
+        }
+    ]
+}

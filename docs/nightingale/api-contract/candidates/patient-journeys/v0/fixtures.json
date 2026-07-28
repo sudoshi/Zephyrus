@@ -1,0 +1,2491 @@
+{
+    "schema_version": 1,
+    "candidate_id": "nightingale.patient-journey-reference.v0-candidate",
+    "policy_version": "nightingale-patient-journey-reference.v0-candidate",
+    "fixed_clock": "2026-07-27T17:00:00Z",
+    "fixture_class": "synthetic-no-phi",
+    "case_count": 27,
+    "cases": [
+        {
+            "case_id": "adult_admission_context_established",
+            "family_id": "admission",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "self-identity-and-session-approved",
+                "authoritative-current-inpatient-context-established",
+                "no-patient-facing-projection-yet-released"
+            ],
+            "event": "admission-context-becomes-current",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "released-empty-or-not-available",
+                    "surfaces": [
+                        "today",
+                        "my-path",
+                        "care-team"
+                    ],
+                    "patient_message_key": "journey.admission.waiting_for_released_information",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "encounter-access-empty-to-one-current-context",
+                    "each-unreleased-surface-remains-not-available",
+                    "released-empty-never-means-no-care-is-planned"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "admission-context-implies-diagnosis",
+                    "absence-of-projection-implies-absence-of-plan"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-admission-context-and-first-patient-release-policy"
+            ]
+        },
+        {
+            "case_id": "unit_transfer_old_location_withdrawn",
+            "family_id": "unit-transfer",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "one-current-inpatient-context",
+                "old-care-location-was-released",
+                "authoritative-transfer-event-reconciled"
+            ],
+            "event": "intra-hospital-unit-transfer",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "correction-replacement-or-not-available",
+                    "surfaces": [
+                        "today",
+                        "care-team",
+                        "communication"
+                    ],
+                    "patient_message_key": "journey.transfer.location_updating",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "old-location-withdrawn-before-new-location-disclosure",
+                    "new-location-shown-only-after-separate-release",
+                    "open-accountable-work-rerouted-without-copying-message-content"
+                ],
+                "communication": {
+                    "compose_state": "held-until-current-context-and-routing-revalidated",
+                    "accepted_state_meaning": "server-acceptance-only",
+                    "routing_state": "content-free-reroute-or-unresolved",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "preserve-only-if-same-authorized-context"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "transfer-implies-clinical-condition",
+                    "routing-change-implies-a-specific-staff-member-read-the-message"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-transfer-source-and-current-location-release-policy",
+                "approved-transfer-communication-reroute-policy"
+            ]
+        },
+        {
+            "case_id": "procedure_plan_released_without_outcome_inference",
+            "family_id": "procedure",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "procedure-plan-field-separately-released",
+                "timing-confidence-and-can-change-state-present",
+                "no-procedure-outcome-released"
+            ],
+            "event": "procedure-during-admission",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "released-fields-only",
+                    "surfaces": [
+                        "today",
+                        "my-path"
+                    ],
+                    "patient_message_key": "journey.procedure.released_plan_only",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "planned-to-confirmed-only-from-authoritative-released-state",
+                    "in-progress-or-completed-never-inferred-from-clock-time",
+                    "outcome-remains-absent-until-separately-released"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "scheduled-time-implies-procedure-started",
+                    "procedure-completed-implies-result-or-outcome"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-procedure-vocabulary-timing-and-content-release-policy"
+            ]
+        },
+        {
+            "case_id": "ancillary_test_delay_released",
+            "family_id": "ancillary-test-and-result",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "test-plan-was-released",
+                "authoritative-delay-state-reconciled",
+                "delay-copy-and-uncertainty-level-approved"
+            ],
+            "event": "ancillary-test-delayed",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "released-correction",
+                    "surfaces": [
+                        "today",
+                        "my-path"
+                    ],
+                    "patient_message_key": "journey.test.delay_released",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "prior-timing-withdrawn",
+                    "delayed-state-and-updated-window-shown-only-if-released",
+                    "no-cause-or-blame-disclosed-without-separate-release"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "delay-implies-cancellation",
+                    "delay-copy-identifies-staff-or-operational-cause"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-test-delay-source-vocabulary-and-uncertainty-policy"
+            ]
+        },
+        {
+            "case_id": "ancillary_result_not_released",
+            "family_id": "ancillary-test-and-result",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "test-completion-may-exist-in-source",
+                "patient-result-release-is-absent-pending-or-withheld"
+            ],
+            "event": "result-source-fact-arrives-without-patient-release",
+            "expected": {
+                "authorization_result": "indistinguishable-withhold",
+                "disclosure": {
+                    "mode": "generic-withhold",
+                    "surfaces": [
+                        "today",
+                        "my-path"
+                    ],
+                    "patient_message_key": "journey.result.not_available",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "source-fact-does-not-create-patient-release",
+                    "prior-section-remains-not-available-or-released-empty"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "result-exists",
+                    "result-is-normal-abnormal-final-or-reviewed"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-result-release-and-sensitive-content-policy"
+            ]
+        },
+        {
+            "case_id": "ancillary_result_separately_released",
+            "family_id": "ancillary-test-and-result",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "result-field-separately-approved-and-released",
+                "review-language-freshness-and-correction-context-present"
+            ],
+            "event": "patient-result-release-becomes-effective",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "released-fields-only",
+                    "surfaces": [
+                        "my-path"
+                    ],
+                    "patient_message_key": "journey.result.released",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "not-available-to-released-only-at-effective-release",
+                    "replacement-release-supersedes-prior-released-value"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "released-result-implies-clinical-interpretation",
+                    "display-implies-care-team-discussion-occurred"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-result-release-interpretation-and-follow-up-language"
+            ]
+        },
+        {
+            "case_id": "pre_round_question_server_accepted",
+            "family_id": "pre-round-question",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "communication-operation-approved-and-enabled",
+                "current-self-context-and-capability-revalidated",
+                "accountable-routing-consumer-ready",
+                "exact-idempotency-and-client-message-identities-present"
+            ],
+            "event": "patient-submits-pre-round-question",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "communication-state-only",
+                    "surfaces": [
+                        "today",
+                        "care-team",
+                        "communication"
+                    ],
+                    "patient_message_key": "journey.question.server_accepted",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "draft-to-server-accepted",
+                    "server-accepted-does-not-equal-staff-delivery-or-review",
+                    "content-free-accountable-routing-fact-appended"
+                ],
+                "communication": {
+                    "compose_state": "available-only-after-all-gates",
+                    "accepted_state_meaning": "durably-accepted-by-server",
+                    "routing_state": "pending-accountable-staff-projection",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-only-after-exact-accepted-response"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "care-team-received-message",
+                    "specific-response-time",
+                    "urgent-monitoring-or-emergency-service"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-pre-round-topic-and-urgent-help-copy",
+                "approved-idempotent-retry-and-ambiguous-result-recovery"
+            ]
+        },
+        {
+            "case_id": "pre_round_response_separately_released",
+            "family_id": "pre-round-question",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "prior-question-server-accepted",
+                "accountable-staff-response-exists",
+                "response-content-separately-approved-for-patient-release"
+            ],
+            "event": "approved-summary-response-released",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "released-fields-only",
+                    "surfaces": [
+                        "communication",
+                        "today"
+                    ],
+                    "patient_message_key": "journey.question.response_released",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "accepted-question-remains-immutable",
+                    "staff-response-is-distinct-released-message",
+                    "read-state-never-inferred-from-delivery-state"
+                ],
+                "communication": {
+                    "compose_state": "depends-on-current-thread-capability",
+                    "accepted_state_meaning": "prior-question-durably-accepted",
+                    "routing_state": "accountable-response-released",
+                    "notification_state": "held-until-provider-and-payload-approval",
+                    "volatile_draft_action": "clear-only-after-exact-accepted-response"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "response-is-a-complete-clinical-summary",
+                    "notification-was-delivered"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-staff-response-release-and-patient-language-policy"
+            ]
+        },
+        {
+            "case_id": "shift_handoff_preserves_thread_accountability",
+            "family_id": "shift-handoff",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "open-thread-with-server-accepted-message",
+                "current-responsibility-membership-changes",
+                "eligible-destination-resolves-or-fails-unresolved"
+            ],
+            "event": "staff-shift-handoff",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "communication-state-only",
+                    "surfaces": [
+                        "communication",
+                        "care-team"
+                    ],
+                    "patient_message_key": "journey.handoff.review_in_progress",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "thread-and-message-identities-remain-stable",
+                    "content-free-routing-ownership-changes-append-only",
+                    "no-eligible-destination-produces-unresolved-not-guessed-owner"
+                ],
+                "communication": {
+                    "compose_state": "available-only-if-fresh-accountable-routing-exists",
+                    "accepted_state_meaning": "server-acceptance-only",
+                    "routing_state": "assigned-rerouted-or-unresolved",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "preserve-only-if-same-authorized-context"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "named-staff-member-owns-or-read-thread",
+                    "handoff-guarantees-response-time"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-authoritative-workforce-and-shift-handoff-input"
+            ]
+        },
+        {
+            "case_id": "discharge_estimate_corrected",
+            "family_id": "discharge-estimate",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "prior-discharge-estimate-was-released",
+                "new-estimate-is-separately-reviewed-and-released",
+                "correction-notice-copy-approved"
+            ],
+            "event": "estimated-discharge-date-changes",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "correction-replacement",
+                    "surfaces": [
+                        "today",
+                        "my-path"
+                    ],
+                    "patient_message_key": "journey.discharge.estimate_updated",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "old-estimate-withdrawn-atomically",
+                    "new-estimate-shown-with-can-change-and-confidence-context",
+                    "internal-correction-target-and-reason-remain-hidden"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "estimate-is-a-promise",
+                    "changed-estimate-identifies-cause-or-accountability"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-discharge-estimate-source-confidence-and-language-policy"
+            ]
+        },
+        {
+            "case_id": "discharge_closes_open_thread",
+            "family_id": "discharge-with-open-thread",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "closed",
+            "preconditions": [
+                "open-thread-existed-before-discharge",
+                "authoritative-discharge-reconciled",
+                "post-discharge-portal-retention-and-support-policy-not-approved"
+            ],
+            "event": "patient-discharged-while-thread-open",
+            "expected": {
+                "authorization_result": "indistinguishable-withhold",
+                "disclosure": {
+                    "mode": "generic-withhold",
+                    "surfaces": [
+                        "today",
+                        "my-path",
+                        "care-team",
+                        "communication"
+                    ],
+                    "patient_message_key": "journey.discharge.access_changed",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "current-inpatient-context-withdrawn",
+                    "compose-capability-revoked-before-next-mutation",
+                    "open-thread-closed-or-omitted-by-approved-lifecycle-policy",
+                    "volatile-draft-and-cached-handle-purged"
+                ],
+                "communication": {
+                    "compose_state": "unavailable",
+                    "accepted_state_meaning": "historical-server-acceptance-not-current-access",
+                    "routing_state": "closed-by-encounter-lifecycle",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "purge"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "thread-never-existed",
+                    "care-team-read-or-resolved-question",
+                    "post-discharge-support-channel"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-discharge-thread-retention-closure-and-portal-handoff-policy"
+            ]
+        },
+        {
+            "case_id": "identity_correction_revokes_old_context",
+            "family_id": "identity-correction",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "requires-reproof",
+            "preconditions": [
+                "identity-link-is-merged-corrected-or-superseded",
+                "old-session-and-context-handle-may-reference-prior-link"
+            ],
+            "event": "patient-identity-merge-or-correction",
+            "expected": {
+                "authorization_result": "indistinguishable-withhold",
+                "disclosure": {
+                    "mode": "generic-withhold",
+                    "surfaces": [
+                        "today",
+                        "my-path",
+                        "care-team",
+                        "communication"
+                    ],
+                    "patient_message_key": "journey.identity.access_requires_review",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "old-session-family-and-context-handles-revoked",
+                    "cached-patient-state-and-drafts-purged",
+                    "no-automatic-cross-link-or-record-union",
+                    "new-access-requires-approved-reproof-and-authoritative-linkage"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "other-record-or-identity-exists",
+                    "merge-target-identifier",
+                    "prior-and-corrected-record-content"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-identity-merge-correction-reproof-and-audit-policy"
+            ]
+        },
+        {
+            "case_id": "representative_invited_without_access",
+            "family_id": "representative-lifecycle",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "representative-candidate",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "invitation-created-in-future-approved-workflow",
+                "identity-proof-consent-scope-and-acceptance-incomplete"
+            ],
+            "event": "representative-invited",
+            "expected": {
+                "authorization_result": "indistinguishable-withhold",
+                "disclosure": {
+                    "mode": "generic-withhold",
+                    "surfaces": [],
+                    "patient_message_key": "journey.representative.access_not_available",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "invitation-never-grants-access",
+                    "no-patient-context-handle-issued"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "patient-has-an-admission",
+                    "invitation-target-is-associated-with-patient"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-representative-invitation-proofing-and-consent-policy"
+            ]
+        },
+        {
+            "case_id": "representative_scoped_candidate",
+            "family_id": "representative-lifecycle",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "representative-candidate",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "representative-identity-and-relationship-verified",
+                "patient-consent-or-other-authority-current",
+                "operation-and-field-scopes-effective",
+                "sensitive-service-exclusions-evaluated"
+            ],
+            "event": "representative-scope-becomes-effective",
+            "expected": {
+                "authorization_result": "indistinguishable-withhold",
+                "disclosure": {
+                    "mode": "generic-withhold",
+                    "surfaces": [],
+                    "patient_message_key": "journey.representative.held_pending_approval",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "candidate-remains-held-until-representative-model-approved",
+                    "future-access-must-be-operation-and-field-scoped",
+                    "self-and-representative-realms-must-not-share-handles-or-caches"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "all-patient-content-is-in-scope",
+                    "representative-can-communicate-or-act-as-patient"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-representative-operation-field-and-communication-scopes"
+            ]
+        },
+        {
+            "case_id": "representative_scope_expired",
+            "family_id": "representative-lifecycle",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "representative-candidate",
+            "encounter_state": "access-expired",
+            "preconditions": [
+                "prior-representative-scope-reached-expiry",
+                "request-or-refresh-occurs-after-expiry"
+            ],
+            "event": "representative-scope-expires",
+            "expected": {
+                "authorization_result": "indistinguishable-withhold",
+                "disclosure": {
+                    "mode": "generic-withhold",
+                    "surfaces": [],
+                    "patient_message_key": "journey.representative.access_not_available",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "all-representative-capabilities-denied",
+                    "context-handles-caches-and-drafts-purged",
+                    "no-offline-display-after-expiry"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "patient-or-encounter-current-state",
+                    "whether-access-ended-by-time-or-another-reason"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-representative-expiry-and-session-revocation-policy"
+            ]
+        },
+        {
+            "case_id": "representative_scope_revoked",
+            "family_id": "representative-lifecycle",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "representative-candidate",
+            "encounter_state": "access-revoked",
+            "preconditions": [
+                "prior-representative-scope-revoked",
+                "request-mutation-refresh-or-offline-open-occurs-after-revocation"
+            ],
+            "event": "representative-scope-revoked",
+            "expected": {
+                "authorization_result": "indistinguishable-withhold",
+                "disclosure": {
+                    "mode": "generic-withhold",
+                    "surfaces": [],
+                    "patient_message_key": "journey.representative.access_not_available",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "authorization-rechecked-before-every-disclosure-and-mutation",
+                    "session-family-context-handles-caches-and-drafts-purged",
+                    "queued-or-replayed-mutation-rejected"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "who-revoked-access",
+                    "revocation-reason",
+                    "patient-or-encounter-current-state"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-representative-revocation-propagation-and-support-policy"
+            ]
+        },
+        {
+            "case_id": "limited_english_interpreter_support",
+            "family_id": "language-and-interpreter",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "account-language-preference-approved",
+                "each-patient-visible-field-has-approved-language-release",
+                "interpreter-request-status-has-separate-authoritative-source"
+            ],
+            "event": "limited-english-patient-uses-approved-language-and-interpreter-support",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "released-fields-only",
+                    "surfaces": [
+                        "today",
+                        "my-path",
+                        "care-team",
+                        "communication"
+                    ],
+                    "patient_message_key": "journey.language.approved_content_and_interpreter_status",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "approved-translation-or-approved-source-language-selected-per-field",
+                    "unapproved-translation-withheld-without-machine-translation-fallback",
+                    "interpreter-status-shown-only-if-separately-released"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "interpreter-is-confirmed-from-language-preference-alone",
+                    "unreviewed-machine-translation-is-clinical-content"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-professional-translation-fallback-and-interpreter-operating-model"
+            ]
+        },
+        {
+            "case_id": "visual_accommodation_equivalence",
+            "family_id": "accommodations",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "visual-accommodation-preference-or-supported-system-setting-active"
+            ],
+            "event": "patient-uses-visual-accommodation",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "accessibility-equivalent",
+                    "surfaces": [
+                        "today",
+                        "my-path",
+                        "care-team",
+                        "communication"
+                    ],
+                    "patient_message_key": "journey.accommodation.visual",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "text-reflows-at-supported-system-size",
+                    "decorative-imagery-can-be-hidden",
+                    "state-retains-text-shape-and-noncolor-cue"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "hidden-image-removes-information",
+                    "color-alone-communicates-status"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-screen-reader-magnification-contrast-and-visual-design-review"
+            ]
+        },
+        {
+            "case_id": "hearing_accommodation_equivalence",
+            "family_id": "accommodations",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "hearing-accommodation-required",
+                "future-audio-or-video-content-may-be-present"
+            ],
+            "event": "patient-uses-hearing-accommodation",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "accessibility-equivalent",
+                    "surfaces": [
+                        "today",
+                        "my-path",
+                        "care-team",
+                        "communication"
+                    ],
+                    "patient_message_key": "journey.accommodation.hearing",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "no-essential-alert-relies-on-sound-alone",
+                    "approved-caption-or-transcript-required-for-future-media",
+                    "communication-state-remains-visible-in-text"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "audio-cue-alone-conveys-urgency-or-completion"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-caption-transcript-and-hearing-access-review"
+            ]
+        },
+        {
+            "case_id": "motor_accommodation_equivalence",
+            "family_id": "accommodations",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "motor-or-alternative-input-accommodation-required"
+            ],
+            "event": "patient-uses-motor-or-alternative-input",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "accessibility-equivalent",
+                    "surfaces": [
+                        "today",
+                        "my-path",
+                        "care-team",
+                        "communication"
+                    ],
+                    "patient_message_key": "journey.accommodation.motor",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "all-actions-reachable-with-supported-alternative-input",
+                    "target-size-and-focus-order-retained",
+                    "timeout-does-not-discard-unsubmitted-input-without-warning"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "gesture-only-action-is-equivalent"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-switch-control-voice-control-keyboard-and-target-review"
+            ]
+        },
+        {
+            "case_id": "cognitive_accommodation_equivalence",
+            "family_id": "accommodations",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "cognitive-accommodation-required"
+            ],
+            "event": "patient-uses-cognitive-accommodation",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "accessibility-equivalent",
+                    "surfaces": [
+                        "today",
+                        "my-path",
+                        "care-team",
+                        "communication"
+                    ],
+                    "patient_message_key": "journey.accommodation.cognitive",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "one-primary-purpose-per-step",
+                    "timing-uncertainty-and-changes-explained-consistently",
+                    "urgent-help-path-remains-distinct-from-routine-message"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "simplified-copy-removes-material-risk-or-uncertainty"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-cognitive-load-comprehension-and-patient-advisor-review"
+            ]
+        },
+        {
+            "case_id": "low_literacy_teach_back_equivalence",
+            "family_id": "accommodations",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "low-literacy-support-required",
+                "education-or-teach-back-capability-future-approved"
+            ],
+            "event": "patient-uses-low-literacy-and-teach-back-support",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "accessibility-equivalent",
+                    "surfaces": [
+                        "my-path",
+                        "care-team",
+                        "communication"
+                    ],
+                    "patient_message_key": "journey.accommodation.low_literacy",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "approved-plain-language-content-retains-clinical-meaning",
+                    "teach-back-response-recorded-only-through-approved-capability",
+                    "nonresponse-never-treated-as-understanding-or-refusal"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "reading-level-predicts-capacity",
+                    "completed-screen-implies-understanding"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-health-literacy-education-and-teach-back-policy"
+            ]
+        },
+        {
+            "case_id": "sensitive_data_fails_closed",
+            "family_id": "sensitive-data",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "resource-or-encounter-requires-sensitive-service-policy",
+                "effective-sensitive-service-authorization-is-absent-ambiguous-or-denied"
+            ],
+            "event": "sensitive-resource-requested",
+            "expected": {
+                "authorization_result": "indistinguishable-withhold",
+                "disclosure": {
+                    "mode": "generic-withhold",
+                    "surfaces": [],
+                    "patient_message_key": "journey.sensitive.access_not_available",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "no-field-section-thread-or-capability-disclosed",
+                    "cached-value-handle-and-draft-purged",
+                    "denial-indistinguishable-from-unknown-or-unavailable"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "sensitive-service-exists",
+                    "resource-type",
+                    "restriction-policy-or-denial-reason"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-sensitive-service-legal-privacy-clinical-and-representative-policy"
+            ]
+        },
+        {
+            "case_id": "source_outage_sections_not_available",
+            "family_id": "source-outage-and-staleness",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "required-authoritative-source-is-unavailable",
+                "complete-fresh-evaluation-cannot-finish"
+            ],
+            "event": "authoritative-source-outage",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "not-available",
+                    "surfaces": [
+                        "today",
+                        "my-path",
+                        "care-team"
+                    ],
+                    "patient_message_key": "journey.source.temporarily_not_available",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "affected-sections-become-not-available-not-released-empty",
+                    "unaffected-separately-governed-fields-may-remain",
+                    "last-known-value-not-presented-as-current"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "no-care-is-planned",
+                    "source-outage-means-discharge-transfer-or-cancellation"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-source-outage-partial-response-downtime-and-support-policy"
+            ]
+        },
+        {
+            "case_id": "stale_projection_policy_evaluated_per_field",
+            "family_id": "source-outage-and-staleness",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "released-field-observation-is-older-than-current-source-policy-target",
+                "field-specific-stale-display-policy-evaluated"
+            ],
+            "event": "projection-becomes-stale",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "approved-stale-or-not-available",
+                    "surfaces": [
+                        "today",
+                        "my-path",
+                        "care-team"
+                    ],
+                    "patient_message_key": "journey.source.stale_policy_applied",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "approved-stale-field-shows-observed-time-and-patient-notice",
+                    "field-without-approved-stale-policy-is-withheld",
+                    "document-level-freshness-never-overrides-field-state"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "stale-value-is-current",
+                    "all-fields-share-the-same-freshness"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-field-specific-staleness-threshold-copy-and-withhold-policy"
+            ]
+        },
+        {
+            "case_id": "incorrect_content_retracted",
+            "family_id": "content-retraction-and-correction",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "patient-facing-value-was-released",
+                "effective-retraction-fact-withdraws-that-release",
+                "no-approved-replacement-is-effective"
+            ],
+            "event": "incorrect-patient-facing-content-retracted",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "not-available",
+                    "surfaces": [
+                        "today",
+                        "my-path",
+                        "care-team",
+                        "communication"
+                    ],
+                    "patient_message_key": "journey.content.withdrawn",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "withdrawn-value-removed-atomically-from-all-surfaces",
+                    "cached-and-offline-copies-purged",
+                    "no-internal-reason-actor-or-target-identifier-disclosed"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "withdrawn-value",
+                    "why-or-who-retracted-content",
+                    "replacement-exists"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-cross-surface-retraction-propagation-and-support-policy"
+            ]
+        },
+        {
+            "case_id": "incorrect_content_corrected_replacement",
+            "family_id": "content-retraction-and-correction",
+            "fixture_class": "synthetic-no-phi",
+            "execution_status": "held-not-runnable",
+            "actor": "self",
+            "encounter_state": "current-inpatient",
+            "preconditions": [
+                "prior-release-withdrawn",
+                "replacement-content-independently-reviewed-and-released",
+                "patient-correction-notice-approved"
+            ],
+            "event": "corrected-replacement-becomes-effective",
+            "expected": {
+                "authorization_result": "eligible-only-after-every-required-gate",
+                "disclosure": {
+                    "mode": "correction-replacement",
+                    "surfaces": [
+                        "today",
+                        "my-path",
+                        "care-team",
+                        "communication"
+                    ],
+                    "patient_message_key": "journey.content.corrected",
+                    "values_must_be_separately_released": true,
+                    "atomic_response_required": true,
+                    "no_store_required": true
+                },
+                "state_transitions": [
+                    "old-value-never-serialized-with-replacement",
+                    "replacement-carries-its-own-complete-field-context",
+                    "source-free-patient-correction-notice-shown"
+                ],
+                "communication": {
+                    "compose_state": "not-applicable",
+                    "accepted_state_meaning": "not-applicable",
+                    "routing_state": "not-applicable",
+                    "notification_state": "not-available",
+                    "volatile_draft_action": "clear-on-inactive-or-context-loss"
+                },
+                "nondisclosure": [
+                    "no-source-system-identifier",
+                    "no-patient-principal-grant-encounter-or-staff-identifier",
+                    "no-unreleased-clinical-value",
+                    "no-withheld-resource-existence-or-denial-reason",
+                    "no-internal-routing-pool-or-staffing-detail",
+                    "no-approval-actor-or-internal-correction-target"
+                ],
+                "prohibited_inferences": [
+                    "internal-correction-reason-or-actor",
+                    "replacement-is-a-complete-clinical-explanation"
+                ],
+                "accessibility": {
+                    "profile": "same-information-and-actions-through-supported-presentation",
+                    "essential_information_in_imagery_permitted": false,
+                    "color_only_state_permitted": false,
+                    "patient_action_loss_permitted": false
+                },
+                "audit": [
+                    "journey-evaluation-with-policy-and-case-id",
+                    "authorization-and-current-context-outcome",
+                    "disclosed-field-keys-without-values",
+                    "communication-state-transition-without-message-body",
+                    "withhold-correction-retraction-or-outage-reason-code-without-clinical-content"
+                ],
+                "offline": {
+                    "phi_cache_permitted": false,
+                    "stale_value_may_be_presented_as_current": false,
+                    "queued_mutation_permitted": false,
+                    "last_known_value_requires_separate_approved_policy": true
+                },
+                "rollback": {
+                    "kill_switch_required": true,
+                    "release_withdrawal_required": true,
+                    "cached_handle_and_volatile_draft_purge_required": true
+                }
+            },
+            "required_approval_gates": [
+                "named-product-and-contract-owner",
+                "approved-self-identity-session-and-recovery-design",
+                "approved-current-inpatient-source-and-lifecycle-design",
+                "approved-operation-specific-authorization-and-nondisclosure-matrix",
+                "approved-field-source-release-freshness-uncertainty-correction-language-and-offline-matrix",
+                "approved-clinical-content-and-patient-language",
+                "approved-communication-routing-replay-urgency-and-patient-visible-state-model",
+                "approved-representative-consent-scope-expiry-revocation-and-sensitive-service-policy",
+                "approved-accessibility-language-interpreter-and-accommodation-design",
+                "approved-privacy-security-threat-and-clinical-hazard-controls",
+                "approved-audit-monitoring-support-incident-rollback-and-kill-switch-plan",
+                "canonical-backend-ios-android-fixture-parity",
+                "default-off-nonproduction-integration-approval",
+                "approved-cross-surface-correction-review-release-and-notice-policy"
+            ]
+        }
+    ]
+}
