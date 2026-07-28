@@ -19,6 +19,20 @@ export interface SoakRoundsRun {
   status: string;
 }
 
+export interface SoakContextEvents {
+  lost: number;
+  restored: number;
+  currentlyLost: boolean;
+}
+
+export interface SoakFrameBudget {
+  frameP95: number;
+  renderP95: number;
+  labelsP95: number;
+  controlsP95: number;
+  samples: number;
+}
+
 export interface Flow4dSoakHook {
   rendererInfo: () => SoakRendererInfo | null;
   nowDeltaMs: () => number | null;
@@ -29,6 +43,12 @@ export interface Flow4dSoakHook {
   /** Visible pathway-deviation glyphs (Phase C) — feeds the urgency census's
    * amber share so the earned-urgency budget counts the new layer (H4). */
   pathwayGlyphs: () => number | null;
+  /** GPU context loss/restore counts (F1) — lets the soak prove the wall
+   * self-healed across driver resets rather than freezing on a dead canvas. */
+  contextEvents: () => SoakContextEvents | null;
+  /** Per-subsystem p95 frame time in ms (F4) — the RAIL budget signal the H4
+   * soak records; steady-state, not a single spike. */
+  frameBudget: () => SoakFrameBudget | null;
 }
 
 declare global {

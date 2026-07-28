@@ -16,7 +16,11 @@ import {
   dwellLabel,
 } from '@/features/patientFlowNavigator/journey';
 import type { JourneyAlignAnchor } from '@/features/patientFlowNavigator/journey';
-import type { PatientJourney } from '@/features/patientFlowNavigator/journeySchemas';
+import type {
+  JourneyPathwayMilestone,
+  JourneyPathwayProgress,
+  PatientJourney,
+} from '@/features/patientFlowNavigator/journeySchemas';
 
 /**
  * The Patient Journey Drawer (FLOW-4D plan §7.1, finding PJ-1) — the plain-
@@ -52,6 +56,10 @@ interface NavigatorJourneyDrawerProps {
   /** Phase C adherence panel (§7.2). Absent (null) = surface off — the
    * drawer renders byte-identical to Phase B. */
   adherence?: DrawerAdherence | null;
+  /** Phase D governed-pathway progress (§8 D5). Absent (null) = both the
+   * serving gate and the demo overlay are off — nothing renders. Comes from the
+   * journey payload; the orchestrator applies the belt-and-suspenders flag gate. */
+  pathwayProgress?: JourneyPathwayProgress | null;
   /** Drafts a governed exception note; resolves true when it lands PENDING. */
   onExceptionNote?: (pathway: string, deviations: string[], note: string) => Promise<boolean>;
   /** "Explain this deviation" via the AI plane — only wired when
@@ -244,6 +252,75 @@ function AdherencePanel({
   );
 }
 
+// Status by glyph AND word — never colour alone (token canon). Decorative glyph
+// is aria-hidden; the word carries the state to assistive tech.
+const PATHWAY_STATUS_GLYPH: Record<string, string> = {
+  completed: '✓',
+  current: '◈',
+  delayed: '!',
+  canceled: '✕',
+  planned: '○',
+};
+
+function pathwayExpectedLabel(milestone: JourneyPathwayMilestone): string {
+  const expected = milestone.expected;
+  if (expected?.display) return expected.display;
+  const min = expected?.day_offset_min;
+  const max = expected?.day_offset_max;
+  if (typeof min === 'number' && typeof max === 'number' && min !== max) return `day ${min}–${max}`;
+  const day = typeof max === 'number' ? max : min;
+  return typeof day === 'number' ? `day ${day}` : '';
+}
+
+/**
+ * Phase D governed-pathway progress (§8 D5). Shows a patient's assigned-pathway
+ * stage/milestone progress — dark serving read OR the synthetic demo overlay.
+ * Never guidance: `clinical_use` is always false, and the demo carries an
+ * explicit "not clinical guidance" notice. ERAS elements-met framing mirrors the
+ * adherence panel; status is glyph + word, never colour alone.
+ */
+function PathwayProgressPanel({ progress }: { progress: JourneyPathwayProgress }) {
+  const { pathway, summary } = progress;
+  return (
+    <section className="patient-flow-journey-section" aria-label="Assigned pathway progress">
+      <h3>
+        Pathway
+        {progress.demo && (
+          <span className="patient-flow-pathway-demo" title="Synthetic demonstration — not clinical guidance">
+            Demo
+          </span>
+        )}
+      </h3>
+      <div className="patient-flow-pathway-head">
+        <span className="patient-flow-pathway-name">{pathway.label}</span>
+        <span className="patient-flow-pathway-headline patient-flow-journey-num">{summary.elements_met_label}</span>
+      </div>
+      {progress.notice && <p className="patient-flow-journey-note">{progress.notice}</p>}
+      <ol className="patient-flow-pathway-milestones">
+        {progress.milestones.map((milestone) => {
+          const expected = pathwayExpectedLabel(milestone);
+          return (
+            <li key={milestone.stable_key} className={`patient-flow-pathway-milestone status-${milestone.status}`}>
+              <span className="patient-flow-pathway-glyph" aria-hidden="true">
+                {PATHWAY_STATUS_GLYPH[milestone.status] ?? '○'}
+              </span>
+              <span className="patient-flow-pathway-title">{milestone.title}</span>
+              <span className="patient-flow-pathway-meta">
+                <span className="patient-flow-pathway-state">{milestone.status}</span>
+                {expected ? <span className="patient-flow-journey-num"> · {expected}</span> : null}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="patient-flow-journey-provenance">
+        {pathway.semantic_version ? `Against ${pathway.key} v${pathway.semantic_version}` : pathway.key}
+        {progress.source === 'synthetic_demo' ? ' · synthetic demo' : ` · ${batchTimeLabel(progress.as_of)}`}
+      </p>
+    </section>
+  );
+}
+
 export default function NavigatorJourneyDrawer({
   journey,
   state,
@@ -257,6 +334,7 @@ export default function NavigatorJourneyDrawer({
   onCopyLink,
   copiedLink,
   adherence = null,
+  pathwayProgress = null,
   onExceptionNote,
   onExplainDeviation,
 }: NavigatorJourneyDrawerProps) {
@@ -365,6 +443,8 @@ export default function NavigatorJourneyDrawer({
               onExplainDeviation={onExplainDeviation}
             />
           )}
+
+          {pathwayProgress && <PathwayProgressPanel progress={pathwayProgress} />}
 
           <section className="patient-flow-journey-section">
             <h3>Stay segments</h3>

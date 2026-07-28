@@ -341,6 +341,11 @@ export default function PatientFlowNavigator({
   // the lens leg composes here. Flag off → this file renders byte-identical.
   const conformanceEnabled = Boolean(page.props.arena?.conformance_enabled) && patientDotsVisible;
   const arenaAiEnabled = Boolean(page.props.arena?.ai_enabled);
+  // Phase D (§8 D5): governed-pathway progress. Real serving is pre-composed
+  // server-side (FLOW4D_PATHWAY_PROGRESS_ENABLED ∧ assignment gate); the demo
+  // overlay rides the demo flag. Both require a patient-dots lens.
+  const pathwayProgressServing = Boolean(page.props.flow4d?.pathway_progress_enabled) && patientDotsVisible;
+  const carePathwaysDemo = Boolean(page.props.features?.care_pathways_demo) && patientDotsVisible;
   const openEddyWithPrefill = useEddyStore((state) => state.openWithPrefill);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -460,6 +465,16 @@ export default function PatientFlowNavigator({
   // Phase C: the open journey's cached adherence verdicts (null = surface off
   // for this page/persona — the drawer renders byte-identical to Phase B).
   const [adherence, setAdherence] = useState<DrawerAdherence | null>(null);
+  // Phase D (§8 D5): the open journey's pathway progress, if present. The
+  // backend only emits the block for real serving (dark) or the designated demo
+  // patient; the belt-and-suspenders flag gate here mirrors that so a stale
+  // payload can never render past a just-flipped flag.
+  const pathwayProgress = useMemo(() => {
+    const block = journeyData?.pathway_progress ?? null;
+    if (!block) return null;
+    if (block.demo) return carePathwaysDemo ? block : null;
+    return pathwayProgressServing ? block : null;
+  }, [journeyData, carePathwaysDemo, pathwayProgressServing]);
   const journeyPatientRef = useRef<string | null>(null);
   const journeyFollowRef = useRef(false);
   useEffect(() => {
@@ -493,6 +508,8 @@ export default function PatientFlowNavigator({
   // E6: task mode — progressive disclosure of the toolbar (WN-6). Default
   // Monitor is the resting at-a-glance layout minus the investigation kit.
   const [taskMode, setTaskMode] = useState<NavigatorTaskMode>('monitor');
+  // F1: the GPU context was lost — show a degraded card until it restores.
+  const [contextLost, setContextLost] = useState(false);
   const [roundsRun, setRoundsRun] = useState<RunSummary | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [inspectorAction, setInspectorAction] = useState<{ label: string; href: string } | null>(null);
@@ -921,6 +938,8 @@ export default function PatientFlowNavigator({
       : null),
     epoch: () => epochRef.current,
     pathwayGlyphs: () => sceneRef.current?.pathwayGlyphCount() ?? null,
+    contextEvents: () => sceneRef.current?.contextEvents() ?? null,
+    frameBudget: () => sceneRef.current?.frameBudget() ?? null,
   }), []);
 
   // Live-follow: slide the 48h window with wall-clock now, but only in
@@ -1376,6 +1395,16 @@ export default function PatientFlowNavigator({
         onUserCameraStart: () => {
           setTourAuto(false);
           setJourneyFollow(false);
+        },
+        // F1: GPU context lost/restored — show a degraded card, then rebuild
+        // every layer from state on restore (nothing recomputed while lost).
+        onContextLost: () => setContextLost(true),
+        onContextRestored: () => {
+          setContextLost(false);
+          lastBucketKeyRef.current = '';
+          lastRoundsKeyRef.current = '';
+          setSceneNonce((nonce) => nonce + 1);
+          refreshScene();
         },
         // E-4 hover chip: identity-free by construction AND by guard test —
         // hoverLabelFor lives in sceneVocabulary, pinned by hoverLabel.test.ts.
@@ -2160,6 +2189,15 @@ export default function PatientFlowNavigator({
         <div className="patient-flow-rebuild-notice" role="status">{rebuildNotice}</div>
       )}
 
+      {/* F1: GPU context lost — an honest degraded card, not a frozen canvas.
+          The scene halts rendering and self-heals on restore (auto-rebuild). */}
+      {contextLost && (
+        <div className="patient-flow-context-lost" role="alert">
+          <strong>Graphics paused</strong>
+          <span>The GPU context was lost (driver reset or system sleep). The view will rebuild automatically when it returns.</span>
+        </div>
+      )}
+
       <NavigatorToolbar
         summary={summary}
         ambient={ambient}
@@ -2298,6 +2336,7 @@ export default function PatientFlowNavigator({
           onCopyLink={copyJourneyLink}
           copiedLink={journeyLinkCopied}
           adherence={adherence}
+          pathwayProgress={pathwayProgress}
           onExceptionNote={conformanceEnabled ? draftExceptionNote : undefined}
           onExplainDeviation={conformanceEnabled && arenaAiEnabled && eddyEnabled ? explainDeviation : undefined}
         />

@@ -101,6 +101,51 @@ export const journeyBarrierSchema = z.object({
   attribution: z.string(),
 });
 
+// FLOW-4D Phase D: governed-pathway progress (dark serving path + synthetic
+// demo overlay). Present only when the serving gate produced a real assignment
+// or the demo overlay applies; tolerant-nullish so its absence never white-screens.
+export const journeyPathwayMilestoneSchema = z.object({
+  stable_key: z.string(),
+  title: z.string(),
+  phase: z.string().nullish(),
+  sequence: z.number().nullish(),
+  status: z.string(),
+  observed_at: isoString.nullish(),
+  expected: z.object({
+    day_offset_min: z.number().nullish(),
+    day_offset_max: z.number().nullish(),
+    display: z.string().nullish(),
+  }),
+});
+
+export const journeyPathwayProgressSchema = z.object({
+  state: z.string(),
+  demo: z.boolean(),
+  // Always false in Phase D — the drawer must never present this as guidance.
+  clinical_use: z.boolean(),
+  notice: z.string().nullish(),
+  pathway: z.object({
+    key: z.string(),
+    label: z.string(),
+    version_uuid: z.string().nullish(),
+    semantic_version: z.string().nullish(),
+    digest: z.string().nullish(),
+  }),
+  milestones: z.array(journeyPathwayMilestoneSchema),
+  summary: z.object({
+    completed: z.number(),
+    current: z.number(),
+    planned: z.number(),
+    delayed: z.number(),
+    canceled: z.number(),
+    total: z.number(),
+    current_stable_key: z.string().nullish(),
+    elements_met_label: z.string(),
+  }),
+  source: z.string(),
+  as_of: isoString,
+});
+
 export const patientJourneySchema = z.object({
   patient: z.object({
     patient_context_ref: z.string(),
@@ -143,11 +188,14 @@ export const patientJourneySchema = z.object({
     refreshed_at: isoString.nullish(),
     status: z.string(),
   }).nullish(),
+  pathway_progress: journeyPathwayProgressSchema.nullish(),
   as_of: isoString,
   generated_at: isoString,
 });
 
 export type PatientJourney = z.infer<typeof patientJourneySchema>;
+export type JourneyPathwayProgress = z.infer<typeof journeyPathwayProgressSchema>;
+export type JourneyPathwayMilestone = z.infer<typeof journeyPathwayMilestoneSchema>;
 export type JourneyEvent = z.infer<typeof journeyEventSchema>;
 export type JourneySegment = z.infer<typeof journeySegmentSchema>;
 export type JourneyPhase = z.infer<typeof journeyPhaseSchema>;

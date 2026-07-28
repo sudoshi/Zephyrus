@@ -1873,6 +1873,33 @@
   gap: 12px;
 }
 
+/* F1 — GPU context-lost card. Amber (a pause, not a breach — it self-heals),
+   scoped overlay palette per the F-9 exception. */
+.patient-flow-context-lost {
+  position: absolute;
+  z-index: 4;
+  inset: 88px auto auto 50%;
+  transform: translateX(-50%);
+  width: min(520px, calc(100vw - 32px));
+  border: 1px solid rgba(224, 163, 63, 0.55);
+  background: rgba(58, 47, 31, 0.94);
+  color: #ffe9c7;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.patient-flow-context-lost strong {
+  color: #ffd795;
+  font-size: 14px;
+}
+
+.patient-flow-context-lost span {
+  font-size: 12px;
+  color: #e6ddc9;
+}
+
 /* DI-2 — the dead-navigator retry affordance; palette reuses the card's own
    values (the overlay palette is the sanctioned F-9 exception). */
 .patient-flow-error-retry {
@@ -2151,6 +2178,92 @@
   display: flex;
   gap: 6px;
   margin-top: 6px;
+}
+
+/* Phase D (§8 D5) — governed-pathway progress. Reuses the sanctioned F-9
+   navigator overlay palette (dark-only wall instrument; do not migrate to
+   Tailwind tokens). Status is glyph + word, never colour alone. */
+.patient-flow-pathway-demo {
+  margin-left: 8px;
+  border: 1px solid rgba(224, 163, 63, 0.55);
+  border-radius: 5px;
+  color: #e0a33f;
+  font-size: 11px;
+  padding: 0 5px;
+  vertical-align: middle;
+}
+
+.patient-flow-pathway-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.patient-flow-pathway-name {
+  color: #f3efe5;
+}
+
+.patient-flow-pathway-headline {
+  color: #ddd6c7;
+}
+
+.patient-flow-pathway-milestones {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+
+.patient-flow-pathway-milestone {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0;
+  color: #ddd6c7;
+}
+
+.patient-flow-pathway-glyph {
+  flex: none;
+  width: 14px;
+  text-align: center;
+  color: #ddd6c7;
+}
+
+.patient-flow-pathway-milestone.status-completed .patient-flow-pathway-glyph {
+  color: #f3efe5;
+}
+
+.patient-flow-pathway-milestone.status-current {
+  color: #f3efe5;
+}
+
+.patient-flow-pathway-milestone.status-current .patient-flow-pathway-glyph {
+  color: #e0a33f;
+}
+
+.patient-flow-pathway-milestone.status-delayed .patient-flow-pathway-glyph {
+  color: #e0a33f;
+}
+
+.patient-flow-pathway-title {
+  flex: 1 1 auto;
+}
+
+.patient-flow-pathway-meta {
+  flex: none;
+  color: #ddd6c7;
+  font-size: 11px;
+}
+
+.patient-flow-pathway-state {
+  text-transform: capitalize;
+}
+
+.patient-flow-journey-provenance {
+  margin: 6px 0 0;
+  color: #ddd6c7;
+  font-size: 11px;
 }
 
 /* F-6 pt 2 — the atomic-rebootstrap notice: quiet, informational, never an

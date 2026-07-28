@@ -93,6 +93,15 @@ return [
     // it (plan OQ-1 owns prod enablement and the coral-escalation question).
     'flow4d' => [
         'conformance' => filter_var(env('FLOW4D_CONFORMANCE_ENABLED', false), FILTER_VALIDATE_BOOL),
+
+        // FLOW-4D governed-pathway progress surface (plan §8 Phase D). Composes
+        // with — never replaces — the care-pathways serving gate: the journey
+        // drawer only shows a patient's assigned-pathway stage/milestone progress
+        // when this flag AND care-pathways.assignment_enabled are on. Off by
+        // default; the DRG-catalog serving path stays dark until [SU]/clinical
+        // sign-off (plan G-9). The synthetic demo overlay is independent and
+        // rides care-pathways.demo.enabled, never a serving flag.
+        'pathway_progress' => filter_var(env('FLOW4D_PATHWAY_PROGRESS_ENABLED', false), FILTER_VALIDATE_BOOL),
     ],
 
 ];

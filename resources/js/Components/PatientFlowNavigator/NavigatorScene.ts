@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Text as TroikaText } from 'troika-three-text';
 import { buildFlightPath, flightDurationMs } from '@/features/patientFlowNavigator/cameraFlight';
+import { AGGREGATE_TRAIL_THRESHOLD, tallyUnitFlows, unitCentroids } from '@/features/patientFlowNavigator/flowAggregation';
 import { parseTime, positionFor } from '@/features/patientFlowNavigator/stateProjection';
 import { patientTokenInspectorData } from '@/features/patientFlowNavigator/inspector';
 import { confidenceOpacity } from '@/features/patientFlowNavigator/projections';
@@ -77,6 +78,15 @@ export interface NavigatorSceneCallbacks {
    * respect the operator's hand).
    */
   onUserCameraStart?: () => void;
+  /**
+   * F1: the GPU context was lost (driver reset, tab backgrounded on some
+   * GPUs, OS sleep). The orchestrator shows a degraded card; rendering is
+   * halted until restore. Scene state lives outside GL, so nothing is lost.
+   */
+  onContextLost?: () => void;
+  /** F1: the GPU context is back — the orchestrator hides the card and asks
+   *  for a full rebuild (the scene re-runs its layer builds from state). */
+  onContextRestored?: () => void;
 }
 
 export interface GhostRenderItem {
@@ -199,6 +209,20 @@ export class NavigatorScene {
 
   private traceLineMaterial: THREE.LineBasicMaterial | null = null;
 
+  // F2(b): the aggregate-trails guard. Above the threshold the per-patient
+  // spaghetti stops reading; we collapse it to unit→unit flow arrows with
+  // counts (pure tally in flowAggregation.ts) and keep only the SELECTED
+  // patient's own trail (§6.2).
+  private flowArrowLineMaterials: THREE.LineBasicMaterial[] = [];
+
+  private flowArrowConeMaterial: THREE.MeshBasicMaterial | null = null;
+
+  private flowArrowConeGeometry = new THREE.ConeGeometry(1.1, 3, 10);
+
+  private flowCountSprites = new Map<number, THREE.SpriteMaterial>();
+
+  private aggregateTrailsActive = false;
+
   // Phase C (plan §7.2): pathway-deviation glyphs. A hollow amber bracket
   // rides above a deviant patient's token; entries are ptok → worded chip
   // state ("sepsis · late step"). Amber cap is the VOCABULARY's contract.
@@ -302,6 +326,37 @@ export class NavigatorScene {
   private selectionMaterial: THREE.MeshStandardMaterial | null = null;
 
   private disposed = false;
+
+  // F1: GPU context-loss recovery. While lost, the render loop halts (scene
+  // state lives outside GL, so nothing is recomputed); on restore the loop
+  // resumes and the orchestrator re-runs a full refresh. Counters feed the
+  // H4 soak hook so a long wall session can prove it survived driver resets.
+  private contextLost = false;
+
+  private contextLossCount = 0;
+
+  private contextRestoreCount = 0;
+
+  private readonly onContextLost = (event: Event): void => {
+    // preventDefault is REQUIRED — without it the browser never fires
+    // 'webglcontextrestored' and the canvas stays permanently dead.
+    event.preventDefault();
+    this.contextLost = true;
+    this.contextLossCount += 1;
+    cancelAnimationFrame(this.animationId);
+    this.callbacks.onContextLost?.();
+  };
+
+  private readonly onContextRestored = (): void => {
+    this.contextRestoreCount += 1;
+    this.contextLost = false;
+    // three re-uploads geometry/material buffers lazily on the next render;
+    // the orchestrator's rebuild (via the callback) re-runs every layer build
+    // from state so nothing renders stale. Restart the loop.
+    this.clock.getDelta();
+    this.animationId = requestAnimationFrame(this.animate);
+    this.callbacks.onContextRestored?.();
+  };
 
   private readonly container: HTMLElement;
 
@@ -484,7 +539,16 @@ export class NavigatorScene {
     this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
     this.renderer.domElement.addEventListener('pointermove', this.onPointerMove);
     this.renderer.domElement.addEventListener('pointerleave', this.onPointerLeave);
+    // F1: GPU context-loss recovery — a wall instrument outlives many driver
+    // resets, so it must self-heal rather than freeze on a dead canvas.
+    this.renderer.domElement.addEventListener('webglcontextlost', this.onContextLost);
+    this.renderer.domElement.addEventListener('webglcontextrestored', this.onContextRestored);
     this.animationId = requestAnimationFrame(this.animate);
+  }
+
+  /** F1 soak counters: how many context losses/restores this session survived. */
+  contextEvents(): { lost: number; restored: number; currentlyLost: boolean } {
+    return { lost: this.contextLossCount, restored: this.contextRestoreCount, currentlyLost: this.contextLost };
   }
 
   private readonly onPointerLeave = (): void => {
@@ -810,64 +874,189 @@ export class NavigatorScene {
 
     const trace = this.tracePatientId;
     const activePatients = new Set(states.map((state) => state.patientId));
+
+    // F2(b): above the threshold (and not tracing), collapse the per-patient
+    // trails to unit→unit flow arrows so the scene stays legible at high
+    // census. The selected patient still gets their own trail on top.
+    this.aggregateTrailsActive = trace === null && activePatients.size > AGGREGATE_TRAIL_THRESHOLD;
+    if (this.aggregateTrailsActive) {
+      this.rebuildFlowArrows(tracks, locations, activePatients, timeMs);
+      const selected = this.selectedEntity?.kind === 'patient' ? this.selectedEntity.id : null;
+      if (selected && activePatients.has(selected)) {
+        const track = tracks.get(selected);
+        if (track) this.renderPatientTrail(selected, track, locations, timeMs, false);
+      }
+      return;
+    }
+
     for (const [patientId, track] of tracks.entries()) {
       if (trace !== null) {
         if (patientId !== trace) continue;
       } else if (!activePatients.has(patientId)) {
         continue;
       }
+      this.renderPatientTrail(patientId, track, locations, timeMs, trace !== null);
+    }
+  }
 
-      const points: THREE.Vector3[] = [];
-      const arrivals: number[] = [];
-      for (const event of track) {
-        const eventMs = parseTime(event.occurred_at);
-        if (eventMs > timeMs) break;
-        const position = positionFor(locations, event.to_location);
-        if (!position) continue;
-        const vector = new THREE.Vector3(position.x, position.y, position.z);
-        if (!points.length || !points[points.length - 1].equals(vector)) {
-          points.push(vector);
-          arrivals.push(eventMs);
-        }
+  /** Render one patient's trail (identity line, or gradient + dwell markers in
+   *  trace mode). Extracted so the aggregate guard can still draw the selected
+   *  patient's own trail (F2b). */
+  private renderPatientTrail(
+    patientId: string,
+    track: PatientFlowEvent[],
+    locations: PatientFlowLocations,
+    timeMs: number,
+    traced: boolean,
+  ): void {
+    const points: THREE.Vector3[] = [];
+    const arrivals: number[] = [];
+    for (const event of track) {
+      const eventMs = parseTime(event.occurred_at);
+      if (eventMs > timeMs) break;
+      const position = positionFor(locations, event.to_location);
+      if (!position) continue;
+      const vector = new THREE.Vector3(position.x, position.y, position.z);
+      if (!points.length || !points[points.length - 1].equals(vector)) {
+        points.push(vector);
+        arrivals.push(eventMs);
       }
-      if (points.length < 2) continue;
+    }
+    if (points.length < 2) return;
 
-      const geometry = new THREE.BufferGeometry().setFromPoints(points);
-      if (trace !== null) {
-        const colors = new Float32Array(points.length * 3);
-        for (let index = 0; index < points.length; index += 1) {
-          const t = points.length === 1 ? 1 : index / (points.length - 1);
-          const [r, g, b] = traceGradientRgb(t, patientId);
-          colors[index * 3] = r;
-          colors[index * 3 + 1] = g;
-          colors[index * 3 + 2] = b;
-        }
-        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        const line = new THREE.Line(geometry, this.traceLineMaterialLazy());
-        line.userData = { kind: 'patient-trail', patient_id: patientId };
-        this.trailLayer.add(line);
-
-        // Dwell markers: arrival→next-arrival span at one spot (the open
-        // segment runs to the scrubbed time). Shared token geometry (guarded
-        // in clearGroup) + the patient's own cached identity material.
-        for (let index = 0; index < points.length; index += 1) {
-          const dwellMs = (index < points.length - 1 ? arrivals[index + 1] : timeMs) - arrivals[index];
-          const scale = dwellNodeScale(dwellMs / 60_000);
-          if (scale <= 0) continue;
-          const node = new THREE.Mesh(this.tokenGeometry, this.materialForPatient(patientId));
-          node.position.copy(points[index]);
-          node.position.y += 0.6;
-          node.scale.setScalar(scale * 0.5);
-          node.userData = { kind: 'trace-dwell', patient_id: patientId };
-          this.trailLayer.add(node);
-        }
-        continue;
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    if (traced) {
+      const colors = new Float32Array(points.length * 3);
+      for (let index = 0; index < points.length; index += 1) {
+        const t = points.length === 1 ? 1 : index / (points.length - 1);
+        const [r, g, b] = traceGradientRgb(t, patientId);
+        colors[index * 3] = r;
+        colors[index * 3 + 1] = g;
+        colors[index * 3 + 2] = b;
       }
-
-      const line = new THREE.Line(geometry, this.trailMaterialForPatient(patientId));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      const line = new THREE.Line(geometry, this.traceLineMaterialLazy());
       line.userData = { kind: 'patient-trail', patient_id: patientId };
       this.trailLayer.add(line);
+
+      // Dwell markers: arrival→next-arrival span at one spot (the open
+      // segment runs to the scrubbed time). Shared token geometry (guarded
+      // in clearGroup) + the patient's own cached identity material.
+      for (let index = 0; index < points.length; index += 1) {
+        const dwellMs = (index < points.length - 1 ? arrivals[index + 1] : timeMs) - arrivals[index];
+        const scale = dwellNodeScale(dwellMs / 60_000);
+        if (scale <= 0) continue;
+        const node = new THREE.Mesh(this.tokenGeometry, this.materialForPatient(patientId));
+        node.position.copy(points[index]);
+        node.position.y += 0.6;
+        node.scale.setScalar(scale * 0.5);
+        node.userData = { kind: 'trace-dwell', patient_id: patientId };
+        this.trailLayer.add(node);
+      }
+      return;
     }
+
+    const line = new THREE.Line(geometry, this.trailMaterialForPatient(patientId));
+    line.userData = { kind: 'patient-trail', patient_id: patientId };
+    this.trailLayer.add(line);
+  }
+
+  /** Whether the aggregate flow-arrow mode is currently rendering (soak/tests). */
+  aggregateTrailsMode(): boolean {
+    return this.aggregateTrailsActive;
+  }
+
+  /**
+   * F2(b): tally unit→unit movements across the active tracks (within the
+   * window) and draw one flow arrow per pair, opacity/width by count, with a
+   * count label — the legible aggregate that replaces trail spaghetti.
+   */
+  private rebuildFlowArrows(
+    tracks: Map<string, PatientFlowEvent[]>,
+    locations: PatientFlowLocations,
+    activePatients: Set<string>,
+    timeMs: number,
+  ): void {
+    // Pure tally (flowAggregation.ts) — centroids raised to the arrow plane.
+    const unitCentroid = new Map<string, THREE.Vector3>();
+    for (const [unit, point] of unitCentroids(locations).entries()) {
+      unitCentroid.set(unit, new THREE.Vector3(point.x, point.y + 2.4, point.z));
+    }
+    const { flows, maxCount } = tallyUnitFlows(tracks, locations, activePatients, timeMs);
+
+    for (const { from, to, count } of flows) {
+      const a = unitCentroid.get(from);
+      const b = unitCentroid.get(to);
+      if (!a || !b || a.equals(b)) continue;
+      const bucket = Math.min(3, Math.floor((count / maxCount) * 3.999));
+      const line = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([a, b]),
+        this.flowArrowLineMaterialFor(bucket),
+      );
+      line.userData = { kind: 'flow-arrow', from_unit: from, to_unit: to, count };
+      this.trailLayer.add(line);
+
+      // Arrowhead cone at the destination, oriented along the flow.
+      const dir = new THREE.Vector3().subVectors(b, a).normalize();
+      const cone = new THREE.Mesh(this.flowArrowConeGeometry, this.flowArrowConeMaterialLazy());
+      cone.position.copy(b).addScaledVector(dir, -2);
+      cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+      cone.userData = { kind: 'flow-arrow', from_unit: from, to_unit: to, count };
+      this.trailLayer.add(cone);
+
+      // Count label at the midpoint.
+      const sprite = new THREE.Sprite(this.flowCountSpriteFor(count));
+      sprite.position.copy(a).add(b).multiplyScalar(0.5).setY((a.y + b.y) / 2 + 2);
+      sprite.scale.set(3.4, 3.4, 1);
+      this.trailLayer.add(sprite);
+    }
+  }
+
+  private flowArrowLineMaterialFor(bucket: number): THREE.LineBasicMaterial {
+    let material = this.flowArrowLineMaterials[bucket];
+    if (!material) {
+      material = new THREE.LineBasicMaterial({
+        color: 0x9db4c0,
+        transparent: true,
+        opacity: 0.3 + bucket * 0.2,
+      });
+      this.flowArrowLineMaterials[bucket] = material;
+    }
+    return material;
+  }
+
+  private flowArrowConeMaterialLazy(): THREE.MeshBasicMaterial {
+    if (!this.flowArrowConeMaterial) {
+      this.flowArrowConeMaterial = new THREE.MeshBasicMaterial({ color: 0x9db4c0, transparent: true, opacity: 0.75 });
+    }
+    return this.flowArrowConeMaterial;
+  }
+
+  private flowCountSpriteFor(count: number): THREE.SpriteMaterial {
+    let material = this.flowCountSprites.get(count);
+    if (!material) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.beginPath();
+        context.arc(32, 32, 24, 0, Math.PI * 2);
+        context.fillStyle = 'rgba(27, 31, 29, 0.9)';
+        context.fill();
+        context.lineWidth = 2;
+        context.strokeStyle = '#9db4c0';
+        context.stroke();
+        context.font = '600 26px sans-serif';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillStyle = '#e6eef2';
+        context.fillText(String(count), 32, 34);
+      }
+      material = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthWrite: false });
+      this.flowCountSprites.set(count, material);
+    }
+    return material;
   }
 
   /** Trace mode on/off (B3). Caller owns triggering the bucketed rebuild. */
@@ -1741,6 +1930,8 @@ export class NavigatorScene {
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown);
     this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove);
     this.renderer.domElement.removeEventListener('pointerleave', this.onPointerLeave);
+    this.renderer.domElement.removeEventListener('webglcontextlost', this.onContextLost);
+    this.renderer.domElement.removeEventListener('webglcontextrestored', this.onContextRestored);
     this.clearHover();
     this.clearSelection();
     this.hoverChip.remove();
@@ -1797,23 +1988,87 @@ export class NavigatorScene {
     this.roundGeometry.dispose();
     this.bracketGeometry.dispose();
     this.pathwayMaterial.dispose();
+    // F2(b) flow-arrow resources.
+    this.flowArrowConeGeometry.dispose();
+    this.flowArrowLineMaterials.forEach((material) => material.dispose());
+    this.flowArrowConeMaterial?.dispose();
+    this.flowCountSprites.forEach((material) => {
+      material.map?.dispose();
+      material.dispose();
+    });
     this.orbit.dispose();
     this.renderer.dispose();
   }
 
   private readonly animate = (): void => {
     if (this.disposed) return;
+    // F1: never touch a lost GL context — the loop is cancelled on loss, but
+    // guard defensively so a queued frame can't render into a dead context.
+    if (this.contextLost) return;
+    // F4: per-subsystem frame timing (RAIL budget). performance.now() deltas
+    // into ring buffers — no performance.measure entries to accumulate/clear.
+    const frameStart = performance.now();
     const delta = Math.min(this.clock.getDelta(), 0.05);
     this.callbacks.onFrame(delta);
     // E2: advance any active van Wijk flight before OrbitControls damps —
     // the flight owns target+position this frame, damping then settles.
     this.stepFlight();
     this.orbit.update();
+    const controlsEnd = performance.now();
     this.updateUnitLabels();
+    const labelsEnd = performance.now();
     this.emitCameraText();
     this.renderer.render(this.scene, this.camera);
+    const renderEnd = performance.now();
+    this.sampleFrame('controls', controlsEnd - frameStart);
+    this.sampleFrame('labels', labelsEnd - controlsEnd);
+    this.sampleFrame('render', renderEnd - labelsEnd);
+    this.sampleFrame('frame', renderEnd - frameStart);
     this.animationId = requestAnimationFrame(this.animate);
   };
+
+  // F4: fixed-size ring buffers per subsystem; p95 is computed on demand from
+  // the current window (soak hook). A wall session's steady-state, not a spike.
+  private static readonly FRAME_SAMPLES = 240;
+
+  private readonly frameSamples: Record<string, Float32Array> = {
+    frame: new Float32Array(NavigatorScene.FRAME_SAMPLES),
+    render: new Float32Array(NavigatorScene.FRAME_SAMPLES),
+    labels: new Float32Array(NavigatorScene.FRAME_SAMPLES),
+    controls: new Float32Array(NavigatorScene.FRAME_SAMPLES),
+  };
+
+  private frameSampleIndex = 0;
+
+  private frameSampleCount = 0;
+
+  private sampleFrame(subsystem: 'frame' | 'render' | 'labels' | 'controls', ms: number): void {
+    this.frameSamples[subsystem][this.frameSampleIndex] = ms;
+    if (subsystem === 'frame') {
+      // The `frame` write advances the shared cursor once per animate().
+      this.frameSampleIndex = (this.frameSampleIndex + 1) % NavigatorScene.FRAME_SAMPLES;
+      if (this.frameSampleCount < NavigatorScene.FRAME_SAMPLES) this.frameSampleCount += 1;
+    }
+  }
+
+  private p95(buffer: Float32Array): number {
+    const count = this.frameSampleCount;
+    if (count === 0) return 0;
+    const sorted = Array.from(buffer.subarray(0, count)).sort((a, b) => a - b);
+    const rank = Math.min(count - 1, Math.floor(count * 0.95));
+    return Math.round(sorted[rank] * 100) / 100;
+  }
+
+  /** F4 RAIL budget: p95 ms per subsystem over the sample window (soak hook). */
+  frameBudget(): { frameP95: number; renderP95: number; labelsP95: number; controlsP95: number; samples: number } {
+    return {
+      frameP95: this.p95(this.frameSamples.frame),
+      renderP95: this.p95(this.frameSamples.render),
+      labelsP95: this.p95(this.frameSamples.labels),
+      controlsP95: this.p95(this.frameSamples.controls),
+      samples: this.frameSampleCount,
+    };
+  }
 
   /** Throttled — a React state write per frame is exactly the churn we removed. */
   private emitCameraText(): void {
@@ -1969,7 +2224,8 @@ export class NavigatorScene {
         && child.geometry !== this.forecastGeometry
         && child.geometry !== this.barrierGeometry
         && child.geometry !== this.roundGeometry
-        && child.geometry !== this.bracketGeometry) {
+        && child.geometry !== this.bracketGeometry
+        && child.geometry !== this.flowArrowConeGeometry) {
         child.geometry.dispose();
       }
     }
