@@ -15,7 +15,7 @@ struct PatientSessionManagementView: View {
                         PatientScreenHeader(
                             eyebrow: "Account security",
                             title: "Manage devices",
-                            subtitle: "Review the devices currently signed in to Hummingbird Patient."
+                            subtitle: "Review the devices currently signed in to Nightingale."
                         )
 
                         content
@@ -101,7 +101,7 @@ struct PatientSessionManagementView: View {
                     scene: .empty,
                     icon: "iphone.slash",
                     title: "No active devices",
-                    message: "No active Hummingbird Patient devices are available to show."
+                    message: "No active Nightingale devices are available to show."
                 )
             } else {
                 VStack(spacing: 14) {
@@ -119,7 +119,7 @@ struct PatientSessionManagementView: View {
 
             PatientCard {
                 Label(
-                    "Signing out a device ends its Hummingbird Patient session. It does not change your hospital care or bedside support.",
+                    "Signing out a device ends its Nightingale session. It does not change your hospital care or bedside support.",
                     systemImage: "info.circle.fill"
                 )
                 .font(.subheadline)
@@ -170,9 +170,9 @@ struct PatientSessionManagementView: View {
 
     private func confirmationMessage(for session: PatientSessionSummary) -> String {
         if session.current {
-            return "Signing out this device immediately closes Hummingbird Patient here and returns you to the welcome screen."
+            return "Signing out this device immediately closes Nightingale here and returns you to the welcome screen."
         }
-        return "This signs out \(session.safeDeviceName) from Hummingbird Patient. It will not sign out this device."
+        return "This signs out \(session.safeDeviceName) from Nightingale. It will not sign out this device."
     }
 }
 

@@ -92,6 +92,30 @@ final class PatientAPIClientTests: XCTestCase {
         XCTAssertTrue(requests.allSatisfy { $0.value(forHTTPHeaderField: "Cache-Control") == "no-store" })
     }
 
+    func testDemoAliasUsesTheExistingPatientTokenRouteAndCompatibilityField() async throws {
+        PatientURLProtocolStub.install { request in
+            XCTAssertEqual(request.url?.path, "/api/patient/v1/auth/token")
+            let body = try XCTUnwrap(Self.bodyData(from: request))
+            let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            XCTAssertEqual(json["email"] as? String, "demo1")
+            XCTAssertEqual(json["password"] as? String, "synthetic-demo-test-password")
+            return Self.success(
+                request,
+                json: Self.tokenEnvelope(access: "demo-access", refresh: "demo-refresh")
+            )
+        }
+
+        let pair = try await client.signIn(
+            email: "demo1",
+            password: "synthetic-demo-test-password",
+            device: .current
+        )
+
+        XCTAssertEqual(pair.accessToken, "demo-access")
+        XCTAssertEqual(pair.refreshToken, "demo-refresh")
+        XCTAssertEqual(PatientURLProtocolStub.recordedRequests().count, 1)
+    }
+
     func testReadOnlyExperienceRequestsUseBearerAccessAndDecodeThePatientProjections() async throws {
         let encounterUUID = "019f0000-0000-7000-8000-000000000010"
         PatientURLProtocolStub.install { request in

@@ -1,4 +1,4 @@
-# Hummingbird Patient Android background asset provenance
+# Nightingale Android background asset provenance
 
 Last verified: 2026-07-21
 

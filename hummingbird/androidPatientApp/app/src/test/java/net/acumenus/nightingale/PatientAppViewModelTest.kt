@@ -21,6 +21,18 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class PatientAppViewModelTest {
     @Test
+    fun signInIdentifierAcceptsOnlyFiveExactDemoAliasesOrAnEmailShape() {
+        listOf("demo1", "demo2", "demo3", "demo4", "demo5").forEach { alias ->
+            assertTrue(PatientLoginIdentifier.isAcceptedForSignIn(alias))
+            assertTrue(PatientLoginIdentifier.isAcceptedForSignIn("  ${alias.uppercase()}  "))
+        }
+        assertTrue(PatientLoginIdentifier.isAcceptedForSignIn("patient@example.test"))
+        listOf("", "demo0", "demo6", "demo01", "demo１", "demo1.example.test").forEach { value ->
+            assertTrue(!PatientLoginIdentifier.isAcceptedForSignIn(value))
+        }
+    }
+
+    @Test
     fun startsSignedOutInInvitationMode() {
         val viewModel = PatientAppViewModel(apiEnabled = false)
         val session = viewModel.state.session as PatientSessionState.SignedOut
@@ -78,6 +90,43 @@ class PatientAppViewModelTest {
         assertEquals("Sample Patient", ready.snapshot.patientDisplayName)
         assertTrue(!ready.synthetic)
         assertTrue(viewModel.state.messaging is PatientMessagingState.Unavailable)
+    }
+
+    @Test
+    fun exactDemoAliasIsNormalizedAndUsesTheExistingPatientCredentialExchange() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val api = FakePatientApiGateway()
+        val viewModel = PatientAppViewModel(
+            apiEnabled = true,
+            coordinator = coordinator(api),
+            scope = this,
+            workDispatcher = dispatcher,
+        )
+
+        viewModel.selectAuthMode(PatientAuthMode.SIGN_IN)
+        viewModel.submitSignIn("  DEMO1  ", "synthetic-demo-test-password")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.session is PatientSessionState.Ready)
+        assertEquals(listOf("demo1"), api.passwordIdentifiers)
+    }
+
+    @Test
+    fun invalidDemoLikeIdentifierNeverReachesTheCredentialExchange() {
+        val api = FakePatientApiGateway()
+        val viewModel = PatientAppViewModel(
+            apiEnabled = true,
+            coordinator = coordinator(api),
+        )
+
+        viewModel.selectAuthMode(PatientAuthMode.SIGN_IN)
+        viewModel.submitSignIn("demo6", "synthetic-demo-test-password")
+
+        val signedOut = viewModel.state.session as PatientSessionState.SignedOut
+        val validation = signedOut.status as PatientAuthStatus.ValidationError
+        assertEquals("Enter a valid email or demo login.", validation.message)
+        assertEquals(0, api.passwordExchangeCalls)
+        assertTrue(api.passwordIdentifiers.isEmpty())
     }
 
     @Test

@@ -20,6 +20,22 @@ import net.acumenus.nightingale.data.PatientPreferencesUpdate
 import net.acumenus.nightingale.data.PatientSessionCoordinator
 import net.acumenus.nightingale.data.PatientSessionOutcome
 
+internal object PatientLoginIdentifier {
+    private val demoAliases = setOf(
+        "demo1",
+        "demo2",
+        "demo3",
+        "demo4",
+        "demo5",
+    )
+
+    fun isAcceptedForSignIn(value: String): Boolean {
+        val normalized = value.trim().lowercase()
+
+        return normalized in demoAliases || "@" in normalized
+    }
+}
+
 internal class PatientAppViewModel(
     private val apiEnabled: Boolean,
     launchState: PatientLaunchState = PatientLaunchState(),
@@ -101,7 +117,12 @@ internal class PatientAppViewModel(
         when {
             email.isBlank() || password.isBlank() -> {
                 state = state.copy(session = signedOut.copy(
-                    status = PatientAuthStatus.ValidationError("Enter both your email and password."),
+                    status = PatientAuthStatus.ValidationError("Enter your email or demo login, and your password."),
+                ))
+            }
+            !PatientLoginIdentifier.isAcceptedForSignIn(email) -> {
+                state = state.copy(session = signedOut.copy(
+                    status = PatientAuthStatus.ValidationError("Enter a valid email or demo login."),
                 ))
             }
             !apiEnabled -> unavailable(
@@ -116,7 +137,10 @@ internal class PatientAppViewModel(
                 val passwordChars = password.toCharArray()
                 execute("Signing in securely") {
                     try {
-                        coordinator.signIn(email.trim(), passwordChars)
+                        coordinator.signIn(
+                            email.trim().lowercase(),
+                            passwordChars,
+                        )
                     } finally {
                         passwordChars.fill('\u0000')
                     }

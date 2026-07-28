@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Groups
@@ -80,6 +81,7 @@ internal fun PatientExperienceScreen(
     onSignOut: () -> Unit,
 ) {
     var selectedEducation by remember { mutableStateOf<PatientEducation?>(null) }
+    val contentListState = remember(selectedDestination) { LazyListState() }
     val scene = when (selectedDestination) {
         PatientDestination.TODAY -> PatientScene.TODAY
         PatientDestination.PATH -> PatientScene.PATHWAY
@@ -168,6 +170,7 @@ internal fun PatientExperienceScreen(
             },
         ) { contentPadding ->
             LazyColumn(
+                state = contentListState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(contentPadding)

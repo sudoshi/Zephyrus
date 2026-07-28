@@ -4,6 +4,22 @@ import XCTest
 final class PatientAPIModelTests: XCTestCase {
     private let decoder = JSONDecoder()
 
+    func testSignInIdentifierAcceptsOnlyTheFiveExactDemoAliasesOrAnEmailShape() {
+        for alias in ["demo1", "demo2", "demo3", "demo4", "demo5"] {
+            XCTAssertTrue(PatientLoginIdentifier.isAcceptedForSignIn(alias))
+            XCTAssertTrue(PatientLoginIdentifier.isAcceptedForSignIn("  \(alias.uppercased())  "))
+        }
+
+        XCTAssertTrue(PatientLoginIdentifier.isAcceptedForSignIn("sample@example.test"))
+
+        for rejected in ["", "demo0", "demo6", "demo01", "demo１", "demo1.example.test"] {
+            XCTAssertFalse(
+                PatientLoginIdentifier.isAcceptedForSignIn(rejected),
+                "Unexpectedly accepted \(rejected)"
+            )
+        }
+    }
+
     func testProfileEnvelopeDecodesCurrentBackendShapeAndNullVersion() throws {
         let json = #"""
         {

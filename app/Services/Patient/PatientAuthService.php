@@ -7,6 +7,7 @@ use App\Models\Patient\PatientEnrollmentChallenge;
 use App\Models\Patient\PatientIdentityLink;
 use App\Models\Patient\PatientPrincipal;
 use App\Models\Patient\PatientSession;
+use App\Nightingale\Demo\NightingaleDemoCohort;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -170,10 +171,13 @@ class PatientAuthService
      */
     public function authenticate(string $email, string $password, array $device, Request $request): array
     {
-        $normalizedEmail = Str::lower(trim($email));
-        $principal = PatientPrincipal::query()
-            ->whereRaw('lower(email) = ?', [$normalizedEmail])
-            ->first();
+        $normalizedIdentifier = Str::lower(trim($email));
+        $isDemoAlias = NightingaleDemoCohort::isLoginAlias($normalizedIdentifier);
+        $principal = $isDemoAlias
+            ? $this->resolveNightingaleDemoPrincipal($normalizedIdentifier)
+            : PatientPrincipal::query()
+                ->whereRaw('lower(email) = ?', [$normalizedIdentifier])
+                ->first();
 
         $validPassword = $this->passwordMatches($password, (string) ($principal?->password ?? ''));
 
@@ -215,8 +219,25 @@ class PatientAuthService
         $principal->forceFill(['last_authenticated_at' => now()])->save();
 
         return DB::transaction(
-            fn (): array => $this->issueNewSession($principal, $device, $request, 'password'),
+            fn (): array => $this->issueNewSession(
+                $principal,
+                $device,
+                $request,
+                $isDemoAlias ? 'nightingale_demo_password' : 'password',
+            ),
         );
+    }
+
+    private function resolveNightingaleDemoPrincipal(string $alias): ?PatientPrincipal
+    {
+        $matches = NightingaleDemoCohort::constrainPrincipalQuery(
+            PatientPrincipal::query(),
+            $alias,
+        )->limit(2)->get();
+
+        // Duplicate or partial ownership is indistinguishable from an unknown
+        // account at the public boundary and must fail closed.
+        return $matches->count() === 1 ? $matches->sole() : null;
     }
 
     /** @return array<string, mixed> */
@@ -512,7 +533,11 @@ class PatientAuthService
             'app_version' => $device['app_version'] ?? null,
             'os_version' => $device['os_version'] ?? null,
             'auth_method' => $authMethod,
-            'assurance_level' => $authMethod === 'enrollment' ? 'enrollment_verified' : 'password',
+            'assurance_level' => match ($authMethod) {
+                'enrollment' => 'enrollment_verified',
+                'nightingale_demo_password' => 'synthetic_demo',
+                default => 'password',
+            },
             'client_instance_digest' => $this->clientFingerprint($device, $request),
             'user_agent_digest' => hash('sha256', (string) $request->userAgent()),
             'ip_address' => $request->ip(),

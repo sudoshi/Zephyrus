@@ -266,7 +266,7 @@ final class PatientAPIClient: PatientAPIService, @unchecked Sendable {
     init(baseURL: URL) {
         precondition(
             PatientAPIBoundary.validatedBaseURL(baseURL.absoluteString) != nil,
-            "Hummingbird Patient rejected an unsafe API origin."
+            "Nightingale rejected an unsafe API origin."
         )
         self.baseURL = baseURL
         self.session = PatientURLSessionFactory.ephemeral()
@@ -280,7 +280,7 @@ final class PatientAPIClient: PatientAPIService, @unchecked Sendable {
     init(baseURL: URL, session: URLSession) {
         precondition(
             PatientAPIBoundary.validatedBaseURL(baseURL.absoluteString) != nil,
-            "Hummingbird Patient rejected an unsafe API origin."
+            "Nightingale rejected an unsafe API origin."
         )
         self.baseURL = baseURL
         self.session = session

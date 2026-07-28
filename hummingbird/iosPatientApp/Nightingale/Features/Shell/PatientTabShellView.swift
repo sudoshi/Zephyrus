@@ -61,7 +61,7 @@ struct PatientTabShellView: View {
             .accessibilityIdentifier("manage-devices")
             Button("Sign out", role: .destructive, action: signOut)
         } message: {
-            Text("Choose account settings or manage the devices signed in to Hummingbird Patient.")
+            Text("Choose account settings or manage the devices signed in to Nightingale.")
         }
         .tint(PatientPalette.blue)
         .sheet(isPresented: $isManagingDevices, onDismiss: {

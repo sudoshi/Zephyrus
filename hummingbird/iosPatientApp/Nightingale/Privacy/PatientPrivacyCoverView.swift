@@ -10,7 +10,7 @@ struct PatientPrivacyCoverView: View {
                     .font(.system(size: 48))
                     .foregroundStyle(PatientPalette.blue)
                     .accessibilityHidden(true)
-                Text("Hummingbird Patient")
+                Text("Nightingale")
                     .font(.title.bold())
                     .foregroundStyle(PatientPalette.ink)
                 Text("Your care information is covered while the app is not active.")
