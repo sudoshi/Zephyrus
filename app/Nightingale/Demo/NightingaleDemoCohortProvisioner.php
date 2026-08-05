@@ -420,8 +420,16 @@ final class NightingaleDemoCohortProvisioner
     private function catalogBindings(bool $forUpdate): array
     {
         $releaseQuery = DB::table('care_pathways.catalog_releases')
-            ->where('catalog_release_uuid', NightingaleDemoCohort::CATALOG_RELEASE_UUID)
-            ->where('dataset_key', NightingaleDemoCohort::CATALOG_DATASET_KEY);
+            ->where('dataset_key', NightingaleDemoCohort::CATALOG_DATASET_KEY)
+            ->where('source_csv_sha256', NightingaleDemoCohort::CATALOG_SOURCE_CSV_SHA256)
+            ->where(
+                'verification_workbook_sha256',
+                NightingaleDemoCohort::CATALOG_VERIFICATION_WORKBOOK_SHA256,
+            )
+            ->where(
+                'declared_baseline_sha256',
+                NightingaleDemoCohort::CATALOG_DECLARED_BASELINE_SHA256,
+            );
         if ($forUpdate) {
             $releaseQuery->lockForUpdate();
         }
@@ -432,6 +440,18 @@ final class NightingaleDemoCohortProvisioner
         $release = $releases->sole();
         if ($release->grouper_version !== NightingaleDemoCohort::CATALOG_GROUPER_VERSION
             || (int) $release->pathway_count !== NightingaleDemoCohort::CATALOG_PATHWAY_COUNT
+            || (int) $release->pathway_drg_association_count !== NightingaleDemoCohort::CATALOG_PATHWAY_DRG_ASSOCIATION_COUNT
+            || (int) $release->unique_drg_code_count !== NightingaleDemoCohort::CATALOG_UNIQUE_DRG_CODE_COUNT
+            || (int) $release->claim_count !== NightingaleDemoCohort::CATALOG_CLAIM_COUNT
+            || (int) $release->source_count !== NightingaleDemoCohort::CATALOG_SOURCE_COUNT
+            || (int) $release->change_count !== NightingaleDemoCohort::CATALOG_CHANGE_COUNT
+            || (int) $release->evidence_verified_count !== NightingaleDemoCohort::CATALOG_EVIDENCE_VERIFIED_COUNT
+            || (int) $release->evidence_limitations_count !== NightingaleDemoCohort::CATALOG_EVIDENCE_LIMITATIONS_COUNT
+            || (int) $release->signoff_queue_count !== NightingaleDemoCohort::CATALOG_SIGNOFF_QUEUE_COUNT
+            || (int) $release->specialist_review_count !== NightingaleDemoCohort::CATALOG_SPECIALIST_REVIEW_COUNT
+            || (int) $release->redesign_count !== NightingaleDemoCohort::CATALOG_REDESIGN_COUNT
+            || (int) $release->volume_control_total !== NightingaleDemoCohort::CATALOG_VOLUME_CONTROL_TOTAL
+            || number_format((float) $release->coverage_control_percent, 3, '.', '') !== NightingaleDemoCohort::CATALOG_COVERAGE_CONTROL_PERCENT
             || $release->state !== 'inactive'
             || (bool) $release->clinical_signoff_complete
             || (int) $release->clinical_signoff_count !== 0
@@ -495,6 +515,7 @@ final class NightingaleDemoCohortProvisioner
             }
 
             $members[$alias] = [
+                'catalog_release_uuid' => (string) $release->catalog_release_uuid,
                 'pathway_version_id' => (int) $row->pathway_version_id,
                 'pathway_version_uuid' => (string) $row->pathway_version_uuid,
                 'pathway_key' => (string) $row->pathway_key,
@@ -697,7 +718,7 @@ final class NightingaleDemoCohortProvisioner
                 'clinical_use_permitted' => false,
                 'automatic_enrollment' => false,
                 'catalog_binding' => [
-                    'catalog_release_uuid' => NightingaleDemoCohort::CATALOG_RELEASE_UUID,
+                    'catalog_release_uuid' => $binding['catalog_release_uuid'],
                     'pathway_version_uuid' => $binding['pathway_version_uuid'],
                     'pathway_key' => $binding['pathway_key'],
                     'ms_drg' => $binding['ms_drg'],
@@ -1241,6 +1262,10 @@ final class NightingaleDemoCohortProvisioner
             }
             $unitIds[] = (int) $encounter->unit_id;
             $binding = $catalog['members'][$alias];
+            if ($this->canonicalJson((array) $principal->preferences)
+                !== $this->canonicalJson($this->principalPreferences($alias, $binding))) {
+                throw new RuntimeException("nightingale_demo_{$alias}_principal_not_ready");
+            }
             $projections = PatientEncounterProjection::query()
                 ->where('access_grant_id', $grant->getKey())
                 ->get();

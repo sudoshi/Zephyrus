@@ -31,6 +31,8 @@ class NightingaleDemoCohortProvisionerTest extends TestCase
 
     private PatientPrincipal $referencePrincipal;
 
+    private string $catalogReleaseUuid;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -47,7 +49,7 @@ class NightingaleDemoCohortProvisionerTest extends TestCase
         $this->seedExactCatalog();
     }
 
-    public function test_preview_reconciles_exact_catalog_and_makes_no_cohort_write(): void
+    public function test_preview_reconciles_exact_semantic_catalog_identity_and_returns_its_environment_uuid_without_writes(): void
     {
         $before = $this->cohortCounts();
         $result = $this->provisioner()->preview($this->unit->getKey());
@@ -55,7 +57,7 @@ class NightingaleDemoCohortProvisionerTest extends TestCase
         $this->assertFalse($result['committed']);
         $this->assertSame('preview', $result['action']);
         $this->assertSame(NightingaleDemoCohort::loginAliases(), $result['login_handles']);
-        $this->assertSame(NightingaleDemoCohort::CATALOG_RELEASE_UUID, $result['catalog_release_uuid']);
+        $this->assertSame($this->catalogReleaseUuid, $result['catalog_release_uuid']);
         $this->assertSame('inactive', $result['catalog_state']);
         $this->assertFalse($result['catalog_clinical_signoff_complete']);
         $this->assertFalse($result['credential_material_emitted']);
@@ -126,6 +128,10 @@ class NightingaleDemoCohortProvisionerTest extends TestCase
         foreach (NightingaleDemoCohort::MEMBERS as $alias => $scenario) {
             $principal = $this->principal($alias);
             $this->assertTrue(Hash::check($password, (string) $principal->password));
+            $this->assertSame(
+                $this->catalogReleaseUuid,
+                $principal->preferences['provisioning']['catalog_binding']['catalog_release_uuid'],
+            );
             $this->assertSame($scenario['pathway_key'], $principal->preferences['provisioning']['catalog_binding']['pathway_key']);
             $this->assertSame($scenario['ms_drg'], $principal->preferences['provisioning']['catalog_binding']['ms_drg']);
             $this->assertFalse($principal->preferences['provisioning']['clinical_use_permitted']);
@@ -405,6 +411,57 @@ class NightingaleDemoCohortProvisionerTest extends TestCase
         }
     }
 
+    public function test_catalog_release_state_drift_fails_before_any_cohort_write(): void
+    {
+        DB::table('care_pathways.catalog_releases')
+            ->where('catalog_release_uuid', $this->catalogReleaseUuid)
+            ->update(['state' => 'under_review']);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('nightingale_demo_catalog_release_state_changed');
+        try {
+            $this->provisioner()->apply(
+                $this->unit->getKey(),
+                'Synthetic-Catalog-State-Guard-Test-83!',
+            );
+        } finally {
+            $this->assertSame([
+                'principals' => 0,
+                'identity_links' => 0,
+                'grants' => 0,
+                'encounters' => 0,
+                'projections' => 0,
+                'sessions' => 0,
+                'tokens' => 0,
+            ], $this->cohortCounts());
+        }
+    }
+
+    public function test_catalog_evidence_fingerprint_mismatch_fails_before_any_cohort_write(): void
+    {
+        DB::statement('TRUNCATE TABLE care_pathways.definitions, care_pathways.catalog_releases CASCADE');
+        $this->seedExactCatalog(hash('sha256', 'intentionally-wrong-source-fingerprint'));
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('nightingale_demo_catalog_release_not_exact');
+        try {
+            $this->provisioner()->apply(
+                $this->unit->getKey(),
+                'Synthetic-Catalog-Fingerprint-Guard-61!',
+            );
+        } finally {
+            $this->assertSame([
+                'principals' => 0,
+                'identity_links' => 0,
+                'grants' => 0,
+                'encounters' => 0,
+                'projections' => 0,
+                'sessions' => 0,
+                'tokens' => 0,
+            ], $this->cohortCounts());
+        }
+    }
+
     public function test_foreign_owned_collision_rolls_back_all_five_members(): void
     {
         Encounter::query()->create([
@@ -665,31 +722,32 @@ class NightingaleDemoCohortProvisionerTest extends TestCase
         ];
     }
 
-    private function seedExactCatalog(): void
+    private function seedExactCatalog(?string $sourceCsvSha256 = null): void
     {
+        $this->catalogReleaseUuid = (string) Str::uuid7();
         $releaseId = DB::table('care_pathways.catalog_releases')->insertGetId([
-            'catalog_release_uuid' => NightingaleDemoCohort::CATALOG_RELEASE_UUID,
+            'catalog_release_uuid' => $this->catalogReleaseUuid,
             'dataset_key' => NightingaleDemoCohort::CATALOG_DATASET_KEY,
-            'source_csv_sha256' => str_repeat('a', 64),
-            'verification_workbook_sha256' => str_repeat('b', 64),
-            'declared_baseline_sha256' => str_repeat('c', 64),
+            'source_csv_sha256' => $sourceCsvSha256 ?? NightingaleDemoCohort::CATALOG_SOURCE_CSV_SHA256,
+            'verification_workbook_sha256' => NightingaleDemoCohort::CATALOG_VERIFICATION_WORKBOOK_SHA256,
+            'declared_baseline_sha256' => NightingaleDemoCohort::CATALOG_DECLARED_BASELINE_SHA256,
             'grouper_version' => NightingaleDemoCohort::CATALOG_GROUPER_VERSION,
             'grouper_effective_start' => '2026-04-01',
             'grouper_effective_end' => '2026-09-30',
             'pathway_count' => NightingaleDemoCohort::CATALOG_PATHWAY_COUNT,
-            'pathway_drg_association_count' => 802,
-            'unique_drg_code_count' => 770,
-            'claim_count' => 10123,
-            'source_count' => 811,
-            'change_count' => 324,
-            'evidence_verified_count' => 96,
-            'evidence_limitations_count' => 154,
-            'signoff_queue_count' => 96,
-            'specialist_review_count' => 148,
-            'redesign_count' => 6,
+            'pathway_drg_association_count' => NightingaleDemoCohort::CATALOG_PATHWAY_DRG_ASSOCIATION_COUNT,
+            'unique_drg_code_count' => NightingaleDemoCohort::CATALOG_UNIQUE_DRG_CODE_COUNT,
+            'claim_count' => NightingaleDemoCohort::CATALOG_CLAIM_COUNT,
+            'source_count' => NightingaleDemoCohort::CATALOG_SOURCE_COUNT,
+            'change_count' => NightingaleDemoCohort::CATALOG_CHANGE_COUNT,
+            'evidence_verified_count' => NightingaleDemoCohort::CATALOG_EVIDENCE_VERIFIED_COUNT,
+            'evidence_limitations_count' => NightingaleDemoCohort::CATALOG_EVIDENCE_LIMITATIONS_COUNT,
+            'signoff_queue_count' => NightingaleDemoCohort::CATALOG_SIGNOFF_QUEUE_COUNT,
+            'specialist_review_count' => NightingaleDemoCohort::CATALOG_SPECIALIST_REVIEW_COUNT,
+            'redesign_count' => NightingaleDemoCohort::CATALOG_REDESIGN_COUNT,
             'clinical_signoff_count' => 0,
-            'volume_control_total' => 1000,
-            'coverage_control_percent' => 100,
+            'volume_control_total' => NightingaleDemoCohort::CATALOG_VOLUME_CONTROL_TOTAL,
+            'coverage_control_percent' => NightingaleDemoCohort::CATALOG_COVERAGE_CONTROL_PERCENT,
             'state' => 'inactive',
             'clinical_signoff_complete' => false,
             'source_controls' => '{}',

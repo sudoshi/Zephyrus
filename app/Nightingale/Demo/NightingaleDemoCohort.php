@@ -24,13 +24,41 @@ final class NightingaleDemoCohort
 
     public const DEMO_NOTICE = 'DEMO — NOT FOR CLINICAL USE';
 
-    public const CATALOG_RELEASE_UUID = '019f95de-b9a4-726a-91d3-41d6d911d4c4';
-
     public const CATALOG_DATASET_KEY = 'drg-care-pathways-verification-package-v43.1-20260721';
+
+    public const CATALOG_SOURCE_CSV_SHA256 = '2e3ac28238cdb8d7e1002117de6ad824'.'d71882dae54df77fe4abd214b268a6ae';
+
+    public const CATALOG_VERIFICATION_WORKBOOK_SHA256 = '42cadf84dce297c5a839784148ebd2c5'.'375320350394c0d143411008ed5bd171';
+
+    public const CATALOG_DECLARED_BASELINE_SHA256 = '6819c1e111985da1fc62f38cdd85dd2'.'a34b69308f4cf9be9f8941fbce62bf8fd';
 
     public const CATALOG_GROUPER_VERSION = '43.1';
 
     public const CATALOG_PATHWAY_COUNT = 250;
+
+    public const CATALOG_PATHWAY_DRG_ASSOCIATION_COUNT = 802;
+
+    public const CATALOG_UNIQUE_DRG_CODE_COUNT = 770;
+
+    public const CATALOG_CLAIM_COUNT = 10123;
+
+    public const CATALOG_SOURCE_COUNT = 811;
+
+    public const CATALOG_CHANGE_COUNT = 324;
+
+    public const CATALOG_EVIDENCE_VERIFIED_COUNT = 96;
+
+    public const CATALOG_EVIDENCE_LIMITATIONS_COUNT = 154;
+
+    public const CATALOG_SIGNOFF_QUEUE_COUNT = 96;
+
+    public const CATALOG_SPECIALIST_REVIEW_COUNT = 148;
+
+    public const CATALOG_REDESIGN_COUNT = 6;
+
+    public const CATALOG_VOLUME_CONTROL_TOTAL = 32967000;
+
+    public const CATALOG_COVERAGE_CONTROL_PERCENT = '99.000';
 
     public const RELEASE_POLICY_VERSION = 'nightingale-investor-demo-disclosure-v1';
 
