@@ -35,6 +35,14 @@ The sole release was `inactive`, institutionally `not_reviewed`, and not clinica
 signed off. Every observed stage and milestone definition was `draft`. No canonical
 catalog row was changed.
 
+The 2026-08-05 pre-provisioning reconciliation confirmed the production release UUID is
+`019f8702-a824-7172-b1dc-ab3612d2f1e8`. That UUID is environment-generated provenance,
+not the portable content identity. The exact cross-environment identity is the dataset
+key plus source CSV, verification workbook, and declared-baseline SHA-256 fingerprints;
+the provisioner separately rechecks grouper, all aggregate control counts, inactive
+state, and zero clinical signoff before accepting the row. The production evidence values
+are recorded in the paired implementation plan.
+
 ## Exact selected scenario facts
 
 | Demo handle | Pathway key                                                          | MS-DRG | Exact codebook title                                                                | Stages | Milestones |
@@ -110,5 +118,10 @@ authorization to provision.
 - App identity: the merged PR #111 uniqueness guard reports seven unique iOS identifiers
   and two unique Android identifiers in the reconciled checkout.
 
-No production mutation, account activation, deploy, or live credential verification has
-occurred at this checkpoint.
+PR #118 passed all 19 required checks, merged through protected `main` as
+`06e3d0b363f2ef553f857aa426f220ccff7fc8a4`, and is present in the canonically deployed
+`main` release `a38044ca9f0df564b7de08cf915bdcc189a4d860`. The first production cohort preview
+failed closed before any account write because the implementation had pinned a generated
+fixture release UUID. No cohort principal, credential, grant, encounter, projection,
+session, or token was created. A semantic catalog-identity correction is now the only
+code gate before the production preview/apply/verify/suspend-and-reapply sequence.
