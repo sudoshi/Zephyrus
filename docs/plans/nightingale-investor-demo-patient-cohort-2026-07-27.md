@@ -2,8 +2,12 @@
 
 **Date:** 2026-07-27
 
-**Status:** implementation released; production provisioning gated on catalog-identity
-correction and final operational proof
+**Status:** production cohort provisioned, isolated, kill-switch rehearsed, restored, and
+verified; public-WAN smoke recheck remains an outage-recovery observation, not a cohort
+correctness gate
+
+**Execution log:**
+[DEVLOG-nightingale-investor-demo-patient-cohort-2026-08-06.md](../devlog/DEVLOG-nightingale-investor-demo-patient-cohort-2026-08-06.md)
 
 **Scope:** five synthetic Nightingale demo accounts, five isolated inpatient scenarios,
 five exact MS-DRG bindings, safe in-place adoption of the existing reference sample, and
@@ -450,36 +454,27 @@ present in the subsequently deployed `main` commit
   in addition to email-shaped identifiers; and
 - backend, iOS, and Android tests for alias boundaries and token-route compatibility.
 
-| Work section                                                                                   | Status   | Current evidence                                                                                                                                   |
-| ---------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Code-owned five-member scenario and exact DRG manifest                                         | Complete | Five exact pathway keys, codebook titles, stage counts, and milestone counts are pinned in code and tests.                                         |
-| Patient-safe projection generation and catalog-content separation                              | Complete | Six synthetic projections per account; persistent notice and raw catalog-prose exclusion are asserted.                                             |
-| Exact alias authentication and account-isolation boundary                                      | Complete | Email compatibility plus exact aliases; all 20 directed cross-account substitutions return generic denial.                                         |
-| Atomic PostgreSQL preview/apply/verify/suspend implementation                                  | Complete | Serializable/advisory-locked apply, read-only preview/verify, rotation, suspend, and re-apply pass within 208 Patient tests/3,569 assertions.      |
-| Runtime-secret and command safety                                                              | Complete | Hidden prompt only, no password/secret/credential CLI option, exact distinct confirmations, one-way hashing, and redacted results.                 |
-| Existing reference sample adopted as `demo1`                                                   | Complete | Primary identity and encounter are preserved; changed lifecycle, contact data, or pre-existing linkage fails before cohort writes.                 |
-| Canonical iOS exact-alias implementation and simulator regression                              | Complete | 67 unit tests, nine UI journeys, Release build, artifact boundary, and transport check pass in `hummingbird/iosPatientApp`.                        |
-| Canonical Android exact-alias implementation and JVM regression                                | Complete | Debug/release unit, lint, build, artifact-boundary, and transport checks pass in `hummingbird/androidPatientApp`.                                  |
-| Canonical Android API 35 connected-emulator regression                                         | Complete | All 16 tests pass at 1080×2400/420 dpi; tab changes reset shared content scroll to keep revision and urgent context visible.                       |
-| PR #111 reconciliation without duplicate salvaged artifacts                                    | Complete | Cohort is rebased directly on the protected-main #111 merge; all live/foundation config keys remain and only the default-off demo gate is added.   |
-| Successor PR, exact-SHA CI, protected-main merge, and canonical deployment                     | Complete | PR #118 passed all 19 required jobs, merged as `06e3d0b3`, and remains present in canonically deployed `main` `a38044ca`.                          |
-| Portable, fail-closed catalog release identity                                                 | Active   | First production preview made no writes and exposed a generated-fixture UUID pin; correction now requires dataset key, three hashes, and controls. |
-| Production preview, atomic apply to unit 85, five live logins, read-after-write, and kill test | Pending  | Production remains unchanged beyond the pre-existing inactive reference sample; the failed preview was read-only.                                  |
+| Work section                                                                                   | Status   | Current evidence                                                                                                                                    |
+| ---------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Code-owned five-member scenario and exact DRG manifest                                         | Complete | Five exact pathway keys, codebook titles, stage counts, and milestone counts are pinned in code and tests.                                          |
+| Patient-safe projection generation and catalog-content separation                              | Complete | Six synthetic projections per account; persistent notice and raw catalog-prose exclusion are asserted.                                              |
+| Exact alias authentication and account-isolation boundary                                      | Complete | Email compatibility plus exact aliases; all 20 directed cross-account substitutions return generic denial.                                          |
+| Atomic PostgreSQL preview/apply/verify/suspend implementation                                  | Complete | Serializable/advisory-locked apply, read-only preview/verify, rotation, suspend, and re-apply pass within 210 Patient tests/3,580 assertions.       |
+| Runtime-secret and command safety                                                              | Complete | Hidden prompt only, no password/secret/credential CLI option, exact distinct confirmations, one-way hashing, and redacted results.                  |
+| Existing reference sample adopted as `demo1`                                                   | Complete | Primary identity and encounter are preserved; changed lifecycle, contact data, or pre-existing linkage fails before cohort writes.                  |
+| Canonical iOS exact-alias implementation and simulator regression                              | Complete | 67 unit tests, nine UI journeys, Release build, artifact boundary, and transport check pass in `hummingbird/iosPatientApp`.                         |
+| Canonical Android exact-alias implementation and JVM regression                                | Complete | Debug/release unit, lint, build, artifact-boundary, and transport checks pass in `hummingbird/androidPatientApp`.                                   |
+| Canonical Android API 35 connected-emulator regression                                         | Complete | All 16 tests pass at 1080×2400/420 dpi; tab changes reset shared content scroll to keep revision and urgent context visible.                        |
+| PR #111 reconciliation without duplicate salvaged artifacts                                    | Complete | Cohort is rebased directly on the protected-main #111 merge; all live/foundation config keys remain and only the default-off demo gate is added.    |
+| Successor PR, exact-SHA CI, protected-main merge, and canonical deployment                     | Complete | PR #118 merged as `06e3d0b3`; correction PR #121 passed all 19 jobs, merged as `ce9202cc`, and that exact SHA is deployed.                          |
+| Portable, fail-closed catalog release identity                                                 | Complete | Dataset key, three evidence hashes, every aggregate/governance control, and environment-local UUID propagation pass locally, in CI, and production. |
+| Production preview, atomic apply to unit 85, five live logins, read-after-write, and kill test | Complete | Zero-write preview, five-account apply, 30 projection reads, 20 isolation denials, suspend, five denied logins, re-apply, and final cleanup passed. |
 
-Remaining gates before production apply are:
-
-1. prove the semantic catalog-identity correction locally and in exact-SHA CI;
-2. merge the correction through protected `main`;
-3. deploy it through `./deploy.sh --check` and the confirmed canonical apply;
-4. rerun production preview against the explicit synthetic-demo unit 85 and require the
-   observed production release UUID plus zero cohort counts;
-5. perform one confirmed production apply using the non-echoing runtime prompt;
-6. execute read-after-write verification and all five live logins without retaining
-   tokens or credential material;
-7. rehearse suspension, prove all five credentials and grants are disabled, re-apply the
-   same runtime-only credential, and repeat final verification and live-login checks;
-8. retain only redacted cardinality, isolation, lineage, and rollback evidence; and
-9. keep the suspend command immediately available as the cohort kill switch.
+All production-apply gates are closed. The exact-SHA correction was merged and deployed;
+the zero-write preview reconciled the expected release and an empty cohort; the atomic
+apply, read-after-write checks, five-account live proof, directed isolation matrix,
+suspension, disabled-login proof, re-apply, restored-login proof, and final session/token
+cleanup all passed. The suspend command remains the immediate cohort kill switch.
 
 ### 11.1 Production catalog-identity reconciliation (2026-08-05)
 
@@ -510,3 +505,61 @@ aggregate and governance control above, and then propagates the observed UUID in
 account's immutable binding digest and product-owned preferences. Any fingerprint,
 control, state, binding, stage count, or milestone count mismatch still fails before the
 first cohort write. This reconciliation does not approve or activate the catalog.
+
+### 11.2 Production execution closure (2026-08-06)
+
+Protected-main PR #121 passed all 19 required exact-head checks and merged as
+`ce9202cc70245afd4c2df1c1ed6620709978753d`. Main's exact-SHA verdict passed, and the
+canonical deploy preflight verified the clean synchronized source, CI verdict, remote
+checkout, and operator prerequisites. The confirmed canonical deployment installed that
+exact release, built production assets, refreshed caches, and restarted Apache, the queue
+worker, and Arena. A contemporaneous WAN outage prevented the script's final public-DNS
+HTTPS request from connecting. Read-only verification over the documented internal path
+then proved the exact `.release-commit`, all three active services, the Zephyrus HTTP
+vhost, production Vite assets over its TLS vhost, required security headers, sensitive-
+path denials, TRACE rejection, the installed edge-security contract, and writable
+Laravel storage. No alternate deployment script, direct production pull, environment
+change, DNS change, SSH configuration change, or migration was used.
+
+The production preview against explicit synthetic-demo unit 85 returned:
+
+- release UUID `019f8702-a824-7172-b1dc-ab3612d2f1e8`, state `inactive`, and clinical
+  signoff incomplete;
+- exactly `demo1` through `demo5` ready for reconciliation;
+- zero cohort principals, identity links, encounter grants, sessions, tokens, or
+  projections; and
+- the existing reference sample ready for in-place `demo1` adoption.
+
+The confirmed apply used the non-echoing runtime prompt and transient provisioning gate.
+It produced exactly five active synthetic principals, five identity links, five grants,
+five operational encounters, and 30 released synthetic projections. `demo1` retained the
+reference sample's identity and encounter lineage. The other four members converged to
+their deterministic cohort-owned identities. Each account reconciled to its exact DRG,
+five draft stages, and the expected milestone count. Credential material was neither
+accepted as a command option nor emitted in output.
+
+Live black-box verification through the production TLS vhost proved:
+
+- five successful token exchanges and five one-encounter lists;
+- all 30 owned projection reads, six kinds per account;
+- the exact demo/non-clinical-use notice on all 30 projections;
+- `Cache-Control: no-store` on all 55 successful and denied patient responses checked;
+- all 20 directed cross-account pathway substitutions returning generic content-free
+  `404 not_found` responses without the target encounter handle or alias; and
+- matching append-only audit totals of 5 token issues, 5 encounter disclosures,
+  30 projection disclosures, and 20 isolation denials.
+
+The kill-switch rehearsal suspended all five owned principals, removed every active
+session and token, and caused all five live login attempts to return the identical
+generic credential denial. Re-apply restored the five accounts without duplicating a
+principal, identity, encounter, grant, policy, projection, or binding. All five live
+logins then succeeded. One final credential rotation revoked those verification sessions
+and tokens. The production resting state is five active demo principals, five exact
+one-to-one encounters, 30 projections, zero active sessions, and zero tokens. The
+catalog remains inactive, unsigned, unchanged, and explicitly non-clinical.
+
+No retained evidence contains the shared password, a password hash, bearer token,
+refresh token, session secret, patient source identifier, or raw catalog clinical prose.
+No code or build action targeted the superseded `nightingale/iosApp` or
+`nightingale/androidApp`; the canonical clients remain `hummingbird/iosPatientApp` and
+`hummingbird/androidPatientApp`.

@@ -2,6 +2,11 @@
 
 **Observed:** 2026-07-27
 
+**Production execution addendum:** 2026-08-06
+
+**Execution log:**
+[DEVLOG-nightingale-investor-demo-patient-cohort-2026-08-06.md](../../../devlog/DEVLOG-nightingale-investor-demo-patient-cohort-2026-08-06.md)
+
 **Database access:** PostgreSQL TLS session, repeatable-read read-only transaction
 
 **Mutation:** none
@@ -118,10 +123,22 @@ authorization to provision.
 - App identity: the merged PR #111 uniqueness guard reports seven unique iOS identifiers
   and two unique Android identifiers in the reconciled checkout.
 
-PR #118 passed all 19 required checks, merged through protected `main` as
-`06e3d0b363f2ef553f857aa426f220ccff7fc8a4`, and is present in the canonically deployed
-`main` release `a38044ca9f0df564b7de08cf915bdcc189a4d860`. The first production cohort preview
-failed closed before any account write because the implementation had pinned a generated
+PR #118 passed all 19 required checks and merged through protected `main` as
+`06e3d0b363f2ef553f857aa426f220ccff7fc8a4`. The first production cohort preview failed
+closed before any account write because the implementation had pinned a generated
 fixture release UUID. No cohort principal, credential, grant, encounter, projection,
-session, or token was created. A semantic catalog-identity correction is now the only
-code gate before the production preview/apply/verify/suspend-and-reapply sequence.
+session, or token was created by that attempt.
+
+PR #121 replaced the UUID pin with the evidence-defined identity above, passed all 19
+exact-head checks, and merged as `ce9202cc70245afd4c2df1c1ed6620709978753d`.
+The corrected provisioner was deployed through the canonical release path. Production
+preview, apply, verify, five-account live reads, 20 directed isolation denials, suspend,
+five disabled-account login denials, re-apply, restored logins, and final session/token
+cleanup all passed. The final resting state is five active synthetic principals, five
+identity links, five grants, five operational encounters, 30 released synthetic
+projections, zero active sessions, and zero tokens. The catalog remains inactive, has
+zero clinical signoffs, and was not modified or activated.
+
+No retained evidence contains the shared password, its hash, bearer or refresh tokens,
+session secrets, patient source identifiers, or raw catalog prose. Full redacted
+cardinalities, deployment proof, and outage disposition are in the paired execution log.
