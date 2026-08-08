@@ -341,6 +341,7 @@ final class SystemHealthService
             'cache' => $this->probeCache(),
             'sessions' => $this->probeSessions(),
             'integration_runtime' => $this->probeIntegrationRuntime(),
+            'patient_projection_pipeline' => $this->probePatientProjectionPipeline(),
             'realtime' => $this->probeRealtime(),
             'object_storage' => $this->probeObjectStorage(),
             'disk_capacity' => $this->probeDiskCapacity(),
@@ -570,6 +571,317 @@ final class SystemHealthService
             },
             'details' => compact('sourceCount', 'activeSources', 'failedSources', 'unobservedSources', 'openDeadLetters', 'openProjectionErrors'),
         ];
+    }
+
+    /**
+     * Bounded, content-free evidence for the draft-only patient pathway
+     * producer. This is deliberately a monitor, not an ingestion worker: it
+     * does not call a source, advance a cursor, release content, or identify a
+     * patient, grant, encounter, pathway, or source event.
+     *
+     * @return array{status:string, summary:string, errorCode?:string|null, details:array<string, mixed>}
+     */
+    private function probePatientProjectionPipeline(): array
+    {
+        $gates = [
+            'patientProduct' => (bool) config('nightingale.enabled', false),
+            'patientPathway' => (bool) config('nightingale.features.pathway', false),
+            'pathwayHistoryDrafts' => (bool) config('nightingale.features.pathway_history_drafts', false),
+            'carePathwaysPatient' => (bool) config('care-pathways.patient_enabled', false),
+        ];
+        $enabledGateCount = collect($gates)->filter()->count();
+        $baseDetails = [
+            'monitoringEnabled' => $enabledGateCount === count($gates),
+            'enabledGateCount' => $enabledGateCount,
+            'requiredGateCount' => count($gates),
+            'effectivePathwayInstances' => null,
+            'observedPathwayInstances' => null,
+            'unobservedPathwayInstances' => null,
+            'oldestObservationAgeMinutes' => null,
+            'newestObservationAgeMinutes' => null,
+            'latestDraftProjectionCounts' => [
+                'expected' => null,
+                'missing' => null,
+                'behindSource' => null,
+                'current' => null,
+                'aging' => null,
+                'stale' => null,
+                'unknown' => null,
+                'unavailable' => null,
+            ],
+            'recentFailureCounts' => [
+                'total' => null,
+                'retryable' => null,
+                'manualReview' => null,
+                'terminal' => null,
+            ],
+        ];
+
+        if ($enabledGateCount === 0) {
+            return [
+                'status' => 'healthy',
+                'summary' => 'Patient pathway projection monitoring is disabled by the current governance gates.',
+                'details' => $baseDetails,
+            ];
+        }
+
+        if ($enabledGateCount !== count($gates)) {
+            return [
+                'status' => 'warning',
+                'summary' => 'Patient pathway projection monitoring has incomplete governance prerequisites.',
+                'errorCode' => 'patient_projection_monitoring_prerequisites_incomplete',
+                'details' => $baseDetails,
+            ];
+        }
+
+        $requiredTables = [
+            'patient_experience.encounter_access_grants',
+            'patient_experience.pathway_instances',
+            'patient_experience.pathway_stage_instances',
+            'patient_experience.pathway_stage_status_events',
+            'patient_experience.pathway_milestone_instances',
+            'patient_experience.pathway_milestone_status_events',
+            'patient_experience.encounter_projections',
+            'patient_experience.source_projection_failures',
+        ];
+        if (DB::connection()->getDriverName() !== 'pgsql' || collect($requiredTables)->contains(
+            fn (string $table): bool => ! Schema::hasTable($table),
+        )) {
+            return [
+                'status' => 'critical',
+                'summary' => 'The enabled patient pathway projection monitor lacks its required schema.',
+                'errorCode' => 'patient_projection_monitoring_schema_missing',
+                'details' => $baseDetails,
+            ];
+        }
+
+        $observedAt = CarbonImmutable::now();
+        $warningLagMinutes = max(1, (int) config('admin-health.patient_projection.warning_lag_minutes', 30));
+        $criticalLagMinutes = max(
+            $warningLagMinutes,
+            (int) config('admin-health.patient_projection.critical_lag_minutes', 240),
+        );
+        $failureWindowMinutes = max(1, (int) config('admin-health.patient_projection.failure_window_minutes', 60));
+        $criticalFailureCount = max(1, (int) config('admin-health.patient_projection.critical_failure_count', 3));
+        $observationSummary = $this->patientPathwayObservationSummary($observedAt);
+        $projectionSummary = $this->patientPathwayProjectionSummary($observedAt);
+        $failureSummary = $this->patientPathwayFailureSummary($observedAt, $failureWindowMinutes);
+
+        $oldestAge = $this->ageInMinutes($observationSummary->oldest_observed_at ?? null, $observedAt);
+        $newestAge = $this->ageInMinutes($observationSummary->newest_observed_at ?? null, $observedAt);
+        $effectiveInstances = (int) ($observationSummary->effective_instance_count ?? 0);
+        $unobservedInstances = (int) ($observationSummary->unobserved_instance_count ?? 0);
+        $missingDrafts = (int) ($projectionSummary->missing_count ?? 0);
+        $draftsBehindSource = (int) ($projectionSummary->behind_source_count ?? 0);
+        $staleProjections = (int) ($projectionSummary->stale_count ?? 0);
+        $recentFailures = (int) ($failureSummary->total_count ?? 0);
+
+        $details = [
+            ...$baseDetails,
+            'effectivePathwayInstances' => $effectiveInstances,
+            'observedPathwayInstances' => (int) ($observationSummary->observed_instance_count ?? 0),
+            'unobservedPathwayInstances' => $unobservedInstances,
+            'oldestObservationAgeMinutes' => $oldestAge,
+            'newestObservationAgeMinutes' => $newestAge,
+            'latestDraftProjectionCounts' => [
+                'expected' => (int) ($projectionSummary->expected_count ?? 0),
+                'missing' => $missingDrafts,
+                'behindSource' => $draftsBehindSource,
+                'current' => (int) ($projectionSummary->current_count ?? 0),
+                'aging' => (int) ($projectionSummary->aging_count ?? 0),
+                'stale' => $staleProjections,
+                'unknown' => (int) ($projectionSummary->unknown_count ?? 0),
+                'unavailable' => (int) ($projectionSummary->unavailable_count ?? 0),
+            ],
+            'recentFailureCounts' => [
+                'total' => $recentFailures,
+                'retryable' => (int) ($failureSummary->retryable_count ?? 0),
+                'manualReview' => (int) ($failureSummary->manual_review_count ?? 0),
+                'terminal' => (int) ($failureSummary->terminal_count ?? 0),
+            ],
+            'warningLagMinutes' => $warningLagMinutes,
+            'criticalLagMinutes' => $criticalLagMinutes,
+            'failureWindowMinutes' => $failureWindowMinutes,
+            'criticalFailureCount' => $criticalFailureCount,
+        ];
+
+        if ($effectiveInstances === 0) {
+            return [
+                'status' => 'healthy',
+                'summary' => 'Patient pathway projection monitoring is ready; no effective pathway instances require a draft.',
+                'details' => $details,
+            ];
+        }
+
+        $criticalLag = $unobservedInstances > 0
+            || $missingDrafts > 0
+            || $draftsBehindSource > 0
+            || $staleProjections > 0
+            || ($oldestAge !== null && $oldestAge >= $criticalLagMinutes);
+        if ($criticalLag || $recentFailures >= $criticalFailureCount) {
+            return [
+                'status' => 'critical',
+                'summary' => $criticalLag
+                    ? 'An enabled patient pathway projection is missing, behind source history, stale, or beyond its critical freshness threshold.'
+                    : 'Recent patient pathway projection failures crossed the critical threshold.',
+                'errorCode' => $criticalLag
+                    ? 'patient_projection_freshness_critical'
+                    : 'patient_projection_failures_critical',
+                'details' => $details,
+            ];
+        }
+
+        $warningLag = (int) ($projectionSummary->aging_count ?? 0) > 0
+            || ($oldestAge !== null && $oldestAge >= $warningLagMinutes);
+        if ($warningLag || $recentFailures > 0) {
+            return [
+                'status' => 'warning',
+                'summary' => $warningLag
+                    ? 'An enabled patient pathway projection requires freshness review.'
+                    : 'Recent patient pathway projection failures require operator review.',
+                'errorCode' => $warningLag
+                    ? 'patient_projection_freshness_warning'
+                    : 'patient_projection_failures_warning',
+                'details' => $details,
+            ];
+        }
+
+        return [
+            'status' => 'healthy',
+            'summary' => 'Enabled patient pathway projections have current bounded freshness and no recent failures.',
+            'details' => $details,
+        ];
+    }
+
+    private function patientPathwayObservationSummary(CarbonImmutable $observedAt): object
+    {
+        $latestEvents = $this->patientPathwayLatestObservations();
+
+        return DB::table('patient_experience.pathway_instances as instances')
+            ->join(
+                'patient_experience.encounter_access_grants as grants',
+                'grants.access_grant_id',
+                '=',
+                'instances.access_grant_id',
+            )
+            ->leftJoinSub($latestEvents, 'observations', function ($join): void {
+                $join->on('observations.pathway_instance_id', '=', 'instances.pathway_instance_id');
+            })
+            ->where('grants.status', 'active')
+            ->where('grants.valid_from', '<=', $observedAt)
+            ->where(function ($window) use ($observedAt): void {
+                $window->whereNull('grants.expires_at')->orWhere('grants.expires_at', '>', $observedAt);
+            })
+            ->selectRaw('count(*) AS effective_instance_count')
+            ->selectRaw('count(observations.latest_observed_at) AS observed_instance_count')
+            ->selectRaw('count(*) FILTER (WHERE observations.latest_observed_at IS NULL) AS unobserved_instance_count')
+            ->selectRaw('min(observations.latest_observed_at) AS oldest_observed_at')
+            ->selectRaw('max(observations.latest_observed_at) AS newest_observed_at')
+            ->first();
+    }
+
+    private function patientPathwayProjectionSummary(CarbonImmutable $observedAt): object
+    {
+        $producerVersion = (string) config(
+            'nightingale.pathway_history_drafts.producer_version',
+            'patient-pathway-history-draft-v1',
+        );
+        $latest = DB::table('patient_experience.encounter_projections as candidates')
+            ->where('candidates.projection_kind', 'pathway')
+            ->where('candidates.release_state', 'draft')
+            ->where('candidates.source_version', $producerVersion)
+            ->selectRaw('candidates.access_grant_id, max(candidates.projection_sequence) AS projection_sequence')
+            ->groupBy('candidates.access_grant_id');
+
+        $observedGrants = DB::table('patient_experience.pathway_instances as instances')
+            ->joinSub($this->patientPathwayLatestObservations(), 'observations', function ($join): void {
+                $join->on('observations.pathway_instance_id', '=', 'instances.pathway_instance_id');
+            })
+            ->selectRaw('instances.access_grant_id, max(observations.latest_observed_at) AS latest_observed_at')
+            ->groupBy('instances.access_grant_id');
+
+        return DB::table('patient_experience.encounter_access_grants as grants')
+            ->joinSub($observedGrants, 'observed_grants', function ($join): void {
+                $join->on('observed_grants.access_grant_id', '=', 'grants.access_grant_id');
+            })
+            ->leftJoinSub($latest, 'latest', function ($join): void {
+                $join->on('latest.access_grant_id', '=', 'grants.access_grant_id');
+            })
+            ->leftJoin('patient_experience.encounter_projections as projections', function ($join) use ($producerVersion): void {
+                $join->on('projections.access_grant_id', '=', 'latest.access_grant_id')
+                    ->on('projections.projection_sequence', '=', 'latest.projection_sequence')
+                    ->where('projections.projection_kind', 'pathway')
+                    ->where('projections.release_state', 'draft')
+                    ->where('projections.source_version', $producerVersion);
+            })
+            ->where('grants.status', 'active')
+            ->where('grants.valid_from', '<=', $observedAt)
+            ->where(function ($window) use ($observedAt): void {
+                $window->whereNull('grants.expires_at')->orWhere('grants.expires_at', '>', $observedAt);
+            })
+            ->selectRaw('count(*) AS expected_count')
+            ->selectRaw('count(*) FILTER (WHERE projections.encounter_projection_id IS NULL) AS missing_count')
+            ->selectRaw('count(*) FILTER (WHERE projections.source_observed_at < observed_grants.latest_observed_at) AS behind_source_count')
+            ->selectRaw("count(*) FILTER (WHERE projections.freshness_class = 'current') AS current_count")
+            ->selectRaw("count(*) FILTER (WHERE projections.freshness_class = 'aging') AS aging_count")
+            ->selectRaw("count(*) FILTER (WHERE projections.freshness_class = 'stale') AS stale_count")
+            ->selectRaw("count(*) FILTER (WHERE projections.freshness_class = 'unknown') AS unknown_count")
+            ->selectRaw("count(*) FILTER (WHERE projections.freshness_class = 'unavailable') AS unavailable_count")
+            ->first();
+    }
+
+    private function patientPathwayLatestObservations(): \Illuminate\Database\Query\Builder
+    {
+        $stageEvents = DB::table('patient_experience.pathway_stage_status_events as events')
+            ->join(
+                'patient_experience.pathway_stage_instances as instances',
+                'instances.pathway_stage_instance_id',
+                '=',
+                'events.pathway_stage_instance_id',
+            )
+            ->selectRaw('instances.pathway_instance_id, max(events.source_observed_at) AS observed_at')
+            ->groupBy('instances.pathway_instance_id');
+        $milestoneEvents = DB::table('patient_experience.pathway_milestone_status_events as events')
+            ->join(
+                'patient_experience.pathway_milestone_instances as instances',
+                'instances.pathway_milestone_instance_id',
+                '=',
+                'events.pathway_milestone_instance_id',
+            )
+            ->selectRaw('instances.pathway_instance_id, max(events.source_observed_at) AS observed_at')
+            ->groupBy('instances.pathway_instance_id');
+
+        return DB::query()
+            ->fromSub($stageEvents->unionAll($milestoneEvents), 'all_events')
+            ->selectRaw('pathway_instance_id, max(observed_at) AS latest_observed_at')
+            ->groupBy('pathway_instance_id');
+    }
+
+    private function patientPathwayFailureSummary(CarbonImmutable $observedAt, int $windowMinutes): object
+    {
+        $sourceSystemKey = (string) config(
+            'nightingale.pathway_history_drafts.source_system_key',
+            'care-pathways.pathway-history-v1',
+        );
+
+        return DB::table('patient_experience.source_projection_failures')
+            ->where('source_system_key', $sourceSystemKey)
+            ->where('projection_kind', 'pathway')
+            ->where('occurred_at', '>=', $observedAt->subMinutes($windowMinutes))
+            ->selectRaw('count(*) AS total_count')
+            ->selectRaw("count(*) FILTER (WHERE retryability = 'retryable') AS retryable_count")
+            ->selectRaw("count(*) FILTER (WHERE retryability = 'manual_review') AS manual_review_count")
+            ->selectRaw("count(*) FILTER (WHERE retryability = 'terminal') AS terminal_count")
+            ->first();
+    }
+
+    private function ageInMinutes(mixed $timestamp, CarbonImmutable $observedAt): ?int
+    {
+        if ($timestamp === null) {
+            return null;
+        }
+
+        return max(0, CarbonImmutable::parse((string) $timestamp)->diffInMinutes($observedAt));
     }
 
     private function probeRealtime(): array

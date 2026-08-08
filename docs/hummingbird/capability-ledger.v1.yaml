@@ -1306,6 +1306,7 @@ capabilities:
       - tests/Feature/Patient/PatientProjectionApiTest.php
       - tests/Feature/Patient/PatientProjectionKernelTest.php
       - tests/Feature/Patient/PatientProjectionOutboxTest.php
+      - tests/Feature/Patient/PatientProjectionPipelineHealthTest.php
       - tests/Feature/Patient/PatientPathwayInstanceHistoryTest.php
       - tests/Feature/Patient/PatientSessionManagementTest.php
       - tests/Feature/Patient/PatientMessagingApiTest.php
